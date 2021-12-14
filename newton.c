@@ -516,18 +516,16 @@ int main(int argc, char const *argv[])
 	  
 	// initialize base image
 	fimage_init( xdim, ydim, &f );
+	fimage_init( xdim, ydim, &b );
 
 	// convert base image to frgb
-	continuous( channels, img, &f );
+	continuous( channels, img, &b );
 	free( img );
 
-	fimage_init( 1672, 2319, &b );
-	fimage_crop( 1607, 490, 3279, 2809, &f, &b );
-/*
 	// initialize sum image
-	fimage_init( 1672, 2319, &g );	
-	fimage_init( 1672, 2319, &r );	//result
-	fimage_fill( black, &r );		
+	// fimage_init( xdim, ydim, &g );	
+	fimage_init( xdim, ydim, &r );	//result
+	fimage_fill( black, &r );	
 
 	for( i = 1; i <= nfiles; i++ )
 	{
@@ -538,21 +536,20 @@ int main(int argc, char const *argv[])
 		// load in image, convert to frgb
 		continuous( channels, img, &f );
 		free( img );
-		fimage_crop( 1607, 490, 3279, 2809, &f, &g );
 		// subtract base image
-		fimage_subtract( &g, &b, &g );
+		fimage_subtract( &f, &b, &f );
 		//fimage_square( &f );
 
 		// multiply color by filter - blend back with self (imperfect filter)
-		fimage_filter( rainbow( 1.0 * ( i - 1 ) / nfiles ), &g );
+		fimage_filter( rainbow( 1.0 * ( i - 1 ) / nfiles ), &f );
 
-		fimage_normalize( &g );
+		fimage_normalize( &f );
 
 		//fimage_rotate( i * TAU / nfiles, &f, &g);
 		//fimage_translate( ( i - nfiles / 2 ) * ( 4000 / nfiles ), 0, &f, &g);
 
 		// add image to result
-		fimage_sum( &g, &r, &r );
+		fimage_sum( &f, &r, &r );
 	}
 
 	// optional - add base image back in
@@ -561,7 +558,7 @@ int main(int argc, char const *argv[])
 	// normalize and render
 	fimage_normalize( &r );
 	//fimage_circle_crop( &r );
-*/
+
 	// save result
 	quantize( img, &b );
 	sprintf( filename, "%s_out.jpg", basename);
@@ -573,9 +570,9 @@ int main(int argc, char const *argv[])
 	fimage_free( &b );
 	printf("free f\n");
 	fimage_free( &f );	
-/*	printf("free g\n");
-	fimage_free( &g );
+	printf("free g\n");
+	// fimage_free( &g );
 	printf("free r\n");
-	fimage_free( &r ); */
+	fimage_free( &r ); 
 	return 0; 
 }
