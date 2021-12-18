@@ -17,7 +17,7 @@
 
 typedef struct Vect2 
 {
-	double x,y;
+	float x,y;
 } vect2;
 
 typedef struct Vfield
@@ -39,31 +39,31 @@ typedef struct Cluster
 	// vfield *field;
 
 	// Size properties
-	double size;		// Size of object in parametric space
+	float size;		// Size of object in parametric space
 	bool size_prop;		// Is size proportional to step size?
 
 	// Step properties
-	double step;		// Initial step size
-	double prop;		// Proportional change in stepsize per step
+	float step;		// Initial step size
+	float prop;		// Proportional change in stepsize per step
 	bool bounded;		// Is there a boundary condition?
 	vect2 bmin,bmax;	// Bounding rectangle for cluster
 
 	// Move at an angle to vector field
-	double ang_offset; // Angle of motion relative to vector field
-	// double ang_offset_inc;  
+	float ang_offset; // Angle of motion relative to vector field
+	// float ang_offset_inc;  
 	// other angle offset parameters - proportional to size?
 
 	// Parameters for handling angles (in degrees)
-	double ang_init;	// initial angle
-	double ang_inc;		// angle increment
+	float ang_init;	// initial angle
+	float ang_inc;		// angle increment
 	bool   ang_relative;	// Are angles relative to vector direction?
 
 	// Color properties
 	bool color_filter;	// Filter the splat color
-	double start_color;	// starting color in rainbow function
-	double color_inc;   // color change
-	double brightness;	// overall brightness of splat
-	double brightness_prop; // proportional change in brightness per step
+	float start_color;	// starting color in rainbow function
+	float color_inc;   // color change
+	float brightness;	// overall brightness of splat
+	float brightness_prop; // proportional change in brightness per step
 	// other brightness change properties here
 
 	// animation properties
@@ -75,7 +75,7 @@ typedef struct Cluster
 
 typedef struct FRGB
 {
-	double r,g,b;
+	float r,g,b;
 } frgb;
 
 typedef struct FIMAGE
@@ -86,16 +86,16 @@ typedef struct FIMAGE
 } fimage;
 
 // returns a random number between 0 and 1
-double rand1()
+float rand1()
 {
 	return (rand() * 1.0) / (RAND_MAX * 1.0);
 }
 
 // rotate a vector by theta degrees
-vect2 v_rotate( vect2 in, double theta)
+vect2 v_rotate( vect2 in, float theta)
 {
 	vect2 out;
-	double thrad = theta / 360.0 * TAU;
+	float thrad = theta / 360.0 * TAU;
 
 	out.x = in.x * cos( thrad ) - in.y * sin( thrad );
 	out.y = in.x * sin( thrad ) + in.y * cos( thrad );
@@ -136,7 +136,7 @@ void c_initialize( cluster *k )
 	k->brightness_prop = 1.0;
 }
 
-void c_set_run( int n, vect2 start, double step, double prop, double ang_offset, cluster *uck )
+void c_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck )
 {
 	uck->n = n;
 	uck->start = start;
@@ -152,7 +152,7 @@ void c_set_bounds( vect2 bmin, vect2 bmax, cluster *uck )
 	uck->bmax = bmax;
 }
 
-void c_set_color( double start_color, double color_inc, double brightness, double brightness_prop, cluster *uck )
+void c_set_color( float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
 {
 	uck->color_filter = true;
 	uck->start_color = start_color;
@@ -161,31 +161,31 @@ void c_set_color( double start_color, double color_inc, double brightness, doubl
 	uck->brightness_prop = brightness_prop;
 }
 
-void c_set_size( bool size_prop, double size, cluster *uck )
+void c_set_size( bool size_prop, float size, cluster *uck )
 {
 	uck->size_prop = size_prop;
 	uck->size = size;
 }
 
-double v_magnitude( vect2 v )
+float v_magnitude( vect2 v )
 {
 	return(sqrt(v.x*v.x + v.y*v.y));
 }
 
 // Returns angle corresponding to vector (in degrees)
 // Wondering if I should correspond to NESW?
-double vtoa( vect2 v )
+float vtoa( vect2 v )
 {
-	double ang;
+	float ang;
 
 	ang = atan2( v.y, v.x ) / TAU * 360.0;
 	if( ang < 0.0 ) ang += 360.0;
 	return ang;
 }
 
-double add_angle( double a1, double a2 )
+float add_angle( float a1, float a2 )
 {
-	double a = fmod(a1 + a2, 360.0 );
+	float a = fmod(a1 + a2, 360.0 );
 	if( a < 0.0 ) a += 360.0;
 	return a;
 }
@@ -193,7 +193,7 @@ double add_angle( double a1, double a2 )
 vect2 v_normalize( vect2 v )
 {
 	vect2 w;
-	double m = v_magnitude(v);
+	float m = v_magnitude(v);
 	
 	if(m == 0.0)
 	{
@@ -226,8 +226,8 @@ vect2 v_complement( vect2 v )
 vect2 box_of_random2( vect2 min, vect2 max)
 {
 	vect2 w;
-	double xprop = rand1();
-	double yprop = rand1();
+	float xprop = rand1();
+	float yprop = rand1();
 
 	w.x = min.x * (1.0 - xprop) + max.x * xprop;
 	w.y = min.y * (1.0 - yprop) + max.y * yprop;
@@ -290,7 +290,7 @@ vect2 vfield_smooth_index( vect2 v, vfield *f )
 {
 	vect2 w,u00,u01,u10,u11,u;
 	int xi, yi;		// Integer part of index
-	double xf, yf;	// Fractional part of index
+	float xf, yf;	// Fractional part of index
 
 	// calculate index of vector in rational space
 	// out of bounds vectors just wrap around - index will take the modulus
@@ -316,12 +316,12 @@ vect2 vfield_smooth_index( vect2 v, vfield *f )
 }
 
 // Use Newton's method to move along flow line proportional to step value
-vect2 vfield_advect( vect2 v, vfield *f, double step, double angle)
+vect2 vfield_advect( vect2 v, vfield *f, float step, float angle)
 {
 	vect2 w,u;
 
 	w = vfield_smooth_index( v, f );
-	v_rotate( w, angle );
+	w = v_rotate( w, angle );
 	u.x = v.x + step * w.x;
 	u.y = v.y + step * w.y;
 
@@ -351,7 +351,7 @@ void vfield_complement( vfield *f)
 }
 
 // scales a vector field by factor s
-void vfield_scale( double s, vfield *f)
+void vfield_scale( float s, vfield *f)
 {
 	int xi, yi;
 	vect2 *w = f->f;
@@ -395,12 +395,12 @@ void vfield_sum( vfield *a, vfield *b, vfield *f)
 }
 
 // Creates an inverse square of vector field with optional softening factor to avoid infinity 
-void vfield_inverse_square( double diameter, double soften, vfield *f )
+void vfield_inverse_square( float diameter, float soften, vfield *f )
 {
 	int xi, yi;
 	vect2 *w = f->f;
 	vect2 u;
-	double s;
+	float s;
 
 	for(yi = 0; yi < f->ydim; yi++ )
 	{
@@ -482,7 +482,7 @@ void vfield_rotation( vect2 center, vfield *f )
 }
 
 // creates a spiraling vector field by combining concentric and rotational fields in proportion
-void vfield_spiral( vect2 center, double cscale, double rscale, vfield *f )
+void vfield_spiral( vect2 center, float cscale, float rscale, vfield *f )
 {
 	vfield g;
 	vfield_initialize( f->xdim, f->ydim, f->min, f->max, &g );	// initialize buffer
@@ -520,10 +520,10 @@ void vfield_add_stripes( vfield *f )
 {
 	int n=4;	// four jags /* plus one to rule them all */
 	int i;
-	double w;	// width of stripe
-	double stripex;	// x position of stripe
+	float w;	// width of stripe
+	float stripex;	// x position of stripe
 	vect2 v, min, max;
-	double c, vv;
+	float c, vv;
 
 	for( i=0; i<n; i++ )
 	{
@@ -559,7 +559,7 @@ void vfield_add_stripes( vfield *f )
 }
 
 // Composite vector field including multiple centers of rotation
-void vfield_turbulent( double diameter, double n, vfield *f)
+void vfield_turbulent( float diameter, float n, vfield *f)
 {
 	int i;
 	vect2 w,c;
@@ -630,7 +630,7 @@ char *remove_ext (char* myStr, char extSep, char pathSep) {
     return retStr;
 }
 
-frgb rainbow( double a )
+frgb rainbow( float a )
 {
 	frgb c;
 
@@ -919,7 +919,7 @@ void fimage_normalize( fimage *f )
 {
 	int x,y;
 	frgb *p = f->f;
-	double max = 0.0;
+	float max = 0.0;
 	int xdim = f->xdim;
 	int ydim = f->ydim;
 
@@ -969,18 +969,18 @@ frgb fimage_index( int x, int y, fimage *f )
 }
 
 // in ang out images must be separate
-void fimage_rotate( double theta, fimage *in, fimage *out )
+void fimage_rotate( float theta, fimage *in, fimage *out )
 {
 	int x, y, ox, oy;
-	double fx, fy, fox, foy;
+	float fx, fy, fox, foy;
 	frgb *o = out->f;
 	int xdim = in->xdim;
 	int ydim = in->ydim;
-	double half_xdim = xdim / 2.0;
-	double half_ydim = ydim / 2.0;
+	float half_xdim = xdim / 2.0;
+	float half_ydim = ydim / 2.0;
 
-	double cth = cos( -theta );	// ulhu
-	double sth = sin( -theta );
+	float cth = cos( -theta );	// ulhu
+	float sth = sin( -theta );
 
 	for( y = 0; y < ydim; y++ )
 	{
@@ -1022,10 +1022,10 @@ void fimage_translate( int xoff, int yoff, fimage *in, fimage *out )
 // Colors black everything outside of a centered circle
 void fimage_circle_crop( fimage *f )
 {	
-	double r2;
+	float r2;
 	frgb *p = f->f;
 	int x, y;
-	double fx, fy;
+	float fx, fy;
 	int xdim = f->xdim;
 	int ydim = f->ydim;
 
@@ -1059,10 +1059,10 @@ void fimage_circle_crop( fimage *f )
 
 void fimage_circle_ramp( fimage *f )
 {	
-	double r,r1,r2;
+	float r,r1,r2;
 	frgb *p = f->f;
 	int x, y;
-	double fx, fy;
+	float fx, fy;
 	int xdim = f->xdim;
 	int ydim = f->ydim;
 
@@ -1103,7 +1103,7 @@ void fimage_circle_ramp( fimage *f )
 }
 
 // future - add antialiasing
-void fimage_make_mask( double thresh, fimage *in, fimage *out )
+void fimage_make_mask( float thresh, fimage *in, fimage *out )
 {
 	int x,y;
 	frgb *pin = in->f;
@@ -1147,7 +1147,7 @@ void fimage_apply_mask( fimage *base, fimage *mask, fimage *result )
 }
 
 
-void fimage_clip( double min, double max, fimage *in )
+void fimage_clip( float min, float max, fimage *in )
 {
 	int x,y;
 	frgb *p = in->f;
@@ -1171,8 +1171,8 @@ void fimage_clip( double min, double max, fimage *in )
 // Future - use multiple resolutions for sampling to limit aliasing
 void fimage_splat( 
 	vect2 center, 			// coordinates of splat center
-	double scale, 			// radius of splat
-	double theta, 			// rotation in degrees
+	float scale, 			// radius of splat
+	float theta, 			// rotation in degrees
 	frgb tint,				// change the color of splat
 	fimage *f, 				// image to be splatted upon
 	fimage *g 				// image of the splat
@@ -1267,14 +1267,14 @@ void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
 {
 	vect2 w = uck->start;
 	vect2 u;
-	double step = uck->step;
-	double ang = uck->ang_init;
-	double rel_ang;
+	float step = uck->step;
+	float ang = uck->ang_init;
+	float rel_ang;
 	int i=0;
 	frgb tint;
-	double rainbow_index = uck->start_color;
-	double size = uck->size;
-	double brightness = uck->brightness;
+	float rainbow_index = uck->start_color;
+	float size = uck->size;
+	float brightness = uck->brightness;
 
 	if( !uck->color_filter ) {
 		tint.r = 1.0; tint.g = 1.0; tint.b = 1.0;
@@ -1343,14 +1343,14 @@ void render_cluster_list( int nruns, cluster *clist, vfield *vf, fimage *splat, 
 // occasional mutation changing some aspect of a run
 // needs to be fixed
 void generate_circle( 	vect2 c, 	// center of circle
-						double r, 	// radius of circle
-						double start_ang,	// starting angle in degrees
+						float r, 	// radius of circle
+						float start_ang,	// starting angle in degrees
 						int m,			// number of runs around circle
 						cluster *uck,
 						vfield *f )
 {
 	int i;
-	double theta = TAU * start_ang / 360.0;
+	float theta = TAU * start_ang / 360.0;
 
 	for(i=0; i<m; i++)
 	{
@@ -1362,7 +1362,7 @@ void generate_circle( 	vect2 c, 	// center of circle
 }
 
 // generates a cluster in a regular grid, aligned along vector field
-void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, double mutation_rate, vfield *f )
+void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, float mutation_rate, vfield *f )
 {
 	int i, j;
 	vect2 v,w;
@@ -1388,7 +1388,7 @@ void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, double mutatio
 // generate_line()
 
 // creates a random distribution of runs
-void generate_random( int nruns, vect2 imin, vect2 imax, double ang_offset, cluster *clist)
+void generate_random( int nruns, vect2 imin, vect2 imax, float ang_offset, cluster *clist)
 {
 	cluster *uck = clist;
 	int run;
@@ -1412,7 +1412,7 @@ void generate_random( int nruns, vect2 imin, vect2 imax, double ang_offset, clus
 
 		c_set_bounds( imin, imax, uck );
 
-		c_set_color( 	rand1() * 0.33 + 0.5, 		// Initial color
+		c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
 						rand1() * 0.005 - 0.0025, 		// Color increment
 						0.5, 		// Initial brightness
 						1.0, 		// Brightness proportional change per step
@@ -1572,10 +1572,10 @@ int main( int argc, char const *argv[] )
 
 	// generate_jaggie( &result, &splat );
 	
-	int nruns = 100;
+	int nruns = 150;
 	cluster runs[ nruns ];
 	// future: a structure that holds parameters for randomness (loaded from file)
-	generate_random( nruns, bound1, bound2, 0.0, runs );
+	generate_random( nruns, bound1, bound2, 90.0, runs );
 	vfield vf;
 
 	bound1.x = -1.0;
@@ -1590,12 +1590,12 @@ int main( int argc, char const *argv[] )
 	// separated generation from rendering
 	render_cluster_list( nruns, runs, &vf, &splat, &result);
 
-	// add base image back in
-	fimage_sum( &base, &result, &result );
-	fimage_apply_mask( &base, &mask, &result );
-
 	// Clip colors in image to prevent excessive darkening
 	fimage_clip( 0.0, 1.5, &result );
+	fimage_normalize( &result );
+	// add base image back in
+	fimage_sum( &base, &result, &result );	
+	fimage_apply_mask( &base, &mask, &result );
 
 	// normalize and render
 	fimage_normalize( &result );
