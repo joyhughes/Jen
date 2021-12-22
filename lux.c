@@ -15,6 +15,9 @@
 
 #define TAU 6.283185307179586
 
+bool critical_run;
+bool critical_element;
+
 typedef struct Vect2 
 {
 	float x,y;
@@ -39,13 +42,13 @@ typedef struct Cluster
 	// vfield *field;
 
 	// Size properties
-	float size;		// Size of object in parametric space
-	bool size_prop;		// Is size proportional to step size?
+	float size;			// Size of object in parametric space
+	bool  size_prop;		// Is size proportional to step size?
 
 	// Step properties
-	float step;		// Initial step size
-	float prop;		// Proportional change in stepsize per step
-	bool bounded;		// Is there a boundary condition?
+	float step;			// Initial step size
+	float prop;			// Proportional change in stepsize per step
+	bool  bounded;		// Is there a boundary condition?
 	vect2 bmin,bmax;	// Bounding rectangle for cluster
 
 	// Move at an angle to vector field
@@ -54,20 +57,29 @@ typedef struct Cluster
 	// other angle offset parameters - proportional to size?
 
 	// Parameters for handling angles (in degrees)
-	float ang_init;	// initial angle
+	float ang_init;		// initial angle
 	float ang_inc;		// angle increment
-	bool   ang_relative;	// Are angles relative to vector direction?
+	bool  ang_relative;	// Are angles relative to vector direction?
 
 	// Color properties
-	bool color_filter;	// Filter the splat color
-	float start_color;	// starting color in rainbow function
-	float color_inc;   // color change
-	float brightness;	// overall brightness of splat
-	float brightness_prop; // proportional change in brightness per step
+	bool  color_filter;		// Filter the splat color
+	float start_color;		// starting color in rainbow function
+	float color_inc;   		// color change
+	float brightness;		// overall brightness of splat
+	float brightness_prop; 	// proportional change in brightness per step
 	// other brightness change properties here
 
+	// Reflection properties
+	bool  reflect_x;		// Reflect in x direction?
+	float reflect_x_line;	// Line to reflect in x
+	float reflect_x_scale;	// Scale of reflection in x ( +1.0 left to right )	
+	bool  reflect_y;		// Reflect in y direction?
+	float reflect_y_line;	// Line to reflect in x
+	float reflect_y_scale;	// Scale of reflection in x ( +1.0 top to bottom )
+
 	// animation properties
-	// ...
+	// pulsation etc.
+	//
 
 	// branching properties - spawn new clusters recursively
 
@@ -128,12 +140,18 @@ void c_initialize( cluster *k )
 	k->ang_inc = 0.0;
 	k->ang_relative = true;	// We like the relative angle
 
-	//Color Filter
+	// Color Filter
 	k->color_filter = false;
 	k->start_color = 0.0;
 	k->color_inc = 0.0;
 	k->brightness = 1.0;
 	k->brightness_prop = 1.0;
+
+	// Reflection
+	k->reflect_x = false;
+	k->reflect_x_line = 0.0;
+	k->reflect_y = false;
+	k->reflect_y_line = 0.0;
 }
 
 void c_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck )
@@ -154,17 +172,27 @@ void c_set_bounds( vect2 bmin, vect2 bmax, cluster *uck )
 
 void c_set_color( float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
 {
-	uck->color_filter = true;
-	uck->start_color = start_color;
-	uck->color_inc = color_inc;
-	uck->brightness = brightness;
-	uck->brightness_prop = brightness_prop;
+	uck->color_filter 		= true;
+	uck->start_color 		= start_color;
+	uck->color_inc 			= color_inc;
+	uck->brightness 		= brightness;
+	uck->brightness_prop 	= brightness_prop;
 }
 
 void c_set_size( bool size_prop, float size, cluster *uck )
 {
 	uck->size_prop = size_prop;
 	uck->size = size;
+}
+
+void c_set_reflect( bool reflect_x, float reflect_x_line, float reflect_x_scale, bool reflect_y, float reflect_y_line, float reflect_y_scale, cluster *uck )
+{
+	uck->reflect_x 			= reflect_x;
+	uck->reflect_x_line 	= reflect_x_line;
+	uck->reflect_x_scale 	= reflect_x_scale;
+	uck->reflect_y 			= reflect_y;
+	uck->reflect_y_line 	= reflect_y_line;
+	uck->reflect_y_scale 	= reflect_y_scale;
 }
 
 float v_magnitude( vect2 v )
@@ -235,23 +263,23 @@ vect2 box_of_random2( vect2 min, vect2 max)
 	return w;
 }
 
-// Returns true if vector v is within bounding box defined by min and max
-bool in_bounds( vect2 v, vect2 min, vect2 max)
+// Returns true if vector v is within a certain distance of a bounding box defined by min and max
+bool in_bounds( vect2 v, vect2 min, vect2 max, float dist)
 {
 	bool inx,iny;
 
 	if( min.x < max.x) {
-		inx = ( v.x >= min.x ) &&  ( v.x <= max.x );
+		inx = ( v.x >= min.x - dist ) &&  ( v.x <= max.x + dist );
 	}
 	else {
-		inx = ( v.x >= max.x ) &&  ( v.x <= min.x );
+		inx = ( v.x >= max.x - dist  ) &&  ( v.x <= min.x + dist );
 	}
 
 	if( min.y < max.y) {
-		iny = ( v.y >= min.y ) &&  ( v.y <= max.y );
+		iny = ( v.y >= min.y - dist  ) &&  ( v.y <= max.y + dist );
 	}
 	else {
-		iny = ( v.y >= max.y ) &&  ( v.y <= min.y );
+		iny = ( v.y >= max.y - dist  ) &&  ( v.y <= min.y + dist );
 	}
 
 	return( inx && iny);
@@ -259,34 +287,35 @@ bool in_bounds( vect2 v, vect2 min, vect2 max)
 
 
 // Set size and allocate memory for vector field
-void vfield_initialize( int xsiz, int ysiz, vect2 fmin, vect2 fmax, vfield *f )
+void vfield_initialize( int xsiz, int ysiz, vect2 fmin, vect2 fmax, vfield *vf )
 {
-	f->xdim = xsiz;
-	f->ydim = ysiz;
-	f->min = fmin;
-	f->max = fmax;
-	f->f = (vect2 *)malloc( xsiz * ysiz * sizeof(vect2) );
+	vf->xdim = xsiz;
+	vf->ydim = ysiz;
+	vf->min = fmin;
+	vf->max = fmax;
+	vf->f = (vect2 *)malloc( xsiz * ysiz * sizeof(vect2) );
 }
 
 // Returns the value of the vector field given integer indices
-vect2 vfield_index( int xi, int yi, vfield *f )
+vect2 vfield_index( int xi, int yi, vfield *vf )
 {
-	return( f->f[ (xi % f->xdim) + f->xdim * (yi % f->ydim)]);
+	return( vf->f[ (xi % vf->xdim) + vf->xdim * (yi % vf->ydim)]);
 }
 
 // Returns coordinate in vector field's linear space given integer indices
-vect2 vfield_coord( int xi, int yi, vfield *f )
+vect2 vfield_coord( int xi, int yi, vfield *vf )
 {
 	vect2 w;
 
-	w.x = xi * ( f->max.x - f->min.x ) / ( 1.0 * f->xdim ) + f->min.x;
-	w.y = yi * ( f->max.y - f->min.y ) / ( 1.0 * f->ydim ) + f->min.y;
+	w.x = xi * ( vf->max.x - vf->min.x ) / ( 1.0 * vf->xdim ) + vf->min.x;
+	w.y = yi * ( vf->max.y - vf->min.y ) / ( 1.0 * vf->ydim ) + vf->min.y;
 
 	return w;
 }
 
 // Returns interpolated value of vector field given floating point indices
-vect2 vfield_smooth_index( vect2 v, vfield *f )
+// Still has issues with out of bounds values - should wrap, but sometimes crashes
+vect2 vfield_smooth_index( vect2 v, vfield *vf )
 {
 	vect2 w,u00,u01,u10,u11,u;
 	int xi, yi;		// Integer part of index
@@ -294,8 +323,8 @@ vect2 vfield_smooth_index( vect2 v, vfield *f )
 
 	// calculate index of vector in rational space
 	// out of bounds vectors just wrap around - index will take the modulus
-	w.x = (v.x - f->min.x) / (f->max.x - f->min.x) * f->xdim;
-	w.y = (v.y - f->min.y) / (f->max.y - f->min.y) * f->ydim;
+	w.x = (v.x - vf->min.x) / (vf->max.x - vf->min.x) * vf->xdim;
+	w.y = (v.y - vf->min.y) / (vf->max.y - vf->min.y) * vf->ydim;
 
 	// locate bounding cell of vector 
 	xi = floor(w.x);
@@ -304,10 +333,10 @@ vect2 vfield_smooth_index( vect2 v, vfield *f )
 	yf = w.y - yi * 1.0;
 
 	// linearly interpolate beween surrounding corners
-	u00 = vfield_index( xi,   yi,   f );
-	u01 = vfield_index( xi,   yi+1, f );
-	u10 = vfield_index( xi+1, yi,   f );
-	u11 = vfield_index( xi+1, yi+1, f );
+	u00 = vfield_index( xi,   yi,   vf );
+	u01 = vfield_index( xi,   yi+1, vf );
+	u10 = vfield_index( xi+1, yi,   vf );
+	u11 = vfield_index( xi+1, yi+1, vf );
 
 	u.x = (u00.x * ( 1.0 - xf ) + u10.x * xf) * (1.0 - yf) + (u01.x * ( 1.0 - xf ) + u11.x * xf) * yf;
 	u.y = (u00.y * ( 1.0 - xf ) + u10.y * xf) * (1.0 - yf) + (u01.y * ( 1.0 - xf ) + u11.y * xf) * yf;
@@ -361,6 +390,22 @@ void vfield_scale( float s, vfield *f)
 		for(xi = 0; xi < f->xdim; xi++ )
 		{
 			w->x *= s; w->y *= s;
+			w++;
+		}
+	}
+}
+
+// scales a vector field by factor s
+void vfield_rotate_vectors( float ang, vfield *f)
+{
+	int xi, yi;
+	vect2 *w = f->f;
+
+	for(yi = 0; yi < f->ydim; yi++ )
+	{
+		for(xi = 0; xi < f->xdim; xi++ )
+		{
+			*w = v_rotate( *w, ang );
 			w++;
 		}
 	}
@@ -506,7 +551,7 @@ void vfield_box( vect2 min, vect2 max, vect2 v, vfield *f )
 	{
 		for(xi = 0; xi < f->xdim; xi++ )
 		{
-			if( in_bounds( vfield_coord( xi, yi, f ), min, max ) )
+			if( in_bounds( vfield_coord( xi, yi, f ), min, max, 0.0 ) )
 			{
 				w->x += v.x;
 				w->y += v.y;
@@ -559,7 +604,7 @@ void vfield_add_stripes( vfield *f )
 }
 
 // Composite vector field including multiple centers of rotation
-void vfield_turbulent( float diameter, float n, vfield *f)
+void vfield_turbulent( float diameter, float n, bool random_rotation, vfield *f)
 {
 	int i;
 	vect2 w,c;
@@ -574,7 +619,8 @@ void vfield_turbulent( float diameter, float n, vfield *f)
 	{
 		c = box_of_random2( g.min, g.max );
 		vfield_rotation( c, &g );
-		if( rand()%2 ) vfield_scale( -2.0, &g );		// coin flip for rotational direction
+		if( random_rotation ) vfield_rotate_vectors( rand1() * 360.0, &g);	// rotate vectors in random direction
+		else if( rand()%2 ) vfield_scale( -1.0, &g );		// coin flip for rotational direction
 		
 		vfield_inverse_square( diameter, 0.5, &g );
 		vfield_sum( f, &g, f );
@@ -1178,6 +1224,9 @@ void fimage_splat(
 	fimage *g 				// image of the splat
 	)
 {
+
+	// printf("Splat: center.x = %f, center.y = %f\n", center.x, center.y );
+
 	int x,y;
 	int findex, gindex;
 	int fxdim = f->xdim;
@@ -1223,26 +1272,27 @@ void fimage_splat(
 	uny = v_rotate( uny, -theta );
 
 	// convert vectors to splat pixel space - fixed point
-	int scx =  (int)((sc.x * g->xdim / 2.0 + g->xdim / 2.0) * 65536.0);
-	int scy =  (int)((sc.y * g->ydim / 2.0 + g->ydim / 2.0) * 65536.0);
-	int unxx = (int)(unx.x * g->xdim / 2.0 * 65536.0);
-	int unxy = (int)(unx.y * g->xdim / 2.0 * 65536.0);
-	int unyx = (int)(uny.x * g->xdim / 2.0 * 65536.0);
-	int unyy = (int)(uny.y * g->xdim / 2.0 * 65536.0);
+	int scx =  (int)(( sc.x * g->xdim / 2.0 + g->xdim / 2.0) * 65536.0);
+	int scy =  (int)(( sc.y * g->ydim / 2.0 + g->ydim / 2.0) * 65536.0);
+	int unxx = (int)( unx.x * g->xdim / 2.0 * 65536.0);
+	int unxy = (int)( unx.y * g->ydim / 2.0 * 65536.0);
+	int unyx = (int)( uny.x * g->xdim / 2.0 * 65536.0);
+	int unyy = (int)( uny.y * g->ydim / 2.0 * 65536.0);
 	int sfx, sfy;
-	int xdimfix = (g->xdim)<<16;
-	int ydimfix = (g->ydim)<<16;
+	int xdimfix = ( g->xdim - 1 )<<16;
+	int ydimfix = ( g->ydim - 1 )<<16;
 
 	// *** Critical loop below ***
 	// Quick and dirty sampling, high speed but risk of aliasing. 
 	// Should work best if splat is fairly large and smooth.
 
-	for( x = xmin; x <= xmax; x++ ) {
+	for( x = xmin; x < xmax; x++ ) {
 		if( (x >= 0) && (x < fxdim) ) {
 			sfx = scx;
 			sfy = scy;
-			for( y = ymin; y <= ymax; y++ ) {
+			for( y = ymin; y < ymax; y++ ) {
 				if( (y >= 0) && (y < fydim) && (sfx >= 0) && (sfy >= 0) && (sfx < xdimfix) && (sfy < ydimfix) ) {
+					// if( critical_run && critical_element ) printf(" x = %d  y = %d  sfx>>16 = %d  sfy>>16 = %d\n",x,y,sfx >> 16,sfy >> 16);
 					findex = y * fxdim + x;
 					gindex = (sfy >> 16) * gxdim + (sfx >> 16);
 					fpix[ findex ].r += gpix[ gindex ].r * tint.r;
@@ -1263,10 +1313,14 @@ void fimage_splat(
 // this function can adjust number of subjects in run if it wants to
 // right now just prints but can add this to a structure if need be
 // occasional mutation changes single member of run or remainder of run
-void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
+void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 {
 	vect2 w = uck->start;
+	vect2 rwx;	// reflected vector in x
+	vect2 rwy;	// reflected vector in y
+	vect2 rwxy;	// reflected vector in x and y
 	vect2 u;
+	vect2 rmin, rmax;	// bounding box for reflected vector
 	float step = uck->step;
 	float ang = uck->ang_init;
 	float rel_ang;
@@ -1282,11 +1336,15 @@ void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
 
 	while( i < uck->n )
 	{
-		// calculate angle
+		if( i == 171 ) critical_element = true;
+		//calculate angle
 		rel_ang = ang;
+
+		if( uck->size_prop ) size = step * uck->size;
+
 		if( uck->ang_relative )
 		{
-			u = vfield_smooth_index( w, f );
+			u = vfield_smooth_index( w, vf );
 			v_rotate( u, uck->ang_offset );
 			u.x *= step; u.y *= step;
 			rel_ang = add_angle( rel_ang, vtoa( u ) );
@@ -1299,13 +1357,11 @@ void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
 			tint.b *= brightness;
 			brightness *= uck->brightness_prop;
 		}
-		if( uck->size_prop ) size = step * uck->size;
 
-		if(uck->bounded)	// Truncate cluster if out of bounds
-		{
-			if( in_bounds( w, uck->bmin, uck->bmax ) ) 
-			{
-				// *** generate here ***
+		if((!uck->reflect_y) && (!uck->reflect_x)) {			// no reflection
+			if( in_bounds( w, uck->bmin, uck->bmax, size ) )	// Truncate cluster if out of bounds
+			
+				// *** render here ***
 				fimage_splat( 
 					w, 				// coordinates of splat center
 					size, 			// radius of splat
@@ -1314,11 +1370,25 @@ void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
 					result, 		// image to be splatted upon
 					splat 			// image of the splat
 				);
-			}
 		}
+		else if((uck->reflect_y) && (!uck->reflect_x)) {	// reflection in y only
+			rmin = uck->bmin;
+			rmax = uck->bmax;
+			rmin.y = uck->reflect_y_line;
+			rmax.y = uck->reflect_y_line;
+			rwy.x = w.x;
+			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line);	// Add scale here (determines direction)
+			if( in_bounds( w,   rmin, uck->bmax, size ) ) fimage_splat( w,   size, rel_ang, tint, result, splat );
+			if( in_bounds( rwy, uck->bmin, rmax, size ) ) fimage_splat( rwy, size, rel_ang, tint, result, splat );
+		}
+		// Add x and xy cases here
 
+		// Iterate 
 		rainbow_index += uck->color_inc;
-		w = vfield_advect( w, f, step, uck->ang_offset );	// move through vector field associated with subspace
+		//if( critical_run && critical_element ) printf("vfield_advect\n");
+		w = vfield_advect( w, vf, step, uck->ang_offset );	// move through vector field 
+		if( !in_bounds( w, vf->min, vf->max, 0.0 ) ) i=uck->n;	// stop iteration if vector goes out of bounds
+
 		ang = add_angle( ang, uck->ang_inc );
 		step *= uck->prop;
 
@@ -1328,15 +1398,28 @@ void render_cluster( vfield *f, cluster *uck, fimage *result, fimage *splat )
 	}
 }
 
-void render_cluster_list( int nruns, cluster *clist, vfield *vf, fimage *splat, fimage *result)
+void render_cluster_list( int nruns, float ang_offset, cluster *clist, vfield *vf, fimage *splat, fimage *result)
 {
 	cluster *uck = clist;
 	int run;
 
 	for(run = 0; run < nruns; run++ ) {
+		if( run == 3 ) critical_run = true;
+		uck->ang_offset = ang_offset;
 		render_cluster( vf, uck, result, splat );
 		uck++;
 	}
+}
+
+// Sanity check to see if splat is working
+// needs to include tint
+void test_splat( fimage *r, fimage *f )
+{
+	// splat it
+	vect2 center;
+	center.x = 5.0;
+	center.y = 5.0;
+//	fimage_splat( center, 1.0, 30.0, &r, &f );
 }
 
 // creates a grouping of runs evenly spaced in a circle
@@ -1384,57 +1467,15 @@ void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, float mutation
 	}
 }
 
-// creates a grouping of runs in a line
-// generate_line()
-
-// creates a random distribution of runs
-void generate_random( int nruns, vect2 imin, vect2 imax, float ang_offset, cluster *clist)
-{
-	cluster *uck = clist;
-	int run;
-	vect2 start;
-	vect2 vmin, vmax;	// bounds of vector field
-
-	vmin.x = -1.0;	vmin.y = -1.0;
-	vmin.x = 11.0;	vmin.y = 11.0;
-
-	for(run = 0; run < nruns; run++ ) {
-		start = box_of_random2( vmin, vmax );
-		//printf("start.x = %f start.y = %f\n", start.x, start.y);
-		c_initialize( uck );
-
-		c_set_run( 	200, 		// number of elements in run
-					start,		// starting point of run 
-					0.0625, 	// initial step size
-					0.99, 		// proportional change per step
-					ang_offset, // motion relative to vector field
-					uck );		// pointer to cluster
-
-		c_set_bounds( imin, imax, uck );
-
-		c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
-						rand1() * 0.005 - 0.0025, 		// Color increment
-						0.5, 		// Initial brightness
-						1.0, 		// Brightness proportional change per step
-						uck );
-
-		c_set_size( true, 2.0, uck );
-
-		uck++;
-	}
-}
 
 // The "jaggie", a colored line with (somewhat) sharp angles
 void generate_jaggie( fimage *result, fimage *splat )
 {
 	vfield f;		// Main vector field for iterating
 	vect2 d, c, start, min, max;		// flow direction
-	time_t t;
 	cluster k;
 	int i;
 	
-	// start random engines
-	srand((unsigned) time(&t));
 
 	// set bounds of vector field larger than image
 	min.x =  -1.0; min.y =  -1.0;
@@ -1467,16 +1508,50 @@ void generate_jaggie( fimage *result, fimage *splat )
 	render_cluster( &f, &k, result, splat );
 }
 
-// Sanity check to see if splat is working
-// needs to include tint
-void test_splat( fimage *r, fimage *f )
+// creates a grouping of runs in a line
+// generate_line() (stub)
+
+// creates a random distribution of runs
+// future: create a structure with the random parameters
+void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax, float ang_offset, cluster *clist)
 {
-	// splat it
-	vect2 center;
-	center.x = 5.0;
-	center.y = 5.0;
-	//fimage_splat( center, 1.0, 30.0, &r, &f );
+	cluster *uck = clist;
+	int run;
+	vect2 start;
+
+	for(run = 0; run < nruns; run++ ) {
+		start = box_of_random2( vmin, vmax );
+		c_initialize( uck );
+
+		c_set_run( 	200, 		// number of elements in run
+					start,		// starting point of run 
+					0.0625, 	// initial step size
+					0.99, 		// proportional change per step
+					ang_offset, // motion relative to vector field
+					uck );		// pointer to cluster
+
+		c_set_bounds( imin, imax, uck );
+
+		c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
+						rand1() * 0.005 - 0.0025, 		// Color increment
+						0.5, 		// Initial brightness
+						1.0, 		// Brightness proportional change per step
+						uck );
+
+		c_set_size( true, 2.0, uck );
+
+		c_set_reflect( 	false, 	// Don't reflect in x direction
+						0.0, 	// x reflection line = not used
+						0.0,	// x reflection scale = not used
+						true, 	// reflect in y direction
+						8.22, 	// y reflection line - top edge of lake
+						1.0,	// y reflection scale - top to bottom
+						uck );
+
+		uck++;
+	}
 }
+
 
 int main( int argc, char const *argv[] )
 {
@@ -1487,7 +1562,16 @@ int main( int argc, char const *argv[] )
     char *filename;
     unsigned char *img;
     int i;
-    vect2 bound1,bound2;
+    vect2 bound1,bound2,vbound1,vbound2;
+    time_t t;
+
+    critical_run = false;
+    critical_element = false;
+
+	// start random engines
+	// useful to keep things repeatable during testing
+	srand((unsigned) time(&t));
+	//srand(2);
 
     black.r = 0.0;	black.g = 0.0;	black.b = 0.0;
 
@@ -1525,8 +1609,6 @@ int main( int argc, char const *argv[] )
 
 	// Initialize result image
 	fimage_init( xdim, ydim, bound1, bound2, &result );
-	fimage_copy( &base, &result );
-	//fimage_make_mask( 0.1, &base, &result );
 
 	// load splat image
 	img = stbi_load( argv[2], &s_xdim, &s_ydim, &channels, 0 );
@@ -1572,40 +1654,51 @@ int main( int argc, char const *argv[] )
 
 	// generate_jaggie( &result, &splat );
 	
-	int nruns = 150;
+	int nruns = 1000;
 	cluster runs[ nruns ];
-	// future: a structure that holds parameters for randomness (loaded from file)
-	generate_random( nruns, bound1, bound2, 90.0, runs );
 	vfield vf;
 
-	bound1.x = -1.0;
-	bound1.y = -1.0;
-	bound2.x = 11.0;
-	bound2.y = 11.0;
+	vbound1.x = -5.0;
+	vbound1.y = -5.0 * (1.0 * ydim) / (1.0 * xdim);
+	vbound2.x = 15.0;
+	vbound2.y = 15.0 * (1.0 * ydim) / (1.0 * xdim);
 
-	vfield_initialize( 1000, 1000, bound1, bound2, &vf);
-	vfield_turbulent( 7.5, 10, &vf );
+	// future: a structure that holds parameters for randomness (loaded from file)
+	generate_random( nruns, bound1, bound2, vbound1, vbound2, 0.0, runs );
+
+	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
+	vfield_turbulent( 7.5, 100, true, &vf );
 	vfield_normalize( &vf );
 
-	// separated generation from rendering
-	render_cluster_list( nruns, runs, &vf, &splat, &result);
+	int frame;
+	int nframes = 3;
+	float ang = 0.0;
+	float ang_inc = 2.0;
 
-	// Clip colors in image to prevent excessive darkening
-	fimage_clip( 0.0, 1.5, &result );
-	fimage_normalize( &result );
-	// add base image back in
-	fimage_sum( &base, &result, &result );	
-	fimage_apply_mask( &base, &mask, &result );
+	for( frame = 0; frame < nframes; frame++ ) {
+		printf("frame = %d\n",frame);
+		fimage_copy( &base, &result );
+		// separated generation from rendering
+		render_cluster_list( nruns, ang, runs, &vf, &splat, &result);
+		ang += ang_inc;
 
-	// normalize and render
-	fimage_normalize( &result );
+		// Clip colors in image to prevent excessive darkening
+		fimage_clip( 0.0, 1.0, &result );
+		fimage_normalize( &result );
+		// add base image back in
+		//fimage_sum( &base, &result, &result );	
+		fimage_apply_mask( &base, &mask, &result );
 
-	// save result
-	quantize( img, &result );
-	sprintf( filename, "%s_splat.jpg", basename);
-	stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
+		// normalize and render
+		fimage_normalize( &result );
 
-	free( img );
+		// save result
+		quantize( img, &result );
+		sprintf( filename, "%s_%04d.jpg", basename, frame);
+		stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
+		free( img );
+	}
+
 	fimage_free( &base );
 	fimage_free( &splat );
 	fimage_free( &result );	
