@@ -1374,14 +1374,49 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 		else if((uck->reflect_y) && (!uck->reflect_x)) {	// reflection in y only
 			rmin = uck->bmin;
 			rmax = uck->bmax;
-			rmin.y = uck->reflect_y_line;
-			rmax.y = uck->reflect_y_line;
+			rmin.y = uck->reflect_y_line + size;
+			rmax.y = uck->reflect_y_line - size;
 			rwy.x = w.x;
-			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line);	// Add scale here (determines direction)
+			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
 			if( in_bounds( w,   rmin, uck->bmax, size ) ) fimage_splat( w,   size, rel_ang, tint, result, splat );
 			if( in_bounds( rwy, uck->bmin, rmax, size ) ) fimage_splat( rwy, size, rel_ang, tint, result, splat );
 		}
-		// Add x and xy cases here
+		else if((!uck->reflect_y) && (uck->reflect_x)) {	// reflection in x only
+			rmin = uck->bmin;
+			rmax = uck->bmax;
+			rmin.x = uck->reflect_x_line + size;
+			rmax.x = uck->reflect_x_line - size;
+			rwx.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
+			rwx.y = w.y;
+			if( in_bounds( w,   rmin, uck->bmax, size ) ) fimage_splat( w,   size, rel_ang, tint, result, splat );
+			if( in_bounds( rwx, uck->bmin, rmax, size ) ) fimage_splat( rwx, size, rel_ang, tint, result, splat );
+		}
+		else if((uck->reflect_y) && (uck->reflect_x)) {		// reflection in x and y
+			rmin.x = uck->reflect_x_line + size;
+			rmax.x = uck->reflect_x_line - size;
+			rmin.y = uck->reflect_y_line + size;
+			rmax.y = uck->reflect_y_line - size;
+			rwxy.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
+			rwxy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
+			if( in_bounds( w,    rmin, uck->bmax, size ) ) fimage_splat( w,    size, rel_ang, tint, result, splat );
+			if( in_bounds( rwxy, uck->bmin, rmax, size ) ) fimage_splat( rwxy, size, rel_ang, tint, result, splat );
+
+			rmin.x = uck->bmin.x;
+			rmax.x = uck->reflect_x_line - size;
+			rmin.y = uck->reflect_y_line + size;
+			rmax.y = uck->bmax.y;
+			rwx.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
+			rwx.y = w.y;
+			if( in_bounds( rwx, rmin, rmax, size ) ) fimage_splat( rwx, size, rel_ang, tint, result, splat );
+
+			rmin.x = uck->reflect_x_line + size;
+			rmax.x = uck->bmax.x;
+			rmin.y = uck->bmin.y;
+			rmax.y = uck->reflect_y_line - size;
+			rwy.x = w.x;
+			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
+			if( in_bounds( rwy, rmin, rmax, size ) ) fimage_splat( rwy, size, rel_ang, tint, result, splat );
+		}
 
 		// Iterate 
 		rainbow_index += uck->color_inc;
@@ -1540,9 +1575,9 @@ void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax,
 
 		c_set_size( true, 2.0, uck );
 
-		c_set_reflect( 	false, 	// Don't reflect in x direction
-						0.0, 	// x reflection line = not used
-						0.0,	// x reflection scale = not used
+		c_set_reflect( 	true, 	// Don't reflect in x direction
+						5.0, 	// x reflection line = not used
+						1.0,	// x reflection scale = not used
 						true, 	// reflect in y direction
 						8.22, 	// y reflection line - top edge of lake
 						1.0,	// y reflection scale - top to bottom
@@ -1667,7 +1702,7 @@ int main( int argc, char const *argv[] )
 	generate_random( nruns, bound1, bound2, vbound1, vbound2, 0.0, runs );
 
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
-	vfield_turbulent( 7.5, 100, true, &vf );
+	vfield_turbulent( 7.5, 100, false, &vf );
 	vfield_normalize( &vf );
 
 	int frame;
