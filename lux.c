@@ -69,19 +69,12 @@ typedef struct Cluster
 	float brightness_prop; 	// proportional change in brightness per step
 	// other brightness change properties here
 
-	// Reflection properties
-	bool  reflect_x;		// Reflect in x direction?
-	float reflect_x_line;	// Line to reflect in x
-	float reflect_x_scale;	// Scale of reflection in x ( +1.0 left to right )	
-	bool  reflect_y;		// Reflect in y direction?
-	float reflect_y_line;	// Line to reflect in x
-	float reflect_y_scale;	// Scale of reflection in x ( +1.0 top to bottom )
-
 	// animation properties
 	// pulsation etc.
 	//
 
 	// branching properties - spawn new clusters recursively
+	//struct cluster *subcluster;
 
 } cluster;
 
@@ -135,7 +128,7 @@ void c_initialize( cluster *k )
 	k->bmin.x = 0.0; k->bmin.y = 0.0;	
 	k->bmax.x = 0.0; k->bmax.y = 0.0;
 
-	// Splat orientation
+	// Element orientation
 	k->ang_init = 0.0;
 	k->ang_inc = 0.0;
 	k->ang_relative = true;	// We like the relative angle
@@ -147,11 +140,7 @@ void c_initialize( cluster *k )
 	k->brightness = 1.0;
 	k->brightness_prop = 1.0;
 
-	// Reflection
-	k->reflect_x = false;
-	k->reflect_x_line = 0.0;
-	k->reflect_y = false;
-	k->reflect_y_line = 0.0;
+	//k->subclusters = (cluster *)malloc( n * sizeof(cluster *));
 }
 
 void c_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck )
@@ -183,16 +172,6 @@ void c_set_size( bool size_prop, float size, cluster *uck )
 {
 	uck->size_prop = size_prop;
 	uck->size = size;
-}
-
-void c_set_reflect( bool reflect_x, float reflect_x_line, float reflect_x_scale, bool reflect_y, float reflect_y_line, float reflect_y_scale, cluster *uck )
-{
-	uck->reflect_x 			= reflect_x;
-	uck->reflect_x_line 	= reflect_x_line;
-	uck->reflect_x_scale 	= reflect_x_scale;
-	uck->reflect_y 			= reflect_y;
-	uck->reflect_y_line 	= reflect_y_line;
-	uck->reflect_y_scale 	= reflect_y_scale;
 }
 
 float v_magnitude( vect2 v )
@@ -851,6 +830,34 @@ void fimage_copy( fimage *in, fimage *out)
 	}
 }
 
+void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out)
+{
+	int x,y;
+	frgb *pin = in->f;
+	frgb *pout = out->f;
+	frgb *preflect;
+	int xdim = in->xdim;
+	int ydim = in->ydim;
+	int rrow;
+	bool reflect;
+
+	if( top_to_bottom ) {
+		for( y = 0; y <= mirror; y++ ) {
+			rrow = (mirror - y) + mirror;
+			reflect = rrow < ydim;
+			if( reflect ) preflect = out->f + rrow * xdim;
+			for( x = 0; x < xdim; x++ ) {
+				*pout = *pin;
+				if( reflect ) *preflect = *pin;
+				pin++;
+				pout++;
+				if( reflect ) preflect++;
+			}
+		}
+	}
+	// fill in bottom to top caseß
+}
+
 // assume all images are the same size
 void fimage_sum( fimage *a, fimage *b, fimage *result )
 {
@@ -1192,7 +1199,6 @@ void fimage_apply_mask( fimage *base, fimage *mask, fimage *result )
 	}
 }
 
-
 void fimage_clip( float min, float max, fimage *in )
 {
 	int x,y;
@@ -1357,66 +1363,24 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 			tint.b *= brightness;
 			brightness *= uck->brightness_prop;
 		}
+		else {
+			tint.r = brightness;
+			tint.g = brightness;
+			tint.b = brightness;
+			brightness *= uck->brightness_prop;
+		}
 
-		if((!uck->reflect_y) && (!uck->reflect_x)) {			// no reflection
-			if( in_bounds( w, uck->bmin, uck->bmax, size ) )	// Truncate cluster if out of bounds
-			
-				// *** render here ***
-				fimage_splat( 
-					w, 				// coordinates of splat center
-					size, 			// radius of splat
-					rel_ang, 		// rotation in degrees
-					tint,			// change the color of splat
-					result, 		// image to be splatted upon
-					splat 			// image of the splat
-				);
-		}
-		else if((uck->reflect_y) && (!uck->reflect_x)) {	// reflection in y only
-			rmin = uck->bmin;
-			rmax = uck->bmax;
-			rmin.y = uck->reflect_y_line + size;
-			rmax.y = uck->reflect_y_line - size;
-			rwy.x = w.x;
-			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
-			if( in_bounds( w,   rmin, uck->bmax, size ) ) fimage_splat( w,   size, rel_ang, tint, result, splat );
-			if( in_bounds( rwy, uck->bmin, rmax, size ) ) fimage_splat( rwy, size, rel_ang, tint, result, splat );
-		}
-		else if((!uck->reflect_y) && (uck->reflect_x)) {	// reflection in x only
-			rmin = uck->bmin;
-			rmax = uck->bmax;
-			rmin.x = uck->reflect_x_line + size;
-			rmax.x = uck->reflect_x_line - size;
-			rwx.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
-			rwx.y = w.y;
-			if( in_bounds( w,   rmin, uck->bmax, size ) ) fimage_splat( w,   size, rel_ang, tint, result, splat );
-			if( in_bounds( rwx, uck->bmin, rmax, size ) ) fimage_splat( rwx, size, rel_ang, tint, result, splat );
-		}
-		else if((uck->reflect_y) && (uck->reflect_x)) {		// reflection in x and y
-			rmin.x = uck->reflect_x_line + size;
-			rmax.x = uck->reflect_x_line - size;
-			rmin.y = uck->reflect_y_line + size;
-			rmax.y = uck->reflect_y_line - size;
-			rwxy.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
-			rwxy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
-			if( in_bounds( w,    rmin, uck->bmax, size ) ) fimage_splat( w,    size, rel_ang, tint, result, splat );
-			if( in_bounds( rwxy, uck->bmin, rmax, size ) ) fimage_splat( rwxy, size, rel_ang, tint, result, splat );
-
-			rmin.x = uck->bmin.x;
-			rmax.x = uck->reflect_x_line - size;
-			rmin.y = uck->reflect_y_line + size;
-			rmax.y = uck->bmax.y;
-			rwx.x = uck->reflect_x_line - ( w.x - uck->reflect_x_line );
-			rwx.y = w.y;
-			if( in_bounds( rwx, rmin, rmax, size ) ) fimage_splat( rwx, size, rel_ang, tint, result, splat );
-
-			rmin.x = uck->reflect_x_line + size;
-			rmax.x = uck->bmax.x;
-			rmin.y = uck->bmin.y;
-			rmax.y = uck->reflect_y_line - size;
-			rwy.x = w.x;
-			rwy.y = uck->reflect_y_line - ( w.y - uck->reflect_y_line );	// Add scale here (determines direction)
-			if( in_bounds( rwy, rmin, rmax, size ) ) fimage_splat( rwy, size, rel_ang, tint, result, splat );
-		}
+		if( in_bounds( w, uck->bmin, uck->bmax, size ) )	// Truncate cluster if out of bounds
+		
+			// *** render here ***
+			fimage_splat( 
+				w, 				// coordinates of splat center
+				size, 			// radius of splat
+				-1.0 * rel_ang, // rotation in degrees
+				tint,			// change the color of splat
+				result, 		// image to be splatted upon
+				splat 			// image of the splat
+			);
 
 		// Iterate 
 		rainbow_index += uck->color_inc;
@@ -1502,7 +1466,7 @@ void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, float mutation
 	}
 }
 
-
+/*
 // The "jaggie", a colored line with (somewhat) sharp angles
 void generate_jaggie( fimage *result, fimage *splat )
 {
@@ -1539,9 +1503,10 @@ void generate_jaggie( fimage *result, fimage *splat )
 					1.0, 		// Brightness proportional change per step
 					&k );
 
-	c_set_size( true, 2.0, &k  );
+	c_set_size( true, 4.0, &k  );
 	render_cluster( &f, &k, result, splat );
 }
+*/
 
 // creates a grouping of runs in a line
 // generate_line() (stub)
@@ -1558,41 +1523,88 @@ void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax,
 		start = box_of_random2( vmin, vmax );
 		c_initialize( uck );
 
-		c_set_run( 	200, 		// number of elements in run
+		/* c_set_run( 	200, 		// number of elements in run
 					start,		// starting point of run 
 					0.0625, 	// initial step size
 					0.99, 		// proportional change per step
 					ang_offset, // motion relative to vector field
-					uck );		// pointer to cluster
+					uck );		// pointer to cluster */
+
+		c_set_run( 	100, 		// number of elements in run
+					start,		// starting point of run 
+					0.25, 		// initial step size
+					1.0, 		// proportional change per step
+					ang_offset, // motion relative to vector field
+					uck );		// pointer to cluster 
 
 		c_set_bounds( imin, imax, uck );
 
-		c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
+		/* c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
 						rand1() * 0.005 - 0.0025, 		// Color increment
 						0.5, 		// Initial brightness
 						1.0, 		// Brightness proportional change per step
-						uck );
+						uck ); */
 
-		c_set_size( true, 2.0, uck );
+		// c_set_size( true, 2.0, uck );
+		c_set_size( true, 4.0, uck );
 
-		c_set_reflect( 	true, 	// Don't reflect in x direction
-						5.0, 	// x reflection line = not used
-						1.0,	// x reflection scale = not used
-						true, 	// reflect in y direction
-						8.22, 	// y reflection line - top edge of lake
-						1.0,	// y reflection scale - top to bottom
-						uck );
+		uck->brightness = 0.5;
+		uck->brightness_prop = 1.0;
 
 		uck++;
 	}
 }
 
 
+// creates a random distribution of runs
+// future: create a structure with the random parameters
+void generate_aurora( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax, float ang_offset, cluster *clist)
+{
+	cluster *uck = clist;
+	int run;
+	vect2 start;
+
+	for(run = 0; run < nruns; run++ ) {
+		start = box_of_random2( vmin, vmax );
+		c_initialize( uck );
+
+		/* c_set_run( 	200, 	// number of elements in run
+					start,		// starting point of run 
+					0.0625, 	// initial step size
+					0.99, 		// proportional change per step
+					ang_offset, // motion relative to vector field
+					uck );		// pointer to cluster */
+
+		c_set_run( 	100, 		// number of elements in run
+					start,		// starting point of run 
+					0.25, 		// initial step size
+					1.0, 		// proportional change per step
+					ang_offset, // motion relative to vector field
+					uck );		// pointer to cluster 
+
+		c_set_bounds( imin, imax, uck );
+
+		/* c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
+						rand1() * 0.005 - 0.0025, 		// Color increment
+						0.5, 		// Initial brightness
+						1.0, 		// Brightness proportional change per step
+						uck ); */
+
+		// c_set_size( true, 2.0, uck );
+		c_set_size( true, 4.0, uck );
+
+		uck->brightness = 0.5;
+		uck->brightness_prop = 1.0;
+
+		uck++;
+	}
+}
+
 int main( int argc, char const *argv[] )
 {
     int xdim, ydim, s_xdim, s_ydim, channels;
     frgb black;
-    fimage base, splat, result, mask;
+    fimage base, background, splat, result, mask;
     char *basename;
     char *filename;
     unsigned char *img;
@@ -1622,7 +1634,7 @@ int main( int argc, char const *argv[] )
   	}
   	else
    	{ 
-      printf("Usage: ./lux base splat mask\n");
+      printf("Usage: ./lux base background splat mask\n");
       return 0; 
    	}
 	   
@@ -1645,8 +1657,22 @@ int main( int argc, char const *argv[] )
 	// Initialize result image
 	fimage_init( xdim, ydim, bound1, bound2, &result );
 
+	// load background image
+	img = stbi_load( argv[2], &xdim, &ydim, &channels, 0 );
+ 	if(img == NULL) 
+ 	{
+    	printf("Error in loading background image\n");
+    	return 0;
+ 	}
+	// Initialize background image
+	fimage_init( xdim, ydim, bound1, bound2, &background );
+	//fimage_fill( black, &background );
+	continuous( channels, img, &background );
+	free( img );
+
+
 	// load splat image
-	img = stbi_load( argv[2], &s_xdim, &s_ydim, &channels, 0 );
+	img = stbi_load( argv[3], &s_xdim, &s_ydim, &channels, 0 );
     if(img == NULL) 
     {
        printf("Error in loading splat image\n");
@@ -1665,11 +1691,11 @@ int main( int argc, char const *argv[] )
 
 	// crop or apply a ramp function to splat
 	// information outside of unit circle will not be displayed properly
-	//fimage_cirle_crop( &f );
-	fimage_circle_ramp( &splat );
+	fimage_circle_crop( &splat );
+	//fimage_circle_ramp( &splat );
 
 	// load mask image - must be same dimensions as base image
-	img = stbi_load( argv[3], &xdim, &ydim, &channels, 0 );
+	img = stbi_load( argv[4], &xdim, &ydim, &channels, 0 );
     if(img == NULL) 
     {
        printf("Error in loading mask image\n");
@@ -1689,7 +1715,8 @@ int main( int argc, char const *argv[] )
 
 	// generate_jaggie( &result, &splat );
 	
-	int nruns = 1000;
+	//int nruns = 1000;
+	int nruns = 25;
 	cluster runs[ nruns ];
 	vfield vf;
 
@@ -1712,14 +1739,15 @@ int main( int argc, char const *argv[] )
 
 	for( frame = 0; frame < nframes; frame++ ) {
 		printf("frame = %d\n",frame);
-		fimage_copy( &base, &result );
+		//fimage_copy( &base, &result );
 		// separated generation from rendering
-		render_cluster_list( nruns, ang, runs, &vf, &splat, &result);
+		render_cluster_list( nruns, ang, runs, &vf, &splat, &background);
 		ang += ang_inc;
 
 		// Clip colors in image to prevent excessive darkening
-		fimage_clip( 0.0, 1.0, &result );
-		fimage_normalize( &result );
+		fimage_clip( 0.0, 1.0, &background );
+		fimage_normalize( &background );
+		fimage_reflect_y( 2484, true, &background, &result);
 		// add base image back in
 		//fimage_sum( &base, &result, &result );	
 		fimage_apply_mask( &base, &mask, &result );
@@ -1735,6 +1763,7 @@ int main( int argc, char const *argv[] )
 	}
 
 	fimage_free( &base );
+	fimage_free( &background );
 	fimage_free( &splat );
 	fimage_free( &result );	
 	fimage_free( &mask );
