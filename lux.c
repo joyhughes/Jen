@@ -30,6 +30,29 @@ typedef struct Vfield
 	vect2 *f;			// Flow vectors
 } vfield;
 
+
+typedef struct FRGB
+{
+	float r,g,b;
+
+} frgb;
+
+typedef struct Palette
+{
+	int ncolors;
+	float *indices;
+	frgb *colors;
+
+} palette;
+
+typedef struct FIMAGE
+{
+	int xdim, ydim;	
+	vect2 min, max;		// Bounds of image in cartesian space
+	frgb *f;			// Pointer to array of frgb pixels
+
+} fimage;
+
 // Specifies a grouping of subjects with various generative rules
 // Avoids functions with a bazillion arguments
 typedef struct Cluster
@@ -62,8 +85,9 @@ typedef struct Cluster
 	bool  ang_relative;	// Are angles relative to vector direction?
 
 	// Color properties
+	palette *color_palette;
 	bool  color_filter;		// Filter the splat color
-	float start_color;		// starting color in rainbow function
+	float start_color;		// starting color in palette function
 	float color_inc;   		// color change
 	float brightness;		// overall brightness of splat
 	float brightness_prop; 	// proportional change in brightness per step
@@ -78,22 +102,63 @@ typedef struct Cluster
 
 } cluster;
 
-typedef struct FRGB
+typedef struct Wave_params
 {
-	float r,g,b;
-} frgb;
+	int nwaves;
+	float *magnitude; // magnitude of each wave
+	float *offset;
+	float *frame_freq;
+	float *run_freq;
 
-typedef struct FIMAGE
-{
-	int xdim, ydim;	
-	vect2 min, max;		// Bounds of image in cartesian space
-	frgb *f;			// Pointer to array of frgb pixels
-} fimage;
+} wave_params;
 
 // returns a random number between 0 and 1
 float rand1()
 {
 	return (rand() * 1.0) / (RAND_MAX * 1.0);
+}
+
+float sin_deg( float theta )
+{
+	return sin( theta / 360.0 * TAU );
+}
+
+float composed_wave( int run, int frame, wave_params *w )
+{
+	int i;
+	float out = 0.0;
+
+	for( i = 1; i < w->nwaves; i++ ) {
+		out += w->magnitude[ i ] * sin_deg( w->offset[ i ] + frame * 360.0 * w->frame_freq[ i ] + run * 360.0 * w->run_freq[ i ] );
+	}
+	return out;
+}
+
+void make_random_wave( int nwaves, float max_magnitude, float max_run_freq, float max_frame_freq, wave_params *w )
+{
+	int i;
+
+	w->magnitude =  (float *)malloc( nwaves * sizeof(float));
+	w->offset =     (float *)malloc( nwaves * sizeof(float));
+	w->frame_freq = (float *)malloc( nwaves * sizeof(float));
+	w->run_freq =   (float *)malloc( nwaves * sizeof(float));
+
+	w->nwaves = nwaves;
+
+	for( i = 1; i < w->nwaves; i++ ) {
+		w->offset[ i ]     = rand1() * 360.0;
+		w->magnitude[ i ]  = rand1() * max_magnitude;
+		w->frame_freq[ i ] = rand1() * max_frame_freq * 2.0 - max_frame_freq;
+		w->run_freq[ i ]   = rand1() * max_run_freq   * 2.0 - max_run_freq;
+	}
+}
+
+void free_wave_params( wave_params *w )
+{
+	free( w->magnitude );
+	free( w->offset );
+	free( w->frame_freq );
+	free( w->run_freq );
 }
 
 // rotate a vector by theta degrees
@@ -159,8 +224,9 @@ void c_set_bounds( vect2 bmin, vect2 bmax, cluster *uck )
 	uck->bmax = bmax;
 }
 
-void c_set_color( float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
+void c_set_color( palette *color_palette, float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
 {
+	uck->color_palette		= color_palette;
 	uck->color_filter 		= true;
 	uck->start_color 		= start_color;
 	uck->color_inc 			= color_inc;
@@ -228,6 +294,23 @@ vect2 v_complement( vect2 v )
 	return w;
 }
 
+vect2 v_add( vect2 a, vect2 b )
+{	
+	vect2 w;
+
+	w.x = a.x + b.x;
+	w.y = a.y + b.y;
+	return w;
+}
+
+vect2 v_subtract( vect2 a, vect2 b )
+{	
+	vect2 w;
+
+	w.x = a.x - b.x;
+	w.y = a.y - b.y;
+	return w;
+}
 
 // Chooses a random point within 3D box - assumes srand() has already been called
 vect2 box_of_random2( vect2 min, vect2 max)
@@ -418,6 +501,34 @@ void vfield_sum( vfield *a, vfield *b, vfield *f)
 	}
 }
 
+// Return sum of first vector field and complement of second vector field
+// assume all of same dimension
+void vfield_add_complement( vfield *a, vfield *b, vfield *f)
+{
+	int xi, yi;
+	vect2 *w =  f->f;
+	vect2 *wa = a->f;
+	vect2 *wb = b->f;
+
+	// Sanity check - are they the same dimension?
+	if( (a->xdim != b->xdim) | (a->xdim != f->xdim) | (a->ydim != b->ydim) | (a->ydim != f->ydim) )
+	{
+		printf("Error f_sum expects fields of same dimension\n");
+	}
+	else 
+	{
+		for(yi = 0; yi < f->ydim; yi++ )
+		{
+			for(xi = 0; xi < f->xdim; xi++ )
+			{
+				w->x = wa->x - wb->y;
+				w->y = wa->y + wb->x;
+				w++; wa++; wb++;
+			}
+		}
+	}
+}
+
 // Creates an inverse square of vector field with optional softening factor to avoid infinity 
 void vfield_inverse_square( float diameter, float soften, vfield *f )
 {
@@ -473,6 +584,23 @@ void vfield_linear( vect2 v, vfield *f)
 		for(xi = 0; xi < f->xdim; xi++ )
 		{
 			*w = v;
+			w++;
+		}
+	}
+}
+
+// Add same vector to every member of vector field
+void vfield_add_linear( vect2 v, vfield *f)
+{
+	int xi, yi;
+	vect2 *w = f->f;
+
+	for(yi = 0; yi < f->ydim; yi++ )
+	{
+		for(xi = 0; xi < f->xdim; xi++ )
+		{
+			w->x += v.x;			
+			w->y += v.y;
 			w++;
 		}
 	}
@@ -655,6 +783,29 @@ char *remove_ext (char* myStr, char extSep, char pathSep) {
     return retStr;
 }
 
+// linear interpolation of colors through a palette
+// array should have colors at 0.0 and 1.0
+// color indicies in increasing order, no two the same
+frgb palette_index( float a, palette *p )
+{
+	frgb c;
+	int i;
+	float blend;
+
+	a = a - floor(a);
+
+	for( i=0; i < p->ncolors-1; i++ ) {
+		if( ( a >= p->indices[i] ) && ( a < p->indices[i+1] ) ) {
+			blend = ( a - p->indices[i] ) / ( p->indices[i+1] - p->indices[i] );
+			c.r = ( 1.0 - blend ) * p->colors[i].r + blend * p->colors[i+1].r;
+			c.g = ( 1.0 - blend ) * p->colors[i].g + blend * p->colors[i+1].g;
+			c.b = ( 1.0 - blend ) * p->colors[i].b + blend * p->colors[i+1].b;
+		}
+	}
+	return c;
+}
+
+// deprecated - use rainbow_palette instead
 frgb rainbow( float a )
 {
 	frgb c;
@@ -1332,7 +1483,7 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 	float rel_ang;
 	int i=0;
 	frgb tint;
-	float rainbow_index = uck->start_color;
+	float color_index = uck->start_color;
 	float size = uck->size;
 	float brightness = uck->brightness;
 
@@ -1342,7 +1493,7 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 
 	while( i < uck->n )
 	{
-		if( i == 171 ) critical_element = true;
+		// if( i == 171 ) critical_element = true;
 		//calculate angle
 		rel_ang = ang;
 
@@ -1357,7 +1508,7 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 		}
 
 		if( uck->color_filter ) {
-			tint = rainbow( rainbow_index );
+			tint = palette_index( color_index, uck->color_palette );
 			tint.r *= brightness;
 			tint.g *= brightness;
 			tint.b *= brightness;
@@ -1383,7 +1534,7 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 			);
 
 		// Iterate 
-		rainbow_index += uck->color_inc;
+		color_index += uck->color_inc;
 		//if( critical_run && critical_element ) printf("vfield_advect\n");
 		w = vfield_advect( w, vf, step, uck->ang_offset );	// move through vector field 
 		if( !in_bounds( w, vf->min, vf->max, 0.0 ) ) i=uck->n;	// stop iteration if vector goes out of bounds
@@ -1555,47 +1706,88 @@ void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax,
 	}
 }
 
+void aurora_palette( palette *p )
+{
+	p->ncolors = 4;
+	p->indices = (float *)malloc( p->ncolors * sizeof(float) );
+	p->colors  =  (frgb *)malloc( p->ncolors * sizeof(frgb) );
 
-// creates a random distribution of runs
-// future: create a structure with the random parameters
-void generate_aurora( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax, float ang_offset, cluster *clist)
+	p->indices[0]  = 0.0;
+	p->colors[0].r = 0.0;
+	p->colors[0].g = 1.0;
+	p->colors[0].b = 0.0;
+
+	p->indices[1]  = 0.33;
+	p->colors[1].r = 0.85;
+	p->colors[1].g = 0.85;
+	p->colors[1].b = 0.85;
+
+	p->indices[2]  = 0.66;
+	p->colors[2].r = 1.0;
+	p->colors[2].g = 0.0;
+	p->colors[2].b = 2.0;
+
+	p->indices[3]  = 1.0;
+	p->colors[3].r = 0.0;
+	p->colors[3].g = 1.0;
+	p->colors[3].b = 0.0;
+}
+
+
+// Set up a simulated aurora
+// Future: create a filetype with all the parameters 
+void generate_aurora( 	int frame, 
+						int nruns, 
+						vect2 imin, vect2 imax, 
+						vect2 start, 
+						float ang_offset, 
+						wave_params *ang_wave, // wave_params *brightness_wave,
+						palette *p,
+						vfield *vf, 
+						cluster *clist)
 {
 	cluster *uck = clist;
 	int run;
-	vect2 start;
+
+	// set up color palette
+	int npal = 4;
+	float cindex[ npal ];
+	frgb cpal[ npal ];
+	float brightness;
 
 	for(run = 0; run < nruns; run++ ) {
-		start = box_of_random2( vmin, vmax );
 		c_initialize( uck );
 
-		/* c_set_run( 	200, 	// number of elements in run
+		// Add sine wave in offset angle and brightness
+		c_set_run( 	50, 	// number of elements in run
 					start,		// starting point of run 
 					0.0625, 	// initial step size
-					0.99, 		// proportional change per step
+					1.0, 		// proportional size change per step
 					ang_offset, // motion relative to vector field
 					uck );		// pointer to cluster */
 
-		c_set_run( 	100, 		// number of elements in run
-					start,		// starting point of run 
-					0.25, 		// initial step size
-					1.0, 		// proportional change per step
-					ang_offset, // motion relative to vector field
-					uck );		// pointer to cluster 
-
 		c_set_bounds( imin, imax, uck );
 
-		/* c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
-						rand1() * 0.005 - 0.0025, 		// Color increment
-						0.5, 		// Initial brightness
-						1.0, 		// Brightness proportional change per step
-						uck ); */
+		brightness = 0.0625 + rand1() * 0.03125;
+		// circle function (fade ends )
+		brightness *= sqrt( 1.0 - (( run - nruns / 2.0 ) * ( run - nruns / 2.0 )) / (( nruns / 2.0 ) * ( nruns / 2.0 )));
+		//brightness *= 1.0 + 0.3 * sin( (3.0 * frame / 10.0 + run) / 5.0 );
+		//brightness *= 1.0 + composed_wave( run, frame, brightness_wave );
+		brightness *= 1.0 + pow( rand1(), 4.0 );
+
+		// change to custom palette
+		c_set_color( 	p,								// Color palette
+						0.0 + rand1() * 0.1, 			// Initial color
+						0.0133, 						// Color increment
+						brightness, 					// Initial brightness
+						0.96, 							// Brightness proportional change per step
+						uck ); 
 
 		// c_set_size( true, 2.0, uck );
-		c_set_size( true, 4.0, uck );
+		c_set_size( true, 2.0, uck );
 
-		uck->brightness = 0.5;
-		uck->brightness_prop = 1.0;
-
+		//start = vfield_advect( start, vf, 0.0625, 60.0 * sin( (frame / 10.0 + run) / 10.0 ) + 60.0 * sin( (- 2.0 * frame / 10.0 + run) / 7.0 ));
+		start = vfield_advect( start, vf, 0.0625, composed_wave( run, frame, ang_wave ) );
 		uck++;
 	}
 }
@@ -1604,13 +1796,17 @@ int main( int argc, char const *argv[] )
 {
     int xdim, ydim, s_xdim, s_ydim, channels;
     frgb black;
-    fimage base, background, splat, result, mask;
+    fimage base, background, background_base, splat, result, mask;
     char *basename;
     char *filename;
     unsigned char *img;
-    int i;
+    int i,a;
     vect2 bound1,bound2,vbound1,vbound2;
     time_t t;
+    palette color_palette;
+
+    vect2 unitx; unitx.x = 1.0; unitx.y = 0.0;
+    vect2 unity; unity.x = 0.0; unity.y = 1.0;
 
     critical_run = false;
     critical_element = false;
@@ -1664,12 +1860,16 @@ int main( int argc, char const *argv[] )
     	printf("Error in loading background image\n");
     	return 0;
  	}
+
 	// Initialize background image
 	fimage_init( xdim, ydim, bound1, bound2, &background );
 	//fimage_fill( black, &background );
 	continuous( channels, img, &background );
 	free( img );
 
+	// Create background base image
+	fimage_init( xdim, ydim, bound1, bound2, &background_base );
+	fimage_copy( &background, &background_base );
 
 	// load splat image
 	img = stbi_load( argv[3], &s_xdim, &s_ydim, &channels, 0 );
@@ -1691,8 +1891,8 @@ int main( int argc, char const *argv[] )
 
 	// crop or apply a ramp function to splat
 	// information outside of unit circle will not be displayed properly
-	fimage_circle_crop( &splat );
-	//fimage_circle_ramp( &splat );
+	//fimage_circle_crop( &splat );
+	fimage_circle_ramp( &splat );
 
 	// load mask image - must be same dimensions as base image
 	img = stbi_load( argv[4], &xdim, &ydim, &channels, 0 );
@@ -1716,33 +1916,103 @@ int main( int argc, char const *argv[] )
 	// generate_jaggie( &result, &splat );
 	
 	//int nruns = 1000;
-	int nruns = 25;
+	int nruns = 200;
 	cluster runs[ nruns ];
-	vfield vf;
+	vfield vf, vf_radial;
+	vect2 start; start.x = 7.5; start.y = 7.5;
 
 	vbound1.x = -5.0;
 	vbound1.y = -5.0 * (1.0 * ydim) / (1.0 * xdim);
 	vbound2.x = 15.0;
 	vbound2.y = 15.0 * (1.0 * ydim) / (1.0 * xdim);
 
+	aurora_palette( &color_palette ); // set palette 
+
 	// future: a structure that holds parameters for randomness (loaded from file)
-	generate_random( nruns, bound1, bound2, vbound1, vbound2, 0.0, runs );
+	// generate_random( nruns, bound1, bound2, vbound1, vbound2, 0.0, runs );
+
 
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
+	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_radial);
 	vfield_turbulent( 7.5, 100, false, &vf );
+	//vfield_normalize( &vf );
+	vfield_scale( 0.25, &vf );
+
+
+	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 17.0;
+
+	// Create concentric vector field for aurora beams with center above top of frame
+	vfield_concentric( radial_center, &vf_radial );
+	vfield_scale( -1.0, &vf_radial );
+	vfield_normalize( &vf_radial );
+
+	// Add rotation (complement of concentric) to vector field for generating aurora paths
+	vfield_add_complement( &vf, &vf_radial, &vf );
 	vfield_normalize( &vf );
 
-	int frame;
-	int nframes = 3;
+	int frame, aframe;
+	int nframes = 100;
 	float ang = 0.0;
 	float ang_inc = 2.0;
+	float start_step = 10.0 / nframes;
+
+	int n_aurorae = 10;
+	vect2 starts[ n_aurorae ];
+	int frame_offset[ n_aurorae ];
+	int ang_offset[ n_aurorae ];
+	float start_angle;
+	wave_params ang_wave[ n_aurorae ], brightness_wave[ n_aurorae ];
+
+	for( a = 0; a < n_aurorae; a++ ) {
+		start_angle = ( ( 7 * a ) % n_aurorae ) * 180.0 / n_aurorae;
+		starts[ a ].x = -10.0;
+		starts[ a ].y = 0.0;
+		starts[ a ] = v_rotate( starts[ a ], start_angle );
+		starts[ a ] = v_add( starts[ a ], radial_center );
+		frame_offset[ a ] = a * nframes / n_aurorae;
+		if( starts[ a ].x < 0.0 ) ang_offset[ a ] = 180.0;
+		else ang_offset[ a ] = 0.0;
+
+		make_random_wave( 	4, 				// number of composed waves
+							45.0,			// max magnitude
+							0.03, 			// max run frequency
+							0.03, 			// max frame frequency
+							ang_wave + a ); // pointer to wave param 
+		make_random_wave( 3, 0.15, 3.0, 3.0, brightness_wave + a );
+
+
+		printf(" start %d: %f %f\n", a, starts[ a ].x, starts[ a ].y );
+		printf(" start angle = %f, ang_offset = %d\n", start_angle, ang_offset[ a ]);
+	}
 
 	for( frame = 0; frame < nframes; frame++ ) {
+		for( a = 0; a < n_aurorae; a++ ) {
+			aframe = frame + frame_offset[ a ];
+			if(aframe >= nframes ) aframe -= nframes;
+			start = starts[ a ];
+			for( i = 0; i < aframe; i++ ) {
+				start = vfield_advect( start, &vf_radial, start_step, 0.0 );
+			}
+			generate_aurora( 	aframe,
+								nruns, 			// Number of sub-streams in aurora
+								bound1, 		// Bounds of image
+								bound2, 
+								start, 			// starting point
+								ang_offset[a],	// offset angle
+								ang_wave + a,	// angle wave parameters
+								//brightness_wave + a, // brightness wave parameters
+								&color_palette,
+								&vf, 
+								runs );
+			render_cluster_list( nruns, ang, runs, &vf_radial, &splat, &background);
+		}
+
 		printf("frame = %d\n",frame);
 		//fimage_copy( &base, &result );
 		// separated generation from rendering
-		render_cluster_list( nruns, ang, runs, &vf, &splat, &background);
-		ang += ang_inc;
+		
+		// ang += ang_inc;
+		//start = vfield_advect( start, &vf_radial, start_step, 0.0 );
 
 		// Clip colors in image to prevent excessive darkening
 		fimage_clip( 0.0, 1.0, &background );
@@ -1760,6 +2030,12 @@ int main( int argc, char const *argv[] )
 		sprintf( filename, "%s_%04d.jpg", basename, frame);
 		stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
 		free( img );
+		fimage_copy( &background_base, &background );
+	}
+
+	for( a=0; a < n_aurorae; a++ )	{
+		free_wave_params( &(ang_wave[ a ]) );
+		free_wave_params( &(brightness_wave[ a ]) );
 	}
 
 	fimage_free( &base );
