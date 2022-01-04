@@ -86,7 +86,9 @@ typedef struct Cluster
 
 	// Color properties
 	palette *color_palette;
-	bool  color_filter;		// Filter the splat color
+	bool  color_filter;		// Filter the splat color?
+	bool  brightness_ramp;	// ramp brightness up at beginning?
+	int   brightness_ramp_length;
 	float start_color;		// starting color in palette function
 	float color_inc;   		// color change
 	float brightness;		// overall brightness of splat
@@ -200,6 +202,8 @@ void c_initialize( cluster *k )
 
 	// Color Filter
 	k->color_filter = false;
+	k->brightness_ramp = false;
+	k->brightness_ramp_length = 1;
 	k->start_color = 0.0;
 	k->color_inc = 0.0;
 	k->brightness = 1.0;
@@ -1173,15 +1177,15 @@ frgb fimage_index( int x, int y, fimage *f )
 }
 
 // in ang out images must be separate
-void fimage_rotate( float theta, fimage *in, fimage *out )
+void fimage_rotate( float theta, 
+					vect2 cor, 					// Center of rotation
+					fimage *in, fimage *out )
 {
 	int x, y, ox, oy;
 	float fx, fy, fox, foy;
 	frgb *o = out->f;
 	int xdim = in->xdim;
 	int ydim = in->ydim;
-	float half_xdim = xdim / 2.0;
-	float half_ydim = ydim / 2.0;
 
 	float cth = cos( -theta );	// ulhu
 	float sth = sin( -theta );
@@ -1190,12 +1194,12 @@ void fimage_rotate( float theta, fimage *in, fimage *out )
 	{
 		for( x = 0; x < xdim; x++ )
 		{
-			fx = x * 1.0 - half_xdim;
-			fy = y * 1.0 - half_ydim;
+			fx = x * 1.0 - cor.x;
+			fy = y * 1.0 - cor.y;
 			fox = fx * cth - fy * sth;
 			foy = fx * sth + fy * cth;
-			ox = (int)(fox + half_xdim);
-			oy = (int)(foy + half_ydim);
+			ox = (int)(fox + cor.x);
+			oy = (int)(foy + cor.y);
 
 			*o = fimage_index( ox, oy, in );
 			o++;
@@ -1521,6 +1525,20 @@ void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 			brightness *= uck->brightness_prop;
 		}
 
+		if( uck->brightness_ramp ) {
+			if( i < uck->brightness_ramp_length ) {
+				tint.r *= 1.0 * (i + 1) / uck->brightness_ramp_length;
+				tint.g *= 1.0 * (i + 1) / uck->brightness_ramp_length;
+				tint.b *= 1.0 * (i + 1) / uck->brightness_ramp_length;
+			}
+			if( i > uck->n - uck->brightness_ramp_length ) {
+				tint.r *= 1.0 * (uck->n - i) / uck->brightness_ramp_length;
+				tint.g *= 1.0 * (uck->n - i) / uck->brightness_ramp_length;
+				tint.b *= 1.0 * (uck->n - i) / uck->brightness_ramp_length;
+			}
+
+		}
+
 		if( in_bounds( w, uck->bmin, uck->bmax, size ) )	// Truncate cluster if out of bounds
 		
 			// *** render here ***
@@ -1783,6 +1801,9 @@ void generate_aurora( 	int frame,
 						0.96, 							// Brightness proportional change per step
 						uck ); 
 
+		uck->brightness_ramp = true;
+		uck->brightness_ramp_length = 5;
+
 		// c_set_size( true, 2.0, uck );
 		c_set_size( true, 2.0, uck );
 
@@ -1795,7 +1816,6 @@ void generate_aurora( 	int frame,
 int main( int argc, char const *argv[] )
 {
     int xdim, ydim, s_xdim, s_ydim, channels;
-    frgb black;
     fimage base, background, background_base, splat, result, mask;
     char *basename;
     char *filename;
@@ -1813,10 +1833,11 @@ int main( int argc, char const *argv[] )
 
 	// start random engines
 	// useful to keep things repeatable during testing
-	srand((unsigned) time(&t));
-	//srand(2);
+	//srand((unsigned) time(&t));
+	srand( 12 );
 
-    black.r = 0.0;	black.g = 0.0;	black.b = 0.0;
+    frgb black;	black.r = 0.0;	black.g = 0.0;	black.b = 0.0;
+    frgb white;	white.r = 1.0;	white.g = 1.0;	white.b = 1.0;
 
 	// load base image
 	if( argc >= 4 ) 
@@ -1837,21 +1858,22 @@ int main( int argc, char const *argv[] )
 	basename = remove_ext( (char *)argv[1], '.', '/' );   // scan input filename for "." and strip off extension, put that in basename
 	filename = (char*)malloc( strlen(basename) + 12 );    // allocate output filename with room for code and extension
 	  
+/*	filename = (char*)malloc( 100 );    // allocate output filename with room for code and extension
+	basename = (char*)malloc( 100 );    // allocate output filename with room for code and extension
+	sprintf( basename, "reflect"); */
+
 	// initialize base image
-	// square images 10 x 10 work better with current vector fields
 	// origin in lower left
 	bound1.x = 0.0;
 	bound1.y = 10.0 * (1.0 * ydim) / (1.0 * xdim);
 	bound2.x = 10.0;
 	bound2.y = 0.0;
 	fimage_init( xdim, ydim, bound1, bound2, &base );
-
-	// convert base image to frgb
-	continuous( channels, img, &base );
+	continuous( channels, img, &base );	// convert base image to frgb
 	free( img );
 
-	// Initialize result image
-	fimage_init( xdim, ydim, bound1, bound2, &result );
+	fimage_init( xdim, ydim, bound1, bound2, &result );		// Initialize result image
+	fimage_init( xdim, ydim, bound1, bound2, &background );	// Initialize background image
 
 	// load background image
 	img = stbi_load( argv[2], &xdim, &ydim, &channels, 0 );
@@ -1861,15 +1883,9 @@ int main( int argc, char const *argv[] )
     	return 0;
  	}
 
-	// Initialize background image
-	fimage_init( xdim, ydim, bound1, bound2, &background );
-	//fimage_fill( black, &background );
-	continuous( channels, img, &background );
+	fimage_init( xdim, ydim, bound1, bound2, &background_base );	// Initialize sky splat
+	continuous( channels, img, &background_base );
 	free( img );
-
-	// Create background base image
-	fimage_init( xdim, ydim, bound1, bound2, &background_base );
-	fimage_copy( &background, &background_base );
 
 	// load splat image
 	img = stbi_load( argv[3], &s_xdim, &s_ydim, &channels, 0 );
@@ -1928,18 +1944,14 @@ int main( int argc, char const *argv[] )
 
 	aurora_palette( &color_palette ); // set palette 
 
-	// future: a structure that holds parameters for randomness (loaded from file)
-	// generate_random( nruns, bound1, bound2, vbound1, vbound2, 0.0, runs );
-
-
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_radial);
 	vfield_turbulent( 7.5, 100, false, &vf );
 	//vfield_normalize( &vf );
 	vfield_scale( 0.25, &vf );
 
-
 	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 17.0;
+	vect2 up; up.x = 0.0; up.y = 0.25;
 
 	// Create concentric vector field for aurora beams with center above top of frame
 	vfield_concentric( radial_center, &vf_radial );
@@ -1948,6 +1960,8 @@ int main( int argc, char const *argv[] )
 
 	// Add rotation (complement of concentric) to vector field for generating aurora paths
 	vfield_add_complement( &vf, &vf_radial, &vf );
+	//vfield_add_linear( up, &vf );
+	//vfield_sum( &vf, &vf_radial, &vf );
 	vfield_normalize( &vf );
 
 	int frame, aframe;
@@ -1981,11 +1995,12 @@ int main( int argc, char const *argv[] )
 		make_random_wave( 3, 0.15, 3.0, 3.0, brightness_wave + a );
 
 
-		printf(" start %d: %f %f\n", a, starts[ a ].x, starts[ a ].y );
-		printf(" start angle = %f, ang_offset = %d\n", start_angle, ang_offset[ a ]);
+		// printf(" start %d: %f %f\n", a, starts[ a ].x, starts[ a ].y );
+		// printf(" start angle = %f, ang_offset = %d\n", start_angle, ang_offset[ a ]);
 	}
 
 	for( frame = 0; frame < nframes; frame++ ) {
+		fimage_copy( &background_base, &background );
 		for( a = 0; a < n_aurorae; a++ ) {
 			aframe = frame + frame_offset[ a ];
 			if(aframe >= nframes ) aframe -= nframes;
@@ -2009,7 +2024,6 @@ int main( int argc, char const *argv[] )
 
 		printf("frame = %d\n",frame);
 		//fimage_copy( &base, &result );
-		// separated generation from rendering
 		
 		// ang += ang_inc;
 		//start = vfield_advect( start, &vf_radial, start_step, 0.0 );
@@ -2029,8 +2043,6 @@ int main( int argc, char const *argv[] )
 		quantize( img, &result );
 		sprintf( filename, "%s_%04d.jpg", basename, frame);
 		stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
-		free( img );
-		fimage_copy( &background_base, &background );
 	}
 
 	for( a=0; a < n_aurorae; a++ )	{
@@ -2043,5 +2055,6 @@ int main( int argc, char const *argv[] )
 	fimage_free( &splat );
 	fimage_free( &result );	
 	fimage_free( &mask );
+	fimage_free( &background_base );
 	return 0;
 }
