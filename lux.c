@@ -125,7 +125,8 @@ float sin_deg( float theta )
 	return sin( theta / 360.0 * TAU );
 }
 
-float composed_wave( int run, int frame, wave_params *w )
+// inputs scaled to [ 0.0 , 1.0 ]
+float composed_wave( float run, float frame, wave_params *w )
 {
 	int i;
 	float out = 0.0;
@@ -136,7 +137,7 @@ float composed_wave( int run, int frame, wave_params *w )
 	return out;
 }
 
-void make_random_wave( int nwaves, float max_magnitude, float max_run_freq, float max_frame_freq, wave_params *w )
+void make_random_wave( int nwaves, float max_magnitude, int max_run_freq, int max_frame_freq, wave_params *w )
 {
 	int i;
 
@@ -150,8 +151,9 @@ void make_random_wave( int nwaves, float max_magnitude, float max_run_freq, floa
 	for( i = 1; i < w->nwaves; i++ ) {
 		w->offset[ i ]     = rand1() * 360.0;
 		w->magnitude[ i ]  = rand1() * max_magnitude;
-		w->frame_freq[ i ] = rand1() * max_frame_freq * 2.0 - max_frame_freq;
-		w->run_freq[ i ]   = rand1() * max_run_freq   * 2.0 - max_run_freq;
+
+		w->frame_freq[ i ] = (float)( ( (rand() % max_frame_freq) + 1 ) * ( ( rand() % 2 ) * 2 - 1 ) );
+		w->run_freq[ i ]   = (float)( ( (rand() % max_run_freq) + 1 ) * ( ( rand() % 2 ) * 2 - 1 ) );
 	}
 }
 
@@ -1754,7 +1756,7 @@ void aurora_palette( palette *p )
 
 // Set up a simulated aurora
 // Future: create a filetype with all the parameters 
-void generate_aurora( 	int frame, 
+void generate_aurora( 	float norm_frame, 
 						int nruns, 
 						vect2 imin, vect2 imax, 
 						vect2 start, 
@@ -1807,8 +1809,7 @@ void generate_aurora( 	int frame,
 		// c_set_size( true, 2.0, uck );
 		c_set_size( true, 2.0, uck );
 
-		//start = vfield_advect( start, vf, 0.0625, 60.0 * sin( (frame / 10.0 + run) / 10.0 ) + 60.0 * sin( (- 2.0 * frame / 10.0 + run) / 7.0 ));
-		start = vfield_advect( start, vf, 0.0625, composed_wave( run, frame, ang_wave ) );
+		start = vfield_advect( start, vf, 0.0625, composed_wave( 1.0 * run / nruns, norm_frame, ang_wave ) );
 		uck++;
 	}
 }
@@ -1834,7 +1835,7 @@ int main( int argc, char const *argv[] )
 	// start random engines
 	// useful to keep things repeatable during testing
 	//srand((unsigned) time(&t));
-	srand( 12 );
+	srand( 13 );
 
     frgb black;	black.r = 0.0;	black.g = 0.0;	black.b = 0.0;
     frgb white;	white.r = 1.0;	white.g = 1.0;	white.b = 1.0;
@@ -1885,6 +1886,7 @@ int main( int argc, char const *argv[] )
 
 	fimage_init( xdim, ydim, bound1, bound2, &background_base );	// Initialize sky splat
 	continuous( channels, img, &background_base );
+	fimage_copy( &background_base, &background );
 	free( img );
 
 	// load splat image
@@ -1948,7 +1950,7 @@ int main( int argc, char const *argv[] )
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_radial);
 	vfield_turbulent( 7.5, 100, false, &vf );
 	//vfield_normalize( &vf );
-	vfield_scale( 0.25, &vf );
+	vfield_scale( 0.0, &vf );
 
 	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 17.0;
 	vect2 up; up.x = 0.0; up.y = 0.25;
@@ -1965,7 +1967,7 @@ int main( int argc, char const *argv[] )
 	vfield_normalize( &vf );
 
 	int frame, aframe;
-	int nframes = 100;
+	int nframes = 430;
 	float ang = 0.0;
 	float ang_inc = 2.0;
 	float start_step = 10.0 / nframes;
@@ -1987,20 +1989,18 @@ int main( int argc, char const *argv[] )
 		if( starts[ a ].x < 0.0 ) ang_offset[ a ] = 180.0;
 		else ang_offset[ a ] = 0.0;
 
-		make_random_wave( 	4, 				// number of composed waves
-							45.0,			// max magnitude
-							0.03, 			// max run frequency
-							0.03, 			// max frame frequency
-							ang_wave + a ); // pointer to wave param 
+		make_random_wave( 	4, 										// number of composed waves
+							60.0,									// max magnitude
+							10, 									// max run frequency
+							5, 										// max frame frequency
+							ang_wave + a ); 						// pointer to wave param 
 		make_random_wave( 3, 0.15, 3.0, 3.0, brightness_wave + a );
-
 
 		// printf(" start %d: %f %f\n", a, starts[ a ].x, starts[ a ].y );
 		// printf(" start angle = %f, ang_offset = %d\n", start_angle, ang_offset[ a ]);
 	}
 
 	for( frame = 0; frame < nframes; frame++ ) {
-		fimage_copy( &background_base, &background );
 		for( a = 0; a < n_aurorae; a++ ) {
 			aframe = frame + frame_offset[ a ];
 			if(aframe >= nframes ) aframe -= nframes;
@@ -2008,7 +2008,7 @@ int main( int argc, char const *argv[] )
 			for( i = 0; i < aframe; i++ ) {
 				start = vfield_advect( start, &vf_radial, start_step, 0.0 );
 			}
-			generate_aurora( 	aframe,
+			generate_aurora( 	1.0 * aframe / nframes,
 								nruns, 			// Number of sub-streams in aurora
 								bound1, 		// Bounds of image
 								bound2, 
@@ -2024,6 +2024,7 @@ int main( int argc, char const *argv[] )
 
 		printf("frame = %d\n",frame);
 		//fimage_copy( &base, &result );
+		// separated generation from rendering
 		
 		// ang += ang_inc;
 		//start = vfield_advect( start, &vf_radial, start_step, 0.0 );
@@ -2043,6 +2044,8 @@ int main( int argc, char const *argv[] )
 		quantize( img, &result );
 		sprintf( filename, "%s_%04d.jpg", basename, frame);
 		stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
+		free( img );
+		fimage_copy( &background_base, &background );
 	}
 
 	for( a=0; a < n_aurorae; a++ )	{
