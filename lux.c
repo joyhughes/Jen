@@ -1939,10 +1939,10 @@ int main( int argc, char const *argv[] )
 	vfield vf, vf_radial;
 	vect2 start; start.x = 7.5; start.y = 7.5;
 
-	vbound1.x = -5.0;
-	vbound1.y = -5.0 * (1.0 * ydim) / (1.0 * xdim);
-	vbound2.x = 15.0;
-	vbound2.y = 15.0 * (1.0 * ydim) / (1.0 * xdim);
+	vbound1.x = -20.0;
+	vbound1.y = -20.0 * (1.0 * ydim) / (1.0 * xdim);
+	vbound2.x = 30.0;
+	vbound2.y = 30.0 * (1.0 * ydim) / (1.0 * xdim);
 
 	aurora_palette( &color_palette ); // set palette 
 
@@ -1952,7 +1952,7 @@ int main( int argc, char const *argv[] )
 	//vfield_normalize( &vf );
 	vfield_scale( 0.0, &vf );
 
-	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 17.0;
+	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 20.0;
 	vect2 up; up.x = 0.0; up.y = 0.25;
 
 	// Create concentric vector field for aurora beams with center above top of frame
@@ -1970,9 +1970,9 @@ int main( int argc, char const *argv[] )
 	int nframes = 430;
 	float ang = 0.0;
 	float ang_inc = 2.0;
-	float start_step = 10.0 / nframes;
+	float start_step = 15.0 / nframes;
 
-	int n_aurorae = 10;
+	int n_aurorae = 20;
 	vect2 starts[ n_aurorae ];
 	int frame_offset[ n_aurorae ];
 	int ang_offset[ n_aurorae ];
@@ -1980,8 +1980,8 @@ int main( int argc, char const *argv[] )
 	wave_params ang_wave[ n_aurorae ], brightness_wave[ n_aurorae ];
 
 	for( a = 0; a < n_aurorae; a++ ) {
-		start_angle = ( ( 7 * a ) % n_aurorae ) * 180.0 / n_aurorae;
-		starts[ a ].x = -10.0;
+		start_angle = ( ( 7 * a ) % ( n_aurorae / 2 ) ) * 180.0 / ( n_aurorae / 2 );
+		starts[ a ].x = -15.0;
 		starts[ a ].y = 0.0;
 		starts[ a ] = v_rotate( starts[ a ], start_angle );
 		starts[ a ] = v_add( starts[ a ], radial_center );
@@ -1990,8 +1990,8 @@ int main( int argc, char const *argv[] )
 		else ang_offset[ a ] = 0.0;
 
 		make_random_wave( 	4, 										// number of composed waves
-							60.0,									// max magnitude
-							10, 									// max run frequency
+							75.0,									// max magnitude
+							6, 										// max run frequency
 							5, 										// max frame frequency
 							ang_wave + a ); 						// pointer to wave param 
 		make_random_wave( 3, 0.15, 3.0, 3.0, brightness_wave + a );
