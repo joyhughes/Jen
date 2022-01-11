@@ -2032,7 +2032,8 @@ int main( int argc, char const *argv[] )
 		// Clip colors in image to prevent excessive darkening
 		fimage_clip( 0.0, 1.0, &background );
 		fimage_normalize( &background );
-		fimage_reflect_y( 2484, true, &background, &result);
+		//fimage_reflect_y( 2484, true, &background, &result);
+		fimage_reflect_y( 2736, true, &background, &result);
 		// add base image back in
 		//fimage_sum( &base, &result, &result );	
 		fimage_apply_mask( &base, &mask, &result );
