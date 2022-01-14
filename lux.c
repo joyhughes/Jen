@@ -42,7 +42,6 @@ typedef struct Palette
 	int ncolors;
 	float *indices;
 	frgb *colors;
-
 } palette;
 
 typedef struct FIMAGE
@@ -50,8 +49,16 @@ typedef struct FIMAGE
 	int xdim, ydim;	
 	vect2 min, max;		// Bounds of image in cartesian space
 	frgb *f;			// Pointer to array of frgb pixels
-
 } fimage;
+
+typedef struct Wave_params
+{
+	int nwaves;
+	float *magnitude; // magnitude of each wave
+	float *offset;
+	float *frame_freq;
+	float *run_freq;
+} wave_params;
 
 // Specifies a grouping of subjects with various generative rules
 // Avoids functions with a bazillion arguments
@@ -104,15 +111,19 @@ typedef struct Cluster
 
 } cluster;
 
-typedef struct Wave_params
+// Structure to hold all elements of a scene
+typedef struct Scene
 {
-	int nwaves;
-	float *magnitude; // magnitude of each wave
-	float *offset;
-	float *frame_freq;
-	float *run_freq;
-
-} wave_params;
+	char base_file[ 255 ];
+	bool use_mask;
+	char background_file[ 255 ];
+	char mask_file[ 255 ];
+	char splat_file[ 255 ];
+	bool reflect_x, reflect_y; 
+	int  reflect_x_line, reflect_y_line;
+	char output_basename[255];
+	// Future: add kaleidoscope
+} scene;
 
 // returns a random number between 0 and 1
 float rand1()
@@ -868,15 +879,6 @@ frgb rainbow( float a )
 	return c;
 }
 
-void fimage_init( long xdim, long ydim, vect2 min, vect2 max, fimage *f )
-{
-	f->xdim = xdim;
-	f->ydim = ydim;
-	f->min = min;
-	f->max = max;
-	f->f = (frgb *)malloc( xdim * ydim * sizeof(frgb) );
-}
-
 void fimage_free( fimage *f )
 {
 	free( f->f );
@@ -895,7 +897,7 @@ frgb fcolor( unsigned char r, unsigned char g, unsigned char b )
 }
 
 // presume here f is already initialized - that way we can reuse buffer
-void continuous( int channels, unsigned char *img, fimage *f )
+void fimage_continuous( int channels, unsigned char *img, fimage *f )
 {
 	int x, y;
 	unsigned char *c = img;
@@ -940,8 +942,9 @@ void continuous( int channels, unsigned char *img, fimage *f )
 	}
 }
 
-// presume here f is already initialized - that way we can reuse buffer
-void quantize( unsigned char *img, fimage *f )
+// fimage must already be initialized
+// img must already be allocated
+void fimage_quantize( unsigned char *img, fimage *f )
 {
 	int x, y;
 	unsigned char *c;
@@ -949,8 +952,6 @@ void quantize( unsigned char *img, fimage *f )
 	int xdim = f->xdim;
 	int ydim = f->ydim;
 
-	img = (unsigned char *)malloc( 3 * f->xdim * f->ydim );
-	if( img == NULL ) printf("Quantize allocation error\n");
 	c = img;
 
 	for( y = 0; y < ydim; y++ )
@@ -970,13 +971,99 @@ void quantize( unsigned char *img, fimage *f )
 	}
 }
 
-void fimage_copy( fimage *in, fimage *out)
+void fimage_set_bounds(  vect2 min, vect2 max, fimage *f )
+{
+	f->min = min;
+	f->max = max;
+}
+
+void fimage_init( int xdim, int ydim, fimage *f )
+{
+	vect2 min; min.x = -1.0; min.y = -1.0;
+	vect2 max; max.x =  1.0; max.y =  1.0;
+
+	f->xdim = xdim;
+	f->ydim = ydim;
+
+	f->min = min;
+	f->max = max;
+
+	f->f = (frgb *)malloc( xdim * ydim * sizeof(frgb) );
+}
+
+int fimage_load( char *filename, fimage *fimg )
+{
+	unsigned char *img;
+	int channels, xdim, ydim;
+
+    img = stbi_load( filename, &xdim, &ydim, &channels, 0 );
+    if(img == NULL) 
+	{
+    	printf( "Error in loading image %s\n", filename );
+    	return 0;
+	}
+
+	printf( " image %s loaded\n", filename );
+	fimage_init( xdim, ydim, fimg );
+	fimage_continuous( channels, img, fimg );	// convert image to frgb
+	free( img );
+	return 1;
+}
+
+void fimage_write_jpg(const char *filename, fimage *fimg )
+{
+    unsigned char *img = (unsigned char *)malloc( 3 * fimg->xdim * fimg->ydim * sizeof( unsigned char ) );
+
+	fimage_quantize( img, fimg );
+	stbi_write_jpg( filename, fimg->xdim, fimg->ydim, 3, img, 100);
+
+	free( img );
+}
+
+void fimage_write_ppm( char *filename, fimage *fimg )
+{
+    FILE *fp;
+    unsigned char *img = (unsigned char *)malloc( 3 * fimg->xdim * fimg->ydim * sizeof( unsigned char ) );
+
+    fimage_quantize( img, fimg );
+
+    //open file for output
+    fp = fopen( filename, "wb" );
+    if ( !fp ) {
+         printf( "Unable to open file '%s'\n", filename );
+         exit(1);
+    }
+
+    //write the header file
+    //image format
+    fprintf(fp, "P6\n");
+
+    //comments
+    fprintf(fp, "# Created by Joyographic\n");
+
+    //image size
+    fprintf( fp, "%d %d\n", fimg->xdim, fimg->ydim );
+
+    // rgb component depth
+    fprintf(fp, "%d\n",255);
+
+    // pixel data
+    fwrite( img, 3 * fimg->xdim, fimg->ydim, fp);
+    fclose(fp);
+}
+
+// copies only the contents of images
+// error if images different sizes
+void fimage_copy_contents( fimage *in, fimage *out)
 {
 	int x,y;
 	frgb *pin = in->f;
 	frgb *pout = out->f;
 	int xdim = in->xdim;
 	int ydim = in->ydim;
+
+	if( ( out->xdim != in->xdim ) || ( out->ydim != in->ydim ) ) 
+		printf("fimage_copy_contents error - dimensions\n in %d %d out %d %d\n", in->xdim, in->ydim, out->xdim, out->ydim);
 
 	for( y = 0; y < ydim; y++ ) {
 		for( x = 0; x < xdim; x++ ) {
@@ -985,6 +1072,13 @@ void fimage_copy( fimage *in, fimage *out)
 			pout++;
 		}
 	}
+}
+
+void fimage_init_duplicate( fimage *in, fimage *out )
+{
+	fimage_init( in->xdim, in->ydim, out);
+	fimage_set_bounds( in->min, in->max, out );
+	fimage_copy_contents( in, out );
 }
 
 void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out)
@@ -1374,6 +1468,83 @@ void fimage_clip( float min, float max, fimage *in )
 			p++;
 		}
 	}
+}
+
+void scene_initialize( scene *s )
+{
+	s->use_mask = false;
+	s->reflect_x = false;
+	s->reflect_y = false;
+	s->reflect_x_line = 0;
+	s->reflect_y_line = 0;
+}
+
+// next string in file
+void file_get_string( FILE *fp, char *str, bool *eof )
+{
+	char junk[1024]; // Anything that's not a string
+	int nargs;
+
+	// must have junk - otherwise the string result goes into junk
+	nargs = fscanf(fp, "%[^\"]\"%[^\"]\"", junk, str);
+	if( ( nargs != 2 ) && ( nargs != EOF) ) printf("Get string: read error\n");
+	*eof = ( nargs == EOF );
+	printf( "file_get_string: %s\n",str);
+}
+
+bool file_get_bool( FILE *fp, bool *eof )
+{
+	char junk[1024]; // Anything that's not a string
+	char str[255];
+	int nargs;
+
+	// must have junk - otherwise the string result goes into junk
+	nargs = fscanf(fp, "%[^a-z]%[a-z]", junk, str);
+	if( ( nargs != 2 ) && ( nargs != EOF) ) printf("Get bool: read error\n");
+	*eof = ( nargs == EOF );
+	printf( "file_get_bool: %s\n",str);
+	return( !strcmp( str, "true") );
+}
+
+int file_get_int( FILE *fp, bool *eof )
+{
+	char junk[1024]; // Anything that's not a string
+	char str[255];
+	int result;
+	int nargs;
+
+	nargs = fscanf(fp, "%[^0-9]%[0-9]", junk, str);
+	if( ( nargs != 2 ) && ( nargs != EOF) ) printf("Get int: read error\n");
+	*eof = ( nargs == EOF );
+	result = atoi( str );
+	printf( "file_get_int: %d\n",result);
+	return( result );
+}
+
+
+// Reads a .json scene file
+// Not designed to be bulletproof
+void scene_read( const char *filename, scene *s )
+{
+	FILE *fp;
+	bool eof = false;		// end of file or other error detected
+	char buffer[255];
+
+	fp = fopen( filename, "r" );
+	while( !eof ) { 			// detect eof in some fashion
+		file_get_string( fp, buffer, &eof );
+		if( !eof ) {
+			if( !strcmp( buffer, "base_file") ) 		file_get_string( fp, s->base_file, &eof );
+			if( !strcmp( buffer, "use_mask") ) 			s->use_mask = file_get_bool( fp, &eof );
+			if( !strcmp( buffer, "background_file") ) 	file_get_string( fp, s->background_file, &eof );
+			if( !strcmp( buffer, "mask_file") ) 		file_get_string( fp, s->mask_file, &eof );
+			if( !strcmp( buffer, "splat_file") ) 		file_get_string( fp, s->splat_file, &eof );
+			if( !strcmp( buffer, "reflect_y") ) 		s->reflect_y = file_get_bool( fp, &eof );
+			if( !strcmp( buffer, "reflect_y_line") ) 	s->reflect_y_line = file_get_int( fp, &eof );
+			if( !strcmp( buffer, "output_basename") ) 	file_get_string( fp, s->output_basename, &eof );
+		}
+	}
+	fclose( fp );
 }
 
 // Future - include an alpha channel mask in the splat image
@@ -1816,15 +1987,16 @@ void generate_aurora( 	float norm_frame,
 
 int main( int argc, char const *argv[] )
 {
-    int xdim, ydim, s_xdim, s_ydim, channels;
+    int channels;
     fimage base, background, background_base, splat, result, mask;
-    char *basename;
-    char *filename;
-    unsigned char *img;
+    fimage *render_to;	// pointer to image receiving render
+    char *output_filename;
     int i,a;
-    vect2 bound1,bound2,vbound1,vbound2;
+    vect2 bound1, bound2, vbound1, vbound2;
     time_t t;
     palette color_palette;
+    scene scn;
+    int load_err;			// Image load error code
 
     vect2 unitx; unitx.x = 1.0; unitx.y = 0.0;
     vect2 unity; unity.x = 0.0; unity.y = 1.0;
@@ -1840,98 +2012,58 @@ int main( int argc, char const *argv[] )
     frgb black;	black.r = 0.0;	black.g = 0.0;	black.b = 0.0;
     frgb white;	white.r = 1.0;	white.g = 1.0;	white.b = 1.0;
 
-	// load base image
-	if( argc >= 4 ) 
-	{
-      img = stbi_load( argv[1], &xdim, &ydim, &channels, 0 );
-      if(img == NULL) 
-      {
-         printf("Error in loading base image\n");
-         return 0;
-      }
-  	}
-  	else
-   	{ 
-      printf("Usage: ./lux base background splat mask\n");
+    scene_initialize( &scn );
+
+    // load scene file
+	if( argc >= 2 ) {
+		scene_read( argv[ 1 ], &scn );
+	}
+	else { 
+      printf("Usage: ./lux [scene].json [nframes]\n");
       return 0; 
    	}
-	   
-	basename = remove_ext( (char *)argv[1], '.', '/' );   // scan input filename for "." and strip off extension, put that in basename
-	filename = (char*)malloc( strlen(basename) + 12 );    // allocate output filename with room for code and extension
-	  
-/*	filename = (char*)malloc( 100 );    // allocate output filename with room for code and extension
-	basename = (char*)malloc( 100 );    // allocate output filename with room for code and extension
-	sprintf( basename, "reflect"); */
 
-	// initialize base image
+   	int nframes = 1;
+   	if( argc >= 3) nframes = atoi( argv[ 2 ] );
+
+	// allocate output filename with room for code and extension
+	output_filename = (char*)malloc( strlen( scn.output_basename ) + 12 );    
+
+   	// load base image
+   	// initialize base image
 	// origin in lower left
+
+	load_err = fimage_load( scn.base_file, &base );								if( !load_err ) return 0;
+
 	bound1.x = 0.0;
-	bound1.y = 10.0 * (1.0 * ydim) / (1.0 * xdim);
+	bound1.y = 10.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
 	bound2.x = 10.0;
 	bound2.y = 0.0;
-	fimage_init( xdim, ydim, bound1, bound2, &base );
-	continuous( channels, img, &base );	// convert base image to frgb
-	free( img );
+	fimage_set_bounds( bound1, bound2, &base );
+	fimage_init_duplicate( &base, &result );		// Duplicate base to result
 
-	fimage_init( xdim, ydim, bound1, bound2, &result );		// Initialize result image
-	fimage_init( xdim, ydim, bound1, bound2, &background );	// Initialize background image
 
-	// load background image
-	img = stbi_load( argv[2], &xdim, &ydim, &channels, 0 );
- 	if(img == NULL) 
- 	{
-    	printf("Error in loading background image\n");
-    	return 0;
- 	}
+	if( scn.use_mask ) {
+		// load background image, duplicate to background base
+		load_err = fimage_load( scn.background_file, &background_base );		if( !load_err ) return 0;
+		fimage_set_bounds( bound1, bound2, &background_base );
+	 	fimage_init_duplicate( &background_base, &background );		
 
-	fimage_init( xdim, ydim, bound1, bound2, &background_base );	// Initialize sky splat
-	continuous( channels, img, &background_base );
-	fimage_copy( &background_base, &background );
-	free( img );
+		load_err = fimage_load( scn.mask_file, &mask );							if( !load_err ) return 0;
+		fimage_set_bounds( bound1, bound2, &mask );
+		render_to = &background;
+	}
+	else {
+		render_to = &result;
+	}
 
-	// load splat image
-	img = stbi_load( argv[3], &s_xdim, &s_ydim, &channels, 0 );
-    if(img == NULL) 
-    {
-       printf("Error in loading splat image\n");
-       return 0;
-    }
-
-	bound1.x = -1.0;
-	bound1.y =  1.0;
-	bound2.x =  1.0;
-	bound2.y = -1.0;
-
-	// Splat image assumed to be square, otherwise it will be squeezed
-	fimage_init( s_xdim, s_ydim, bound1, bound2, &splat );	
-	continuous( channels, img, &splat );
-	free( img );
+	// load splat image (use default bounds)
+   	load_err = fimage_load( scn.splat_file, &splat );							if( !load_err ) return 0;
 
 	// crop or apply a ramp function to splat
 	// information outside of unit circle will not be displayed properly
 	//fimage_circle_crop( &splat );
 	fimage_circle_ramp( &splat );
-
-	// load mask image - must be same dimensions as base image
-	img = stbi_load( argv[4], &xdim, &ydim, &channels, 0 );
-    if(img == NULL) 
-    {
-       printf("Error in loading mask image\n");
-       return 0;
-    }
-
-	// initialize mask image
-	bound1.x = 0.0;
-	bound1.y = 10.0 * (1.0 * ydim) / (1.0 * xdim);
-	bound2.x = 10.0;
-	bound2.y = 0.0;
-	fimage_init( xdim, ydim, bound1, bound2, &mask );
-
-	// convert mask image to frgb
-	continuous( channels, img, &mask );
-	free( img );
-
-	// generate_jaggie( &result, &splat );
 	
 	//int nruns = 1000;
 	int nruns = 200;
@@ -1940,9 +2072,9 @@ int main( int argc, char const *argv[] )
 	vect2 start; start.x = 7.5; start.y = 7.5;
 
 	vbound1.x = -20.0;
-	vbound1.y = -20.0 * (1.0 * ydim) / (1.0 * xdim);
-	vbound2.x = 30.0;
-	vbound2.y = 30.0 * (1.0 * ydim) / (1.0 * xdim);
+	vbound1.y = -20.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
+	vbound2.x =  30.0;
+	vbound2.y =  30.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
 
 	aurora_palette( &color_palette ); // set palette 
 
@@ -1967,7 +2099,6 @@ int main( int argc, char const *argv[] )
 	vfield_normalize( &vf );
 
 	int frame, aframe;
-	int nframes = 430;
 	float ang = 0.0;
 	float ang_inc = 2.0;
 	float start_step = 15.0 / nframes;
@@ -2019,34 +2150,25 @@ int main( int argc, char const *argv[] )
 								&color_palette,
 								&vf, 
 								runs );
-			render_cluster_list( nruns, ang, runs, &vf_radial, &splat, &background);
+			render_cluster_list( nruns, ang, runs, &vf_radial, &splat, render_to );
 		}
 
 		printf("frame = %d\n",frame);
-		//fimage_copy( &base, &result );
-		// separated generation from rendering
-		
-		// ang += ang_inc;
-		//start = vfield_advect( start, &vf_radial, start_step, 0.0 );
 
 		// Clip colors in image to prevent excessive darkening
-		fimage_clip( 0.0, 1.0, &background );
-		fimage_normalize( &background );
-		//fimage_reflect_y( 2484, true, &background, &result);
-		fimage_reflect_y( 2736, true, &background, &result);
-		// add base image back in
-		//fimage_sum( &base, &result, &result );	
-		fimage_apply_mask( &base, &mask, &result );
+		fimage_clip( 0.0, 1.0, render_to );
+		//fimage_normalize( render_to );
 
-		// normalize and render
-		fimage_normalize( &result );
+		if( scn.reflect_y ) fimage_reflect_y( scn.reflect_y_line, true, render_to, &result);	// reflect image if required
+		if( scn.use_mask ) fimage_apply_mask( &base, &mask, &result );
+		//fimage_normalize( &result );
 
 		// save result
-		quantize( img, &result );
-		sprintf( filename, "%s_%04d.jpg", basename, frame);
-		stbi_write_jpg(filename, xdim, ydim, 3, img, 100);
-		free( img );
-		fimage_copy( &background_base, &background );
+		sprintf( output_filename, "%s_%04d.jpg", scn.output_basename, frame);
+		fimage_write_jpg( output_filename, &result );
+
+		if( scn.use_mask ) fimage_copy_contents( &background_base, &background );
+		else fimage_copy_contents( &base, &result );
 	}
 
 	for( a=0; a < n_aurorae; a++ )	{
@@ -2055,10 +2177,12 @@ int main( int argc, char const *argv[] )
 	}
 
 	fimage_free( &base );
-	fimage_free( &background );
 	fimage_free( &splat );
 	fimage_free( &result );	
-	fimage_free( &mask );
-	fimage_free( &background_base );
+	if( scn.use_mask ) {
+		fimage_free( &background );
+		fimage_free( &mask );
+		fimage_free( &background_base );
+	}
 	return 0;
 }
