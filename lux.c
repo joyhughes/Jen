@@ -30,6 +30,14 @@ typedef struct Vfield
 	vect2 *f;			// Flow vectors
 } vfield;
 
+typedef struct Vortex
+{
+	float scale;				// radius of splat
+	vect2 center_of_rotation;
+	vect2 start_offset;
+	float angular_velocity;
+	vfield *splat;
+} vortex;
 
 typedef struct FRGB
 {
@@ -107,7 +115,7 @@ typedef struct Cluster
 	//
 
 	// branching properties - spawn new clusters recursively
-	//struct cluster *subcluster;
+	struct cluster *subclusters;
 
 } cluster;
 
@@ -189,7 +197,7 @@ vect2 v_rotate( vect2 in, float theta)
 }
 
 // Initialize cluster with plausible default properties
-void c_initialize( cluster *k )
+void cluster_initialize( cluster *k )
 {
 	k->n = 1;	// Default single subject because that's easier
 	k->start.x = 0.0; k->start.y = 0.0;	// Origin
@@ -222,10 +230,10 @@ void c_initialize( cluster *k )
 	k->brightness = 1.0;
 	k->brightness_prop = 1.0;
 
-	//k->subclusters = (cluster *)malloc( n * sizeof(cluster *));
+	k->subclusters = NULL;			// Start with no subclusters
 }
 
-void c_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck )
+void cluster_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck )
 {
 	uck->n = n;
 	uck->start = start;
@@ -234,14 +242,14 @@ void c_set_run( int n, vect2 start, float step, float prop, float ang_offset, cl
 	uck->ang_offset = ang_offset;
 }
 
-void c_set_bounds( vect2 bmin, vect2 bmax, cluster *uck )
+void cluster_set_bounds( vect2 bmin, vect2 bmax, cluster *uck )
 {
 	uck->bounded = true;
 	uck->bmin = bmin;
 	uck->bmax = bmax;
 }
 
-void c_set_color( palette *color_palette, float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
+void cluster_set_color( palette *color_palette, float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck )
 {
 	uck->color_palette		= color_palette;
 	uck->color_filter 		= true;
@@ -251,10 +259,25 @@ void c_set_color( palette *color_palette, float start_color, float color_inc, fl
 	uck->brightness_prop 	= brightness_prop;
 }
 
-void c_set_size( bool size_prop, float size, cluster *uck )
+void cluster_set_size( bool size_prop, float size, cluster *uck )
 {
 	uck->size_prop = size_prop;
 	uck->size = size;
+}
+
+
+float add_angle( float a1, float a2 )
+{
+	float a = fmod(a1 + a2, 360.0 );
+	if( a < 0.0 ) a += 360.0;
+	return a;
+}
+
+// Sets the value of vector components
+void v_set( vect2 *v, float x, float y)
+{
+	v->x = x;
+	v->y = y;
 }
 
 float v_magnitude( vect2 v )
@@ -271,13 +294,6 @@ float vtoa( vect2 v )
 	ang = atan2( v.y, v.x ) / TAU * 360.0;
 	if( ang < 0.0 ) ang += 360.0;
 	return ang;
-}
-
-float add_angle( float a1, float a2 )
-{
-	float a = fmod(a1 + a2, 360.0 );
-	if( a < 0.0 ) a += 360.0;
-	return a;
 }
 
 vect2 v_normalize( vect2 v )
@@ -728,7 +744,7 @@ void vfield_add_stripes( vfield *f )
 }
 
 // Composite vector field including multiple centers of rotation
-void vfield_turbulent( float diameter, float n, bool random_rotation, vfield *f)
+void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *f)
 {
 	int i;
 	vect2 w,c;
@@ -752,6 +768,32 @@ void vfield_turbulent( float diameter, float n, bool random_rotation, vfield *f)
 	vfield_free( &g );		// free memory used in buffer
 }
 
+void vfield_splat( 	float size, 
+					vect2 position,
+					vfield *vf,
+					vfield *splat )
+{
+
+}
+
+// create animated vector field somewhat efficiently
+void vfield_vortices( int n, vortex *vortex_list, float t, vfield *vf )
+{
+	vortex *vort = vortex_list;
+	vect2 position;
+	int i;
+
+	for( i=0; i<n; i++ ) {
+		// calculate position of vortex
+		position = v_add( vort->center_of_rotation, v_rotate( vort->start_offset, 360.0 * t * vort->angular_velocity ) );
+
+		// splat vortex into vector field
+		vfield_splat( vort->scale, position, vf, vort->splat );
+
+		vort++;
+	}
+
+}
 
 // remove_ext: removes the "extension" from a file spec.
 //   myStr is the string to process.
@@ -1531,7 +1573,7 @@ void scene_read( const char *filename, scene *s )
 	char buffer[255];
 
 	fp = fopen( filename, "r" );
-	while( !eof ) { 			// detect eof in some fashion
+	while( !eof ) { 			
 		file_get_string( fp, buffer, &eof );
 		if( !eof ) {
 			if( !strcmp( buffer, "base_file") ) 		file_get_string( fp, s->base_file, &eof );
@@ -1644,8 +1686,7 @@ void fimage_splat(
 
 // "runs" are clusters of subjects advected through vector field
 // run can continue a certain number of iterations or until crossing boundary condition
-// this function can adjust number of subjects in run if it wants to
-// right now just prints but can add this to a structure if need be
+// this function can adjust number of elements in run if it wants to
 // occasional mutation changes single member of run or remainder of run
 void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat )
 {
@@ -1828,24 +1869,24 @@ void generate_jaggie( fimage *result, fimage *splat )
 	vfield_add_stripes( &f );
 	vfield_normalize( &f );
 	start.x = 0.0625; start.y = 4.0;
-	c_initialize( &k );
+	cluster_initialize( &k );
 
-	c_set_run( 	800, 			// Number of subjects in run
+	cluster_set_run( 	800, 			// Number of subjects in run
 			start, 				// Starting point
 			0.0625, 			// Initial step size
 			1.0, 				// Step size proportional change per step
 			0.0,				// No adjustment to angle
 			&k );	
 
-	c_set_bounds( f.min, f.max, &k );
+	cluster_set_bounds( f.min, f.max, &k );
 
-	c_set_color( 	0.0, 		// Initial color
+	cluster_set_color( 	0.0, 		// Initial color
 					0.005, 		// Color increment
 					0.5, 		// Initial brightness
 					1.0, 		// Brightness proportional change per step
 					&k );
 
-	c_set_size( true, 4.0, &k  );
+	cluster_set_size( true, 4.0, &k  );
 	render_cluster( &f, &k, result, splat );
 }
 */
@@ -1863,23 +1904,23 @@ void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax,
 
 	for(run = 0; run < nruns; run++ ) {
 		start = box_of_random2( vmin, vmax );
-		c_initialize( uck );
+		cluster_initialize( uck );
 
-		/* c_set_run( 	200, 		// number of elements in run
+		/* cluster_set_run( 	200, 		// number of elements in run
 					start,		// starting point of run 
 					0.0625, 	// initial step size
 					0.99, 		// proportional change per step
 					ang_offset, // motion relative to vector field
 					uck );		// pointer to cluster */
 
-		c_set_run( 	100, 		// number of elements in run
+		cluster_set_run( 	100, 		// number of elements in run
 					start,		// starting point of run 
 					0.25, 		// initial step size
 					1.0, 		// proportional change per step
 					ang_offset, // motion relative to vector field
 					uck );		// pointer to cluster 
 
-		c_set_bounds( imin, imax, uck );
+		cluster_set_bounds( imin, imax, uck );
 
 		/* c_set_color( 	rand1() * 0.33 + 0.33, 		// Initial color
 						rand1() * 0.005 - 0.0025, 		// Color increment
@@ -1887,8 +1928,8 @@ void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax,
 						1.0, 		// Brightness proportional change per step
 						uck ); */
 
-		// c_set_size( true, 2.0, uck );
-		c_set_size( true, 4.0, uck );
+		// cluster_set_size( true, 2.0, uck );
+		cluster_set_size( true, 4.0, uck );
 
 		uck->brightness = 0.5;
 		uck->brightness_prop = 1.0;
@@ -1908,12 +1949,12 @@ void aurora_palette( palette *p )
 	p->colors[0].g = 1.0;
 	p->colors[0].b = 0.0;
 
-	p->indices[1]  = 0.33;
-	p->colors[1].r = 0.85;
-	p->colors[1].g = 0.85;
-	p->colors[1].b = 0.85;
+	p->indices[1]  = 0.5;
+	p->colors[1].r = 0.0;
+	p->colors[1].g = 0.0;
+	p->colors[1].b = 1.0;
 
-	p->indices[2]  = 0.66;
+	p->indices[2]  = 0.75;
 	p->colors[2].r = 1.0;
 	p->colors[2].g = 0.0;
 	p->colors[2].b = 2.0;
@@ -1947,17 +1988,17 @@ void generate_aurora( 	float norm_frame,
 	float brightness;
 
 	for(run = 0; run < nruns; run++ ) {
-		c_initialize( uck );
+		cluster_initialize( uck );
 
 		// Add sine wave in offset angle and brightness
-		c_set_run( 	50, 	// number of elements in run
-					start,		// starting point of run 
-					0.0625, 	// initial step size
-					1.0, 		// proportional size change per step
-					ang_offset, // motion relative to vector field
-					uck );		// pointer to cluster */
+		cluster_set_run( 	50, 		// number of elements in run
+							start,		// starting point of run 
+							0.0625, 	// initial step size
+							1.0, 		// proportional size change per step
+							ang_offset, // motion relative to vector field
+							uck );		// pointer to cluster */
 
-		c_set_bounds( imin, imax, uck );
+		cluster_set_bounds( imin, imax, uck );
 
 		brightness = 0.0625 + rand1() * 0.03125;
 		// circle function (fade ends )
@@ -1967,18 +2008,18 @@ void generate_aurora( 	float norm_frame,
 		brightness *= 1.0 + pow( rand1(), 4.0 );
 
 		// change to custom palette
-		c_set_color( 	p,								// Color palette
-						0.0 + rand1() * 0.1, 			// Initial color
-						0.0133, 						// Color increment
-						brightness, 					// Initial brightness
-						0.96, 							// Brightness proportional change per step
-						uck ); 
+		cluster_set_color( 	p,								// Color palette
+							0.0 + rand1() * 0.1, 			// Initial color
+							0.0133, 						// Color increment
+							brightness, 					// Initial brightness
+							0.96, 							// Brightness proportional change per step
+							uck ); 
 
 		uck->brightness_ramp = true;
 		uck->brightness_ramp_length = 5;
 
 		// c_set_size( true, 2.0, uck );
-		c_set_size( true, 2.0, uck );
+		cluster_set_size( true, 2.0, uck );
 
 		start = vfield_advect( start, vf, 0.0625, composed_wave( 1.0 * run / nruns, norm_frame, ang_wave ) );
 		uck++;
@@ -2035,13 +2076,11 @@ int main( int argc, char const *argv[] )
 
 	load_err = fimage_load( scn.base_file, &base );								if( !load_err ) return 0;
 
-	bound1.x = 0.0;
-	bound1.y = 10.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
-	bound2.x = 10.0;
-	bound2.y = 0.0;
+	v_set( &bound1, 0.0, 10.0 * (1.0 * base.ydim) / (1.0 * base.xdim) );
+	v_set( &bound2, 10.0, 0.0 );
+
 	fimage_set_bounds( bound1, bound2, &base );
 	fimage_init_duplicate( &base, &result );		// Duplicate base to result
-
 
 	if( scn.use_mask ) {
 		// load background image, duplicate to background base
@@ -2068,35 +2107,36 @@ int main( int argc, char const *argv[] )
 	//int nruns = 1000;
 	int nruns = 200;
 	cluster runs[ nruns ];
-	vfield vf, vf_radial;
-	vect2 start; start.x = 7.5; start.y = 7.5;
+	vfield vf, vf_vanish, auroracentric;
+	vect2 start; v_set( &start, 7.5, 7.5 );
 
-	vbound1.x = -20.0;
-	vbound1.y = -20.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
-	vbound2.x =  30.0;
-	vbound2.y =  30.0 * (1.0 * base.ydim) / (1.0 * base.xdim);
+	//v_set( &vbound1, -20.0, -20.0 * (1.0 * base.ydim) / (1.0 * base.xdim) );
+	//v_set( &vbound2,  30.0,  30.0 * (1.0 * base.ydim) / (1.0 * base.xdim) );
+	v_set( &vbound1,  -5.0, -5.0 );
+	v_set( &vbound2,  15.0, 20.0 );
 
 	aurora_palette( &color_palette ); // set palette 
 
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
-	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_radial);
-	vfield_turbulent( 7.5, 100, false, &vf );
-	//vfield_normalize( &vf );
-	vfield_scale( 0.0, &vf );
+	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_vanish);
+	//vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &auroracentric);
+	//vfield_turbulent( 2.0, 250, false, &vf );
+	//vfield_normalize(  &vf );
+	//vfield_scale( 0.5, &vf );
 
-	vect2 radial_center; radial_center.x = 5.0; radial_center.y = 20.0;
-	vect2 up; up.x = 0.0; up.y = 0.25;
+	vect2 vanishing_point; 	v_set( &vanishing_point, 15.0, 20.0);
+	vect2 aurorigin;		v_set( &aurorigin, 5.0, 7.5);
 
 	// Create concentric vector field for aurora beams with center above top of frame
-	vfield_concentric( radial_center, &vf_radial );
-	vfield_scale( -1.0, &vf_radial );
-	vfield_normalize( &vf_radial );
+	vfield_concentric( vanishing_point, &vf_vanish );
+	vfield_scale( -1.0, &vf_vanish );
+	vfield_normalize( &vf_vanish );
 
-	// Add rotation (complement of concentric) to vector field for generating aurora paths
-	vfield_add_complement( &vf, &vf_radial, &vf );
-	//vfield_add_linear( up, &vf );
-	//vfield_sum( &vf, &vf_radial, &vf );
+	// Create rotating vector field for aurora origin motion
+	vfield_concentric( aurorigin, &vf );
 	vfield_normalize( &vf );
+	//vfield_sum( &vf, &auroracentric, &vf );
+	//vfield_normalize( &vf );
 
 	int frame, aframe;
 	float ang = 0.0;
@@ -2108,49 +2148,34 @@ int main( int argc, char const *argv[] )
 	int frame_offset[ n_aurorae ];
 	int ang_offset[ n_aurorae ];
 	float start_angle;
-	wave_params ang_wave[ n_aurorae ], brightness_wave[ n_aurorae ];
+	vect2 start_offset; 
+	wave_params ang_wave;
+	make_random_wave( 	4, 										// number of composed waves
+						75.0,									// max magnitude
+						6, 										// max run frequency
+						5, 										// max frame frequency
+						&ang_wave ); 							// pointer to wave param 
 
-	for( a = 0; a < n_aurorae; a++ ) {
-		start_angle = ( ( 7 * a ) % ( n_aurorae / 2 ) ) * 180.0 / ( n_aurorae / 2 );
-		starts[ a ].x = -15.0;
-		starts[ a ].y = 0.0;
-		starts[ a ] = v_rotate( starts[ a ], start_angle );
-		starts[ a ] = v_add( starts[ a ], radial_center );
-		frame_offset[ a ] = a * nframes / n_aurorae;
-		if( starts[ a ].x < 0.0 ) ang_offset[ a ] = 180.0;
-		else ang_offset[ a ] = 0.0;
-
-		make_random_wave( 	4, 										// number of composed waves
-							75.0,									// max magnitude
-							6, 										// max run frequency
-							5, 										// max frame frequency
-							ang_wave + a ); 						// pointer to wave param 
-		make_random_wave( 3, 0.15, 3.0, 3.0, brightness_wave + a );
-
-		// printf(" start %d: %f %f\n", a, starts[ a ].x, starts[ a ].y );
-		// printf(" start angle = %f, ang_offset = %d\n", start_angle, ang_offset[ a ]);
-	}
-
+	float aurotor_speed = 10.0;
 	for( frame = 0; frame < nframes; frame++ ) {
 		for( a = 0; a < n_aurorae; a++ ) {
-			aframe = frame + frame_offset[ a ];
-			if(aframe >= nframes ) aframe -= nframes;
-			start = starts[ a ];
-			for( i = 0; i < aframe; i++ ) {
-				start = vfield_advect( start, &vf_radial, start_step, 0.0 );
-			}
-			generate_aurora( 	1.0 * aframe / nframes,
+
+			start_angle = (a + aurotor_speed * frame / nframes) * 360.0 / n_aurorae;
+			v_set( &start_offset, 3.0, 0.0 );
+			start_offset = v_rotate( start_offset, start_angle );
+			start = v_add( start_offset, aurorigin );
+
+			generate_aurora( 	1.0 * frame / nframes,
 								nruns, 			// Number of sub-streams in aurora
 								bound1, 		// Bounds of image
 								bound2, 
 								start, 			// starting point
-								ang_offset[a],	// offset angle
-								ang_wave + a,	// angle wave parameters
-								//brightness_wave + a, // brightness wave parameters
+								0.0,	// offset angle
+								&ang_wave,	// angle wave parameters
 								&color_palette,
 								&vf, 
 								runs );
-			render_cluster_list( nruns, ang, runs, &vf_radial, &splat, render_to );
+			render_cluster_list( nruns, ang, runs, &vf_vanish, &splat, render_to );
 		}
 
 		printf("frame = %d\n",frame);
@@ -2171,10 +2196,10 @@ int main( int argc, char const *argv[] )
 		else fimage_copy_contents( &base, &result );
 	}
 
-	for( a=0; a < n_aurorae; a++ )	{
+	/*for( a=0; a < n_aurorae; a++ )	{
 		free_wave_params( &(ang_wave[ a ]) );
 		free_wave_params( &(brightness_wave[ a ]) );
-	}
+	}*/
 
 	fimage_free( &base );
 	fimage_free( &splat );
