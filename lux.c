@@ -34,11 +34,10 @@ typedef struct Vfield
 typedef struct Vortex
 {
 	float speed_of_rotation;
-	float scale;				
+	float diameter, soften;				
 	vect2 center_of_revolution;
 	vect2 start_offset;
-	float angular_velocity;
-	vfield *splat;
+	float revolution_velocity;
 } vortex;
 
 // eventually will hold all params for a 2d animated vector function
@@ -362,6 +361,33 @@ vect2 v_subtract( vect2 a, vect2 b )
 	w.x = a.x - b.x;
 	w.y = a.y - b.y;
 	return w;
+}
+
+// scalar multiply vector
+vect2 v_scale( vect2 in, float s )
+{
+	vect2 out;
+
+	out.x = in.x * s;
+	out.y = in.y * s;
+	return out;
+}
+
+vect2 v_inverse_square( vect2 in, float diameter, float soften )
+{
+	vect2 out;
+	float mag;
+
+	if( ( in.x == 0.0) && ( in.y == 0.0 ) ) {
+		v_set( &out, 0.0, 0.0 );
+		return out;
+	}
+	else {
+		mag = diameter * diameter * sqrt( 1.0 / ( in.x * in.x + in.y * in.y + soften * soften ) );
+		out = v_normalize( in );
+		out.x *= mag; out.y *= mag;
+		return out;
+	}
 }
 
 // Chooses a random point within 3D box - assumes srand() has already been called
@@ -745,21 +771,6 @@ void vfield_add_stripes( vfield *f )
 		v.y = -1.0 * v.y;
 		vfield_box( min, max, v, f );
 	}
-
-	/* or maybe not
-	// One jag to rule them all
-	c = ( rand() % 5 ) * 1.0 + 3.0;
-	vv = 1.5 * rand1() - 0.75;
-	printf(" one jag to rule them all c = %.2f  vv = %.2f\n", c, vv );
-	v.y =  3.0 * vv / ( c - 2.0 );
-	min.x = 2.0;
-	max.x = c;
-	f_box( min, max, v, f );
-	v.y = -3.0 * vv / ( 8.0 - c );
-	min.x = c;
-	max.x = 8.0;
-	f_box( min, max, v, f );
-	*/
 }
 
 // Composite vector field including multiple centers of rotation
@@ -787,33 +798,49 @@ void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *f)
 	vfield_free( &g );		// free memory used in buffer
 }
 
-void vfield_splat( 	float size, 
-					vect2 position,
-					vfield *vf,
-					vfield *splat )
-{
-
-}
-
 // procedural animated 2d vector function
 // future: generalize this by passing a function tree
 // at the moment uses a sum of vortices
 vect2 vect_fn_2d_t( vect2 v, vect_fn_2d_t_params *params, float t )
 {
 	vortex *vort = params->vortex_list;
-	vect2 position;
+	vect2 position, w;
 	vect2 out; v_set( &out, 0.0, 0.0 );
 	int i;
 	int n=params->n;
 
 	for( i=0; i<n; i++ ) {
 		// calculate position of vortex
-		position = v_add( vort->center_of_revolution, v_rotate( vort->start_offset, 360.0 * t * vort->angular_velocity ) );
-
+		position = v_add( vort->center_of_revolution, v_rotate( vort->start_offset, 360.0 * t * vort->revolution_velocity ) );
+		w = v_subtract( v, position );
+		w = v_inverse_square( w, vort->diameter, vort->soften );
+		w = v_complement( w );
+		w = v_scale( w, vort->speed_of_rotation ); 
+		out = v_add( w, out );
 		vort++;
 	}
 
+	out = v_normalize( out );
 	return out;
+}
+
+void free_vect_fn_2d_t_params( vect_fn_2d_t_params *params )
+{
+	free( params->vortex_list );
+}
+
+// Use Newton's method to move along flow line proportional to step value
+vect2 vect_fn_advect( vect2 v, vect_fn_2d_t_params *params, float step, float angle, float t)
+{
+	vect2 w,u;
+
+	w = vect_fn_2d_t( v, params, t );
+	w = v_rotate( w, angle );
+	u.x = v.x + step * w.x;
+	u.y = v.y + step * w.y;
+	if( debug_me ) printf(" vect_fn_advect: w = ( %f, %f )\n", w.x, w.y );
+
+	return u;
 }
 
 // remove_ext: removes the "extension" from a file spec.
@@ -2008,7 +2035,7 @@ void generate_aurora( 	float norm_frame,
 						wave_params *ang_wave, // wave_params *brightness_wave,
 						palette *p,
 						vfield *vf, 
-						vfield *vf_perturb,
+						vect_fn_2d_t_params *vortex_field,
 						cluster *clist,
 						scene *scn)
 {
@@ -2035,7 +2062,7 @@ void generate_aurora( 	float norm_frame,
 		perturb_start = start;
 		if( scn->use_perturb ) {
 			for(i=0; i<scn->perturb_steps; i++ ) {
-				perturb_start = vfield_advect( perturb_start, vf_perturb, 0.0625, 0.0 );
+				perturb_start = vect_fn_advect( perturb_start, vortex_field, 0.0625, 0.0, norm_frame );
 			}
 		}
 
@@ -2093,6 +2120,8 @@ int main( int argc, char const *argv[] )
     time_t t;
     palette color_palette;
     scene scn;
+    vect_fn_2d_t_params vortex_field;
+
     int load_err;			// Image load error code
 
     vect2 unitx; unitx.x = 1.0; unitx.y = 0.0;
@@ -2148,7 +2177,7 @@ int main( int argc, char const *argv[] )
 	 	fimage_init_duplicate( &background, &background_buffer );		
 	 	render_to = &background_buffer;
 
-		load_err = fimage_load( scn.mask_file, &mask );							if( !load_err ) return 0;
+		load_err = fimage_load( scn.mask_file, &mask );					if( !load_err ) return 0;
 		scn.mask_fimg = &mask;
 		fimage_set_bounds( bound1, bound2, &mask );
 	}
@@ -2163,7 +2192,7 @@ int main( int argc, char const *argv[] )
 	}
 
 	// load splat image (use default bounds)
-   	load_err = fimage_load( scn.splat_file, &splat );							if( !load_err ) return 0;
+   	load_err = fimage_load( scn.splat_file, &splat );					if( !load_err ) return 0;
 
 	// crop or apply a ramp function to splat
 	// information outside of unit circle will not be displayed properly
@@ -2185,9 +2214,9 @@ int main( int argc, char const *argv[] )
 
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf);
 	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_vanish);
-	vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_perturb);
-	vfield_turbulent( 2.0, 250, false, &vf_perturb );
-	vfield_normalize(  &vf_perturb );
+	//vfield_initialize( 1000, abs( (int)(1000 * (vbound2.y - vbound1.y) / (vbound2.x - vbound1.x) ) ), vbound1, vbound2, &vf_perturb);
+	//vfield_turbulent( 2.0, 250, false, &vf_perturb );
+	//vfield_normalize(  &vf_perturb );
 	//vfield_scale( 0.5, &vf );
 
 	vect2 vanishing_point; 	v_set( &vanishing_point, 5.0, 20.0 );
@@ -2202,6 +2231,23 @@ int main( int argc, char const *argv[] )
 	vfield_normalize( &vf );
 	//vfield_sum( &vf, &auroracentric, &vf );
 	//vfield_normalize( &vf );
+
+	vortex_field.n = 250;
+	vortex_field.vortex_list = (vortex *)malloc( vortex_field.n * sizeof( vortex ) );
+	vortex *vort = vortex_field.vortex_list;
+	if( debug_me ) printf(" vortex_field.n = %d\n", vortex_field.n );
+	for( i = 0; i < vortex_field.n; i++ ) {
+		if( rand()%2 ) 	vort->speed_of_rotation = 1.0;
+			else 		vort->speed_of_rotation = -1.0;
+		vort->diameter = 2.0;
+		vort->soften = 0.5;
+		vort->center_of_revolution = box_of_random2( base.min, base.max );
+		vort->start_offset.x = rand1() * 5.0; 	vort->start_offset.y = 0.0;
+		vort->start_offset = v_rotate( vort->start_offset, rand1() * 360.0 );
+		if( rand()%2 ) 	vort->revolution_velocity = 1.0;	// Should be multiple of 1.0
+			else 		vort->revolution_velocity = -1.0;
+		vort++;
+	}
 
 	int frame, aframe;
 	float ang = 0.0;
@@ -2221,7 +2267,7 @@ int main( int argc, char const *argv[] )
 						5, 										// max frame frequency
 						&ang_wave ); 							// pointer to wave param 
 
-	float aurotor_speed = 10.0;
+	float aurotor_speed = 0.0;
 	for( frame = 0; frame < nframes; frame++ ) {
 		for( a = 0; a < n_aurorae; a++ ) {
 
@@ -2239,7 +2285,7 @@ int main( int argc, char const *argv[] )
 								&ang_wave,	// angle wave parameters
 								&color_palette,
 								&vf, 
-								&vf_perturb,
+								&vortex_field,	// perturbation field parameters
 								runs, 
 								&scn);		// pass pointer to scene to be added to cluster
 			render_cluster_list( nruns, ang, runs, &vf_vanish, &splat, render_to, &scn );
@@ -2263,10 +2309,13 @@ int main( int argc, char const *argv[] )
 		else fimage_copy_contents( &base, &result );
 	}
 
-	/*for( a=0; a < n_aurorae; a++ )	{
+	/*
+	for( a=0; a < n_aurorae; a++ )	{
 		free_wave_params( &(ang_wave[ a ]) );
 		free_wave_params( &(brightness_wave[ a ]) );
-	}*/
+	} */
+	free_wave_params( &ang_wave );
+	free_vect_fn_2d_t_params( &vortex_field );
 
 	fimage_free( &base );
 	fimage_free( &splat );
