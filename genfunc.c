@@ -13,47 +13,96 @@ struct func_node {
 
 	bool leaf;
 	float leaf_val;
-	float (*fn)( float, float );
-	func_node *a;
-	func_node *b;
+	int nargs;
+	float (*fn)( int, float* );
+	func_node **args;
+	float *buffer;
 };
 
 float fnode_eval( func_node *fnode )
 {
+	int i;
+	func_node **arg;
+	float *buf_ptr;
+
 	printf("fnode_eval: leaf_val=%0.1f\n",fnode->leaf_val);
 	if( fnode->leaf ) return fnode->leaf_val;
-	else return fnode->fn( fnode_eval( fnode->a ), fnode_eval( fnode->b ) );
+	else {
+		buf_ptr = fnode->buffer;
+		arg = fnode->args;
+		for( i=0; i<fnode->nargs; i++ )
+		{
+			*buf_ptr = fnode_eval( *arg );
+			buf_ptr++;
+			arg++;
+		}
+		return fnode->fn( fnode->nargs, fnode->buffer );
+	}
 }
 
-float fnode_add( float a, float b )
+float fnode_sum( int nargs, float *args )
 {
-	return a + b;
+	int i;
+	float sum = 0.0;
+	float *arg = args;
+
+	for( i=0; i<nargs; i++ )
+	{
+		sum += *arg;
+		arg++;
+	}
+	return sum;
+}
+
+float fnode_sqrt( int nargs, float *args )
+{
+	return sqrt( *args );
 }
 
 void fnode_init_leaf( func_node* fnode, float leaf_val  )
 {
 	fnode->leaf = true;
 	fnode->leaf_val = leaf_val;
+	fnode->nargs = 0;
 	fnode->fn = NULL;
-	fnode->a = NULL;
-	fnode->b = NULL;	
+	fnode->args = NULL;
+	fnode->buffer = NULL;	
+}
+
+void fnode_init( func_node* fnode, int nargs )
+{
+	fnode->leaf = false;
+	fnode->leaf_val = 0.0;
+	fnode->nargs = nargs;
+	fnode->args = (func_node **)malloc( nargs * sizeof( func_node * ) );
+	fnode->buffer = (float *)malloc( nargs * sizeof( float ) );
 }
 
 int main( int argc, char *argv[] )
 {
-	func_node fnode2; 
-	fnode_init_leaf( &fnode2, 2.0 );
+	int n=10;
+	int i;
+	func_node leaves[ n ];
 
-	func_node fnode3; 
-	fnode_init_leaf( &fnode3, 3.0 );
+	func_node summation;
+	fnode_init( &summation, n );
+	summation.fn = &fnode_sum;
 
-	func_node adder;
-	adder.leaf = false;
-	adder.leaf_val = 0.0;
-	adder.fn = &fnode_add;
-	adder.a = &fnode2;
-	adder.b = &fnode3;
+	func_node *leaf = leaves;
+	func_node **arg = summation.args;
+	for( i=0; i<n; i++ )
+	{
+		fnode_init_leaf( leaf, i * 1.0 );
+		*arg = leaf;
+		arg++;
+		leaf++;
+	}
 
-	printf( "result = %0.1f\n", fnode_eval( &adder ) );
+	func_node square_root;
+	fnode_init( &square_root, 1 );
+	square_root.fn = &fnode_sqrt;
+	*(square_root.args) = &summation;
+
+	printf( "result = %f\n", fnode_eval( &square_root ) );
 	return 0;
 }
