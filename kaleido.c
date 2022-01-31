@@ -84,7 +84,7 @@ int main( int argc, char const *argv[] )
 	filename = (char*)malloc( strlen(basename) + 12 );		// allocate output filename with room for code and extension
 
 	for( frame = 0; frame < nframes; frame++ ) {
-			k = 1.0 + (11.0 * frame) / nframes;
+			k = 1.0 + (23.0 * frame) / nframes;
 			start_ang = (360.0 * frame) / nframes;
 			fimage_kaleidoscope( k, start_ang, true, &in, &out );
 			sprintf( filename, "%s_%04d.jpg", basename, frame ); 
