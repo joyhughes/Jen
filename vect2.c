@@ -14,7 +14,55 @@ float rand1()
 	return (rand() * 1.0) / (RAND_MAX * 1.0);
 }
 
-// ******************* Vector functions ******************* 
+float vtoa( vect2 v )
+{
+	float ang;
+
+	ang = atan2( v.y, v.x ) / TAU * 360.0;
+	if( ang < 0.0 ) ang += 360.0;
+	return ang;
+}
+
+float add_angle( float a1, float a2 )
+{
+	float a = fmod(a1 + a2, 360.0 );
+	if( a < 0.0 ) a += 360.0;
+	return a;
+}
+
+float sin_deg( float theta )
+{
+	return sin( theta / 360.0 * TAU );
+}
+
+float cos_deg( float theta )
+{
+	return cos( theta / 360.0 * TAU );
+}
+
+// rotate a vector by theta degrees
+vect2 v_rotate( vect2 in, float theta)
+{
+	vect2 out;
+	float thrad = theta / 360.0 * TAU;
+
+	out.x = in.x * cos( thrad ) - in.y * sin( thrad );
+	out.y = in.x * sin( thrad ) + in.y * cos( thrad );
+
+	return out;
+}
+
+vect2 v_rotate_2( 	vect2 in, 
+					vect2 theta)	// padded float
+{
+	vect2 out;
+	float thrad = theta.x / 360.0 * TAU;
+
+	out.x = in.x * cos( thrad ) - in.y * sin( thrad );
+	out.y = in.x * sin( thrad ) + in.y * cos( thrad );
+
+	return out;
+}
 
 vect2 v_set( float x, float y )
 {
@@ -38,7 +86,7 @@ vect2 v_complement( vect2 v )
 }
 
 vect2 v_complement_2( 	vect2 a, 
-						vect2 b )	//ignored
+						vect2 ignore )	//ignored
 {
 	vect2 w;
 
@@ -53,7 +101,7 @@ float v_magnitude( vect2 v )
 }
 
 vect2 v_magnitude_2( vect2 a,
-					vect2 b )	//ignored
+					vect2 ignore )	//ignored
 {
 	vect2 w;
 
@@ -83,7 +131,7 @@ vect2 v_normalize( vect2 v )
 
 // Two argument normalize - second argument ignored
 vect2 v_normalize_2( 	vect2 a, 
-						vect2 b )	// ignored
+						vect2 ignore )	// ignored
 {
 return v_normalize( a );
 }
@@ -118,8 +166,8 @@ vect2 v_scale( vect2 in, float s )
 }
 
 // scale vector linearly 
-vect2 v_scale_2( vect2 in, 
-				vect2 s )		// padded float
+vect2 v_scale_2( 	vect2 in, 
+					vect2 s )		// padded float
 {
 	vect2 out;
 
@@ -161,15 +209,37 @@ vect2 v_inverse_square_2( 	vect2 in,
 	}
 }
 
-vect2 sin_ab( 	vect2 a,	// padded float
+vect2 v_sin_ab( vect2 a,	// padded float
 				vect2 b )	// padded float
 {
-	vect2 w;
 
-	w.x = sin( a.x * b.x );
-	w.y = 0.0;
+	a.x = sin( a.x * b.x );
 
-	return w;	// padded float
+	return a;	// padded float
+}
+
+// multiplies only x component
+vect2 v_multiply_x( vect2 a,	// padded float
+					vect2 b )	// padded float
+{
+	a.x *= b.x;
+	return a;
+}
+
+// multiplies only y component by b.x
+vect2 v_multiply_y( vect2 a,	// padded float
+					vect2 b )	// padded float
+{
+	a.y *= b.x;
+	return a;
+}
+
+// adds b.x to a.y
+vect2 v_add_y( 	vect2 a,	// padded float
+				vect2 b )	// padded float
+{
+	a.y += b.x;
+	return a;
 }
 
 // Chooses a random point within 3D box - assumes srand() has already been called
@@ -206,4 +276,45 @@ bool in_bounds( vect2 v, vect2 min, vect2 max, float dist)
 
 	return( inx && iny);
 }
+
+vect2 v_radial( vect2 v )
+{
+	vect2 rad;
+
+	rad.R = v_magnitude( v );
+	rad.THETA = vtoa( v );
+
+	return rad;
+}
+
+vect2 v_radial_2( vect2 v, vect2 ignore )
+{
+	vect2 rad;
+
+	rad.R = v_magnitude( v );
+	rad.THETA = vtoa( v );
+
+	return rad;
+}
+
+vect2 v_cartesian( vect2 rad )
+{
+	vect2 v;
+
+	v.x = rad.R * cos_deg( rad.THETA );
+	v.y = rad.R * sin_deg( rad.THETA );
+
+	return v;
+}
+
+vect2 v_cartesian_2( vect2 rad, vect2 ignore )
+{
+		vect2 v;
+
+	v.x = rad.R * cos_deg( rad.THETA );
+	v.y = rad.R * sin_deg( rad.THETA );
+
+	return v;
+}
+
 

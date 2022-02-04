@@ -5,9 +5,11 @@
 #include <time.h>
 #include <stdbool.h>
 
+#include "frgb.h"
 #include "vect2.h"
-#include "fimage.h"
 #include "func_node.h"
+#include "fimage.h"
+
 
 // remove_ext: removes the "extension" from a file spec.
 //   myStr is the string to process.
@@ -56,28 +58,6 @@ char *remove_ext (char* myStr, char extSep, char pathSep) {
     return retStr;
 }
 
-void fimage_warp( fnode *warp_node, fnode *position_node, fimage *in, fimage *out )
-{
-	int x,y;
-	frgb *pout = out->f;
-	int xdim = out->xdim;
-	int ydim = out->ydim;
-	vect2 position, rad, warp;
-
-	for( y = 0; y<ydim; y++ ) {
-		for( x = 0; x<xdim; x++ ) {
-			position.x = ( 1.0 * x ) / xdim * ( out->max.x - out->min.x ) + out->min.x;
-			position.y = ( 1.0 * y ) / ydim * ( out->max.y - out->min.y ) + out->min.y;
-			position_node->leaf_val = position;
-
-			warp = fnode_eval( warp_node );
-
-			*pout = fimage_sample( warp, false, in );
-			pout++;
-		}
-	}
-}
-
 int main( int argc, char const *argv[] )
 {
 	fimage in, out;
@@ -111,34 +91,35 @@ int main( int argc, char const *argv[] )
 	float m_max = 8.0;
 
 	// initialize leaf nodes
-	func_node position_node;	fnode_init_leaf( &position_node, v_zero );
-	func_node start_ang_node;	fnode_init_leaf( &start_ang_node, v_set( start_ang, 0.0 ) );
-	func_node time_node;		fnode_init_leaf( &time_node, v_zero );
+	func_node position_node;	fnode_init_leaf( &position_node, 	fd_vect2( v_zero ) );
 
+	func_node start_ang_node;	fnode_init_leaf( &start_ang_node, 	fd_float( start_ang ) );
 
+	func_node time_node;		fnode_init_leaf( &time_node, 		fd_float( 0.0 ) );
+
+	func_node m_max_node;		fnode_init_leaf( &m_max_node, 		fd_float( m_max ) );
 
 	// build function tree
-	func_node radial_node;		fnode_init( &r_node, &v_radial_2, &position_node, NULL );
-	func_node m
+	func_node radial_node;			fnode_init_1( &radial_node, 		&fn_v_radial, 		&position_node );
 
+	func_node radial_rot_node;		fnode_init_2( &radial_rot_node, 	&fn_v_add_y, 		&radial_node, 		&start_ang_node );
+
+	func_node m_node;				fnode_init_2( &m_node, 				&fn_f_multiply, 	&m_max_node, 		&time_node );
+
+	func_node radial_warp_node;		fnode_init_2( &radial_warp_node, 	&fn_v_multiply_y, 	&radial_rot_node, 	&m_node );
+
+	func_node warp_node;			fnode_init_1( &warp_node, 			&fn_v_cartesian, 	&radial_warp_node );
 
 	basename = remove_ext( (char *)argv[1], '.', '/' );		// scan input filename for "." and strip off extension, put that in basename
 	filename = (char*)malloc( strlen(basename) + 12 );		// allocate output filename with room for code and extension
 
 	for( frame = 0; frame < nframes; frame++ ) {
-			/*k = 1.0 + (23.0 * frame) / nframes;
-			start_ang = (360.0 * frame) / nframes;
-			fimage_kaleidoscope( k, start_ang, true, &in, &out );*/
 
-			time_node.leaf_val = v_set( 1.0 * frame / nframes, 0.0 );
-			m = 2.0 * frame / nframes;
-			float ang_factor = ( 1.0 / 60.0 ) * frame / nframes;
-			printf( "kaleido main: ang_factor = %f \n", ang_factor);
-			fimage_radial_offset( 0.0, ang_factor, true, &in, &out );
+			time_node.leaf_val = fd_float( 1.0 * frame / nframes );
+			fimage_warp( &warp_node, &position_node, &in, &out );
 
 			sprintf( filename, "%s_%04d.jpg", basename, frame ); 
 			fimage_write_jpg( filename, &out );
 			printf( " frame %d\n",frame );
-
 	}
 }

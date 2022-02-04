@@ -5,7 +5,9 @@
 #include <time.h>
 #include <stdbool.h>
 
+#include "frgb.h"
 #include "vect2.h"
+#include "func_node.h"
 #include "fimage.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -13,125 +15,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image/stb_image_write.h"
 
-frgb fcolor( unsigned char r, unsigned char g, unsigned char b )
-{
-	frgb f;
-
-	// here can also raise to the power of gamma
-	f.r = r / 255.0;
-	f.g = g / 255.0;
-	f.b = b / 255.0;
-
-	return f;
-}
-
-// linear interpolation of colors through a palette
-// array should have colors at 0.0 and 1.0
-// color indicies in increasing order, no two the same
-frgb palette_index( float a, palette *p )
-{
-	frgb c;
-	int i;
-	float blend;
-
-	a = a - floor(a);
-
-	for( i=0; i < p->ncolors-1; i++ ) {
-		if( ( a >= p->indices[i] ) && ( a < p->indices[i+1] ) ) {
-			blend = ( a - p->indices[i] ) / ( p->indices[i+1] - p->indices[i] );
-			c.r = ( 1.0 - blend ) * p->colors[i].r + blend * p->colors[i+1].r;
-			c.g = ( 1.0 - blend ) * p->colors[i].g + blend * p->colors[i+1].g;
-			c.b = ( 1.0 - blend ) * p->colors[i].b + blend * p->colors[i+1].b;
-		}
-	}
-	return c;
-}
-
-// deprecated - use rainbow_palette instead
-frgb rainbow( float a )
-{
-	frgb c;
-
-	// wrap around
-	a = a - floor(a);
-
-	a *= 6.0;
-
-	if(a < 1.0) 
-	{
-		// red to yellow
-		c.r = 1.0;
-		c.g = a;
-		c.b = 0.0;
-	}
-	else if( a < 2.0 )
-	{
-		// yellow to green
-		c.r = 2.0 - a;
-		c.g = 1.0;
-		c.b = 0.0;
-	}
-	else if( a < 3.0 )
-	{
-		// green to cyan
-		c.r = 0.0;
-		c.g = 1.0;
-		c.b = a - 2.0;
-	}
-	else if( a < 4.0 )
-	{
-		// cyan to blue
-		c.r = 0.0;
-		c.g = 4.0 - a;
-		c.b = 1.0;
-	}
-	else if( a < 5.0 )
-	{
-		// blue to magenta
-		c.r = a - 4.0;
-		c.g = 0.0;
-		c.b = 1.0;
-	}
-	else
-	{
-		// magenta to red
-		c.r = 1.0;
-		c.g = 0.0;
-		c.b = 6.0 - a;
-	}
-
-//	printf("rainbow a=%02f\n r=%f\n g=%f\n b=%f\n",a,c.r,c.g,c.b);
-	return c;
-}
-
-void aurora_palette( palette *p )
-{
-	p->ncolors = 4;
-	p->indices = (float *)malloc( p->ncolors * sizeof(float) );
-	p->colors  =  (frgb *)malloc( p->ncolors * sizeof(frgb) );
-
-	p->indices[0]  = 0.0;
-	p->colors[0].r = 0.0;
-	p->colors[0].g = 1.0;
-	p->colors[0].b = 0.0;
-
-	p->indices[1]  = 0.5;
-	p->colors[1].r = 0.0;
-	p->colors[1].g = 0.0;
-	p->colors[1].b = 1.0;
-
-	p->indices[2]  = 0.75;
-	p->colors[2].r = 1.0;
-	p->colors[2].g = 0.0;
-	p->colors[2].b = 2.0;
-
-	p->indices[3]  = 1.0;
-	p->colors[3].r = 0.0;
-	p->colors[3].g = 1.0;
-	p->colors[3].b = 0.0;
-}
-
-// *********************** FIMAGE FUNCTIONS *********************** 
+// *********************** Initialize, set, and free *********************** 
 
 void fimage_init( int xdim, int ydim, fimage *f )
 {
@@ -154,6 +38,28 @@ void fimage_init_duplicate( fimage *in, fimage *out )
 	fimage_copy_contents( in, out );
 }
 
+// copies only the contents of images
+// error if images different sizes
+void fimage_copy_contents( fimage *in, fimage *out)
+{
+	int x,y;
+	frgb *pin = in->f;
+	frgb *pout = out->f;
+	int xdim = in->xdim;
+	int ydim = in->ydim;
+
+	if( ( out->xdim != in->xdim ) || ( out->ydim != in->ydim ) ) 
+		printf("fimage_copy_contents error - dimensions\n in %d %d out %d %d\n", in->xdim, in->ydim, out->xdim, out->ydim);
+
+	for( y = 0; y < ydim; y++ ) {
+		for( x = 0; x < xdim; x++ ) {
+			*pout = *pin;
+			pin++;
+			pout++;
+		}
+	}
+}
+
 void fimage_free( fimage *f )
 {
 	free( f->f );
@@ -164,6 +70,8 @@ void fimage_set_bounds(  vect2 min, vect2 max, fimage *f )
 	f->min = min;
 	f->max = max;
 }
+
+// *********************** Conversion functions *********************** 
 
 // presume here f is already initialized - that way we can reuse buffer
 void fimage_continuous( int channels, unsigned char *img, fimage *f )
@@ -240,6 +148,8 @@ void fimage_quantize( unsigned char *img, fimage *f )
 	}
 }
 
+// *********************** I/O functions *********************** 
+
 int fimage_load( char *filename, fimage *fimg )
 {
 	unsigned char *img;
@@ -301,27 +211,8 @@ void fimage_write_ppm( char *filename, fimage *fimg )
     fclose(fp);
 }
 
-// copies only the contents of images
-// error if images different sizes
-void fimage_copy_contents( fimage *in, fimage *out)
-{
-	int x,y;
-	frgb *pin = in->f;
-	frgb *pout = out->f;
-	int xdim = in->xdim;
-	int ydim = in->ydim;
-
-	if( ( out->xdim != in->xdim ) || ( out->ydim != in->ydim ) ) 
-		printf("fimage_copy_contents error - dimensions\n in %d %d out %d %d\n", in->xdim, in->ydim, out->xdim, out->ydim);
-
-	for( y = 0; y < ydim; y++ ) {
-		for( x = 0; x < xdim; x++ ) {
-			*pout = *pin;
-			pin++;
-			pout++;
-		}
-	}
-}
+// *********************** Modification functions *********************** 
+// Some may be replaced by generalized functions
 
 void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out)
 {
@@ -500,43 +391,6 @@ void fimage_normalize( fimage *f )
 	}
 }
 
-// look up pixel by integer indices
-frgb fimage_index( int x, int y, fimage *f )
-{
-	frgb black;
-
-	if( (x>=0) & (x<f->xdim) & (y>=0) & (y<f->ydim) ) 
-	{
-		return( *( f->f + y * f->xdim + x ) );
-	}
-	else
-	{
-		black.r = 0.0; black.g = 0.0; black.b = 0.0;
-		return black;
-	}
-}
-
-// sample image given coordinate in linear space 
-// quick and dirty gives nearest pixel index
-// near future: more elegant - smoothed blend (future: multi resolution)
-frgb fimage_sample( vect2 v, bool smooth, fimage *fimg )
-{
-	frgb black;
-
-	int x =  fimg->xdim * ( v.x - fimg->min.x ) / ( fimg->max.x - fimg->min.x );
-	int y =  fimg->ydim * ( v.y - fimg->min.y ) / ( fimg->max.y - fimg->min.y );
-
-	if( ( x>=0 ) & ( x<fimg->xdim ) & ( y>=0 ) & ( y<fimg->ydim ) ) 
-	{
-		return( *( fimg->f + y * fimg->xdim + x ) );
-	}
-	else
-	{
-		black.r = 0.0; black.g = 0.0; black.b = 0.0;
-		return black;
-	}
-}
-
 // in ang out images must be separate
 void fimage_rotate( float theta, 
 					vect2 cor, 					// Center of rotation
@@ -671,6 +525,89 @@ void fimage_circle_ramp( fimage *f )
 	}
 }
 
+void fimage_clip( float min, float max, fimage *in )
+{
+	int x,y;
+	frgb *p = in->f;
+	int xdim = in->xdim;
+	int ydim = in->ydim;
+
+	for( y = 0; y < ydim; y++ ) {
+		for( x = 0; x < xdim; x++ ) {
+			if( p->r < min ) p->r = min;
+			if( p->r > max ) p->r = max;
+			if( p->g < min ) p->g = min;
+			if( p->g > max ) p->g = max;
+			if( p->b < min ) p->b = min;
+			if( p->b > max ) p->b = max;
+			p++;
+		}
+	}
+}
+
+void fimage_warp( func_node *warp_node, func_node *position_node, fimage *in, fimage *out )
+{
+	int x,y;
+	frgb *pout = out->f;
+	int xdim = out->xdim;
+	int ydim = out->ydim;
+	vect2 position, rad, warp;
+
+	for( y = 0; y<ydim; y++ ) {
+		for( x = 0; x<xdim; x++ ) {
+			position.x = ( 1.0 * x ) / xdim * ( out->max.x - out->min.x ) + out->min.x;
+			position.y = ( 1.0 * y ) / ydim * ( out->max.y - out->min.y ) + out->min.y;
+			position_node->leaf_val = fd_vect2( position );
+
+			warp = fnode_eval( warp_node ).v;
+
+			*pout = fimage_sample( warp, false, in );
+			pout++;
+		}
+	}
+}
+
+// *********************** Sampling functions *********************** 
+
+// look up pixel by integer indices
+frgb fimage_index( int x, int y, fimage *f )
+{
+	frgb black;
+
+	if( (x>=0) & (x<f->xdim) & (y>=0) & (y<f->ydim) ) 
+	{
+		return( *( f->f + y * f->xdim + x ) );
+	}
+	else
+	{
+		black.r = 0.0; black.g = 0.0; black.b = 0.0;
+		return black;
+	}
+}
+
+// sample image given coordinate in linear space 
+// quick and dirty gives nearest pixel index
+// near future: more elegant - smoothed blend (future: multi resolution)
+frgb fimage_sample( vect2 v, bool smooth, fimage *fimg )
+{
+	frgb black;
+
+	int x =  fimg->xdim * ( v.x - fimg->min.x ) / ( fimg->max.x - fimg->min.x );
+	int y =  fimg->ydim * ( v.y - fimg->min.y ) / ( fimg->max.y - fimg->min.y );
+
+	if( ( x>=0 ) & ( x<fimg->xdim ) & ( y>=0 ) & ( y<fimg->ydim ) ) 
+	{
+		return( *( fimg->f + y * fimg->xdim + x ) );
+	}
+	else
+	{
+		black.r = 0.0; black.g = 0.0; black.b = 0.0;
+		return black;
+	}
+}
+
+// *********************** Masking functions *********************** 
+
 // future - add antialiasing
 void fimage_make_mask( float thresh, fimage *in, fimage *out )
 {
@@ -715,25 +652,7 @@ void fimage_apply_mask( fimage *base, fimage *mask, fimage *result )
 	}
 }
 
-void fimage_clip( float min, float max, fimage *in )
-{
-	int x,y;
-	frgb *p = in->f;
-	int xdim = in->xdim;
-	int ydim = in->ydim;
-
-	for( y = 0; y < ydim; y++ ) {
-		for( x = 0; x < xdim; x++ ) {
-			if( p->r < min ) p->r = min;
-			if( p->r > max ) p->r = max;
-			if( p->g < min ) p->g = min;
-			if( p->g > max ) p->g = max;
-			if( p->b < min ) p->b = min;
-			if( p->b > max ) p->b = max;
-			p++;
-		}
-	}
-}
+// *********************** Rendering Functions *********************** 
 
 // Future - include an alpha channel mask in the splat image
 // Future - use multiple resolutions for sampling to limit aliasing
@@ -830,10 +749,71 @@ void fimage_splat(
 	}
 }
 
+// Sanity check to see if splat is working
+// needs to include tint
+void test_splat( fimage *r, fimage *f )
+{
+	// splat it
+	vect2 center;
+	center.x = 5.0;
+	center.y = 5.0;
+//	fimage_splat( center, 1.0, 30.0, &r, &f );
+}
+
+/*	Warp functions - deprecated
+
+void fimage_radial_offset( float offset, float ang_factor, bool reflect, fimage *in, fimage *out )
+{
+	int x,y;
+	frgb *pout = out->f;
+	int xdim = out->xdim;
+	int ydim = out->ydim;
+	vect2 position, rad, warp;
+	int rad_int;
+	for( y = 0; y<ydim; y++ ) {
+		for( x = 0; x<xdim; x++ ) {
+			position.x = ( 1.0 * x ) / xdim * ( out->max.x - out->min.x ) + out->min.x;
+			position.y = ( 1.0 * y ) / ydim * ( out->max.y - out->min.y ) + out->min.y;
+
+			rad = v_radial( position );
+			rad.R += (offset + rad.THETA * ang_factor);
+			rad_int = ( int )rad.R;
+			rad.R = fmod( rad.R, 1.0 );
+			if( ( rad_int % 2 ) && reflect ) rad.R = 1.0 - rad.R;
+			warp = v_cartesian( rad );
+
+			*pout = fimage_sample( warp, false, in );
+			pout++;
+		}
+	}
+}
+
+void fimage_radial_multiply( float m, fimage *in, fimage *out )
+{
+	int x,y;
+	frgb *pout = out->f;
+	int xdim = out->xdim;
+	int ydim = out->ydim;
+	vect2 position, rad, warp;
+
+	for( y = 0; y<ydim; y++ ) {
+		for( x = 0; x<xdim; x++ ) {
+			position.x = ( 1.0 * x ) / xdim * ( out->max.x - out->min.x ) + out->min.x;
+			position.y = ( 1.0 * y ) / ydim * ( out->max.y - out->min.y ) + out->min.y;
+
+			rad = v_radial( position );
+			rad.THETA *= m;
+			warp = v_cartesian( rad );
+
+			*pout = fimage_sample( warp, false, in );
+			pout++;
+		}
+	}
+}
+
 void fimage_kaleidoscope( float k, float start_ang, bool reflect, fimage *in, fimage *out )
 {
 	int x,y;
-	frgb *pin = in->f;
 	frgb *pout = out->f;
 	int xdim = out->xdim;
 	int ydim = out->ydim;
@@ -850,7 +830,7 @@ void fimage_kaleidoscope( float k, float start_ang, bool reflect, fimage *in, fi
 			ang = vtoa( position ) + start_ang;
 			segment = (int) ( ang / kang );
 			rot_ang = - segment * kang;
-			if( reflect && (segment % 2) ) rot_ang += kang / 2.0 - (ang - segment * kang );
+			if( reflect && (segment % 2) ) rot_ang -= kang / 2.0 - (ang - rot_ang );
 			
 			position = v_rotate( position, rot_ang );
 
@@ -859,5 +839,5 @@ void fimage_kaleidoscope( float k, float start_ang, bool reflect, fimage *in, fi
 			pout++;
 		}
 	}
-
 }
+*/
