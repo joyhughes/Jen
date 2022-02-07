@@ -40,6 +40,11 @@ float cos_deg( float theta )
 	return cos( theta / 360.0 * TAU );
 }
 
+float tan_deg( float theta )
+{
+	return tan( theta / 360.0 * TAU );
+}
+
 // rotate a vector by theta degrees
 vect2 v_rotate( vect2 in, float theta)
 {
@@ -129,13 +134,6 @@ vect2 v_normalize( vect2 v )
 	return w;
 }
 
-// Two argument normalize - second argument ignored
-vect2 v_normalize_2( 	vect2 a, 
-						vect2 ignore )	// ignored
-{
-return v_normalize( a );
-}
-
 vect2 v_add( vect2 a, vect2 b )
 {	
 	vect2 w;
@@ -165,17 +163,6 @@ vect2 v_scale( vect2 in, float s )
 	return out;
 }
 
-// scale vector linearly 
-vect2 v_scale_2( 	vect2 in, 
-					vect2 s )		// padded float
-{
-	vect2 out;
-
-	out.x = in.x * s.x;
-	out.y = in.y * s.x;
-	return out;
-}
-
 vect2 v_inverse_square( vect2 in, float diameter, float soften )
 {
 	vect2 out;
@@ -190,32 +177,6 @@ vect2 v_inverse_square( vect2 in, float diameter, float soften )
 		out.x *= mag; out.y *= mag;
 		return out;
 	}
-}
-
-vect2 v_inverse_square_2( 	vect2 in, 
-							vect2 soften )	// padded float
-{
-	vect2 out;
-	float mag;
-
-	if( ( in.x == 0.0) && ( in.y == 0.0 ) ) {
-		return v_zero;
-	}
-	else {
-		mag = sqrt( 1.0 / ( in.x * in.x + in.y * in.y + soften.x * soften.x ) );
-		out = v_normalize( in );
-		out.x *= mag; out.y *= mag;
-		return out;
-	}
-}
-
-vect2 v_sin_ab( vect2 a,	// padded float
-				vect2 b )	// padded float
-{
-
-	a.x = sin( a.x * b.x );
-
-	return a;	// padded float
 }
 
 // multiplies only x component

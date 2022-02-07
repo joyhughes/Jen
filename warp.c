@@ -63,24 +63,23 @@ int main( int argc, char const *argv[] )
 	fimage in, out;
 	int xdim, ydim, channels;
 	char *filename, *basename;
-	float k, m, start_ang;
 	unsigned char *img;
 	int frame, nframes;
-
+	func_tree warp_tree;
 	
 
-	if( argc >= 2) 
+	if( argc >= 3) 
 	{
 		// load image file
-		fimage_load( (char *)argv[1], &in );
+		fimage_load( argv[1], &in );
 		fimage_init_duplicate( &in, &out );
+		fimage_circle_crop( &in );
 
-		// todo: load function file
+		// load function file
+		ftree_load( &warp_tree, argv[ 2 ] );
 
-	 	if(argc >= 3) nframes 		= atoi( (char *)argv[2] );
+	 	if(argc >= 4) nframes 		= atoi( (char *)argv[ 3 ] );
 	 		else nframes = 100;
-	 	if(argc >= 4) start_ang 	= atof( (char *)argv[3] );
-	 		else start_ang = 0.0;
 	}
 	else
 	{ 
@@ -88,37 +87,20 @@ int main( int argc, char const *argv[] )
 	  return 0; 
 	}
 
-	float m_max = 8.0;
-
-	// initialize leaf nodes
-	func_node position_node;	fnode_init_leaf( &position_node, 	fd_vect2( v_zero ) );
-
-	func_node start_ang_node;	fnode_init_leaf( &start_ang_node, 	fd_float( start_ang ) );
-
-	func_node time_node;		fnode_init_leaf( &time_node, 		fd_float( 0.0 ) );
-
-	func_node m_max_node;		fnode_init_leaf( &m_max_node, 		fd_float( m_max ) );
-
-	// build function tree
-	func_node radial_node;			fnode_init_1( &radial_node, 		&fn_v_radial, 		&position_node );
-
-	func_node radial_rot_node;		fnode_init_2( &radial_rot_node, 	&fn_v_add_y, 		&radial_node, 		&start_ang_node );
-
-	func_node m_node;				fnode_init_2( &m_node, 				&fn_f_multiply, 	&m_max_node, 		&time_node );
-
-	func_node radial_warp_node;		fnode_init_2( &radial_warp_node, 	&fn_v_multiply_y, 	&radial_rot_node, 	&m_node );
-
-	func_node warp_node;			fnode_init_1( &warp_node, 			&fn_v_cartesian, 	&radial_warp_node );
+	// scan for parameters and results
+	func_node *position_node = 	ftree_index( &warp_tree, "position" );
+	func_node *time_node = 		ftree_index( &warp_tree, "time" );	
+	func_node *result_node = 	ftree_index( &warp_tree, "result" );
 
 	basename = remove_ext( (char *)argv[1], '.', '/' );		// scan input filename for "." and strip off extension, put that in basename
-	filename = (char*)malloc( strlen(basename) + 12 );		// allocate output filename with room for code and extension
+	filename = (char*)malloc( strlen(basename) + 24 );		// allocate output filename with room for code and extension
 
 	for( frame = 0; frame < nframes; frame++ ) {
 
-			time_node.leaf_val = fd_float( 1.0 * frame / nframes );
-			fimage_warp( &warp_node, &position_node, &in, &out );
+			time_node->leaf_val = fd_float( 1.0 * frame / nframes );
+			fimage_warp( result_node, position_node, &in, &out );
 
-			sprintf( filename, "%s_%04d.jpg", basename, frame ); 
+			sprintf( filename, "./frames/%s_%04d.jpg", basename, frame ); 
 			fimage_write_jpg( filename, &out );
 			printf( " frame %d\n",frame );
 	}

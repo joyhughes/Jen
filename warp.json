@@ -1,0 +1,14 @@
+{
+	"name": "radial_multiply_animation",
+	"n": 9,
+	"position": 	{ "vect2": [ 0.0, 0.0] },
+	"start_ang": 	{ "float": 0.0 },
+	"time":			{ "float": 0.0 },
+	"m_max":		{ "float": 8.0 },
+
+	"radial":		{ "fn_v_squaradial":	[ "position" ] },
+	"radial_rot":	{ "fn_v_add_y": 		[ "radial", 	"start_ang" ] },
+	"m":			{ "fn_f_multiply": 		[ "m_max", 		"time" ] },
+	"radial_warp":	{ "fn_v_multiply_y":	[ "radial_rot", "m" ] },
+	"result":		{ "fn_v_squartesian":	[ "radial_warp" ] }
+}

@@ -8,19 +8,39 @@ typedef union Func_data {
 	frgb c;
 } func_data;
 
+typedef enum {
+	FN_BOOL,
+	FN_INT,
+	FN_FLOAT,
+	FN_VECT2,
+	FN_FRGB,
+	FN_NULL
+} fn_type;
+
 typedef func_data (*gen_func_1)( func_data );
 
 typedef func_data (*gen_func_2)( func_data, func_data );
+
+typedef func_data (*gen_func_3)( func_data, func_data, func_data );
+
+typedef union Gen_func {
+	gen_func_1 gf1;
+	gen_func_2 gf2;
+	gen_func_3 gf3;	
+} gen_func;
 
 typedef struct func_node func_node;
 
 struct func_node {
 
 	func_data leaf_val;	// Zero arguments - leaf
-	gen_func_1 fn1;		// One argument
-	gen_func_2 fn2;		// Two arguments
+	fn_type type;
+	bool choose;
+	int nargs;
+	gen_func fn;		
 	func_node *a;
 	func_node *b;
+	func_node *c;
 	char name[256];
 
 };
@@ -45,16 +65,40 @@ func_data fd_frgb( frgb c );
 
 func_data fnode_eval( const func_node *fnode );
 
+// ********************** Sanity check ********************** 
+
+void fnode_print( func_node* fnode );
+
 // ********************** Initialization functions ********************** 
 
-void fnode_init_leaf( func_node* fnode, func_data leaf_val );						// initialize leaf node 
-void fnode_init_1( func_node* fnode, gen_func_1 fn1, func_node *a );				// initialize 1 argument node
-void fnode_init_2( func_node* fnode, gen_func_2 fn2, func_node *a, func_node *b );	// initialize 2 argument node
+void fnode_init_leaf( func_node* fnode, func_data leaf_val, fn_type type );						// initialize leaf node 
+void fnode_init_1( func_node* fnode, gen_func_1 fn1, func_node *a, fn_type type );				// initialize 1 argument node
+void fnode_init_2( func_node* fnode, gen_func_2 fn2, func_node *a, func_node *b, fn_type type );	// initialize 2 argument node
+void fnode_init_3( func_node* fnode, gen_func_3 fn3, func_node *a, func_node *b, func_node *c, fn_type type, bool choose);	// initialize 3 argument node
+
+// ********************** bool ( int ) ********************** 
+
+func_data fn_b_even( func_data f1 );
+
+// ********************** bool ( float, float ) ********************** 
+
+func_data fn_b_less_than( func_data f1, func_data f2 );
+
+// ********************** float ( vect2 ) ********************** 
+
+func_data fn_f_magnitude( func_data v );
+func_data fn_f_vtoa( func_data v );
 
 // ********************** float ( float, float ) ********************** 
 
+func_data fn_f_add( func_data f1, func_data f2 );
+func_data fn_f_subtract( func_data f1, func_data f2 );
 func_data fn_f_multiply( func_data f1, func_data f2 );
 func_data fn_f_sin_ab( func_data f1, func_data f2 );
+
+// ********************** float ( bool, float, float ) ********************** 
+
+func_data fn_f_choose( func_data f1, func_data f2, func_data f3 );
 
 // ********************** vect2 ( vect2 ) ********************** 
 
@@ -66,11 +110,16 @@ func_data fn_v_cartesian( func_data v );
 func_data fn_v_add_y( func_data v, func_data f );
 func_data fn_v_multiply_y( func_data v, func_data f );
 
+// ********************** identifier function ********************** 
+
+fn_type get_gen_func( const char* name, gen_func *gf, int *n, bool *choose );
+
 // ********************** func_tree functions ********************** 
-/*
-void ftree_init( func_tree *ftree, int n );
-void ftree_set_name( func_tree *ftree, const char *name);
-char* ftree_get_name( func_tree *ftree);
-void ftree_load( func_tree *ftree, const char *filename );
-fnode* ftree_index( func_tree *ftree, const char *name );
-*/
+
+void 		ftree_init( func_tree *ftree, int n );
+void 		ftree_set_name( func_tree *ftree, const char *name);
+char* 		ftree_get_name( func_tree *ftree);
+void 		ftree_load( func_tree *ftree, const char *filename );
+func_node* 	ftree_index( func_tree *ftree, const char *name );
+void		ftree_print( func_tree *ftree );
+

@@ -19,6 +19,8 @@ float sin_deg( float theta );
 
 float cos_deg( float theta );
 
+float tan_deg( float theta );
+
 float vtoa( vect2 v );
 
 float add_angle( float a1, float a2 );
