@@ -6,6 +6,8 @@
 #include <stdbool.h>
 
 #include "vect2.h"
+#include "frgb.h"
+#include "func_node.h"
 #include "vfield.h"
 
 // ********************** Constructor / destructor ********************** 
@@ -123,7 +125,7 @@ void vfield_scale( float s, vfield *f)
 	}
 }
 
-void vfield_rotate_vectors( float ang, vfield *f)
+void vfield_rotate_vectors( float ang, vfield *f )
 {
 	int xi, yi;
 	vect2 *w = f->f;
@@ -155,16 +157,16 @@ void vfield_normalize( vfield *f )
 }
 
 // Creates an inverse square of vector field with optional softening factor to avoid infinity 
-void vfield_inverse_square( float diameter, float soften, vfield *f )
+void vfield_inverse_square( float diameter, float soften, vfield *vf )
 {
 	int xi, yi;
-	vect2 *w = f->f;
+	vect2 *w = vf->f;
 	vect2 u;
 	float s;
 
-	for(yi = 0; yi < f->ydim; yi++ )
+	for(yi = 0; yi < vf->ydim; yi++ )
 	{
-		for(xi = 0; xi < f->xdim; xi++ )
+		for(xi = 0; xi < vf->xdim; xi++ )
 		{
 			if((diameter==0.0) | ( (soften==0.0) & (w->x==0.0) & (w->y==0.0)))
 			{
@@ -177,6 +179,38 @@ void vfield_inverse_square( float diameter, float soften, vfield *f )
 				u = v_normalize(*w);
 				w->x = u.x * s; w->y = u.y * s; 
 			}
+			w++;
+		}
+	}
+}
+
+// advect every vector in a field based on generalized vector function
+void vfield_advect_field( func_node *result_node, func_node *position_node, float step, vfield *vf )
+{
+	int xi, yi;
+	vect2 *w = vf->f;
+	for(yi = 0; yi < vf->ydim; yi++ )
+	{
+		for(xi = 0; xi < vf->xdim; xi++ )
+		{
+			position_node->leaf_val = fd_vect2( *w );
+			*w = v_add( *w, v_scale( fnode_eval( result_node ).v, step ) );
+			w++;
+		}
+	}
+}
+
+// apply generalized function to each vector
+void vfield_func( func_node *result_node, func_node *position_node, vfield *vf )
+{
+	int xi, yi;
+	vect2 *w = vf->f;
+	for(yi = 0; yi < vf->ydim; yi++ )
+	{
+		for(xi = 0; xi < vf->xdim; xi++ )
+		{
+			position_node->leaf_val = fd_vect2( *w );
+			*w = fnode_eval( result_node ).v;
 			w++;
 		}
 	}
@@ -365,7 +399,7 @@ void vfield_spiral( vect2 center, float cscale, float rscale, vfield *f )
 }
 
 // Composite vector field including multiple centers of rotation
-void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *f)
+void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *vf)
 {
 	int i;
 	vect2 w,c;
@@ -373,9 +407,9 @@ void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *f)
 
 	// Set value of output array to zero
 	w.x= 0.0; w.y=0.0;
-	vfield_linear(w,f);
+	vfield_linear( w, vf );
 
-	vfield_initialize( f->xdim, f->ydim, f->min, f->max, &g );	// initialize buffer
+	vfield_initialize( vf->xdim, vf->ydim, vf->min, vf->max, &g );	// initialize buffer
 	for(i=0; i<n; i++)
 	{
 		c = box_of_random2( g.min, g.max );
@@ -384,7 +418,24 @@ void vfield_turbulent( float diameter, int n, bool random_rotation, vfield *f)
 		else if( rand()%2 ) vfield_scale( -1.0, &g );		// coin flip for rotational direction
 		
 		vfield_inverse_square( diameter, 0.5, &g );
-		vfield_sum( f, &g, f );
+		vfield_sum( vf, &g, vf );
 	}
 	vfield_free( &g );		// free memory used in buffer
+}
+
+// puts coordinate of vector in each grid point. Identity transform for warps.
+void vfield_position_fill( vfield *vf )
+{
+	int xi, yi;
+	vect2 *w = vf->f;
+	vect2 u;
+
+	for(yi = 0; yi < vf->ydim; yi++ )
+	{
+		for(xi = 0; xi < vf->xdim; xi++ )
+		{
+			*w = vfield_coord( xi, yi, vf );
+			w++;
+		}
+	}
 }
