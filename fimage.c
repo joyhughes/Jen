@@ -8,6 +8,7 @@
 #include "frgb.h"
 #include "vect2.h"
 #include "func_node.h"
+#include "vfield.h"
 #include "fimage.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -150,7 +151,7 @@ void fimage_quantize( unsigned char *img, fimage *f )
 
 // *********************** I/O functions *********************** 
 
-int fimage_load( char *filename, fimage *fimg )
+int fimage_load( const char *filename, fimage *fimg )
 {
 	unsigned char *img;
 	int channels, xdim, ydim;
@@ -545,7 +546,7 @@ void fimage_clip( float min, float max, fimage *in )
 	}
 }
 
-void fimage_warp( func_node *warp_node, func_node *position_node, fimage *in, fimage *out )
+void fimage_warp( func_node *warp_node, func_node *position_node, func_node* color_node, fimage *in, fimage *out )
 {
 	int x,y;
 	frgb *pout = out->f;
@@ -562,6 +563,23 @@ void fimage_warp( func_node *warp_node, func_node *position_node, fimage *in, fi
 			warp = fnode_eval( warp_node ).v;
 
 			*pout = fimage_sample( warp, false, in );
+			//if( color_node != NULL ) *pout = frgb_multiply( *pout, fnode_eval( color_node ).c );
+
+			pout++;
+		}
+	}
+}
+
+void fimage_melt( vfield *warp, fimage *in, fimage *out )
+{
+	int x,y;
+	frgb *pout = out->f;
+	int xdim = out->xdim;
+	int ydim = out->ydim;
+
+	for( y = 0; y<ydim; y++ ) {
+		for( x = 0; x<xdim; x++ ) {
+			*pout = fimage_sample( vfield_index( x, y, warp ), false, in );
 			pout++;
 		}
 	}

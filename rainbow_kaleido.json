@@ -1,0 +1,23 @@
+{
+	"name": "rainbow_kaleidoscope_animation",
+	"n": 18,
+	"position": 	{ "vect2": [ 0.0, 0.0] },
+	"max_phase":	{ "float": 360.0 }, 	// full rotation
+	"time":			{ "float": 0.0 },
+	"negative":		{ "float": -1.0 },
+	"two":			{ "float": 2.0 },
+	"k":			{ "int": 12 },			// Number of wedges in kaleidoscope
+	"reflect":		{ "bool": true },		// reflect alternate 
+
+	"r":			{ "fn_f_magnitude":		[ "position"] },
+	"theta":		{ "fn_f_vtoa":			[ "position"] },
+	"width":		{ "fn_f_div_i":			[ "max_phase", "k" ] },
+	"plus_phase": 	{ "fn_f_multiply": 		[ "max_phase", 	"time" ] },
+	"minus_phase":	{ "fn_f_multiply":		[ "plus_phase", "negative" ] },
+	"kaleido":		{ "fn_f_kaleido":		[ "theta", "width", "reflect" ] },
+	"kaleido_rot":	{ "fn_f_add":			[ "kaleido", "plus_phase" ] },
+	"result":		{ "fn_v_cartesian_f":	[ "r", "kaleido_rot" ] },
+	"color_angle":	{ "fn_f_add":			[ "minus_phase", "theta"]},
+	"color_index":	{ "fn_f_divide":		[ "color_angle", "max_phase" ] },
+	"color_result":	{ "fn_c_rainbow":		[ "color_index"] }
+}

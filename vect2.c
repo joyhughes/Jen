@@ -90,30 +90,12 @@ vect2 v_complement( vect2 v )
 	return w;
 }
 
-vect2 v_complement_2( 	vect2 a, 
-						vect2 ignore )	//ignored
-{
-	vect2 w;
-
-	w.x = -a.y;
-	w.y =  a.x;
-	return w;
-}
 
 float v_magnitude( vect2 v )
 {
 	return(sqrt(v.x*v.x + v.y*v.y));
 }
 
-vect2 v_magnitude_2( vect2 a,
-					vect2 ignore )	//ignored
-{
-	vect2 w;
-
-	w.x = sqrt( a.x * a.x + a.y * a.y );
-	w.y = 0.0;
-	return( w );				// padded float
-}
 
 vect2 v_normalize( vect2 v )
 {
@@ -156,11 +138,17 @@ vect2 v_subtract( vect2 a, vect2 b )
 // scalar multiply vector
 vect2 v_scale( vect2 in, float s )
 {
-	vect2 out;
+	in.x *= s;
+	in.y *= s;
+	return in;
+}
 
-	out.x = in.x * s;
-	out.y = in.y * s;
-	return out;
+vect2 v_complex_power( vect2 in, float p )
+{
+	in = v_radial( in );
+	in.R = pow( in.R, p );
+	in.THETA *= p;
+	return in;
 }
 
 vect2 v_inverse_square( vect2 in, float diameter, float soften )
@@ -248,16 +236,6 @@ vect2 v_radial( vect2 v )
 	return rad;
 }
 
-vect2 v_radial_2( vect2 v, vect2 ignore )
-{
-	vect2 rad;
-
-	rad.R = v_magnitude( v );
-	rad.THETA = vtoa( v );
-
-	return rad;
-}
-
 vect2 v_cartesian( vect2 rad )
 {
 	vect2 v;
@@ -268,14 +246,5 @@ vect2 v_cartesian( vect2 rad )
 	return v;
 }
 
-vect2 v_cartesian_2( vect2 rad, vect2 ignore )
-{
-		vect2 v;
-
-	v.x = rad.R * cos_deg( rad.THETA );
-	v.y = rad.R * sin_deg( rad.THETA );
-
-	return v;
-}
 
 

@@ -7,6 +7,8 @@
 
 #include "frgb.h"
 
+// *********************** Initialization function *********************** 
+
 frgb fcolor( unsigned char r, unsigned char g, unsigned char b )
 {
 	frgb f;
@@ -18,6 +20,38 @@ frgb fcolor( unsigned char r, unsigned char g, unsigned char b )
 
 	return f;
 }
+
+// *********************** frgb arithmatic functions *********************** 
+
+frgb frgb_multiply( frgb c1, frgb c2 )
+{
+	c1.r *= c2.r;
+	c1.g *= c2.g;
+	c1.b *= c2.b;
+
+	return c1;
+}
+
+frgb frgb_add( frgb c1, frgb c2 )
+{
+	c1.r += c2.r;
+	c1.g += c2.g;
+	c1.b += c2.b;
+
+	return c1;
+}
+
+
+frgb frgb_subtract( frgb c1, frgb c2 )
+{
+	c1.r -= c2.r;
+	c1.g -= c2.g;
+	c1.b -= c2.b;
+
+	return c1;
+}
+
+// *********************** Palette functions *********************** 
 
 // linear interpolation of colors through a palette
 // array should have colors at 0.0 and 1.0
@@ -124,3 +158,4 @@ void aurora_palette( palette *p )
 	p->colors[3].g = 1.0;
 	p->colors[3].b = 0.0;
 }
+

@@ -24,7 +24,7 @@ void fimage_quantize( unsigned char *img, fimage *f );
 
 // *********************** I/O functions *********************** 
 
-int fimage_load( char *filename, fimage *fimg );
+int fimage_load( const char *filename, fimage *fimg );
 void fimage_write_jpg(const char *filename, fimage *fimg );
 void fimage_write_ppm( char *filename, fimage *fimg );
 
@@ -44,7 +44,8 @@ void fimage_translate( int xoff, int yoff, fimage *in, fimage *out );
 void fimage_circle_crop( fimage *f );	// Colors black everything outside of a centered circle
 void fimage_circle_ramp( fimage *f );
 void fimage_clip( float min, float max, fimage *in );
-void fimage_warp( func_node *warp_node, func_node *position_node, fimage *in, fimage *out );	// Warp using generalized function tree
+void fimage_warp( func_node *warp_node, func_node *position_node, func_node* color_node, fimage *in, fimage *out );
+void fimage_melt( vfield *warp, fimage *in, fimage *out );
 
 // *********************** Sampling functions *********************** 
 

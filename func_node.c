@@ -197,6 +197,12 @@ func_data fn_f_multiply( func_data f1, func_data f2 )
 	return f1;
 }
 
+func_data fn_f_divide( func_data f1, func_data f2 )
+{
+	f1.f /= f2.f;
+	return f1;
+}
+
 func_data fn_f_sin_ab( func_data f1, func_data f2 )
 {
 	f1.f = sin_deg( f1.f * f2.f );
@@ -221,6 +227,15 @@ func_data fn_f_kaleido( func_data f, func_data width, func_data reflect )
 
 	return f;
 }
+
+// ********************** float ( float, float, float ) ********************** 
+
+func_data fn_f_inverse_square( func_data f, func_data diameter, func_data soften )
+{
+	f.f = diameter.f * diameter.f * sqrt( 1.0 / ( f.f * f.f + soften.f * soften.f ) );
+	return f;
+}
+
 
 // ********************** vect2 ( vect2 ) ********************** 
 
@@ -263,6 +278,18 @@ func_data fn_v_squartesian( func_data v )
 	return fd_vect2( cart );
 }
 
+func_data fn_v_complement( func_data v )
+{
+	v.v = v_complement( v.v );
+	return v;
+}
+
+func_data fn_v_normalize( func_data v )
+{
+	v.v = v_normalize( v.v );
+	return v;
+}
+
 // ********************** vect2 ( float, float ) ********************** 
 
 func_data fn_v_cartesian_f( func_data r, func_data theta )
@@ -286,6 +313,42 @@ func_data fn_v_multiply_y( func_data v, func_data f )
 	return v;
 }
 
+func_data fn_v_scale( func_data v, func_data f )
+{
+	v.v.x *= f.f;
+	v.v.y *= f.f;
+	return v;
+}
+
+func_data fn_v_rotate( func_data v, func_data ang )
+{
+	v.v = v_rotate( v.v, ang.f );
+	return v;
+}
+
+func_data fn_v_complex_power( func_data v, func_data p )
+{
+	v.v = v_complex_power( v.v );
+	return v;
+}
+
+
+// ********************** vect2 ( vect2, vect2 ) ********************** 
+
+func_data fn_v_add( func_data v1, func_data v2 )
+{
+	v1.v.x += v2.v.x;
+	v1.v.y += v2.v.y;
+	return v1;
+}
+
+func_data fn_v_subtract( func_data v1, func_data v2 )
+{
+	v1.v.x -= v2.v.x;
+	v1.v.y -= v2.v.y;
+	return v1;
+}
+
 // ********************** vect2 ( bool, vect2, vect2 ) ********************** 
 
 func_data fn_v_choose( func_data f1, func_data f2, func_data f3 )
@@ -303,6 +366,14 @@ func_data fn_v_kaleido( func_data v, func_data width, func_data reflect )
 	if( reflect.b && ( segment % 2 ) ) v.v.THETA = width.f - v.v.THETA;
 
 	return v;
+}
+
+// ********************** frgb ( float ) ********************** 
+
+func_data fn_c_rainbow( func_data f )
+{
+	f.c = rainbow( f.f );
+	return f;
 }
 
 // ********************** Ftree functions ********************** 
@@ -345,6 +416,7 @@ fn_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	if( !strcmp( name, "fn_f_subtract" ) )		{ 	gf->gf2 = &fn_f_subtract;		*n = 2;	*choose=false;	return FN_FLOAT; }
 	if( !strcmp( name, "fn_f_add" ) )			{ 	gf->gf2 = &fn_f_add;			*n = 2;	*choose=false;	return FN_FLOAT; }
 	if( !strcmp( name, "fn_f_multiply" ) )		{ 	gf->gf2 = &fn_f_multiply;		*n = 2;	*choose=false;	return FN_FLOAT; }
+	if( !strcmp( name, "fn_f_divide" ) )		{ 	gf->gf2 = &fn_f_divide;			*n = 2;	*choose=false;	return FN_FLOAT; }
 	if( !strcmp( name, "fn_f_sin_ab" ) )		{ 	gf->gf2 = &fn_f_sin_ab;			*n = 2;	*choose=false;	return FN_FLOAT; }
 
 	// ********************** float ( bool, float, float ) ********************** 
@@ -353,11 +425,16 @@ fn_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	// ********************** float ( float, float, bool ) ********************** 
 	if( !strcmp( name, "fn_f_kaleido" ) )		{ 	gf->gf3 = &fn_f_kaleido;		*n = 3;	*choose=false;	return FN_FLOAT; }
 
+	// ********************** float ( float, float, float ) ********************** 
+	if( !strcmp( name, "fn_f_inverse_square" ) ){ 	gf->gf3 = &fn_f_inverse_square;	*n = 3;	*choose=false;	return FN_FLOAT; }
+
 	// ********************** vect2 ( vect2 ) ********************** 
 	if( !strcmp( name, "fn_v_radial" ) ) 		{	gf->gf1 = &fn_v_radial;			*n = 1;	*choose=false;	return FN_VECT2; }
 	if( !strcmp( name, "fn_v_cartesian" ) )		{ 	gf->gf1 = &fn_v_cartesian;		*n = 1;	*choose=false;	return FN_VECT2; }
 	if( !strcmp( name, "fn_v_squaradial" ) )	{ 	gf->gf1 = &fn_v_squaradial;		*n = 1;	*choose=false;	return FN_VECT2; }
 	if( !strcmp( name, "fn_v_squartesian" ) )	{ 	gf->gf1 = &fn_v_squartesian;	*n = 1;	*choose=false;	return FN_VECT2; }
+	if( !strcmp( name, "fn_v_complement" ) )	{ 	gf->gf1 = &fn_v_complement;		*n = 1;	*choose=false;	return FN_VECT2; }
+	if( !strcmp( name, "fn_v_normalize" ) )		{ 	gf->gf1 = &fn_v_normalize;		*n = 1;	*choose=false;	return FN_VECT2; }
 
 	// ********************** vect2 ( float, float ) ********************** 
 	if( !strcmp( name, "fn_v_cartesian_f" ) )	{	gf->gf2 = &fn_v_cartesian_f;	*n = 2;	*choose=false;	return FN_VECT2; }	
@@ -365,6 +442,13 @@ fn_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	// ********************** vect2 ( vect2, float ) ********************** 
 	if( !strcmp( name, "fn_v_add_y" ) )			{	gf->gf2 = &fn_v_add_y;			*n = 2;	*choose=false;	return FN_VECT2; }	
 	if( !strcmp( name, "fn_v_multiply_y" ) )	{	gf->gf2 = &fn_v_multiply_y;		*n = 2;	*choose=false;	return FN_VECT2; } 
+	if( !strcmp( name, "fn_v_scale" ) )			{	gf->gf2 = &fn_v_scale;			*n = 2;	*choose=false;	return FN_VECT2; } 
+	if( !strcmp( name, "fn_v_rotate" ) )		{	gf->gf2 = &fn_v_rotate;			*n = 2;	*choose=false;	return FN_VECT2; } 
+	if( !strcmp( name, "fn_v_complex_power" ) )	{	gf->gf2 = &fn_v_complex_power;	*n = 2;	*choose=false;	return FN_VECT2; } 
+
+	// ********************** vect2 ( vect2, vect2 ) ********************** 
+	if( !strcmp( name, "fn_v_add" ) )			{	gf->gf2 = &fn_v_add;			*n = 2;	*choose=false;	return FN_VECT2; } 
+	if( !strcmp( name, "fn_v_subtract" ) )		{	gf->gf2 = &fn_v_subtract;		*n = 2;	*choose=false;	return FN_VECT2; } 
 
 	// ********************** vect2 ( bool, vect2, vect2 ) ********************** 
 	if( !strcmp( name, "fn_v_choose" ) )		{ 	gf->gf3 = &fn_v_choose;			*n = 3;	*choose=true;	return FN_VECT2; }
@@ -372,6 +456,10 @@ fn_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	// ********************** vect2 ( vect2, float, bool ) ********************** 
 	if( !strcmp( name, "fn_v_kaleido" ) )		{ 	gf->gf3 = &fn_v_kaleido;		*n = 3;	*choose=false;	return FN_VECT2; }
 
+	// ********************** frgb ( float ) ********************** 
+	if( !strcmp( name, "fn_c_rainbow" ) )		{ 	gf->gf1 = &fn_c_rainbow;		*n = 1;	*choose=false;	return FN_VECT2; }
+
+	printf( "get_gen_func: function %s not found\n", name );
 	return FN_NULL;
 }
 

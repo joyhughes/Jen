@@ -29,9 +29,6 @@ float v_magnitude( vect2 v );
 
 vect2 v_rotate( vect2 in, float theta);
 
-vect2 v_rotate_2( 	vect2 in, 
-					vect2 theta);	// padded float
-
 vect2 v_set( float x, float y );
 
 vect2 v_complement( vect2 v );
@@ -43,6 +40,8 @@ vect2 v_add( vect2 a, vect2 b );
 vect2 v_subtract( vect2 a, vect2 b );
 
 vect2 v_scale( vect2 in, float s );
+
+vect2 v_complex_power( vect2 in, float p );
 
 vect2 v_inverse_square( vect2 in, float diameter, float soften );
 
