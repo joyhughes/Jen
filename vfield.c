@@ -193,7 +193,7 @@ void vfield_advect_field( func_node *result_node, func_node *position_node, floa
 	{
 		for(xi = 0; xi < vf->xdim; xi++ )
 		{
-			position_node->leaf_val = fd_vect2( *w );
+			position_node->value = fd_vect2( *w );
 			*w = v_add( *w, v_scale( fnode_eval( result_node ).v, step ) );
 			w++;
 		}
@@ -201,7 +201,7 @@ void vfield_advect_field( func_node *result_node, func_node *position_node, floa
 }
 
 // apply generalized function to each vector
-void vfield_func( func_node *result_node, func_node *position_node, vfield *vf )
+void vfield_func( func_node *result_node, func_node *position_node,vfield *vf )
 {
 	int xi, yi;
 	vect2 *w = vf->f;
@@ -209,7 +209,7 @@ void vfield_func( func_node *result_node, func_node *position_node, vfield *vf )
 	{
 		for(xi = 0; xi < vf->xdim; xi++ )
 		{
-			position_node->leaf_val = fd_vect2( *w );
+			position_node->value = fd_vect2( *w );
 			*w = fnode_eval( result_node ).v;
 			w++;
 		}

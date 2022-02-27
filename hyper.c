@@ -59,24 +59,9 @@ char *remove_ext (char* myStr, char extSep, char pathSep) {
     return retStr;
 }
 
-void fimage_melt( vfield *warp, fimage *in, fimage *out )
-{
-	int x,y;
-	frgb *pout = out->f;
-	int xdim = out->xdim;
-	int ydim = out->ydim;
-
-	for( y = 0; y<ydim; y++ ) {
-		for( x = 0; x<xdim; x++ ) {
-			*pout = fimage_sample( vfield_index( x, y, warp ), false, in );
-			pout++;
-		}
-	}
-}
-
 int main( int argc, char const *argv[] )
 {
-	fimage in, out;
+	fimage in, melted, out;
 	vfield melt;
 	int xdim, ydim, channels;
 	char *filename, *basename;
@@ -90,6 +75,7 @@ int main( int argc, char const *argv[] )
 		// load image file
 		fimage_load( argv[1], &in );
 		fimage_init_duplicate( &in, &out );
+		fimage_init_duplicate( &in, &melted );
 		// fimage_circle_crop( &in );
 
 		// load function file
@@ -115,15 +101,19 @@ int main( int argc, char const *argv[] )
 	filename = (char*)malloc( strlen(basename) + 24 );		// allocate output filename with room for code and extension
 
 	float step = 0.025;
+	float fade = 0.99;
 
 	for( frame = 0; frame < nframes; frame++ ) {
 
 			//time_node->leaf_val = fd_float( 1.0 * frame / nframes );
-			fimage_melt( &melt, &in, &out );
+			fimage_melt( &melt, &in, &melted );
+			fimage_max( &melted, &out );
 
 			sprintf( filename, "./frames/%s_%04d.jpg", basename, frame ); 
 			fimage_write_jpg( filename, &out );
 			printf( " frame %d\n",frame );
+
+			fimage_brightness( fade, &out );
 			vfield_func( result_node, position_node, &melt );
 	}
 }

@@ -1,17 +1,92 @@
+typedef struct element element;
+
+struct element
+{
+	char name[ 255 ];
+	fimage splat;
+	fimage mask;		// Three channel floating point alpha
+};
+
+typedef struct element_list element_list;
+
+struct element_list {
+	int n;
+	element *elems;
+	char name[255];
+};
+
+typedef struct cluster cluster;
 
 // Specifies a grouping of subjects with various generative rules
 // Avoids functions with a bazillion arguments
-typedef struct Cluster
+struct cluster
 {
-	// element *id;		// What am I?
-	int n;				// Number of subjects in cluster
-	vect2 start;		// Location of first item in cluster
+	element *id;		// What am I?
+	char name[ 255 ];
+
+	int n;				// Number of elements in cluster ( subject to change )
+
+
+	// vect2 origin;		// Origin point of cluster
+
+	bool  bounded;		// Is there a boundary condition?
+	vect2 bmin,bmax;	// Bounding rectangle for cluster
+
+	element *elem;		// maybe: replace with multiple possible elements
+
+	bool tlc;			// top level cluster?
+
+	bool  color_filter;		// Filter the splat color?
+	// future: palette in generative function
+	palette *color_palette;
+
+	// generative function
+	func_tree gen_func;		// necessary? yes.
+
+	func_node *n_elements_leaf;
+	func_node *index_leaf;			// keeps track of current iteration of cluster
+
+	func_node *time_leaf;
+
+	func_node *origin_leaf;		
+	func_node *position_leaf;		// used recursively to generate
+	func_node *position_result;	
+
+	func_node *size_init_leaf;
+	func_node *size_leaf;			// used recursively to generate
+	func_node *size_result;
+
+	func_node *ang_init_leaf;
+	func_node *ang_leaf;			// used recursively to generate
+	func_node *ang_result;
+
+	// for now use palette and brightness (could get more sophisticated with color calculation)
+	func_node *color_index_init_leaf;
+	func_node *color_index_leaf;
+	func_node *color_index_result;
+
+	func_node *brightness_init_leaf;
+	func_node *brightness_leaf;
+	func_node *brightness_result;
+
+	func_node *branch_result;	// boolean result to determine if a subcluster is needed
+								// need to determine identity and initial conditions of subcluster
+
+	// branching properties - spawn new clusters recursively
+	cluster_list branches;
+	func_tree_list branch_functions;
+
+	// Stencil functions?
+
+};
+
+/*	OG cluster properties for reference
 
 	// vector field associated with cluster 
 	// vfield *field;
 
 	// Size properties
-	float size;			// Size of object in parametric space
+	float size_init;	// Initial size of object in parametric space
 	bool  size_prop;	// Is size proportional to step size?
 
 	// Step properties
@@ -31,33 +106,37 @@ typedef struct Cluster
 	bool  ang_relative;	// Are angles relative to vector direction?
 
 	// Color properties
-	palette *color_palette;
-	bool  color_filter;		// Filter the splat color?
 	bool  brightness_ramp;	// ramp brightness up at beginning?
 	int   brightness_ramp_length;
-	float start_color;		// starting color in palette function
+	float color_index_init;	// starting color in palette function
 	float color_inc;   		// color change
-	float brightness;		// overall brightness of splat
+
+	float brightness_init;		// overall brightness of splat
 	float brightness_prop; 	// proportional change in brightness per step
 	// other brightness change properties here
 
 	// animation properties
 	// pulsation etc.
 	//
+	*/
 
-	// branching properties - spawn new clusters recursively
-	struct cluster *subclusters;
+typedef struct cluster_list cluster_list;
 
-} cluster;
+struct cluster_list {
+	int n;
+	cluster *clusters;
+	char name[255];
+};
 
 // Structure to hold all elements of a scene
 typedef struct Scene
 {
+	char name[ 255 ];
+
 	char base_file[ 255 ];
 	bool use_mask;
-	char background_file[ 255 ];
+	char overlay_file[ 255 ];
 	char mask_file[ 255 ];
-	char splat_file[ 255 ];		// Near future: will need multiple splat images
 	bool use_stencil;
 	float stencil_boost;
 	char stencil_file[ 255 ];
@@ -68,59 +147,50 @@ typedef struct Scene
 	bool use_perturb;
 	int perturb_steps;
 
-	// image pointers
-	fimage *base_fimg, *background_fimg, *mask_fimg, *splat_fimg, *stencil_fimg;
+	// images
+	fimage base_fimg, result_fimg, overlay_fimg, mask_fimg, stencil_fimg;
+
+	element_list 	scene_elems;
+	func_tree_list	scene_funcs;
+	cluster_list 	clusters;				// Top level clusters
 	
 } scene;
 
+// ********************** Cluster functions ********************** 
+
 void cluster_initialize( cluster *k );
 
-void cluster_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck );
+void cluster_copy( cluster *in, cluster *out );
+
+bool cluster_set_leaf( cluster *uck, const char *leaf_name, func_data leaf_val );
 
 void cluster_set_bounds( vect2 bmin, vect2 bmax, cluster *uck );
 
-void cluster_set_color( palette *color_palette, float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck );
+//void cluster_set_run( int n, vect2 start, float step, float prop, float ang_offset, cluster *uck );
 
-void cluster_set_size( bool size_prop, float size, cluster *uck );
+//void cluster_set_color( palette *color_palette, float start_color, float color_inc, float brightness, float brightness_prop, cluster *uck );
+
+//void cluster_set_size( bool size_prop, float size, cluster *uck );
+
+void cluster_render( vfield *vf, cluster *uck, fimage *result, fimage *splat, scene *scn );
+
+// ********************** Cluster List functions ********************** 
+
+void cluster_list_init( cluster_list *clist, int n, const char *name);
+
+void cluster_list_copy( cluster_list *in, cluster_list *out );
+
+// ********************** Scene functions ********************** 
 
 void scene_initialize( scene *scn );
 
-void file_get_string( FILE *fp, char *str, char *junk, bool *eof );
+void scene_free( scene *scn );
 
-bool file_get_bool( FILE *fp, char *str, char *junk, bool *eof );
+void scene_load( const char *filename, scene *scn );
 
-int file_get_int( FILE *fp, char *str, char *junk, bool *eof );
+void scene_render( float time, scene *scn );
 
-float file_get_float( FILE *fp, char *str, char *junk, bool *eof );
 
-void scene_read( const char *filename, scene *scn );
-
-void render_cluster( vfield *vf, cluster *uck, fimage *result, fimage *splat, scene *scn );
-
-void render_cluster_list( int nruns, float ang_offset, cluster *clist, vfield *vf, fimage *splat, fimage *result, scene *scn );
-
-void generate_circle( 	vect2 c, 	// center of circle
-						float r, 	// radius of circle
-						float start_ang,	// starting angle in degrees
-						int m,			// number of runs around circle
-						cluster *uck,
-						vfield *f );
-
-void generate_grid( vect2 min, vect2 max, int xsteps, int ysteps, float mutation_rate, vfield *f );
-
-void generate_random( int nruns, vect2 imin, vect2 imax, vect2 vmin, vect2 vmax, float ang_offset, cluster *clist);
-
-void generate_aurora( 	float norm_frame, 
-						int nruns, 
-						vect2 imin, vect2 imax, 
-						vect2 start, 
-						float ang_offset, 
-						wave_params *ang_wave, // wave_params *brightness_wave,
-						palette *p,
-						vfield *vf, 
-						vect_fn_2d_t_params *vortex_field,
-						cluster *clist,
-						scene *scn );
 
 
 

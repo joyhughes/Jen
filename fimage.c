@@ -7,8 +7,6 @@
 
 #include "frgb.h"
 #include "vect2.h"
-#include "func_node.h"
-#include "vfield.h"
 #include "fimage.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -215,14 +213,13 @@ void fimage_write_ppm( char *filename, fimage *fimg )
 // *********************** Modification functions *********************** 
 // Some may be replaced by generalized functions
 
-void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out)
+void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *fimg )
 {
 	int x,y;
-	frgb *pin = in->f;
-	frgb *pout = out->f;
+	frgb *p = fimg->f;
 	frgb *preflect;
-	int xdim = in->xdim;
-	int ydim = in->ydim;
+	int xdim = fimg->xdim;
+	int ydim = fimg->ydim;
 	int rrow;
 	bool reflect;
 
@@ -230,18 +227,19 @@ void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out)
 		for( y = 0; y <= mirror; y++ ) {
 			rrow = (mirror - y) + mirror;
 			reflect = rrow < ydim;
-			if( reflect ) preflect = out->f + rrow * xdim;
+			if( reflect ) preflect = fimg->f + rrow * xdim;
 			for( x = 0; x < xdim; x++ ) {
-				*pout = *pin;
-				if( reflect ) *preflect = *pin;
-				pin++;
-				pout++;
+				if( reflect ) *preflect = *p;
+				p++;
 				if( reflect ) preflect++;
 			}
 		}
 	}
-	// fill in bottom to top caseß
+	// fill in bottom to top case
 }
+
+// void fimage_reflect_y( int mirror, bool left_to_right, fimage *fimg )
+
 
 // assume all images are the same size
 void fimage_sum( fimage *a, fimage *b, fimage *result )
@@ -293,6 +291,28 @@ void fimage_subtract( fimage *a, fimage *b, fimage *result )
 	}
 }
 
+// assume all images are the same size
+void fimage_max( fimage *a, fimage *b )
+{
+	int x,y;
+	frgb *pa = a->f;
+	frgb *pb = b->f;
+	int xdim = a->xdim;
+	int ydim = a->ydim;
+
+	for( y = 0; y < ydim; y++)	
+	{
+		for( x = 0; x < xdim; x++)
+		{
+			pb->r = max( pa->r, pb->r );
+			pb->g = max( pa->g, pb->g );
+			pb->b = max( pa->b, pb->b );
+
+			pa++;	pb++;	
+		}
+	}
+}
+
 void fimage_fill( frgb color, fimage *f )
 {
 	int x,y;
@@ -327,6 +347,26 @@ void fimage_color_filter( frgb color, fimage *f )
 			p->r *= color.r;
 			p->g *= color.g;
 			p->b *= color.b;
+
+			p++;
+		}
+	}
+}
+
+void fimage_brightness( float b, fimage *f )
+{
+	int x,y;
+	frgb *p = f->f;
+	int xdim = f->xdim;
+	int ydim = f->ydim;
+
+	for( y = 0; y < ydim; y++)	
+	{
+		for( x = 0; x < xdim; x++)
+		{
+			p->r *= b;
+			p->g *= b;
+			p->b *= b;
 
 			p++;
 		}
@@ -546,44 +586,6 @@ void fimage_clip( float min, float max, fimage *in )
 	}
 }
 
-void fimage_warp( func_node *warp_node, func_node *position_node, func_node* color_node, fimage *in, fimage *out )
-{
-	int x,y;
-	frgb *pout = out->f;
-	int xdim = out->xdim;
-	int ydim = out->ydim;
-	vect2 position, rad, warp;
-
-	for( y = 0; y<ydim; y++ ) {
-		for( x = 0; x<xdim; x++ ) {
-			position.x = ( 1.0 * x ) / xdim * ( out->max.x - out->min.x ) + out->min.x;
-			position.y = ( 1.0 * y ) / ydim * ( out->max.y - out->min.y ) + out->min.y;
-			position_node->leaf_val = fd_vect2( position );
-
-			warp = fnode_eval( warp_node ).v;
-
-			*pout = fimage_sample( warp, false, in );
-			//if( color_node != NULL ) *pout = frgb_multiply( *pout, fnode_eval( color_node ).c );
-
-			pout++;
-		}
-	}
-}
-
-void fimage_melt( vfield *warp, fimage *in, fimage *out )
-{
-	int x,y;
-	frgb *pout = out->f;
-	int xdim = out->xdim;
-	int ydim = out->ydim;
-
-	for( y = 0; y<ydim; y++ ) {
-		for( x = 0; x<xdim; x++ ) {
-			*pout = fimage_sample( vfield_index( x, y, warp ), false, in );
-			pout++;
-		}
-	}
-}
 
 // *********************** Sampling functions *********************** 
 

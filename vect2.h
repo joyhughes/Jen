@@ -3,6 +3,10 @@
 #define R x
 #define THETA y
 
+#ifndef max
+    #define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
 typedef struct Vect2 
 {
 

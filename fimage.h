@@ -30,11 +30,13 @@ void fimage_write_ppm( char *filename, fimage *fimg );
 
 // *********************** Modification functions *********************** 
 
-void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *in, fimage *out);
+void fimage_reflect_y( int mirror, bool top_to_bottom, fimage *fimg );
 void fimage_sum( fimage *a, fimage *b, fimage *result );
 void fimage_subtract( fimage *a, fimage *b, fimage *result );
+void fimage_max( fimage *a, fimage *b );
 void fimage_fill( frgb color, fimage *f );
 void fimage_color_filter( frgb color, fimage *f );
+void fimage_brightness( float b, fimage *f );
 void fimage_square( fimage *f );	// raise pixel values to power of two
 void fimage_normalize( fimage *f );
 void fimage_rotate( float theta, 
@@ -44,8 +46,6 @@ void fimage_translate( int xoff, int yoff, fimage *in, fimage *out );
 void fimage_circle_crop( fimage *f );	// Colors black everything outside of a centered circle
 void fimage_circle_ramp( fimage *f );
 void fimage_clip( float min, float max, fimage *in );
-void fimage_warp( func_node *warp_node, func_node *position_node, func_node* color_node, fimage *in, fimage *out );
-void fimage_melt( vfield *warp, fimage *in, fimage *out );
 
 // *********************** Sampling functions *********************** 
 

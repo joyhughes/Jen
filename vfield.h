@@ -17,7 +17,6 @@ vect2 vfield_coord( int xi, int yi, vfield *vf );
 vect2 vfield_smooth_index( vect2 v, vfield *vf );
 vect2 vfield_advect( vect2 v, vfield *f, float step, float angle);
 
-
 // ********************** Modification functions ********************** 
 
 void vfield_complement( vfield *f);

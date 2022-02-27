@@ -148,6 +148,7 @@ vect2 v_complex_power( vect2 in, float p )
 	in = v_radial( in );
 	in.R = pow( in.R, p );
 	in.THETA *= p;
+	in = v_cartesian( in );
 	return in;
 }
 
