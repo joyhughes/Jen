@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <time.h>
+#include <stdbool.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
@@ -92,10 +95,18 @@ void unspool( unsigned char *img, unsigned int *buffer, int xdim, int ydim, int 
    {
       for( x=0; x<xdim; x++ )
       {
-         *mm = (unsigned long)*ip *     0x01000000    // alpha channel 
-             + (unsigned long)*(ip+1) * 0x00010000    // red channel
-             + (unsigned long)*(ip+2) * 0x00000100    // red channel
-             + (unsigned long)*(ip+3) * 0x00000001;   // red channel
+         if( channels == 4 ) {
+            *mm = (unsigned long)*ip     * 0x01000000    // alpha channel 
+                + (unsigned long)*(ip+1) * 0x00010000    // red channel
+                + (unsigned long)*(ip+2) * 0x00000100    // green channel
+                + (unsigned long)*(ip+3) * 0x00000001;   // blue channel
+         }
+         else if( channels == 3 ) {
+            *mm =                          0xff000000    // alpha channel 
+                + (unsigned long)*ip     * 0x00010000    // red channel
+                + (unsigned long)*(ip+1) * 0x00000100    // green channel
+                + (unsigned long)*(ip+2) * 0x00000001;   // blue channel   
+         }
          mm++;
          ip += channels;
       }
@@ -108,6 +119,106 @@ void render( unsigned int *out, int xdim, int ydim, char *filename )
 
    // TODO: optional fill alpha channel
    stbi_write_png(filename, xdim, ydim, 4, pixels, xdim * 4);
+}
+
+// For speed embed in code
+unsigned int manhattan( unsigned int a, unsigned int b )
+{
+   unsigned int out = 0;
+
+   if( ( a & 0x00ff0000 ) > ( b & 0x00ff0000 ) ) out += ( ( a & 0x00ff0000 ) >> 16 ) - ( ( b & 0x00ff0000 ) >> 16 );
+      else out += ( ( b & 0x00ff0000 ) >> 16 ) - ( ( a & 0x00ff0000 ) >> 16 );
+
+
+   if( ( a & 0x0000ff00 ) > ( b & 0x0000ff00 ) ) out += ( ( a & 0x0000ff00 ) >> 8 ) - ( ( b & 0x0000ff00 ) >> 8 );
+      else out +=  ( ( b & 0x0000ff00 ) >> 8 ) - ( ( a & 0x0000ff00 ) >> 8 );
+
+   if( ( a & 0x000000ff ) > ( b & 0x000000ff ) ) out += ( a & 0x000000ff ) - ( b & 0x000000ff );
+      else out += ( b & 0x0000ff00 ) - ( a & 0x0000ff00 );
+
+   return out;
+}
+
+unsigned int blend( unsigned int a, unsigned int b )
+{
+   unsigned int random_bit = rand() % 2;
+
+   return
+   ( ( ( ( a & 0x00ff0000 ) + ( b & 0x00ff0000 ) + 0x00010000 * random_bit ) >> 1 ) & 0x00ff0000 ) + 
+   ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
+   ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
+   0xff000000;
+}
+
+// Game of life
+void life(unsigned int *in, unsigned int *out, int xdim, int ydim)
+{
+   int x,y,count;
+   unsigned int *ul,*um,*ur,*ml,*mm,*mr,*dl,*dm,*dr;    //neighbor pointers
+   unsigned int *result;
+   
+
+   // initialize pointers for the upper left corner - wrap around (toroidal topolgy)
+
+   mm = in;
+   ul = mm + xdim * ydim - 1;
+   um = mm + (ydim - 1) * xdim;
+   ur = mm + (ydim - 1) * xdim + 1;
+   ml = mm + xdim - 1;
+   mr = mm + 1;
+   dl = mm + 2*xdim - 1;
+   dm = mm + xdim;
+   dr = mm + xdim + 1;
+
+   result = out;
+
+   for( y=0; y<ydim; y++ )
+   {
+      for( x=0; x<xdim; x++ )
+      {
+         // implement game of life rule 
+         count = 0;
+         if( *ul & 0x00ffffff ) count++;  if( *um & 0x00ffffff ) count++;  if( *ur & 0x00ffffff ) count++; 
+         if( *ml & 0x00ffffff ) count++;                                   if( *mr & 0x00ffffff ) count++; 
+         if( *dl & 0x00ffffff ) count++;  if( *dm & 0x00ffffff ) count++;  if( *dr & 0x00ffffff ) count++;
+
+         /*if( *ul ) count++;  if( *um ) count++;  if( *ur ) count++; 
+         if( *ml ) count++;                      if( *mr ) count++; 
+         if( *dl ) count++;  if( *dm ) count++;  if( *dr ) count++;*/
+
+         // count = *ul + *um + *ur + *ml + *mr + *dl + *dm + *dr;
+         if( *mm & 0x00ffffff )
+         {
+            // case where center cell is filled
+            if(count == 2 | count==3) *result = 0xffffffff; else *result = 0xff000000;
+         }
+         else
+         {
+            // case where center cell is empty
+            if(count==3) *result = 0xffffffff; else *result = 0xff000000;
+         }   
+
+         // increment pointers
+         ul++; um++; ur++; ml++; mm++; mr++; dl++; dm++; dr++; result++;
+
+         //deal with horizontal wrap 
+         // pop left hand pointers to far left (previous row)
+         if(x == 0) { ul -= xdim; ml -= xdim; dl -= xdim; }
+         // move right hand pointers to far left
+         if(x == xdim-2) { ur -= xdim; mr -= xdim; dr -= xdim; }
+      }
+
+      // move right and left colums down
+      ul+=xdim; ml+=xdim; dl+=xdim; 
+      ur+=xdim; mr+=xdim; dr+=xdim; 
+
+      // deal with vertical wrap
+      // pop upper pointers to upper row
+      if(y == 0)      { ul -= xdim * ydim; um -= xdim * ydim; ur -= xdim * ydim; }
+
+      // move lower pointers to upper row
+      if(y == ydim-2) { dl -= xdim * ydim; dm -= xdim * ydim; dr -= xdim * ydim; }          
+   }
 }
 
 // One step of the cellular automaton
@@ -136,20 +247,10 @@ void iterate(unsigned int *in, unsigned int *out, int xdim, int ydim)
    {
       for( x=0; x<xdim; x++ )
       {
-         // implement game of life rule 
-         count = 0;
-         if(*ul) count++; if(*um) count++; if(*ur) count++; if(*ml) count++; if(*mr) count++; if(*dl) count++; if(*dm) count++; if(*dr) count++;
-         // count = *ul + *um + *ur + *ml + *mr + *dl + *dm + *dr;
-         if( *mm )
-         {
-            // case where center cell is filled
-            if(count == 2 | count==3) *result = 0xffffffff; else *result = 0;
-         }
-         else
-         {
-            // case where center cell is empty
-            if(count==3) *result = 0xffffffff; else *result = 0;
-         }   
+         // implement manhattan box blur rule 
+
+         if( manhattan( *mm, *um ) + manhattan( *mm, *dm ) < manhattan( *mm, *ml ) + manhattan( *mm, *mr ) ) *result = blend( *um, *dm );
+            else *result = blend( *mr, *ml ); 
 
          // increment pointers
          ul++; um++; ur++; ml++; mm++; mr++; dl++; dm++; dr++; result++;
@@ -186,6 +287,9 @@ int main( int argc, char *argv[] )
    unsigned char *img;                 // buffer for loading image 
    char *basename, *filename;
 
+   time_t t;
+   srand((unsigned) time(&t));
+
    /* unsigned int a[] = 
       {  0,0,0,0,0,
          0,0,0xffffffff,0,0,
@@ -195,7 +299,7 @@ int main( int argc, char *argv[] )
 
    if( argc >= 2) 
    {
-      unsigned char *img = stbi_load( argv[1], &xdim, &ydim, &channels, 0 );
+      img = stbi_load( argv[1], &xdim, &ydim, &channels, 0 );
       if(img == NULL) 
       {
          printf("Error in loading the image\n");
@@ -217,7 +321,7 @@ int main( int argc, char *argv[] )
    b = (unsigned int*)malloc( xdim * ydim * sizeof( unsigned int ) ); 
 
 
-   if( channels==4 )
+   if( ( channels == 3 ) || ( channels == 4 ) )
    {
       unspool(img, a, xdim, ydim, channels);
    }
@@ -241,9 +345,9 @@ int main( int argc, char *argv[] )
    {
       printf("step %d\n",step);
       sprintf( filename, "%s%04d.png", basename, step+1 );
-      printf("iterate\n");
+      //printf("iterate\n");
       iterate(in,out,xdim,ydim);
-      printf("render\n");
+      //printf("render\n");
       render( out, xdim, ydim, filename);
       placeholder = in; in = out; out = placeholder;  // swap buffers
    }
