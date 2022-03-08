@@ -1,0 +1,21 @@
+{
+	"name":				"iter_test_scene",
+
+	"base_file": 		"orion.jpg",
+	"output_basename": 	"iter_test",
+
+	"elements":		[ 1, {
+		"name":		"orb",
+		"splat":	"orb.jpg",
+		"break"	} ],
+
+	"functions":	[ 1, "iter_test_gen.json" ],
+	
+	"clusters":		[ 1, { 
+		"name": 		"iter_test", 
+		"top_level":	true, 	
+		"gen_func":		"iter_test_gen", 
+		"element":		"orb",
+		"break"	 }  ]
+
+}

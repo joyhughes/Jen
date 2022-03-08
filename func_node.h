@@ -98,7 +98,10 @@ func_type get_gen_func( const char* name, gen_func *gf, int *n, bool *choose );
 // ********************** copy function ********************** 
 
 // copies everything but subnode pointers - those are handled in ftree_copy()
-//void fnode_copy( const func_node *in, func_node *out );
+void fnode_copy( func_node *in, func_node *out );
+
+// ********************** I/O functions ********************** 
+void fnode_load( FILE *fp, func_node *fnode, func_tree *ftree, char *junk, bool *eof );
 
 // ********************** Calculation functions ********************** 
 // Organized by type and parameter
@@ -115,5 +118,12 @@ void 		ftree_load( func_tree *ftree, const char *filename );
 func_node* 	ftree_index( func_tree *ftree, const char *name );
 void		ftree_print( func_tree *ftree );
 void		ftree_reset( func_tree *ftree );
-//void		ftree_copy( func_tree *in, func_tree *out );
+void		ftree_copy( func_tree *in, func_tree *out );
+
+// ********************** Func_tree_list functions ********************** 
+
+void 		ftree_list_init( func_tree_list *list, int n );
+void 		ftree_list_set_name( func_tree_list *list, const char *name );
+char* 		ftree_list_get_name( func_tree *list );
+func_tree* 	ftree_list_index( func_tree_list *list, const char* name );
 

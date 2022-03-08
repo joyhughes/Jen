@@ -1,0 +1,43 @@
+// function for generating a circle cluster
+{
+	"name": "circle_cluster_gen",
+	"n":	28,
+
+	// Constants
+	"v_zero":			{ "vect2": [ 0.0, 0.0 ] },
+	"radius":			{ "float":	0.25 },
+	"rotation_init":	{ "float":	0.0 },
+	"max_angle":		{ "float": 360.0 },
+
+	// Initial conditions
+	"time_leaf": 				{ "float": 0.0 },
+	"n_elements_leaf":			{ "int": 6 },
+	"origin_leaf":				{ "vect2": [ 0.0, 0.0 ] },
+	"size_init_leaf":			{ "float": 0.1 },
+	"ang_init_leaf":			{ "float": 0.0 },
+	"color_index_init_leaf":	{ "float": 0.0 },
+	"brightness_init_leaf":		{ "float": 0.5 },
+
+	// Iteration
+	"index_leaf":		{ "int": 0 },					// keeps track of current iteration of cluster
+	"position_leaf":	{ "vect2": [ 0.25, 0.0 ] },		// used recursively to generate
+	"size_leaf":		{ "float": 0.1 },		
+	"ang_leaf":			{ "float": 0.0 },
+	"color_index_leaf":	{ "float": 0.0 },
+	"brightness_leaf":	{ "float": 0.5 },
+
+	// Calculation
+	"offset_init":		{ "fn_v_add_y": 		[ "v_zero", "radius" ] },
+	"spacing_ang":		{ "fn_f_div_i": 		[ "max_angle", "n_elements_leaf" ] },
+	"rotation_raw":		{ "fn_f_mult_i":		[ "spacing_ang", "index_leaf" ] },
+	"rotation":			{ "fn_f_add": 			[ "rotation_raw", "rotation_init" ] },
+	"offset":			{ "fn_v_rotate": 		[ "offset_init", "rotation"] },
+
+	// results
+	"position_result":		{ "fn_v_add":		[ "origin_leaf", "offset" ] },	
+	"size_result":			{ "fn_f_copy":		[ "size_leaf"] },
+	"ang_result":			{ "fn_f_copy":		[ "ang_leaf"] },
+	"color_index_result":	{ "fn_f_copy":		[ "color_index_leaf"] },
+	"brightness_result":	{ "fn_f_copy":		[ "brightness_leaf"] },
+	"branch_result":		{ "bool":	false }
+}

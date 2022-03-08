@@ -1,0 +1,52 @@
+{
+	"name":				"aurora_reflection",
+
+	"base_file": 		"reflect_stars.jpg",
+	"use_mask": 		true,
+	"overlay_file": 	"reflect.jpg",
+	"mask_file": 		"reflect_mask.jpg",
+	"splat_file": 		"white.jpg",
+	"use_stencil": 		false,
+	"stencil_boost": 	1.0,
+	"stencil_file": 	"stencil.jpg",
+
+	"bounds":			[ [ 0.0, 15.0 ], [ 10.0, 0.0 ] ],
+	"reflect_y": 		true,
+	"reflect_y_line": 	2484,
+	"use_wave":			false,
+	"use_perturb":		true,
+	"perturb_steps":	20,
+	"output_basename": 	"reflect_test",
+
+	"elements":		[ 1, 
+		{ 	"name":		"white_ramp",
+			"splat":	"white_ramp.jpg", 
+			"use_mask":	false,
+			"mask":		"null",
+			"use_warp":	false,
+			"warp_fn":	"null",
+			"break" 
+		} ],
+
+	"functions":	[ 3, "aurorae.json", "aurora_stream.json", "aurora_ray.json" ],
+
+	"branch_funcs":	[ 1, "unity.json" ],
+
+	"clusters":		[ 3, 	
+		{ 	"name": 		"aurorae", 		
+			"top_level": 	true, 	
+			"gen_func": 	"aurorae", 			
+			"element":		"null", 			
+			"n":			20,		
+			"branches": [ 1, 
+				{	"cluster":		"aurora_stream", 
+					"branch_fn":	"unity",
+					"break"
+				} ],
+			"break"
+		}, 
+							[ "aurora_stream", 	false, 	"aurora_stream", 	"null", 			200,	{ "branches": [ 1, "aurora_stream.json", "unity" ] } ],
+							[ "aurora_ray", 	false, 	"aurora_ray", 		"white_ramp.jpg", 	50,		{ "branches": [ 0 ] } ]
+					]
+
+}

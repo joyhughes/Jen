@@ -18,14 +18,11 @@
 
 void fimage_init( int xdim, int ydim, fimage *f )
 {
-	vect2 min = v_set( -1.0, -1.0 );
-	vect2 max = v_set(  1.0,  1.0 );
-
 	f->xdim = xdim;
 	f->ydim = ydim;
 
-	f->min = min;
-	f->max = max;
+	f->min = v_set( -1.0, -1.0 );
+	f->max = v_set(  1.0,  1.0 );
 
 	f->f = (frgb *)malloc( xdim * ydim * sizeof(frgb) );
 }
@@ -59,9 +56,20 @@ void fimage_copy_contents( fimage *in, fimage *out)
 	}
 }
 
+void fimage_stub( fimage *f )
+{
+	f->xdim = 0;
+	f->ydim = 0;
+
+	f->min = v_set( -1.0, -1.0 );
+	f->max = v_set(  1.0,  1.0 );
+
+	f->f = NULL;
+}
+
 void fimage_free( fimage *f )
 {
-	free( f->f );
+	if( f->f != NULL ) free( f->f );
 }
 
 void fimage_set_bounds(  vect2 min, vect2 max, fimage *f )

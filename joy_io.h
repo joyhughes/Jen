@@ -1,3 +1,7 @@
+#define formatBool(b) ((b) ? "true" : "false")
+
+char *remove_ext (char* myStr, char extSep, char pathSep);
+
 void  file_get_string( FILE *fp, char *str, char *junk, bool *eof );
 
 bool  file_get_bool(   FILE *fp, char *str, char *junk, bool *eof );

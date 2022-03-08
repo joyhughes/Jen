@@ -14,6 +14,7 @@ typedef struct FIMAGE
 void fimage_init( int xdim, int ydim, fimage *f );
 void fimage_init_duplicate( fimage *in, fimage *out );
 void fimage_copy_contents( fimage *in, fimage *out);
+void fimage_stub( fimage *f );
 void fimage_free( fimage *f );
 void fimage_set_bounds(  vect2 min, vect2 max, fimage *f );
 
