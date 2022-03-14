@@ -1,7 +1,22 @@
 lux: lux.o func_node.o scene.o fimage.o vfield.o joy_io.o frgb.o vect2.o
 	gcc -o lux lux.o func_node.o scene.o fimage.o vfield.o joy_io.o frgb.o vect2.o
 
-lux.o: lux.c fimage.h vfield.h func_node.h frgb.h vect2.h
+warp: warp.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+	gcc -o warp warp.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+
+melt: melt.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+	gcc -o melt melt.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+
+hyper: hyper.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+	gcc -o hyper hyper.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+	
+life: life.o frgb.o 
+	gcc -o life life.o frgb.o 
+
+life.o: life.c fimage.h
+	gcc -o life.o -c life.c 
+
+lux.o: lux.c scene.h fimage.h vfield.h func_node.h frgb.h vect2.h
 	gcc -o lux.o -c lux.c
 
 hyper.o: hyper.c fimage.h vfield.h func_node.h frgb.h vect2.h
@@ -33,3 +48,4 @@ frgb.o: frgb.c frgb.h
 
 vect2.o: vect2.c vect2.h
 	gcc -o vect2.o -c vect2.c
+
