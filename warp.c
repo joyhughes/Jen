@@ -9,55 +9,7 @@
 #include "vect2.h"
 #include "func_node.h"
 #include "fimage.h"
-
-
-// remove_ext: removes the "extension" from a file spec.
-//   myStr is the string to process.
-//   extSep is the extension separator.
-//   pathSep is the path separator (0 means to ignore).
-// Returns an allocated string identical to the original but
-//   with the extension removed. It must be freed when you're
-//   finished with it.
-// If you pass in NULL or the new string can't be allocated,
-//   it returns NULL.
-
-char *remove_ext (char* myStr, char extSep, char pathSep) {
-    char *retStr, *lastExt, *lastPath;
-
-    // Error checks and allocate string.
-
-    if (myStr == NULL) return NULL;
-    if ((retStr = malloc (strlen (myStr) + 1)) == NULL) return NULL;
-
-    // Make a copy and find the relevant characters.
-
-    strcpy (retStr, myStr);
-    lastExt = strrchr (retStr, extSep);
-    lastPath = (pathSep == 0) ? NULL : strrchr (retStr, pathSep);
-
-    // If it has an extension separator.
-
-    if (lastExt != NULL) {
-        // and it's to the right of the path separator.
-
-        if (lastPath != NULL) {
-            if (lastPath < lastExt) {
-                // then remove it.
-
-                *lastExt = '\0';
-            }
-        } else {
-            // Has extension separator with no path separator.
-
-            *lastExt = '\0';
-        }
-    }
-
-    // Return the modified string.
-
-    return retStr;
-}
-
+#include "joy_io.h"
 
 void fimage_warp( func_tree *ftree, func_node *warp_node, func_node *position_node, func_node* color_node, fimage *in, fimage *out )
 {
@@ -90,7 +42,7 @@ int main( int argc, char const *argv[] )
 {
 	fimage in, out;
 	int xdim, ydim, channels;
-	char *filename, *basename;
+	char *filename, *basename, *warpname;
 	unsigned char *img;
 	int frame, nframes;
 	func_tree warp_tree;
@@ -122,14 +74,15 @@ int main( int argc, char const *argv[] )
 	func_node *color_node = 	ftree_index( &warp_tree, "color_result" );
 
 	basename = remove_ext( (char *)argv[1], '.', '/' );		// scan input filename for "." and strip off extension, put that in basename
-	filename = (char*)malloc( strlen(basename) + 24 );		// allocate output filename with room for code and extension
+	warpname = remove_ext( (char *)argv[2], '.', '/' );
+	filename = (char*)malloc( strlen(basename) + 36 );		// allocate output filename with room for code and extension
 
 	for( frame = 0; frame < nframes; frame++ ) {
 
-			time_node->value = fd_float( 1.0 * frame / nframes );
+			if (time_node != NULL) time_node->value = fd_float( 1.0 * frame / nframes );
 			fimage_warp( &warp_tree, result_node, position_node, color_node, &in, &out );
 
-			sprintf( filename, "./frames/%s_%04d.jpg", basename, frame ); 
+			sprintf( filename, "./frames/%s_%s_%04d.jpg", basename, warpname, frame ); 
 			fimage_write_jpg( filename, &out );
 			printf( " frame %d\n",frame );
 	}
