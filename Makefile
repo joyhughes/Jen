@@ -1,5 +1,5 @@
 lux: lux.o func_node.o scene.o fimage.o vfield.o joy_io.o frgb.o vect2.o
-	gcc -o lux lux.o func_node.o scene.o fimage.o vfield.o joy_io.o frgb.o vect2.o
+	gcc -o lux lux.o func_node.o scene.o fimage.o vfield.o joy_io.o frgb.o vect2.o -lm
 
 warp: warp.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
 	gcc -o warp warp.o func_node.o fimage.o vfield.o joy_io.o frgb.o vect2.o
