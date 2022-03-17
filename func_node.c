@@ -196,6 +196,7 @@ void fnode_load( FILE *fp, func_node *fnode, func_tree *ftree, char *junk, bool 
 	float f;
 	vect2 v;
 	frgb c;
+	func_data *a;
 	int n;
 	func_type ftype;
 	bool choose;
@@ -204,24 +205,36 @@ void fnode_load( FILE *fp, func_node *fnode, func_tree *ftree, char *junk, bool 
 	file_get_string( fp, buffer, junk, eof );
 	if( !(*eof) ) {
 		if( !strcmp( buffer, "bool") ) { 
-			b = file_get_bool(  fp, buffer, junk, eof );
+			b = file_get_bool( fp, buffer, junk, eof );
 			fnode_init_leaf( fnode, fd_bool( b ), FN_BOOL );
 		}
 		else if( !strcmp( buffer, "int") ) {
-			i = file_get_int(  fp, buffer, junk, eof );
+			i = file_get_int( fp, buffer, junk, eof );
 			fnode_init_leaf( fnode, fd_int( i ), FN_INT );
 		}
 		else if( !strcmp( buffer, "float") ) {	
-			f = file_get_float(  fp, buffer, junk, eof );
+			f = file_get_float( fp, buffer, junk, eof );
 			fnode_init_leaf( fnode, fd_float( f	), FN_FLOAT );
 		}
 		else if( !strcmp( buffer, "vect2") ) { 	
-			v = file_get_vect2(  fp, buffer, junk, eof );
+			v = file_get_vect2( fp, buffer, junk, eof );
 			fnode_init_leaf( fnode, fd_vect2( v	), FN_VECT2 );
 		}
 		else if( !strcmp( buffer, "frgb") ) {	
-			c = file_get_frgb(  fp, buffer, junk, eof );
+			c = file_get_frgb( fp, buffer, junk, eof );
 			fnode_init_leaf( fnode, fd_frgb( c ), FN_FRGB );
+		}
+		else if( !strcmp( buffer, "array") ) {	
+			file_get_string( fp, buffer, junk, eof );
+			if( !strcmp( buffer, "vect2") ) {
+				n = file_get_int(  fp, buffer, junk, eof );
+				a = ( func_data * )malloc( ( n + 1 ) * sizeof( func_data ) );
+				a[ 0 ] = fd_int( n );
+				for( i = 1; i <= n; i++ ) {
+					a[ i ] = fd_vect2( file_get_vect2( fp, buffer, junk, eof ) );
+				}
+			}
+			fnode_init_leaf( fnode, fd_array( a ), FN_ARRAY );
 		}
 
 		else  {
@@ -405,13 +418,19 @@ func_data fn_f_kaleido( func_data f, func_data width, func_data reflect )
 
 func_data fn_f_inverse_square( func_data f, func_data diameter, func_data soften )
 {
-	f.f = diameter.f * diameter.f * sqrt( 1.0 / ( f.f * f.f + soften.f * soften.f ) );
+	f.f = diameter.f * diameter.f / ( f.f * f.f + soften.f * soften.f );
 	return f;
 }
 
 func_data fn_f_a_sin_bc( func_data a, func_data b, func_data c )
 {
 	a.f = a.f * sin_deg( b.f * c.f );
+	return a;
+}
+
+func_data fn_f_multiply_3( func_data a, func_data b, func_data c )
+{
+	a.f = a.f * b.f * c.f;
 	return a;
 }
 
@@ -516,7 +535,6 @@ func_data fn_v_complex_power( func_data v, func_data p )
 	return v;
 }
 
-
 // ********************** vect2 ( vect2, vect2 ) ********************** 
 
 func_data fn_v_add( func_data v1, func_data v2 )
@@ -549,6 +567,17 @@ func_data fn_v_kaleido( func_data v, func_data width, func_data reflect )
 	v.v.THETA -= width.f * segment;
 	if( reflect.b && ( segment % 2 ) ) v.v.THETA = width.f - v.v.THETA;
 
+	return v;
+}
+
+// ********************** vect2 ( vect2, vect2, float ) ********************** 
+
+// future - replace with matrix transform
+func_data fn_v_rotate_around( func_data cor, func_data v, func_data ang )
+{
+	v.v = v_subtract( v.v, cor.v );
+	v.v = v_rotate( v.v, ang.f );
+	v.v = v_add( v.v, cor.v );
 	return v;
 }
 
@@ -656,6 +685,7 @@ func_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	// ********************** float ( float, float, float ) ********************** 
 	if( !strcmp( name, "fn_f_inverse_square" ) ){ 	gf->gf3 = &fn_f_inverse_square;	*n = 3;		return FN_FLOAT; }
 	if( !strcmp( name, "fn_f_a_sin_bc" ) )		{ 	gf->gf3 = &fn_f_a_sin_bc;		*n = 3;		return FN_FLOAT; }
+	if( !strcmp( name, "fn_f_multiply_3" ) )	{ 	gf->gf3 = &fn_f_multiply_3;		*n = 3;		return FN_FLOAT; }
 
 	// ********************** VECT2 ********************** 
 
@@ -687,6 +717,9 @@ func_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 
 	// ********************** vect2 ( vect2, float, bool ) ********************** 
 	if( !strcmp( name, "fn_v_kaleido" ) )		{ 	gf->gf3 = &fn_v_kaleido;		*n = 3;		return FN_VECT2; }
+
+	// ********************** vect2 ( vect2, vect2, float ) ********************** 
+	if( !strcmp( name, "fn_v_rotate_around" ) )	{ 	gf->gf3 = &fn_v_rotate_around;	*n = 3;		return FN_VECT2; }
 
 	// ********************** FRGB ********************** 
 
