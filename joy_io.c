@@ -57,7 +57,7 @@ void file_get_string( FILE *fp, char *str, char *junk, bool *eof )
 	// must have junk - otherwise the string result goes into junk
 	// future - fix no leading character case
 	// Allowed characters - capital and lowercase, numbers, underscore and minus sign
-	nargs = fscanf(fp, "%[^a-z,^A-Z,^0-9,^_,^-]%[a-z,A-Z,0-9,_,-]", junk, str);
+	nargs = fscanf(fp, "%[^a-z^A-Z^0-9^_^-]%[a-zA-Z0-9_-]", junk, str);
 	if( nargs != 2 ) *eof = true;
 	else *eof = false;
 	printf( "file_get_string: %s\n",str);
