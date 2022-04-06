@@ -68,11 +68,11 @@ bool file_get_bool( FILE *fp, char *str, char *junk, bool *eof )
 	int nargs;
 
 	// must have junk - otherwise the string result goes into junk
-	nargs = fscanf(fp, "%[^a-z]%[a-z]", junk, str);
+	nargs = fscanf(fp, "%[^a-z^A-Z]%[a-zA-Z]", junk, str);
 	if( nargs != 2 ) *eof = true;
 	else *eof = false;
 	printf( "file_get_bool: %s\n",str);
-	return( !strcmp( str, "true") );
+	return( (!strcmp( str, "true")) || (!strcmp( str, "True")) || (!strcmp( str, "TRUE")) );
 }
 
 int file_get_int( FILE *fp, char *str, char *junk, bool *eof )
@@ -80,7 +80,7 @@ int file_get_int( FILE *fp, char *str, char *junk, bool *eof )
 	int result;
 	int nargs;
 
-	nargs = fscanf(fp, "%[^0-9,^-]%[0-9,-]", junk, str);
+	nargs = fscanf(fp, "%[^0-9^-]%[0-9-]", junk, str);
 	if( nargs != 2 ) *eof = true;
 	else *eof = false;
 	result = atoi( str );
@@ -93,7 +93,7 @@ float file_get_float( FILE *fp, char *str, char *junk, bool *eof )
 	float result;
 	int nargs;
 
-	nargs = fscanf(fp, "%[^0-9,^-]%[0-9,-,+,.,E,e]", junk, str);
+	nargs = fscanf(fp, "%[^0-9^-]%[0-9+.Ee-]", junk, str);
 	if( nargs != 2 ) {
 		*eof = true;
 		printf( "file_get_float: invalid number of arguments\n nargs = %d\n junk = '%s'\n str = '%s'\n", nargs, junk, str);
