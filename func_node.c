@@ -437,9 +437,9 @@ func_data fn_f_multiply_3( func_data a, func_data b, func_data c )
 // ********************** vect2 ( vect2 ) ********************** 
 
 // Identity function
-func_data fn_v_copy( func_data f )
+func_data fn_v_copy( func_data v )
 {
-	return f;
+	return v;
 }
 
 func_data fn_v_radial( func_data v )
@@ -753,6 +753,7 @@ void ftree_load( func_tree *ftree, const char *filename )
 			else if( !strcmp( buffer, "name") ) {
 				file_get_string( fp, ftree->name, junk, &eof );
 			}
+			else if( !strcmp( buffer, "nodes") ) {}	// ignore
 			else {
 				fnode_set_name( &(ftree->nodes[ node ]), buffer );
 				fnode_load( fp,  &(ftree->nodes[ node ]), ftree, junk, &eof );

@@ -51,8 +51,13 @@ void file_get_string( FILE *fp, char *str, char *junk, bool *eof )
 {
 	int nargs;
 
+	
+	//nargs = fscanf(fp, "%[^\"]\"%[^\"]\"", junk, str);
+
 	// must have junk - otherwise the string result goes into junk
-	nargs = fscanf(fp, "%[^\"]\"%[^\"]\"", junk, str);
+	// future - fix no leading character case
+	// Allowed characters - capital and lowercase, numbers, underscore and minus sign
+	nargs = fscanf(fp, "%[^a-z,^A-Z,^0-9,^_,^-]%[a-z,A-Z,0-9,_,-]", junk, str);
 	if( nargs != 2 ) *eof = true;
 	else *eof = false;
 	printf( "file_get_string: %s\n",str);
@@ -89,7 +94,10 @@ float file_get_float( FILE *fp, char *str, char *junk, bool *eof )
 	int nargs;
 
 	nargs = fscanf(fp, "%[^0-9,^-]%[0-9,-,+,.,E,e]", junk, str);
-	if( nargs != 2 ) *eof = true;
+	if( nargs != 2 ) {
+		*eof = true;
+		printf( "file_get_float: invalid number of arguments\n nargs = %d\n junk = '%s'\n str = '%s'\n", nargs, junk, str);
+	}
 	else *eof = false;
 	result = ( float )atof( str );
 	printf( "file_get_float: %f\n",result);
@@ -103,7 +111,7 @@ vect2 file_get_vect2( FILE *fp, char *str, char *junk, bool *eof )
 	result.x = file_get_float( fp, str, junk, eof );
 	if( *eof ) return result;
 
-	result.x = file_get_float( fp, str, junk, eof );
+	result.y = file_get_float( fp, str, junk, eof );
 	return result;
 }
 
