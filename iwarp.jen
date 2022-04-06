@@ -1,0 +1,9 @@
+*****
+
+name =	identity_warp
+n = 	2
+position =	vect2( 0, 0 )
+result =	fn_v_copy( position )
+
+*****
+
