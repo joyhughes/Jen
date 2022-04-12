@@ -86,4 +86,5 @@ int main( int argc, char const *argv[] )
 			fimage_write_jpg( filename, &out );
 			printf( " frame %d\n",frame );
 	}
-}
+	printf( "completed:\n" );
+	printf( "./warp %s %s %d\n", argv[ 1 ], argv[ 2 ], nframes );
