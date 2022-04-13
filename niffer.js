@@ -14,7 +14,8 @@ function randomRange( min, max ) {
 }
 
 function randomAngle()  {
-    return Math.random() * Math.pi * 2.0;
+    console.log( "Math.pi = " + Math.PI + "\n");
+    return Math.random() * Math.PI * 2.0;
 }
 
 // min and max must be arrays of same length
@@ -88,19 +89,19 @@ class Vortex {
     }
 
     generate( fTree, tag ) {
-        fTree.addNode( new FuncNode( "diameter_" + tag,  "float", [ this.diameter ] ) );
-        fTree.addNode( new FuncNode( "soften_" + tag,    "float", [ this.soften ] ) );
+        fTree.addNode( new FuncNode( "diameter_" + tag,  "float", [ this.diameter ]  ) );
+        fTree.addNode( new FuncNode( "soften_" + tag,    "float", [ this.soften ]    ) );
         fTree.addNode( new FuncNode( "intensity_" + tag, "float", [ this.intensity ] ) );
 
         if ( this.revolving ) {     // include nodes to calculate center
-            fTree.addNode( new FuncNode( "center_orig_" + tag,          "vect2",              this.centerOrig                                           ) );
-            fTree.addNode( new FuncNode( "velocity_" + tag,             "float",            [ this.velocity ]                                           ) );
-            fTree.addNode( new FuncNode( "center_of_revolution_" + tag, "vect2",              this.centerOfRevolution                                   ) );
-            fTree.addNode( new FuncNode( "rev_angle_" + tag,            "fn_f_multiply_3",  [ "time", "max_angle", "velocity_" + tag ]                  ) );
-            fTree.addNode( new FuncNode( "center_" + tag,               "fn_v_revolve",     [ "rev_center_" + tag, "center_orig_" + tag, "rev_angle_" + tag ]   ) );
+            fTree.addNode( new FuncNode( "center_orig_" + tag,  "vect2",              this.centerOrig                            ) );
+            fTree.addNode( new FuncNode( "velocity_" + tag,     "float",            [ this.velocity ]                            ) );
+            fTree.addNode( new FuncNode( "rev_center_" + tag,   "vect2",              this.centerOfRevolution                    ) );
+            fTree.addNode( new FuncNode( "rev_angle_" + tag,    "fn_f_multiply_3",  [ "time", "max_angle", "velocity_" + tag ]   ) );
+            fTree.addNode( new FuncNode( "center_" + tag,       "fn_v_revolve",     [ "rev_center_" + tag, "center_orig_" + tag, "rev_angle_" + tag ]   ) );
         }
         else {
-            fTree.addNode( new FuncNode( "center_" + tag,               "vect2",              this.centerOrig                                           ) );
+            fTree.addNode( new FuncNode( "center_" + tag,       "vect2",              this.centerOrig                            ) );
             
         }
         fTree.addSpacer();
@@ -188,7 +189,7 @@ class VortexField extends FuncTree {
     constructor( name, nVortices ) {
         super( name );
         this.nVortices = nVortices;
-        this.revolving = false;
+        this.revolving = true;
 
         // Set some plausible values
         this.step = 0.5;
@@ -233,11 +234,12 @@ class VortexField extends FuncTree {
   
                 // random arrangement of centers of rotation. There are other possibilities
                 let centerOfRevolution = boxOfRandom( this.minBound, this.maxBound );
-                let centerOrig = centerOfRevolution;
-
+                let centerOrig = centerOfRevolution.concat();
+                
                 if( this.revolving ) {
                     let orbitalRadius = randomRange( this.minOrbitalRadius, this.maxOrbitalRadius );
                     let theta = randomAngle();
+                    console.log( "theta = " + theta + "\n" );
                     centerOrig[ 0 ] += orbitalRadius * Math.cos( theta ); 
                     centerOrig[ 1 ] += orbitalRadius * Math.sin( theta );
                 }
