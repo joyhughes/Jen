@@ -573,7 +573,7 @@ func_data fn_v_kaleido( func_data v, func_data width, func_data reflect )
 // ********************** vect2 ( vect2, vect2, float ) ********************** 
 
 // future - replace with matrix transform
-func_data fn_v_rotate_around( func_data cor, func_data v, func_data ang )
+func_data fn_v_revolve( func_data cor, func_data v, func_data ang )
 {
 	v.v = v_subtract( v.v, cor.v );
 	v.v = v_rotate( v.v, ang.f );
@@ -719,7 +719,7 @@ func_type get_gen_func ( const char* name, gen_func *gf, int *n, bool *choose )
 	if( !strcmp( name, "fn_v_kaleido" ) )		{ 	gf->gf3 = &fn_v_kaleido;		*n = 3;		return FN_VECT2; }
 
 	// ********************** vect2 ( vect2, vect2, float ) ********************** 
-	if( !strcmp( name, "fn_v_rotate_around" ) )	{ 	gf->gf3 = &fn_v_rotate_around;	*n = 3;		return FN_VECT2; }
+	if( !strcmp( name, "fn_v_revolve" ) )		{ 	gf->gf3 = &fn_v_revolve;		*n = 3;		return FN_VECT2; }
 
 	// ********************** FRGB ********************** 
 
@@ -756,7 +756,7 @@ void ftree_load( func_tree *ftree, const char *filename )
 			else if( !strcmp( buffer, "nodes") ) {}	// ignore
 			else {
 				fnode_set_name( &(ftree->nodes[ node ]), buffer );
-				fnode_load( fp,  &(ftree->nodes[ node ]), ftree, junk, &eof );
+				fnode_load( fp, &(ftree->nodes[ node ]), ftree, junk, &eof );
 				node++;
 				if( node == n ) eof = true;
 			}
