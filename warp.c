@@ -30,7 +30,7 @@ void fimage_warp( func_tree *ftree, func_node *warp_node, func_node *position_no
 			warp = fnode_eval( warp_node ).v;
 			// printf( "fimage_warp - fnode_eval complete\n" );
 
-			*pout = fimage_sample( warp, false, in );
+			*pout = fimage_sample( warp, false, in, SAMP_REFLECT );
 			//if( color_node != NULL ) *pout = frgb_multiply( *pout, fnode_eval( color_node ).c );
 
 			pout++;
@@ -87,4 +87,5 @@ int main( int argc, char const *argv[] )
 			printf( " frame %d\n",frame );
 	}
 	printf( "completed:\n" );
-	printf( "./warp %s %s %d\n", argv[ 1 ], argv[ 2 ], nframes );
+	printf( "%s %s %s %d\n", argv[ 0 ], argv[ 1 ], argv[ 2 ], nframes );
+}

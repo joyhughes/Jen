@@ -616,27 +616,51 @@ frgb fimage_index( int x, int y, fimage *f )
 // sample image given coordinate in linear space 
 // quick and dirty gives nearest pixel index
 // near future: more elegant - smoothed blend (future: multi resolution)
-frgb fimage_sample( vect2 v, bool smooth, fimage *fimg )
+frgb fimage_sample( vect2 v, bool smooth, fimage *fimg, fimage_sample_extend extend )
 {
 	frgb black;
+	int x = fimg->xdim * ( v.x - fimg->min.x ) / ( fimg->max.x - fimg->min.x );
+	int y = fimg->ydim * ( v.y - fimg->min.y ) / ( fimg->max.y - fimg->min.y );
+	int xblock = x / fimg->xdim;
+	if ( x < 0 ) { xblock -= 1; }
+	int yblock = y / fimg->ydim;
+	if ( y < 0 ) { yblock -= 1; }
 
-	int x =  fimg->xdim * ( v.x - fimg->min.x ) / ( fimg->max.x - fimg->min.x );
-	int y =  fimg->ydim * ( v.y - fimg->min.y ) / ( fimg->max.y - fimg->min.y );
 
-	if( ( x>=0 ) & ( x<fimg->xdim ) & ( y>=0 ) & ( y<fimg->ydim ) ) 
-	{
-		return( *( fimg->f + y * fimg->xdim + x ) );
-	}
-	else
-	{
-		black.r = 0.0; black.g = 0.0; black.b = 0.0;
-		return black;
+	switch( extend ) {
+
+		case SAMP_SINGLE:
+
+			if( ( !xblock ) && ( !yblock ) ) 
+			{
+				return( *( fimg->f + y * fimg->xdim + x ) );
+			}
+			else
+			{
+				black.r = 0.0; black.g = 0.0; black.b = 0.0;
+				return black;
+			}
+			break;
+
+		case SAMP_REPEAT:
+
+			x -= xblock * fimg->xdim;
+			y -= yblock * fimg->ydim;
+			return( *( fimg->f + y * fimg->xdim + x ) );
+			break;
+
+		case SAMP_REFLECT:
+			x -= xblock * fimg->xdim;
+			y -= yblock * fimg->ydim;
+
+			if( xblock % 2 ) 	{ x = fimg->xdim - 1 - x; }
+			if( yblock % 2 ) 	{ y = fimg->ydim - 1 - y; }
+			return( *( fimg->f + y * fimg->xdim + x ) );
+			break;
 	}
 }
 
 // *********************** Masking functions *********************** 
-
-// future - add antialiasing
 void fimage_make_mask( float thresh, fimage *in, fimage *out )
 {
 	int x,y;

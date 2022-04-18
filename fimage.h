@@ -6,6 +6,13 @@ typedef struct FIMAGE
 	frgb *f;			// Pointer to array of frgb pixels
 } fimage;
 
+enum fimage_sample_extend
+{
+	SAMP_SINGLE,
+	SAMP_REPEAT,
+	SAMP_REFLECT
+};
+typedef enum fimage_sample_extend fimage_sample_extend;
 
 // *********************** FIMAGE FUNCTIONS *********************** 
 
@@ -51,7 +58,7 @@ void fimage_clip( float min, float max, fimage *in );
 // *********************** Sampling functions *********************** 
 
 frgb fimage_index( int x, int y, fimage *f );	// look up pixel by integer indices
-frgb fimage_sample( vect2 v, bool smooth, fimage *fimg );	// sample image given coordinate in linear space
+frgb fimage_sample( vect2 v, bool smooth, fimage *fimg, fimage_sample_extend extend );	// sample image given coordinate in linear space
 
 // *********************** Masking functions *********************** 
 
