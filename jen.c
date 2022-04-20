@@ -1,3 +1,5 @@
+// jen.c contains snippets of code that generate various kinds of clusters. 
+// While this code has been deprecated in favor of using .jen files, it can serve as a guide and possibly be reused
 
 // creates a grouping of runs evenly spaced in a circle
 // occasional mutation changing some aspect of a run
