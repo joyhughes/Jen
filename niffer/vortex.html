@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+
+    <title>Vortex Generator</title>
+
+    <style>
+      html {
+        font-family: sans-serif;
+      }
+
+      body {
+        width: 50%;
+        max-width: 800px;
+        min-width: 480px;
+        margin: 0 auto;
+      }
+
+      .lastResult {
+        color: white;
+        padding: 3px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Vortex Generator</h1>
+
+    <p>Generates a warp function with rotating vortices</p>
+
+    <div class="form">
+      <label for="nVortsField">Number of vortices: </label>
+      <input type="text" id="nVortsField" class="nVortsField">
+      <input type="submit" value="Calculate function" class="calculateFunction">
+    </div>
+
+    <div class="resultParas">
+      <p class="guesses"></p>
+      <p class="lastResult"></p>
+      <p class="lowOrHi"></p>
+    </div>
+
+    <script src="niffer.js" defer></script>
+
+  </body>
+</html>
