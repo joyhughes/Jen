@@ -1,47 +1,81 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
 
-    <title>Vortex Generator</title>
+<head>
+  <meta charset="utf-8">
 
-    <style>
-      html {
-        font-family: sans-serif;
-      }
+  <title>Vortex Generator</title>
 
-      body {
-        width: 50%;
-        max-width: 800px;
-        min-width: 480px;
-        margin: 0 auto;
-      }
+  <style>
+    html {
+      font-family: sans-serif;
+    }
 
-      .lastResult {
-        color: white;
-        padding: 3px;
-      }
-    </style>
-  </head>
+    body {
+      width: 50%;
+      max-width: 800px;
+      min-width: 480px;
+      margin: 0 auto;
+    }
 
-  <body>
-    <h1>Vortex Generator</h1>
+    .lastResult {
+      color: white;
+      padding: 3px;
+    }
+  </style>
+</head>
 
-    <p>Generates a warp function with rotating vortices</p>
+<body>
+  <h1>Vortex Generator</h1>
 
-    <div class="form">
-      <label for="nVortsField">Number of vortices: </label>
-      <input type="text" id="nVortsField" class="nVortsField">
-      <input type="submit" value="Calculate function" class="calculateFunction">
+  <p>Generates a warp function with rotating vortices</p>
+
+  <div class="form">
+    <label for="nVortsField">Number of vortices: </label>
+    <input type="text" id="nVortsField" class="nVortsField">
+    <input type="submit" value="Calculate function" class="calculateFunction">
+  </div>
+
+  <div class="resultParas">
+    <p class="guesses"></p>
+    <p class="lastResult"></p>
+    <p class="lowOrHi"></p>
+  </div>
+
+  <script src="niffer.js" defer></script>
+
+</body>
+
+<!--Jay's double range slider contribution start-->
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0'">
+  <title>Joy's Double Range Slider</title>
+  <!--Google Fonts-->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+  <!--Stylesheet-->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="values">
+      <span id="range1">
+        0
+      </span>
+      <span> &dash; </span>
+      <span id="range2">
+        100
+      </span>
     </div>
-
-    <div class="resultParas">
-      <p class="guesses"></p>
-      <p class="lastResult"></p>
-      <p class="lowOrHi"></p>
+    <div class="container">
+      <div class="slider-track"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-1" oninput="slideOne()">
+      <input type="range" min="0" max="100" value="70" id="slider-2" oninput="slideTwo()">
     </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+<!--Jay's double range slider contribution end-->
 
-    <script src="niffer.js" defer></script>
-
-  </body>
 </html>
