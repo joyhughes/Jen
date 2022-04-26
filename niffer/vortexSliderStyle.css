@@ -175,7 +175,7 @@ input[type="range"]:active::-webkit-slider-thumb {
   margin: auto;
   top: 10px;
   bottom: 10px;
-  left: -21px;
+  left: -20px;
   right: 90px;
 }
 
