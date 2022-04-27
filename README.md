@@ -23,7 +23,7 @@ This work is based on my paper *Cellular Automata for Imaging, art and Video*, i
 A cellular automaton operates on a grid of pixels, each affected by its neighbors by a set of rules. The original and best known example is Conway's "Game of Life", which can create very complex patterns out of very simple rules on a one-bit image. My research extends the concept to 24-bit color images, nonlocal neighborhoods, warping using vector fields, and constrained application of the rules toward a given target image. This allows a rich space of possible aesthetics amenable to use in generative art.
 ### Still Life - Manual Generative Photography
 September 2021
-![Still Life image](https://miro.medium.com/max/10944/1*V4Oa_Q4cxB3zbP8r2D7JuA.jpeg)
+<img src = "https://miro.medium.com/max/10944/1*V4Oa_Q4cxB3zbP8r2D7JuA.jpeg" height=200 >
 Still Life is my first implementation of a generative space. Each scene is composed of a vase, items within the vase arranged at specified angles, and items arranged outside the vase within a 2D rectangle. Each vase and item ("element") is selected at random from a set of probabilities that are themselves randomly determined. The position of each item is also randomly determined. The scene is then assembled by hand and photographed.
 ### Flow - Manual Environmental Art
 September 2021
