@@ -18,7 +18,7 @@ Javascript, HTML, CSS front end for Lux. Generates functions, scene files, and g
 ## History of Jen
 ### Life - Cellular Automata
 August 2021
-![life image](https://en.wikipedia.org/wiki/File:Gospers_glider_gun.gif)
+<img src="https://en.wikipedia.org/wiki/File:Gospers_glider_gun.gif">
 This work is based on my paper *Cellular Automata for Imaging, art and Video*, in the book [*New Constructions in Cellular Automata*](https://global.oup.com/academic/product/new-constructions-in-cellular-automata-9780195137187?cc=us&lang=en&#), published by the Santa Fe Institute.
 A cellular automaton operates on a grid of pixels, each affected by its neighbors by a set of rules. The original and best known example is Conway's "Game of Life", which can create very complex patterns out of very simple rules on a one-bit image. My research extends the concept to 24-bit color images, nonlocal neighborhoods, warping using vector fields, and constrained application of the rules toward a given target image. This allows a rich space of possible aesthetics amenable to use in generative art.
 ### Still Life - Manual Generative Photography
