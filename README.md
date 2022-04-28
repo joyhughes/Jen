@@ -5,7 +5,7 @@ Image processing, generative photography, cellular automata
 "Jen" is short for "Genesis General Generator". She is designed to produce generative art from images, a technique I call "generative photography". Please see my [Medium article on generative photography](https://medium.com/@joyhughes/generative-photography-1318e25bbec1), which shows the results of earlier implementations of Jen, rendered by hand and by computer.
 
 Jen defines a *generative space* - a set of rules that can produce an arbitrary number of randomly generated artworks. At the moment, output types include static images and simple animation loops. Ideally, all the results from each generative space will be artistically interesting and express a coherent visual aesthethic. It can also be used to create singular artwork that is deterministic - i.e. does not employ randomness.
----
+
 ## Folders
 The code for Jen is stored in three folders in the repo, organized by language. 
 ### Jen-C
