@@ -14,7 +14,7 @@ All the original C language implementations for each iteration of Jen are here.
 C++ implementation of the 2.5D compositing renderer Lux Vitae. Work in progress.
 ### Niffer
 Javascript, HTML, CSS front end for Lux. Generates functions, scene files, and generative spaces.
----
+
 ## History of Jen
 ### Life - Cellular Automata
 August 2021 <br>
