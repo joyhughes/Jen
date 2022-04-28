@@ -47,5 +47,4 @@ February 2022 <br>
 <img src = "https://pbs.twimg.com/media/FRb0YLTVIAAEkWv?format=jpg&name=small" width = 200 > <br>
 These simple programs explore visual effects and short animation loops based on a single image. Rather than using hardcoded functions, a function that defines each effect is stored in a file that describes how the image is to be modified. For each pixel, Warp chooses a pixel in the input image based on the function provided. Melt calculates a vector field based on the function, then applies it repeatedly, creating a flowy, melty effect. Hyperspace works like melt, but overlays each image on top of the previous one (slightly faded) creating trails reminiscent of the Millennium Falcon entering hyperspace. Kaleido is a set of functions used by Warp to simulate a kaleidoscope. Each of these effects, along with Life, will be rolled into Lux Vitae to modify elements within a scene.
 
-![tube_small_0685](https://user-images.githubusercontent.com/42107664/165768433-4a5d64a1-4827-422b-9f61-c7cc0296ffaf.jpg)
 
