@@ -15,7 +15,7 @@ C++ implementation of the 2.5D compositing renderer Lux Vitae. Work in progress.
 ### Niffer
 Javascript, HTML, CSS front end for Lux. Generates functions, scene files, and generative spaces.
 
-## History of Jen
+## Development History of Jen
 ### Life - Cellular Automata
 August 2021 <br>
 <img src="https://pbs.twimg.com/media/FRXuntLVgAAQKmc?format=jpg&name=small" height = 200> <br>
@@ -47,4 +47,12 @@ February 2022 <br>
 <img src = "https://pbs.twimg.com/media/FRb0YLTVIAAEkWv?format=jpg&name=small" width = 200 > <br>
 These simple programs explore visual effects and short animation loops based on a single image. Rather than using hardcoded functions, a function that defines each effect is stored in a file that describes how the image is to be modified. For each pixel, Warp chooses a pixel in the input image based on the function provided. Melt calculates a vector field based on the function, then applies it repeatedly, creating a flowy, melty effect. Hyperspace works like melt, but overlays each image on top of the previous one (slightly faded) creating trails reminiscent of the Millennium Falcon entering hyperspace. Kaleido is a set of functions used by Warp to simulate a kaleidoscope. Each of these effects, along with Life, will be rolled into Lux Vitae to modify elements within a scene.
 
+## Components of Jen
+
+### FRGB 
+FRGB is a floating point color model. The range between 0.0 and 1.0 corresponds to the range between zero and 255 for each 8-bit color component. Colors can be oversaturated (above 1.0) or negative, expanding the range of possibilites in HDR, masking, and compositing. FRGB does not have an alpha channel - full FRGB masking is used instead. FRGB colors must be converted to standard 24-bit color in order to be displayed.
+### FImage
+FImage is a grid of FRGB values, representing an image in the FRGB color space. It also includes a bounding box in 2D floating point space that defines a coordinate for each pixel. The FImage code includes functions for conversion to and from 24-bit image format, reading and writing from disc, simple imaging operations, sampling, and masking.
+### VField
+VField is a grid of vectors representing a vector field, and a bounding box in 2D floating point Cartesian space. The VField code has a look up function that returns an interpolated vector based on the coordinate provided, and can move ("advect") a coordinate based on this result. There are a number of mathematical functions that can modify a single vector field or combine two fields together. There are also functions that can generate a vector field based on various mathematical formulae.
 
