@@ -1,5 +1,6 @@
 #include <iostream>
 #include <array>
+#include <algorithm>
 #include "srgb.hpp"
 
 #define R 0
