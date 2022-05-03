@@ -14,16 +14,16 @@ static std::array<float, 256> buildGammaLUTLookupTable()
 
 static std::array<float, 256> lut = buildGammaLUTLookupTable();
 
-GammaLUT::GammaLUT( float gamma ) {
+gamma_lut::gamma_lut( float gamma ) {
     this->gamma = gamma;
 }
 
-float GammaLUT::lookup(unsigned char index)
+float gamma_lut::lookup(unsigned char index)
 {
   return lut[index];
 }
 
-frgb GammaLUT::lookup(unsigned char r, unsigned char g, unsigned char b)
+frgb gamma_lut::lookup(unsigned char r, unsigned char g, unsigned char b)
 {
   return frgb(lookup(r), lookup(g), lookup(b));
 }

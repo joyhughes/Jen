@@ -2,11 +2,11 @@
 #define __GAMMA_LUT_HPP
 #include "frgb.hpp"
 
-class GammaLUT {
+class gamma_lut {
     float gamma;
 
 public:
-    GammaLUT( float gamma );
+    gamma_lut( float gamma );
 
     float lookup( unsigned char index );
     frgb  lookup( unsigned char r, unsigned char g, unsigned char b );
