@@ -1,0 +1,33 @@
+#include "GammaLUT.hpp"
+#include "srgb.hpp"
+#include <array>
+
+static std::array<float, 256> buildGammaLUTLookupTable()
+{
+  std::array<float, 256> result;
+  for (int i = 0; i < 256; ++i)
+  {
+    result[i] = srgb::srgb_to_linear(i);
+  }
+  return result;
+}
+
+static std::array<float, 256> lut = buildGammaLUTLookupTable();
+
+gamma_lut::gamma_lut( float gamma ) {
+    this->gamma = gamma;
+}
+
+float gamma_lut::lookup(unsigned char index)
+{
+  return lut[index];
+}
+
+frgb gamma_lut::lookup(unsigned char r, unsigned char g, unsigned char b)
+{
+  return frgb(lookup(r), lookup(g), lookup(b));
+}
+
+// frgb lookup( unsigned int c ) { bit shifty stuff }
+
+// Reverse lookup? Quick tree search
