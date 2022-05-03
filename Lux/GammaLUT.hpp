@@ -5,16 +5,11 @@
 class GammaLUT {
     float gamma;
 
-    // constructor
-    GammaLUT( float gamma ) {
-        this->gamma = gamma;
-    }
+public:
+    GammaLUT( float gamma );
 
     float lookup( unsigned char index );
     frgb  lookup( unsigned char r, unsigned char g, unsigned char b );
-    //frgb lookup( unsigned int c ) { bit shifty stuff }
-
-    // Reverse lookup? Quick tree search
 };
 
 #endif
