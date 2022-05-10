@@ -1,5 +1,6 @@
 #include "gamma_lut.hpp"
 #include <cmath>
+#include <iostream>
 
 typedef union {
  
@@ -28,9 +29,9 @@ void printBinary( int n, int i )
     for (k = i - 1; k >= 0; k--) {
  
         if ((n >> k) & 1)
-            printf("1");
+            std::cout << 1;
         else
-            printf("0");
+            std::cout << 0;
     }
 }
 
@@ -38,15 +39,14 @@ void printBinary( int n, int i )
 // to IEEE floating point representation
 void printIEEE( flubber var )
 {
- 
     // Prints the IEEE 754 representation
     // of a float value (32 bits)
  
-    printf("%d | ", var.raw.sign);
+    std::cout << var.raw.sign;
     printBinary(var.raw.exponent, 8);
-    printf(" | ");
+    std::cout << " | ";
     printBinary(var.raw.mantissa, 23);
-    printf("\n");
+    std::cout << "\n";
 }
 
 gamma_LUT::gamma_LUT( float gamma ) {
