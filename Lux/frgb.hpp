@@ -65,19 +65,19 @@ public:
     //inline void setul( unsigned int in );
     
     // arithmetic operators
-    const frgb& operator += (const frgb rhs);
-    const frgb& operator -= (const frgb rhs);
-    const frgb& operator *= (const frgb rhs);
+    const frgb& operator += ( frgb rhs );
+    const frgb& operator -= ( frgb rhs );
+    const frgb& operator *= ( frgb rhs );
 
-    const frgb& operator *= (const float rhs);
-    const frgb& operator /= (const float rhs);
+    const frgb& operator *= ( float rhs );
+    const frgb& operator /= ( float rhs );
 
-    const frgb operator + (const frgb rhs);
-    const frgb operator - (const frgb rhs);
-    const frgb operator * (const frgb rhs);
+    frgb operator + ( frgb rhs );
+    frgb operator - ( frgb rhs );
+    frgb operator * ( frgb rhs );
 
-    const frgb operator * (const float rhs);
-    const frgb operator / (const float rhs);
+    frgb operator * ( float rhs );
+    frgb operator / ( float rhs);
 
     // I/O operators
     friend std::ostream &operator << ( std::ostream &out, const frgb& f ) { 

@@ -52,39 +52,39 @@ inline void frgb::setc( unsigned char r, unsigned char g, unsigned char b ) { se
 //inline void frgb::setul( unsigned int in ) {} // bit shifty stuff
 
 // arithmetic operators
-const frgb& frgb::operator += (const frgb rhs) { c[R] += rhs.c[R];  c[G] += rhs.c[G];  c[B] += rhs.c[B];  return *this; }
-const frgb& frgb::operator -= (const frgb rhs) { c[R] -= rhs.c[R];  c[G] -= rhs.c[G];  c[B] -= rhs.c[B];  return *this; }
-const frgb& frgb::operator *= (const frgb rhs) { c[R] *= rhs.c[R];  c[G] *= rhs.c[G];  c[B] *= rhs.c[B];  return *this; }
+const frgb& frgb::operator += ( frgb rhs ) { c[R] += rhs.c[R];  c[G] += rhs.c[G];  c[B] += rhs.c[B];  return *this; }
+const frgb& frgb::operator -= ( frgb rhs ) { c[R] -= rhs.c[R];  c[G] -= rhs.c[G];  c[B] -= rhs.c[B];  return *this; }
+const frgb& frgb::operator *= ( frgb rhs ) { c[R] *= rhs.c[R];  c[G] *= rhs.c[G];  c[B] *= rhs.c[B];  return *this; }
 
-const frgb& frgb::operator *= (const float rhs) { c[R] *= rhs;  c[G] *= rhs;  c[B] *= rhs;  return *this; }
-const frgb& frgb::operator /= (const float rhs) { c[R] /= rhs;  c[G] /= rhs;  c[B] /= rhs;  return *this; }
+const frgb& frgb::operator *= ( float rhs ) { c[R] *= rhs;  c[G] *= rhs;  c[B] *= rhs;  return *this; }
+const frgb& frgb::operator /= ( float rhs ) { c[R] /= rhs;  c[G] /= rhs;  c[B] /= rhs;  return *this; }
 
 
-const frgb frgb::operator + (const frgb rhs) { 
+frgb frgb::operator + ( frgb rhs) { 
     frgb out;  
     out.set( c[R] + rhs.c[R],  c[G] + rhs.c[G],  c[B] + rhs.c[B] ); 
     return out; 
 }
 
-const frgb frgb::operator - (const frgb rhs) { 
+frgb frgb::operator - ( frgb rhs) { 
     frgb out;  
     out.set( c[R] - rhs.c[R],  c[G] - rhs.c[G],  c[B] - rhs.c[B] ); 
     return out; 
 }
 
-const frgb frgb::operator * (const frgb rhs) { 
+frgb frgb::operator * ( frgb rhs) { 
     frgb out;  
     out.set( c[R] * rhs.c[R],  c[G] * rhs.c[G],  c[B] * rhs.c[B] ); 
     return out; 
 }
 
-const frgb frgb::operator * (const float rhs) { 
+frgb frgb::operator * ( float rhs) { 
     frgb out;  
     out.set( c[R] * rhs,  c[G] * rhs,  c[B] * rhs ); 
     return out; 
 }
 
-const frgb frgb::operator / (const float rhs) { 
+frgb frgb::operator / ( float rhs) { 
     frgb out;  
     out.set( c[R] / rhs,  c[G] / rhs,  c[B] / rhs ); 
     return out; 
@@ -139,5 +139,8 @@ int main() {
 
     color[ 0 ] = 0.5;
     std::cout << "Color after color[ 0 ] = 0.5 " << color << "\n\n";
+
+    float a = color[ 0 ];
+
     return 0;
 }
