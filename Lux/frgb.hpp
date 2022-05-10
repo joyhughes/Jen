@@ -34,8 +34,8 @@ public:
     // iterators 
 
     // accessors
-    // question - how to overload [] operator for assignment?
-    float operator []( int i );
+    float& operator [] ( int i );
+    const float& operator [] (int i) const { return c[ i ]; }
 
     inline float r();
     inline float g();
@@ -65,23 +65,23 @@ public:
     //inline void setul( unsigned int in );
     
     // arithmetic operators
-    frgb& operator += (const frgb rhs);
-    frgb& operator -= (const frgb rhs);
-    frgb& operator *= (const frgb rhs);
+    const frgb& operator += (const frgb rhs);
+    const frgb& operator -= (const frgb rhs);
+    const frgb& operator *= (const frgb rhs);
 
-    frgb& operator *= (const float rhs);
-    frgb& operator /= (const float rhs);
+    const frgb& operator *= (const float rhs);
+    const frgb& operator /= (const float rhs);
 
-    frgb operator + (const frgb rhs);
-    frgb operator - (const frgb rhs);
-    frgb operator * (const frgb rhs);
+    const frgb operator + (const frgb rhs);
+    const frgb operator - (const frgb rhs);
+    const frgb operator * (const frgb rhs);
 
-    frgb operator * (const float rhs);
-    frgb operator / (const float rhs);
+    const frgb operator * (const float rhs);
+    const frgb operator / (const float rhs);
 
     // I/O operators
     friend std::ostream &operator << ( std::ostream &out, const frgb& f ) { 
-        out << "Linear - R: " << f.c[ R ] << " G: " << f.c[ G ] << " B: " << f.c[ B ];
+        out << "Linear - R: " << f.c[ R ] << " G: " << f.c[ G ] << " B: " << f.c[ B ] << "\n";
         return out;
     }
 
