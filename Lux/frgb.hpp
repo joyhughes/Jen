@@ -1,3 +1,6 @@
+#ifndef __FRGB_HPP
+#define __FRGB_HPP
+
 #include <iostream>
 #include <array>
 #include <algorithm>
@@ -34,43 +37,58 @@ public:
     // question - how to overload [] operator for assignment?
     float operator []( int i );
 
-    inline float rf();
-    inline float gf();
-    inline float bf();
+    inline float r();
+    inline float g();
+    inline float b();
 
     // returns single bytes per component - assumes [0.0, 1.0] range
     // clip or constrain out of range values before using
     inline unsigned char rc();
     inline unsigned char gc();
     inline unsigned char bc();
+    
 
     // inline unsigned int ul() {} // bit shifty stuff
 
     // set component
-    inline void setrf( float r );
-    inline void setgf( float g );
-    inline void setbf( float b );
-    inline void setf( float r, float g, float b);
+    inline void setr( float r );
+    inline void setg( float g );
+    inline void setb( float b );
+    inline void set( float r, float g, float b);
     // TODO - set from bracketed list
 
-    inline void setcr( unsigned char r );
-    inline void setcg( unsigned char g );
-    inline void setcb( unsigned char b );
+    inline void setrc( unsigned char r );
+    inline void setgc( unsigned char g );
+    inline void setbc( unsigned char b );
     inline void setc( unsigned char r, unsigned char g, unsigned char b );
 
-    inline void setul( unsigned int in );
-
+    //inline void setul( unsigned int in );
+    
     // arithmetic operators
+    frgb& operator += (const frgb rhs);
+    frgb& operator -= (const frgb rhs);
+    frgb& operator *= (const frgb rhs);
+
+    frgb& operator *= (const float rhs);
     frgb& operator /= (const float rhs);
+
+    frgb operator + (const frgb rhs);
+    frgb operator - (const frgb rhs);
+    frgb operator * (const frgb rhs);
+
+    frgb operator * (const float rhs);
+    frgb operator / (const float rhs);
 
     // I/O operators
     friend std::ostream &operator << ( std::ostream &out, const frgb& f ) { 
-        out << "R: " << f.c[ R ] << " G: " << f.c[ G ] << " B: " << f.c[ B ];
+        out << "Linear - R: " << f.c[ R ] << " G: " << f.c[ G ] << " B: " << f.c[ B ];
         return out;
     }
 
-    // color clipping
-    void clip( float minc, float maxc );
-    // Clip to range [ 0.0, 1.0 ] but keep colors in proportion
-    void constrain();
+    void print_SRGB();
+
+    void clamp( float minc, float maxc );   // clamp components to specified range
+    void constrain();   // Clip to range [ 0.0, 1.0 ] but keep colors in proportion
 };
+
+#endif // __FRGB_HPP

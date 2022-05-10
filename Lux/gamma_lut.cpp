@@ -1,33 +1,79 @@
-#include "GammaLUT.hpp"
-#include "srgb.hpp"
-#include <array>
+#include "gamma_lut.hpp"
+#include <cmath>
 
-static std::array<float, 256> buildGammaLUTLookupTable()
+typedef union {
+ 
+    float f;
+    struct
+    {
+ 
+        // Order is important.
+        // Here the members of the union data structure
+        // use the same memory (32 bits).
+        // The ordering is taken
+        // from the LSB to the MSB.
+        unsigned int mantissa : 23;
+        unsigned int exponent : 8;
+        unsigned int sign : 1;
+ 
+    } raw;
+    unsigned int ui;
+} flubber;
+
+void printBinary( int n, int i )
 {
-  std::array<float, 256> result;
-  for (int i = 0; i < 256; ++i)
-  {
-    result[i] = srgb::srgb_to_linear(i);
+    // Prints the binary representation
+    // of a number n up to i-bits.
+    int k;
+    for (k = i - 1; k >= 0; k--) {
+ 
+        if ((n >> k) & 1)
+            printf("1");
+        else
+            printf("0");
+    }
+}
+
+// Function to convert real value
+// to IEEE floating point representation
+void printIEEE( flubber var )
+{
+ 
+    // Prints the IEEE 754 representation
+    // of a float value (32 bits)
+ 
+    printf("%d | ", var.raw.sign);
+    printBinary(var.raw.exponent, 8);
+    printf(" | ");
+    printBinary(var.raw.mantissa, 23);
+    printf("\n");
+}
+
+gamma_LUT::gamma_LUT( float gamma ) {
+  this->gamma = gamma;
+
+  for ( int i = 0; i < 256; ++i) {
+    SRGB_to_linear_LUT[ i ] = powf( i / 255.0f, gamma );
   }
-  return result;
+
+  flubber flub;
+  for ( unsigned int i=0; i < lts_entries; i++ ) {
+    flub.ui = 0x38000000 | ( i << lts_shift );                        // 0 | 01110000 | 00000000000000000000000  (black magic)
+    linear_to_SRGB_LUT[i] = (unsigned char)( powf( flub.f, 1.0f / 2.2f ) * 255 );
+  }
+} 
+
+float gamma_LUT::SRGB_to_linear(unsigned char index) { return SRGB_to_linear_LUT[ index ]; }
+
+// may be more efficient to do reinterpret_cast on array of pointers to float
+unsigned char gamma_LUT::linear_to_SRGB( float index ) {
+  // Cases for table underflow (SRGB value less than two)
+  if( index < 0.000032f ) {
+    if( index == 0.0f ) return 0;
+    else return 1;
+  }
+
+  flubber flub;
+  flub.f = index;
+  return linear_to_SRGB_LUT[ ( flub.ui & 0x07ff8000 ) >> lts_shift ];  // 0 | 00001111 | 11111111000000000000000 (black magic)
 }
-
-static std::array<float, 256> lut = buildGammaLUTLookupTable();
-
-gamma_lut::gamma_lut( float gamma ) {
-    this->gamma = gamma;
-}
-
-float gamma_lut::lookup(unsigned char index)
-{
-  return lut[index];
-}
-
-frgb gamma_lut::lookup(unsigned char r, unsigned char g, unsigned char b)
-{
-  return frgb(lookup(r), lookup(g), lookup(b));
-}
-
-// frgb lookup( unsigned int c ) { bit shifty stuff }
-
-// Reverse lookup? Quick tree search
