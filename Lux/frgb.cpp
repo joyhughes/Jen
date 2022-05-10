@@ -142,5 +142,7 @@ int main() {
 
     float a = color[ 0 ];
 
+    auto it = color.begin();
+
     return 0;
 }
