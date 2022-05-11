@@ -34,6 +34,7 @@ public:
     // iterators 
     std::array< float, 3>::iterator begin() { return c.begin(); }
     std::array< float, 3>::const_iterator begin() const { return c.begin(); }
+    
     // accessors
     float& operator [] ( int i );
     const float& operator [] (int i) const { return c[ i ]; }
