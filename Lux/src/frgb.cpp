@@ -143,6 +143,7 @@ int main() {
     float a = color[ 0 ];
 
     auto it = color.begin();
+    it = color.end();
 
     return 0;
 }
