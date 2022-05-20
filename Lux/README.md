@@ -6,6 +6,6 @@ mkdir build
 cd build
 cmake ..
 make
-./frgb
+./lux
 make clean
 ```
