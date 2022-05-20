@@ -10,14 +10,19 @@ include_directories(src)
 set(CMAKE_CXX_STANDARD 20)
 
 set(COMMON_LIB_SRCS
+src/joy_rand.hpp
+src/frgb.cpp
 src/frgb.hpp
 src/gamma_lut.cpp
 src/gamma_lut.hpp
+src/vect2.cpp 
+src/vect2.hpp 
+src/linalg.h
 )
 
 add_library(common ${COMMON_LIB_SRCS})
 
-set(FRGB_MAIN_SRCS src/frgb.cpp)
-add_executable(frgb ${FRGB_MAIN_SRCS})
+set(LUX_MAIN_SRCS src/lux.cpp)
+add_executable(lux ${LUX_MAIN_SRCS})
 
-target_link_libraries(frgb common)
+target_link_libraries(lux common)

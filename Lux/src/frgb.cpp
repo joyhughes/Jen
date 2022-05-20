@@ -1,6 +1,10 @@
 #include "frgb.hpp"
 #include "gamma_lut.hpp"
 
+#define R 0
+#define G 1
+#define B 2
+
 static gamma_LUT glut( 2.2f );
 
 frgb::frgb()                              { c[ R ] = 0.0;     c[ G ] = 0.0;   c[ B ] = 0.0; }
@@ -109,41 +113,14 @@ void frgb::constrain() {
     }
 }
 
+std::ostream & operator << ( std::ostream &out, const frgb& f ) { 
+        out << "Linear - R: " << f.c[ 0 ] << " G: " << f.c[ 1 ] << " B: " << f.c[ 2 ] << "\n";
+        return out;
+}
+
 void frgb::print_SRGB() {
     int r = ( int )rc();
     int g = ( int )gc();
     int b = ( int )bc();
     std::cout << "SRGB   - R: " << r << " G: " << g << " B: " << b;
-}
-
-
-int main() {
-    frgb color( -1.5f, 0.5f, 2.5f );
-    std::cout << "Initial color     " << color << "\n\n";
-    color.clamp( -1.0f, 2.0f );
-    std::cout << "Clamped color     " << color << "\n\n";
-    color.constrain();
-    std::cout << "Constrained color " << color << "\n\n";
-    color.print_SRGB();
-
-    frgb ucolor( (unsigned char)0x00, (unsigned char)0x80, (unsigned char)0xff );
-    std::cout << "\n\nColor from unsigned char " << ucolor << "\n\n";
-    ucolor.print_SRGB();
-    std::cout << "\n\n";
-
-    ucolor += color;
-    std::cout << "Color added with += " << ucolor << "\n\n";
-
-    frgb acolor = ucolor + color;
-    std::cout << "Color added with +  " << acolor << "\n\n";
-
-    color[ 0 ] = 0.5;
-    std::cout << "Color after color[ 0 ] = 0.5 " << color << "\n\n";
-
-    float a = color[ 0 ];
-
-    auto it = color.begin();
-    it = color.end();
-
-    return 0;
 }

@@ -5,10 +5,6 @@
 #include <array>
 #include <algorithm>
 
-#define R 0
-#define G 1
-#define B 2
-
 class frgb {
 private:
     std::array< float, 3 > c;
@@ -84,10 +80,7 @@ public:
     frgb operator / ( float rhs);
 
     // I/O operators
-    friend std::ostream &operator << ( std::ostream &out, const frgb& f ) { 
-        out << "Linear - R: " << f.c[ R ] << " G: " << f.c[ G ] << " B: " << f.c[ B ] << "\n";
-        return out;
-    }
+    friend std::ostream &operator << ( std::ostream &out, const frgb& f );
 
     void print_SRGB();
 
