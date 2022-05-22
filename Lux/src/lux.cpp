@@ -5,18 +5,21 @@
 
 void test_frgb() {
     using std::cout;
+    using namespace linalg;
+    using namespace ostream_overloads;
+
     cout << "TESTING FRGB\n\n";
     frgb color( -1.5f, 0.5f, 2.5f );
     cout << "Initial color     " << color << "\n\n";
-    color.clamp( -1.0f, 2.0f );
+    color = clamp( color, -1.0f, 2.0f );
     cout << "Clamped color     " << color << "\n\n";
-    color.constrain();
+    color = constrain( color );
     cout << "Constrained color " << color << "\n\n";
-    color.print_SRGB();
+    print_SRGB( color );
 
-    frgb ucolor( (unsigned char)0x00, (unsigned char)0x80, (unsigned char)0xff );
+    frgb ucolor = setc( (unsigned char)0x00, (unsigned char)0x80, (unsigned char)0xff );
     cout << "\n\nColor from unsigned char " << ucolor << "\n\n";
-    ucolor.print_SRGB();
+    print_SRGB( ucolor );
     cout << "\n\n";
 
     ucolor += color;
@@ -29,9 +32,6 @@ void test_frgb() {
     cout << "Color after color[ 0 ] = 0.5 " << color << "\n\n";
 
     float a = color[ 0 ];
-
-    auto it = color.begin();
-    it = color.end();
 }
 
 
