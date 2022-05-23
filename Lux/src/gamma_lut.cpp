@@ -67,11 +67,12 @@ float gamma_LUT::SRGB_to_linear(unsigned char index) { return SRGB_to_linear_LUT
 
 // may be more efficient to do reinterpret_cast on array of pointers to float
 unsigned char gamma_LUT::linear_to_SRGB( float index ) {
-  // Cases for table underflow (SRGB value less than two)
+  // Cases for table underflow (SRGB value less than two) and overflow
   if( index < 0.000032f ) {
-    if( index == 0.0f ) return 0;
+    if( index <= 0.0f ) return 0x00;
     else return 1;
   }
+  if( index >= 1.0 ) return 0xff;
 
   flubber flub;
   flub.f = index;
