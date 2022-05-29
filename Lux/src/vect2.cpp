@@ -1,8 +1,8 @@
-#include <iostream>
-#include "vect2.hpp"
+// Jen uses vectors based on linalg.h
+// Includes vector functions used in Jen that are not included in linalg.h and a bounding box class
+// Jen generates angles in degrees for readability - degree based trigonometry functions included
 
-#define R x
-#define THETA y
+#include "vect2.hpp"
 
 using namespace linalg;
 
@@ -71,43 +71,5 @@ vec2f complex_power( const vec2f& in, const float& p )
 	out = cartesian( out );
 	return in;
 } 
-
-// testing purposes only
-int main() {
-    using std::cout;
-    using namespace ostream_overloads;
-
-    vec2f a = { 1.0f, 2.0f };
-    cout << "vector a " << a << "\n";
-
-    a = normalize( a );
-    cout << "normalized " << a << "\n";
-
-    auto b = rot( 1.0f, a );
-    cout << "rotated with rot() " << b << "\n";
-
-    mat2f rm = rotation_matrix_2D< float >( 1.0f );
-
-    auto c = mul( rm, a );
-    cout << "rotated with matrix " << c << "\n";
-
-    auto d = less( vec2f( { 1.0f, 0.0f } ), vec2f( { 0.0f, 1.0f } ) );
-    cout << "less test " << d << "\n";
-
-    bounding_box< float, 2 > bb( vec2f( -1.0f, -1.0f ), vec2f( 1.0f, 1.0f ) );
-    vec2f e(  0.5f, 0.5f );
-    vec2f f( -1.5f, 1.5f );
-    cout << "{ 0.5, 0.5 }  in bounds        " << bb.in_bounds( e )     << "\n";
-    cout << "{ -1.5, 1.5 } in bounds        " << bb.in_bounds( f )     << "\n";
-    bb.pad( 1.0f );
-    cout << "{ 0.5, 0.5 }  in padded bounds " << bb.in_bounds_pad( e ) << "\n";
-    cout << "{ -1.5, 1.5 } in padded bounds " << bb.in_bounds_pad( f ) << "\n";
-
-    cout << "\nbox_of_random() test\n";
-    for( int i = 0; i < 10; i++ ) { cout << bb.box_of_random() << " "; }
-    cout << "\n";
-
-    return 0;
-}
 
 
