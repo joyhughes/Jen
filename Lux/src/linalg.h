@@ -60,7 +60,8 @@
 #include <iosfwd>       // For forward definitions of std::ostream
 #include <type_traits>  // For std::enable_if, std::is_same, std::declval
 #include <functional>   // For std::hash declaration
-#include "joy_rand.hpp" // Added by Joy Hughes for random range support
+
+#include "joy_rand.hpp" // Added by Joy Hughes for random range and reflected fmod support
 
 // In Visual Studio 2015, `constexpr` applied to a member function implies `const`, which causes ambiguous overload resolution
 #if _MSC_VER <= 1900
@@ -210,9 +211,11 @@ namespace linalg
         struct std_atan2    { template<class A, class B> auto operator() (A a, B b) const -> decltype(std::atan2   (a, b)) { return std::atan2f   (a, b); } };
         struct std_copysign { template<class A, class B> auto operator() (A a, B b) const -> decltype(std::copysign(a, b)) { return std::copysignf(a, b); } };
 
-        // Function object for applying random range function added by Joy Hughes
-        struct joy_rbox { template<class A, class B> auto operator() (A a, B b) const -> decltype(rand_range(a, b)) { return rand_range(a, b); } };
-
+        // Function objects for applying random range function and modified modulos added by Joy Hughes
+        struct joy_rbox     { template<class A, class B> auto operator() (A a, B b) const -> decltype(rand_range(a, b)) { return rand_range(a, b); } };
+        struct joy_rem      { template<class A> auto operator() (A a) const -> decltype(rem(a)) { return remf(a); } };
+        struct joy_tmod     { template<class A, class B> auto operator() (A a, B b) const -> decltype(tmod(a, b)) { return tmodf(a, b); } };
+        struct joy_rmod     { template<class A, class B> auto operator() (A a, B b) const -> decltype(rmod(a, b)) { return rmodf(a, b); } };
     }
 
     // Small, fixed-length vector type, consisting of exactly M elements of type T, and presumed to be a column-vector unless otherwise noted
@@ -487,8 +490,11 @@ namespace linalg
     template<class A, class B> apply_t<detail::std_atan2,    A, B> atan2   (const A & a, const B & b) { return apply(detail::std_atan2{},    a, b); }
     template<class A, class B> apply_t<detail::std_copysign, A, B> copysign(const A & a, const B & b) { return apply(detail::std_copysign{}, a, b); }
 
-    // random range function added by Joy Hughes
+    // random range function and modified modulos added by Joy Hughes
     template<class A, class B> apply_t<detail::joy_rbox,     A, B> rbox    (const A & a, const B & b) { return apply(detail::joy_rbox{}, a, b); }
+    template<class A> apply_t<detail::joy_rem, A> rem(const A & a)     { return apply(detail::joy_rem{}, a); }
+    template<class A, class B> apply_t<detail::joy_tmod,     A, B> tmod    (const A & a, const B & b) { return apply(detail::joy_tmod{}, a, b); }
+    template<class A, class B> apply_t<detail::joy_rmod,     A, B> rmod    (const A & a, const B & b) { return apply(detail::joy_rmod{}, a, b); }
 
     // Component-wise relational functions on vectors
     template<class A, class B> constexpr apply_t<detail::op_eq, A, B> equal  (const A & a, const B & b) { return apply(detail::op_eq{}, a, b); }
