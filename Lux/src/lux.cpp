@@ -44,7 +44,7 @@ void test_frgb() {
     frgb result( { 0.0, 0.5, 1.0 } );
     frgb mask( { -2.0, 1.0, 2.0 } );
     frgb base( { 1.0, 0.5, 0.0 } );
-    apply_mask( base, mask, result );
+    apply_mask( result, base, mask );
 
     cout << "Color mask result " << result << "\n\n";
 
