@@ -1,3 +1,6 @@
+// Floating point color using vectors from linalg.h
+// Uses look up table to convert to and from integer RGB colors
+
 #ifndef __FRGB_HPP
 #define __FRGB_HPP
 
@@ -53,7 +56,7 @@ void print_SRGB( const frgb &c );
 void constrain( frgb &c );  // Clip to range [ 0.0, 1.0 ] but keep colors in proportion
 // frgb constrain( const frgb &c );   
 
-void apply_mask( const frgb &base, const frgb &mask, frgb &result );
+void apply_mask( frgb &result, const frgb &base, const frgb &mask );
 // frgb apply_mask( const frgb &base, const frgb &mask, frgb &result );
 
 inline float luminance( const frgb &c );  // Returns approximate visual brightness of color

@@ -24,7 +24,7 @@ protected:
     typedef image< T > I;
 
     vec2i dim;              // Dimensions in pixels
-    std::vector< T > base;  // Pixels
+    std :: vector< T > base;  // Pixels
 
     // bounding boxes
     bb2f bounds;      // bounding box in linear space
@@ -35,9 +35,9 @@ protected:
     bool mip_me;      // Use mip-mapping for this image? Default false.
     bool mipped;      // has mip-map been allocated?
     bool mip_utd;     // is mip-map up to date? Set to false with any modification of base image
-    std::vector< std::unique_ptr< std::vector< T > > > mip;  // mip-map of image
-    std::vector< std::unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
-    std::vector< std::unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
+    std :: vector< std :: unique_ptr< std :: vector< T > > > mip;  // mip-map of image
+    std :: vector< std :: unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
+    std :: vector< std :: unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
     // resamples image to crate mip-map            
     void mip_it();  // mipit good
     void de_mip();  // deallocate all mip-maps
@@ -56,7 +56,7 @@ public:
     image( const I& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
         mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
         {
-            std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
+            std :: copy( img.base.begin(), img.base.end(), back_inserter( base ) );
             mip_it();
         }     
 

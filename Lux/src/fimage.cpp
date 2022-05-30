@@ -53,7 +53,7 @@ void fimage :: load( const std :: string& filename ) {
 
 void fimage :: quantize( std :: vector< unsigned char >& img )
 {
-    std :: for_each( base.begin(), base.end(), [ &img ]( frgb &f ) {
+    std :: for_each( base.begin(), base.end(), [ &img ]( const frgb &f ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); } );

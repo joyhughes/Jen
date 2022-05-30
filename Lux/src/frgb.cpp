@@ -49,7 +49,7 @@ void constrain( frgb &c ) {
     }
 }
 
-void apply_mask( const frgb &base, const frgb &mask, frgb &result ) {
+void apply_mask( frgb &result, const frgb &base, const frgb &mask ) {
     result = linalg::lerp( result, base, mask );
     /*result.R = result.R * mask.R + base.R * ( 1.0 - mask.R);
     result.G = result.G * mask.G + base.G * ( 1.0 - mask.G);
