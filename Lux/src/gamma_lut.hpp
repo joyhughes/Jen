@@ -1,3 +1,5 @@
+// Look up table to convert between floating-point and integer RGB colors
+
 #ifndef __GAMMA_LUT_HPP
 #define __GAMMA_LUT_HPP
 

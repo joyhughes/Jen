@@ -17,6 +17,12 @@ src/gamma_lut.cpp
 src/gamma_lut.hpp
 src/vect2.cpp 
 src/vect2.hpp 
+src/image.hpp
+src/image.cpp
+src/fimage.hpp
+src/fimage.cpp
+src/image_loader.hpp
+src/image_loader.cpp
 src/linalg.h
 )
 

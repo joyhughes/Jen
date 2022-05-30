@@ -1,3 +1,5 @@
+// Look up table to convert between floating-point and integer RGB colors
+
 #include "gamma_lut.hpp"
 #include <cmath>
 #include <iostream>
@@ -29,9 +31,9 @@ void printBinary( int n, int i )
     for (k = i - 1; k >= 0; k--) {
  
         if ((n >> k) & 1)
-            std::cout << 1;
+            std :: cout << 1;
         else
-            std::cout << 0;
+            std :: cout << 0;
     }
 }
 
@@ -42,14 +44,14 @@ void printIEEE( flubber var )
     // Prints the IEEE 754 representation
     // of a float value (32 bits)
  
-    std::cout << var.raw.sign;
+    std :: cout << var.raw.sign;
     printBinary(var.raw.exponent, 8);
-    std::cout << " | ";
+    std :: cout << " | ";
     printBinary(var.raw.mantissa, 23);
-    std::cout << "\n";
+    std :: cout << "\n";
 }
 
-gamma_LUT::gamma_LUT( float gamma ) {
+gamma_LUT :: gamma_LUT( float gamma ) {
   this->gamma = gamma;
 
   for ( int i = 0; i < 256; ++i) {
@@ -63,10 +65,10 @@ gamma_LUT::gamma_LUT( float gamma ) {
   }
 } 
 
-float gamma_LUT::SRGB_to_linear(unsigned char index) { return SRGB_to_linear_LUT[ index ]; }
+float gamma_LUT :: SRGB_to_linear(unsigned char index) { return SRGB_to_linear_LUT[ index ]; }
 
 // may be more efficient to do reinterpret_cast on array of pointers to float
-unsigned char gamma_LUT::linear_to_SRGB( float index ) {
+unsigned char gamma_LUT :: linear_to_SRGB( float index ) {
   // Cases for table underflow (SRGB value less than two) and overflow
   if( index < 0.000032f ) {
     if( index <= 0.0f ) return 0x00;
