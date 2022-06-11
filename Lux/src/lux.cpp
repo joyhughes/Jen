@@ -3,6 +3,9 @@
 #include "vect2.hpp"
 #include "frgb.hpp"
 #include "fimage.hpp"
+#include "ucolor.hpp"
+#include "uimage.hpp"
+
 
 #include <unistd.h>
 
@@ -56,7 +59,7 @@ void test_vect2() {
     using namespace linalg;
     using namespace ostream_overloads;
 
-    cout << "TESTING VECT2\n\n";
+    cout << "\nTESTING VECT2\n\n";
 
     vec2f a = { 1.0f, 2.0f };
     cout << "vector a " << a << "\n";
@@ -104,9 +107,9 @@ void test_vect2() {
 
 }
 
-void test_image() {
+void test_fimage() {
     using std::cout;
-    cout << "TESTING IMAGE\n\n";
+    cout << "\nTESTING FIMAGE\n\n";
 
     fimage a;
     a.load( "../../Jen-C/hk_square.jpg" ); 
@@ -129,10 +132,45 @@ void test_image() {
 
 }
 
+void  test_ucolor() {
+    using std::cout;
+
+    cout << "\nTESTING UCOLOR\n\n";
+    ucolor a = 0xff4080ff;
+    cout << std::hex << (int)rc( a ) << " " << (int)gc( a ) << " " << (int)bc( a ) << "\n\n";
+}
+
+void test_uimage() {
+    using std::cout;
+    cout << "\nTESTING UIMAGE\n\n";
+
+    uimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a.write_jpg( " hk_utry.jpg", 100 );
+
+    uimage b( a );
+    cout << "image size comparison " << b.compare_dims( a ) << "\n";
+
+    b.grayscale();
+    b.write_jpg( " hk_ugray.jpg", 100 );
+/*
+    b *= { 0.3f, 0.6f, 1.0f };
+    b.write_jpg( " hk_tint.jpg", 100 );
+
+    b *= 1.5f;
+    b.write_jpg( " hk_bright.jpg", 100 );
+
+    b -= a;
+    b.write_jpg( " hk_diff.jpg", 100 );
+*/
+}
+
 int main() {
     test_frgb();
     test_vect2();
-    test_image();
+    test_fimage();
+    test_uimage();
+    test_ucolor();
     return 0;
 }
 
