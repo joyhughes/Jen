@@ -45,7 +45,6 @@
 
 // *****************************************
 // Modifications - Joy Hughes May 17, 2022
-// change math functions from double precision to floating point
 // Factory functions for 2D matrices
 // #include "joy_rand.hpp" and apply rand_range()
 
@@ -189,23 +188,23 @@ namespace linalg
         struct op_or  { template<class A, class B> constexpr auto operator() (A a, B b) const -> decltype(a || b) { return a || b; } };
 
         // Function objects for applying standard library math functions
-        struct std_abs      { template<class A> auto operator() (A a) const -> decltype(std::abs  (a)) { return std::fabs   (a); } };
-        struct std_floor    { template<class A> auto operator() (A a) const -> decltype(std::floor(a)) { return std::floorf(a); } };
-        struct std_ceil     { template<class A> auto operator() (A a) const -> decltype(std::ceil (a)) { return std::ceilf (a); } };
-        struct std_exp      { template<class A> auto operator() (A a) const -> decltype(std::exp  (a)) { return std::expf  (a); } };
-        struct std_log      { template<class A> auto operator() (A a) const -> decltype(std::log  (a)) { return std::logf  (a); } };
-        struct std_log10    { template<class A> auto operator() (A a) const -> decltype(std::log10(a)) { return std::log10f(a); } };
-        struct std_sqrt     { template<class A> auto operator() (A a) const -> decltype(std::sqrt (a)) { return std::sqrtf (a); } };
-        struct std_sin      { template<class A> auto operator() (A a) const -> decltype(std::sin  (a)) { return std::sinf  (a); } };
-        struct std_cos      { template<class A> auto operator() (A a) const -> decltype(std::cos  (a)) { return std::cosf  (a); } };
-        struct std_tan      { template<class A> auto operator() (A a) const -> decltype(std::tan  (a)) { return std::tanf  (a); } };
-        struct std_asin     { template<class A> auto operator() (A a) const -> decltype(std::asin (a)) { return std::asinf (a); } };
-        struct std_acos     { template<class A> auto operator() (A a) const -> decltype(std::acos (a)) { return std::acosf (a); } };
-        struct std_atan     { template<class A> auto operator() (A a) const -> decltype(std::atan (a)) { return std::atanf (a); } };
-        struct std_sinh     { template<class A> auto operator() (A a) const -> decltype(std::sinh (a)) { return std::sinhf (a); } };
-        struct std_cosh     { template<class A> auto operator() (A a) const -> decltype(std::cosh (a)) { return std::coshf (a); } };
-        struct std_tanh     { template<class A> auto operator() (A a) const -> decltype(std::tanh (a)) { return std::tanhf (a); } };
-        struct std_round    { template<class A> auto operator() (A a) const -> decltype(std::round(a)) { return std::roundf(a); } };
+        struct std_abs      { template<class A> auto operator() (A a) const -> decltype(std::abs  (a)) { return std::abs  (a); } };
+        struct std_floor    { template<class A> auto operator() (A a) const -> decltype(std::floor(a)) { return std::floor(a); } };
+        struct std_ceil     { template<class A> auto operator() (A a) const -> decltype(std::ceil (a)) { return std::ceil (a); } };
+        struct std_exp      { template<class A> auto operator() (A a) const -> decltype(std::exp  (a)) { return std::exp  (a); } };
+        struct std_log      { template<class A> auto operator() (A a) const -> decltype(std::log  (a)) { return std::log  (a); } };
+        struct std_log10    { template<class A> auto operator() (A a) const -> decltype(std::log10(a)) { return std::log10(a); } };
+        struct std_sqrt     { template<class A> auto operator() (A a) const -> decltype(std::sqrt (a)) { return std::sqrt (a); } };
+        struct std_sin      { template<class A> auto operator() (A a) const -> decltype(std::sin  (a)) { return std::sin  (a); } };
+        struct std_cos      { template<class A> auto operator() (A a) const -> decltype(std::cos  (a)) { return std::cos  (a); } };
+        struct std_tan      { template<class A> auto operator() (A a) const -> decltype(std::tan  (a)) { return std::tan  (a); } };
+        struct std_asin     { template<class A> auto operator() (A a) const -> decltype(std::asin (a)) { return std::asin (a); } };
+        struct std_acos     { template<class A> auto operator() (A a) const -> decltype(std::acos (a)) { return std::acos (a); } };
+        struct std_atan     { template<class A> auto operator() (A a) const -> decltype(std::atan (a)) { return std::atan (a); } };
+        struct std_sinh     { template<class A> auto operator() (A a) const -> decltype(std::sinh (a)) { return std::sinh (a); } };
+        struct std_cosh     { template<class A> auto operator() (A a) const -> decltype(std::cosh (a)) { return std::cosh (a); } };
+        struct std_tanh     { template<class A> auto operator() (A a) const -> decltype(std::tanh (a)) { return std::tanh (a); } };
+        struct std_round    { template<class A> auto operator() (A a) const -> decltype(std::round(a)) { return std::round(a); } };
         struct std_fmod     { template<class A, class B> auto operator() (A a, B b) const -> decltype(std::fmod    (a, b)) { return std::fmodf    (a, b); } };
         struct std_pow      { template<class A, class B> auto operator() (A a, B b) const -> decltype(std::pow     (a, b)) { return std::powf     (a, b); } };
         struct std_atan2    { template<class A, class B> auto operator() (A a, B b) const -> decltype(std::atan2   (a, b)) { return std::atan2f   (a, b); } };
