@@ -9,6 +9,7 @@
 #include "frgb.hpp"
 #include "ucolor.hpp"
 #include <vector>
+#include <memory>
 
 enum image_extend
 {
@@ -82,10 +83,9 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void circle_crop( float ramp_width = 0.0f );	// Colors black everything outside of a centered circle
+    void circle_crop( float ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
-    //void grayscale();
     void fill( const T& c );
 
     // masking
