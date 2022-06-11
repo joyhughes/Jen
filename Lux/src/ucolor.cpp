@@ -1,0 +1,75 @@
+// Color using unsigned char and bit shifting
+// Intended for use with Cellular Automata in Lux Vitae but can be used for other purposes
+
+#include "ucolor.hpp"
+#include "gamma_lut.hpp"
+#include "joy_rand.hpp"
+
+static gamma_LUT glut( 2.2f );
+
+float rf( const ucolor &c )       { return glut.SRGB_to_linear( rc( c ) ); }
+float gf( const ucolor &c )       { return glut.SRGB_to_linear( gc( c ) ); }
+float bf( const ucolor &c )       { return glut.SRGB_to_linear( bc( c ) ); }
+
+// returns single bytes per component - assumes [0.0, 1.0] range
+// clip or constrain out of range values before using
+unsigned char rc( const ucolor &c ) {  return (unsigned char) ( ( c >> 16 ) & 0xff ); }
+unsigned char gc( const ucolor &c ) {  return (unsigned char) ( ( c >>  8 ) & 0xff ); }
+unsigned char bc( const ucolor &c ) {  return (unsigned char) ( ( c       ) & 0xff ); }
+
+// set component
+void setrf( ucolor &c, const float& r )   { setrc( c, glut.linear_to_SRGB( r ) ); }
+void setgf( ucolor &c, const float& g )   { setgc( c, glut.linear_to_SRGB( g ) ); }
+void setbf( ucolor &c, const float& b )   { setbc( c, glut.linear_to_SRGB( b ) ); }
+void setf(  ucolor &c, const float& r, const float& g, const float& b) { setc( c, glut.linear_to_SRGB( r ), glut.linear_to_SRGB( g ), glut.linear_to_SRGB( b )); }
+ucolor usetf( const float& r, const float& g, const float& b ) { return usetc(     glut.linear_to_SRGB( r ), glut.linear_to_SRGB( g ), glut.linear_to_SRGB( b )); }
+
+// TODO - set from bracketed list
+
+void setrc( ucolor &c, const unsigned char& r ) { c = ( c & 0xff00ffff ) | ( ((unsigned int)r) << 16 ); }
+void setgc( ucolor &c, const unsigned char& g ) { c = ( c & 0xffff00ff ) | ( ((unsigned int)g) << 8  ); }
+void setbc( ucolor &c, const unsigned char& b ) { c = ( c & 0xffffff00 ) | (  (unsigned int)b        ); }
+void setc(  ucolor &c, const unsigned char& r, const unsigned char& g, const unsigned char& b ) 
+{ c = c & 0xff000000 | ( (unsigned int)r << 16 ) | ( (unsigned int)g << 8  ) | ( (unsigned int)b       ); }
+ucolor usetc( const unsigned char& r, const unsigned char& g, const unsigned char& b )
+{ return ( 0xff000000 | (unsigned int)r << 16 ) | ( (unsigned int)g << 8  ) | ( (unsigned int)b       ); }
+
+/*
+void shift_right_1( ucolor &c ) { c = ( c >> 1 ) & 0x7f7f7f7f; }
+void shift_right_2( ucolor &c ) { c = ( c >> 1 ) & 0x3f3f3f3f; }
+void shift_right_3( ucolor &c ) { c = ( c >> 1 ) & 0x1f1f1f1f; }
+void shift_right_4( ucolor &c ) { c = ( c >> 1 ) & 0x0f0f0f0f; }
+void shift_right_5( ucolor &c ) { c = ( c >> 1 ) & 0x07070707; }
+void shift_right_6( ucolor &c ) { c = ( c >> 1 ) & 0x03030303; }
+void shift_right_7( ucolor &c ) { c = ( c >> 1 ) & 0x01010101; }
+*/
+
+ucolor shift_right_1( const ucolor &c ) { return ( c >> 1 ) & 0x7f7f7f7f; }
+ucolor shift_right_2( const ucolor &c ) { return ( c >> 2 ) & 0x3f3f3f3f; }
+ucolor shift_right_3( const ucolor &c ) { return ( c >> 3 ) & 0x1f1f1f1f; }
+ucolor shift_right_4( const ucolor &c ) { return ( c >> 4 ) & 0x0f0f0f0f; }
+ucolor shift_right_5( const ucolor &c ) { return ( c >> 5 ) & 0x07070707; }
+ucolor shift_right_6( const ucolor &c ) { return ( c >> 6 ) & 0x03030303; }
+ucolor shift_right_7( const ucolor &c ) { return ( c >> 7 ) & 0x01010101; }
+
+ucolor blend( const ucolor& a, const ucolor& b )
+{
+   unsigned int random_bit = rand_bit( gen );
+
+   return
+   ( ( ( ( a & 0x00ff0000 ) + ( b & 0x00ff0000 ) + 0x00010000 * random_bit ) >> 1 ) & 0x00ff0000 ) + 
+   ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
+   ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
+   0xff000000;
+}
+
+unsigned long luminance( const ucolor& in ) {
+    return( ( ( ( shift_right_2( in ) + shift_right_4( in ) ) >> 16 ) +   // r * 5/16
+              ( ( shift_right_1( in ) + shift_right_4( in ) ) >> 8  ) +   // g * 9/16
+                  shift_right_3( in ) ) & 0x000000ff );                  // b * 2/16
+}       
+
+ucolor gray( const ucolor& in ) {
+    unsigned int lum = luminance( in );
+    return( ( in & 0xff000000 ) + ( lum << 16 ) + ( lum << 8 ) + lum );
+}
