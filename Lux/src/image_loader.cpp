@@ -7,6 +7,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../stb_image/stb_image_write.h"
 #include "image_loader.hpp"
+#include <stdexcept>
 
 image_loader :: image_loader( const std::string& filename ) : stbi_ptr( stbi_load( filename.c_str(), &xsiz, &ysiz, &channels, 0 ) ) {
     if(!stbi_ptr) 
