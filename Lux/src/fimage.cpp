@@ -6,7 +6,7 @@
 
 // pixel modification functions
 void fimage :: grayscale() {
-    std :: transform( base.begin(), base.end(), base.begin(),  []( frgb &f ) { return gray( f ); } );
+    std :: transform( base.begin(), base.end(), base.begin(), []( frgb &f ) { return gray( f ); } );
 }
 
 void fimage :: load( const std :: string& filename ) {
@@ -65,5 +65,8 @@ void fimage :: write_jpg( const std :: string& filename, int quality ) {
 	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void fimage :: write_png( const std :: string& filename ) {
+void fimage :: write_png( const std :: string& filename ) {    
+    std :: vector< unsigned char > img;
+	quantize( img );
+	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
 }
