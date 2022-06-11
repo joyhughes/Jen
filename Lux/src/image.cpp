@@ -48,7 +48,7 @@ template< class T > bb2f I :: get_bounds() { return bounds; }
 template< class T > void I :: set_bounds( const bounding_box< float, 2 >& bb ) { bounds = bb; }
 
 // returns true if images have same dimensions
-template< class T > bool I :: compare_dims( const I& img ) { return ( dim == img.dim ); } 
+// template< class T, class U > bool I :: compare_dims( const image< U >& img ) { return ( dim == img.dim ); } 
 
 template< class T > void I :: fill( const T& c ) {
     std :: fill( base.begin(), base.end(), c );
@@ -124,5 +124,6 @@ template< class T > I& I :: operator /= ( const float& rhs ) {
     return *this;
 }
 
-template class image< frgb >;
-template class image< vec2f >;
+template class image< frgb >;       // fimage
+template class image< ucolor >;     // uimage
+template class image< vec2f >;      // vector_field
