@@ -1,21 +1,19 @@
-// Floating point image class using image template as a base
-
-#include "fimage.hpp"
+#include "uimage.hpp"
 #include <memory>
 #include "image_loader.hpp"
 
 // pixel modification functions
-void fimage :: grayscale() {
-    std :: transform( base.begin(), base.end(), base.begin(), []( frgb &f ) { return gray( f ); } );
+void uimage :: grayscale() {
+    std :: transform( base.begin(), base.end(), base.begin(), []( ucolor &f ) { return gray( f ); } );
 }
 
-void fimage :: load( const std :: string& filename ) {
+void uimage :: load( const std :: string& filename ) {
     reset();
     image_loader loader( filename );
     set_dim( { loader.xsiz, loader.ysiz } );
 
 	int c = 0;
-    frgb f;
+    ucolor f;
 
     for (auto it = begin (loader.img); it <= end (loader.img); ) {
         if( loader.channels == 1 )	// monochrome image
@@ -51,22 +49,20 @@ void fimage :: load( const std :: string& filename ) {
     mip_it();
 }
 
-void fimage :: quantize( std :: vector< unsigned char >& img )
+void uimage :: spool( std :: vector< unsigned char >& img )
 {
-    std :: for_each( base.begin(), base.end(), [ &img ]( const frgb &f ) {
+    std :: for_each( base.begin(), base.end(), [ &img ]( const ucolor &f ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); } );
 }
 
-void fimage :: write_jpg( const std :: string& filename, int quality ) {
+void uimage :: write_jpg( const std :: string& filename, int quality ) {
     std :: vector< unsigned char > img;
-	quantize( img );
+	spool( img );
 	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void fimage :: write_png( const std :: string& filename ) {    
-    std :: vector< unsigned char > img;
-	quantize( img );
-	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
+void uimage :: write_png( const std :: string& filename ) {
+	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }

@@ -7,6 +7,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../stb_image/stb_image_write.h"
 #include "image_loader.hpp"
+#include <stdexcept>
 
 image_loader :: image_loader( const std::string& filename ) : stbi_ptr( stbi_load( filename.c_str(), &xsiz, &ysiz, &channels, 0 ) ) {
     if(!stbi_ptr) 
@@ -19,7 +20,13 @@ image_loader :: ~image_loader() {
 }
 
 void wrapped_write_jpg( const std::string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data, const int quality ) {
-	int ok = stbi_write_jpg( filename.c_str(), xdim, ydim, 3, data, quality );
+	int ok = stbi_write_jpg( filename.c_str(), xdim, ydim, channels, data, quality );
+    if( !ok ) 
+        throw std::runtime_error (std::string( "Write jpeg error: \nFile" ) + filename + "\nReason:" + stbi_failure_reason() + "\n" ); 
+}
+
+void wrapped_write_png( const std::string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data ) {
+	int ok = stbi_write_png( filename.c_str(), xdim, ydim, channels, data, xdim * channels );
     if( !ok ) 
         throw std::runtime_error (std::string( "Write jpeg error: \nFile" ) + filename + "\nReason:" + stbi_failure_reason() + "\n" ); 
 }

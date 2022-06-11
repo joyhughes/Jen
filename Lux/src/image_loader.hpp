@@ -20,3 +20,5 @@ public:
 };
 
 void wrapped_write_jpg( const std :: string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data, const int quality );
+
+void wrapped_write_png( const std :: string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data );

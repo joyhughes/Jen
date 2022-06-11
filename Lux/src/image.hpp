@@ -7,7 +7,9 @@
 
 #include "vect2.hpp"
 #include "frgb.hpp"
+#include "ucolor.hpp"
 #include <vector>
+#include <memory>
 
 enum image_extend
 {
@@ -66,7 +68,7 @@ public:
     void set_dim( const vec2i& dims );
     bb2f get_bounds();
     void set_bounds( const bb2f& bb );
-    bool compare_dims( const I& img ); // returns true if images have same dimensions
+    template< class U > bool compare_dims( const image< U >& img ) { return ( dim == img.dim ); }  // returns true if images have same dimensions
 
     // Sample base image
     T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE );
@@ -81,10 +83,9 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void circle_crop( float ramp_width = 0.0f );	// Colors black everything outside of a centered circle
+    void circle_crop( float ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
-    //void grayscale();
     void fill( const T& c );
 
     // masking

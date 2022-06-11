@@ -1,9 +1,14 @@
+// Floating point image class using image template as a base
+
+#ifndef __FIMAGE_HPP
+#define __FIMAGE_HPP
+
 #include "image.hpp"
 
 class fimage : public image< frgb > {
 
 protected:
-    void quantize( std::vector< unsigned char >& img );
+    void quantize( std :: vector< unsigned char >& img );
 
 public:
     fimage() : image() {}     
@@ -16,7 +21,9 @@ public:
     void grayscale();
 
     // I/O functions
-    void load(      const std::string& filename );
-    void write_jpg( const std::string& filename, int quality );
-    void write_png( const std::string& filename );
+    void load(      const std :: string& filename );
+    void write_jpg( const std :: string& filename, int quality );
+    void write_png( const std :: string& filename );
 };
+
+#endif // __FIMAGE_HPP

@@ -23,6 +23,10 @@ src/fimage.hpp
 src/fimage.cpp
 src/image_loader.hpp
 src/image_loader.cpp
+src/ucolor.hpp
+src/ucolor.cpp
+src/uimage.hpp
+src/uimage.cpp
 src/linalg.h
 )
 
