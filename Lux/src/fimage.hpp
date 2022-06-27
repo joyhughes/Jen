@@ -16,8 +16,11 @@ public:
     fimage( const vec2i& dims ) : image( dims ){}     
     fimage( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
     // copy constructor
-    fimage( const I& img ) : image( img ) {}     
+    fimage( const I& img ) : image( img ) {}  
+
     // pixel modification functions
+    void clamp( float minc, float maxc );
+    void constrain();
     void grayscale();
 
     // I/O functions
