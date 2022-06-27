@@ -27,6 +27,8 @@ src/ucolor.hpp
 src/ucolor.cpp
 src/uimage.hpp
 src/uimage.cpp
+src/vector_field.hpp
+src/vector_field.cpp
 src/linalg.h
 )
 
