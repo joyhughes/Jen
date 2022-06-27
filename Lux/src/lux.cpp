@@ -1,10 +1,12 @@
 #include <iostream>
 #include "linalg.h"
 #include "vect2.hpp"
+#include "vector_field.hpp"
 #include "frgb.hpp"
 #include "fimage.hpp"
 #include "ucolor.hpp"
 #include "uimage.hpp"
+#include "effects.hpp"
 
 
 #include <unistd.h>
@@ -50,8 +52,6 @@ void test_frgb() {
     apply_mask( result, base, mask );
 
     cout << "Color mask result " << result << "\n\n";
-
-
 }
 
 void test_vect2() {
@@ -165,12 +165,41 @@ void test_uimage() {
 */
 }
 
+void test_vector_field() {
+    using std::cout;
+    cout << "\nTESTING VECTOR_FIELD\n\n";
+
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    fimage b( a );
+    //std::unique_ptr< image< frgb > > aptr( &a );
+    //std::unique_ptr< image< frgb > > bptr( &b );
+    vector_field vf( b.get_dim() );
+    vortex_field vortf( false ); 
+    vortex_params vort;
+    //vf.turbulent( vortf );
+    vf.vortex( vort );
+    //vf.concentric();
+    //cout << "testing index \n";
+    //auto v =  vf.index( { 5, 5 } );
+    //cout << v.x << " " << v.y << "\n";
+    b.warp( a, vf,   1.0f, true, true, SAMP_REPEAT );
+    b.write_jpg( "hk_warp.jpg", 100 ); 
+    vector_field vf10( { 10, 10 } );
+    //vf10.turbulent( vortf );
+    vf10.vortex( vort );
+    //vf10.concentric();
+    b.warp( a, vf10, 1.0f, true, true, SAMP_REPEAT );
+    b.write_jpg( "hk_warp10.jpg", 100 );
+}
+
 int main() {
-    test_frgb();
+    /* test_frgb();
     test_vect2();
     test_fimage();
     test_uimage();
-    test_ucolor();
+    test_ucolor(); */
+    test_vector_field();
     return 0;
 }
 
