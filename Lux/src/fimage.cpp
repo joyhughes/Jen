@@ -5,11 +5,23 @@
 #include "image_loader.hpp"
 
 // pixel modification functions
-void fimage :: grayscale() {
-    std :: transform( base.begin(), base.end(), base.begin(), []( frgb &f ) { return gray( f ); } );
+
+void fimage::clamp( float minc, float maxc ) {
+    for( auto& c : base ) { linalg::clamp( c, minc, maxc ); }
+    mip_it();
 }
 
-void fimage :: load( const std :: string& filename ) {
+void fimage::constrain() {
+    for( auto& c : base ) { ::constrain( c ); }
+    mip_it();
+}
+
+void fimage::grayscale() {
+    for( auto& c : base ) { c = gray( c ); }
+    mip_it();
+}
+
+void fimage::load( const std::string& filename ) {
     reset();
     image_loader loader( filename );
     set_dim( { loader.xsiz, loader.ysiz } );
@@ -17,7 +29,7 @@ void fimage :: load( const std :: string& filename ) {
 	int c = 0;
     frgb f;
 
-    for (auto it = begin (loader.img); it <= end (loader.img); ) {
+    for (auto it = std::begin (loader.img); it <= std::end (loader.img); ) {
         if( loader.channels == 1 )	// monochrome image
         {
             setrc( f, *it );
@@ -34,6 +46,8 @@ void fimage :: load( const std :: string& filename ) {
             it++; it++;
         }
 
+        if( loader.channels == 4 ) 	it++;   // argb format
+
         if( ( loader.channels == 3 ) | ( loader.channels == 4 ) )
         {
             setrc( f, *it );
@@ -44,29 +58,27 @@ void fimage :: load( const std :: string& filename ) {
             it++;
         }
 
-        // skip alpha channel - rgba ... if argb need to move line up
-        if( loader.channels == 4 ) it++;	
         base.push_back( f );
     }
     mip_it();
 }
 
-void fimage :: quantize( std :: vector< unsigned char >& img )
+void fimage::quantize( std::vector< unsigned char >& img )
 {
-    std :: for_each( base.begin(), base.end(), [ &img ]( const frgb &f ) {
+    for( auto& f : base ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
-        img.push_back( bc( f ) ); } );
+        img.push_back( bc( f ) ); }
 }
 
-void fimage :: write_jpg( const std :: string& filename, int quality ) {
-    std :: vector< unsigned char > img;
+void fimage::write_jpg( const std::string& filename, int quality ) {
+    std::vector< unsigned char > img;
 	quantize( img );
 	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void fimage :: write_png( const std :: string& filename ) {    
-    std :: vector< unsigned char > img;
+void fimage::write_png( const std::string& filename ) {    
+    std::vector< unsigned char > img;
 	quantize( img );
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
 }

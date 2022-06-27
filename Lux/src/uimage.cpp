@@ -3,19 +3,19 @@
 #include "image_loader.hpp"
 
 // pixel modification functions
-void uimage :: grayscale() {
-    std :: transform( base.begin(), base.end(), base.begin(), []( ucolor &f ) { return gray( f ); } );
+void uimage::grayscale() {
+    for( auto& f : base ) { f = gray( f ); }
+    mip_it();
 }
 
-void uimage :: load( const std :: string& filename ) {
+void uimage::load( const std::string& filename ) {
     reset();
     image_loader loader( filename );
     set_dim( { loader.xsiz, loader.ysiz } );
 
-	int c = 0;
-    ucolor f;
+    ucolor f = 0xff000000;
 
-    for (auto it = begin (loader.img); it <= end (loader.img); ) {
+    for (auto it = std::begin( loader.img ); it <= std::end( loader.img ); ) {
         if( loader.channels == 1 )	// monochrome image
         {
             setrc( f, *it );
@@ -32,6 +32,12 @@ void uimage :: load( const std :: string& filename ) {
             it++; it++;
         }
 
+        if( loader.channels == 4 ) 
+        {
+            setac( f, *it );
+            it++;
+        }	
+
         if( ( loader.channels == 3 ) | ( loader.channels == 4 ) )
         {
             setrc( f, *it );
@@ -43,26 +49,26 @@ void uimage :: load( const std :: string& filename ) {
         }
 
         // skip alpha channel - rgba ... if argb need to move line up
-        if( loader.channels == 4 ) it++;	
         base.push_back( f );
     }
     mip_it();
 }
 
-void uimage :: spool( std :: vector< unsigned char >& img )
+void uimage::spool( std::vector< unsigned char >& img )
 {
-    std :: for_each( base.begin(), base.end(), [ &img ]( const ucolor &f ) {
+    for( auto& f : base ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
-        img.push_back( bc( f ) ); } );
+        img.push_back( bc( f ) ); 
+    }
 }
 
-void uimage :: write_jpg( const std :: string& filename, int quality ) {
-    std :: vector< unsigned char > img;
+void uimage::write_jpg( const std::string& filename, int quality ) {
+    std::vector< unsigned char > img;
 	spool( img );
 	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void uimage :: write_png( const std :: string& filename ) {
+void uimage::write_png( const std::string& filename ) {
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }
