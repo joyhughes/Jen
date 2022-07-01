@@ -193,13 +193,56 @@ void test_vector_field() {
     b.write_jpg( "hk_warp10.jpg", 100 );
 }
 
+void test_splat() {
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a *= 0.5f;
+    fimage splat;
+    splat.load( "../../Jen-C/orb.jpg" ); 
+   
+    a.splat( 
+        { 0.0f, 0.0f }, 			    // coordinates of splat center
+        0.3f, 			                // radius of splat
+        0.0f, 			                // rotation in degrees
+        false,                          // multiply by tint value?
+        { 1.0f, 0.5f, 0.0f },		    // change the color of splat
+        splat 	);	                    // image of the splat  
+
+    a.splat( 
+        { 0.3, 0.4f }, 			        // coordinates of splat center
+        0.2f, 			                // radius of splat
+        60.0f, 			                // rotation in degrees
+        true,                          // multiply by tint value?
+        { 0.5f, 0.5f, 0.5f },		    // change the color of splat
+        splat 	);	                    // image of the splat  
+
+    a.splat( 
+        { 0.4, 0.3f }, 			        // coordinates of splat center
+        0.2f, 			                // radius of splat
+        -30.0f, 			                // rotation in degrees
+        true,                          // multiply by tint value?
+        { 0.0f, 0.5f, 0.5f },		    // change the color of splat
+        splat 	);	                    // image of the splat  
+
+    a.splat( 
+        { 1.0f, -1.0f }, 			    // coordinates of splat center
+        0.8f, 			                // radius of splat
+        180.0f, 			            // rotation in degrees
+        true,                           // multiply by tint value?
+        { 1.0f, 0.5f, 0.0f },		    // change the color of splat
+        splat 	);	                    // image of the splat
+
+    a.write_jpg( "hk_splat.jpg", 100 );
+}
+
 int main() {
     /* test_frgb();
     test_vect2();
     test_fimage();
     test_uimage();
-    test_ucolor(); */
-    test_vector_field();
+    test_ucolor(); 
+    test_vector_field(); */
+    test_splat();
     return 0;
 }
 
