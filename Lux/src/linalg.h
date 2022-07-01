@@ -612,7 +612,7 @@ namespace linalg
     // Added by Joy Hughes
     // near future: 2D translation, scaling, affine
     // future - map 2D plane into 3D based on photograph
-    template<class T> linalg::mat<T,2,2> rotation_matrix_2D   (const T & rotation) { return { { std::cos( rotation ), std::sin( rotation ) }, { -std::sin( rotation ), std::cos( rotation ) } }; }
+    template<class T> mat<T,2,2> rotation_matrix_2D   (const T & rotation) { return { { std::cos( rotation ), std::sin( rotation ) }, { -std::sin( rotation ), std::cos( rotation ) } }; }
 
     // Provide implicit conversion between linalg::vec<T,M> and std::array<T,M>
     template<class T> struct converter<vec<T,1>, std::array<T,1>> { vec<T,1> operator() (const std::array<T,1> & a) const { return {a[0]}; } };

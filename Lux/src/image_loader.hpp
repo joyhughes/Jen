@@ -2,6 +2,9 @@
 // Using stb_image, C-style pointer is created when class is initialized with a file name, and freed in the destructor.
 // Copy constructor and operator= are disabled to prevent segmentation faults or memory leaks
 
+#ifndef __IMAGE_LOADER_HPP
+#define __IMAGE_LOADER_HPP
+
 #include <string>
 #include <span>
 
@@ -22,3 +25,5 @@ public:
 void wrapped_write_jpg( const std :: string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data, const int quality );
 
 void wrapped_write_png( const std :: string& filename, const int xdim, const int ydim, const int channels, const unsigned char* data );
+
+#endif // __IMAGE_LOADER_HPP

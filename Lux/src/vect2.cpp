@@ -45,12 +45,18 @@ vec2f radial( const vec2f& v )         { return {linalg::length( v ), vtoa( v ) 
 
 vec2f cartesian( const vec2f& rad )    { return { rad.R * cos_deg( rad.THETA ), rad.R * sin_deg( rad.THETA ) }; }
 
+vec2f inverse( const vec2f& v, const float& diameter, const float& soften ) {
+	if( ( v.x == 0.0f ) && ( v.y == 0.0f ) && ( soften == 0.0f ) ) return { 0.0f, 0.0f };
+	return v / ( linalg::length2( v ) * diameter + soften );
+}
+
+// less efficient - deprecated
 vec2f inverse_square( const vec2f& in, const float& diameter, const float& soften )
 {
 	vec2f out;
 	float mag;
 
-	if( ( in.x == 0.0) && ( in.y == 0.0 ) ) {
+	if( ( in.x == 0.0) && ( in.y == 0.0 ) && ( soften == 0.0f ) ) {
 		return { 0.0f, 0.0f };
 	}
 	else {
@@ -61,15 +67,17 @@ vec2f inverse_square( const vec2f& in, const float& diameter, const float& softe
 	}
 }
 
-vec2f complex_power( const vec2f& in, const float& p )
-{
+vec2f complex_power( const vec2f& in, const float& p ) {
 	vec2f out; 
 
 	out = radial( in );
 	out.R = powf( out.R, p );
 	out.THETA *= p;
 	out = cartesian( out );
-	return in;
+	return out;
 } 
 
+void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask ) {
+    result = linalg::lerp( result, layer, mask );
+}
 

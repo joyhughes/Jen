@@ -8,6 +8,7 @@
 #include "vect2.hpp"
 #include "frgb.hpp"
 #include "ucolor.hpp"
+#include <iterator>
 #include <vector>
 #include <memory>
 
@@ -18,6 +19,8 @@ enum image_extend
 	SAMP_REFLECT
 };
 typedef enum image_extend image_extend;
+
+class vector_field;
 
 // Root template for raster-based data
 template< class T > class image {
@@ -41,19 +44,22 @@ protected:
     std :: vector< std :: unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
     std :: vector< std :: unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
     // resamples image to crate mip-map            
-    void mip_it();  // mipit good
     void de_mip();  // deallocate all mip-maps
+    void mip_it();  // mipit good
 
 public:
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
         mip_me( false ), mipped( false ), mip_utd( false ) {}     
+
     // creates image of particular size 
     image( const vec2i& dims ) 
-        :  dim( dims ), bounds( { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( ipbounds ), 
-           mip_me( false ), mipped( false ), mip_utd( false ) {}     
-    image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( ipbounds ) ,
-        mip_me( false ), mipped( false ), mip_utd( false ) {}     
+        :  dim( dims ), bounds( { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ), 
+           mip_me( false ), mipped( false ), mip_utd( false )  { base.resize( dim.x * dim.y ); }     
+
+    image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
+        mip_me( false ), mipped( false ), mip_utd( false ) { base.resize( dim.x * dim.y ); }
+        
     // copy constructor
     image( const I& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
         mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
@@ -62,23 +68,29 @@ public:
             mip_it();
         }     
 
+    //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
+    auto begin() noexcept { return base.begin(); }
+    const auto begin() const noexcept { return base.begin(); }
+    auto end() noexcept { return base.end(); }
+    const auto end() const noexcept { return base.end(); }
+
     void reset();                          // clear memory & set dimensions to zero (mip_me remembered)
     void use_mip( bool m );
-    vec2i get_dim();
+    const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
-    bb2f get_bounds();
+    const bb2f get_bounds() const;
     void set_bounds( const bb2f& bb );
-    template< class U > bool compare_dims( const image< U >& img ) { return ( dim == img.dim ); }  // returns true if images have same dimensions
+    template< class U > bool compare_dims( const image< U >& img ) const { return ( dim == img.get_dim() ); }  // returns true if images have same dimensions
 
     // Sample base image
-    T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE );
-    T sample( const vec2f& v, const image_extend& extend = SAMP_SINGLE );           // quick and dirty sampling of nearest pixel value
-    T smooth_sample( const vec2f& v, const image_extend& extend = SAMP_SINGLE );    // linearly interpolated between corner values
+    const T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE ) const;
+    const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
+    // Preserved intersting bug       
+    const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;           
 
     // sample mip-map
-    T index( const vec2i& vi, const int& level, const image_extend& extend = SAMP_SINGLE );                
-    T sample( const vec2f& v, const int& level, const image_extend& extend = SAMP_SINGLE );           // quick and dirty sampling of nearest pixel value
-    T smooth_sample( const vec2f& v, const float& level, const image_extend& extend = SAMP_SINGLE );  // linearly interpolated between corner values and mip-map levels
+    // const T index( const vec2i& vi, const int& level, const image_extend& extend = SAMP_SINGLE );                
+    // const T sample( const vec2f& v, const int& level, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE );           
 
     // size modification functions
     void resize( vec2i siz );
@@ -89,7 +101,7 @@ public:
     void fill( const T& c );
 
     // masking
-    void apply_mask( const I& mask, I& result );
+    void apply_mask( const I& layer, const I& mask );
 
     // rendering
     void splat( 
@@ -97,8 +109,14 @@ public:
         const float& scale, 			// radius of splat
         const float& theta, 			// rotation in degrees
         const T& tint,				    // change the color of splat
-        const I& g 			            // image of the splat
-	);
+        const I& g 	);		            // image of the splat
+
+    void warp ( const image< T >& in, 
+                const vector_field& vf, 
+                const float& step = 1.0f, 
+                const bool& smooth = false, 
+                const bool& relative = true,
+                const image_extend& extend = SAMP_SINGLE );
 
     // operators
     I& operator += ( I& rhs );
@@ -116,11 +134,5 @@ public:
     //void apply( unary_func< T > func, image< T >& result ); // apply function to each pixel (to target image)
     // apply function to two images
 };
-
-
-//typedef image< frgb >           fimage;
-typedef image< vec2f >          vfield;
-// typedef image< ucolor >  ulimage;
-// packed unsigned char image?
 
 #endif // __IMAGE_HPP

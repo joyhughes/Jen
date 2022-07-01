@@ -1,3 +1,6 @@
+#ifndef __UIMAGE_HPP
+#define __UIMAGE_HPP
+
 #include "ucolor.hpp"
 #include "image.hpp"
 
@@ -21,3 +24,5 @@ public:
     void write_jpg( const std :: string& filename, int quality );
     void write_png( const std :: string& filename );
 };
+
+#endif // __UIMAGE_HPP
