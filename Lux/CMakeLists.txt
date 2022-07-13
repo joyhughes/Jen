@@ -10,26 +10,29 @@ include_directories(src)
 set(CMAKE_CXX_STANDARD 20)
 
 set(COMMON_LIB_SRCS
-src/joy_rand.hpp
+src/fimage.hpp
+src/fimage.cpp
 src/frgb.cpp
 src/frgb.hpp
 src/gamma_lut.cpp
 src/gamma_lut.hpp
-src/vect2.cpp 
-src/vect2.hpp 
-src/image.hpp
-src/image.cpp
-src/fimage.hpp
-src/fimage.cpp
 src/image_loader.hpp
 src/image_loader.cpp
+src/image.hpp
+src/image.cpp
+src/joy_rand.hpp
+src/linalg.h
+src/next_element.hpp
+src/scene.hpp
+src/scene.cpp
 src/ucolor.hpp
 src/ucolor.cpp
 src/uimage.hpp
 src/uimage.cpp
+src/vect2.cpp 
+src/vect2.hpp 
 src/vector_field.hpp
 src/vector_field.cpp
-src/linalg.h
 )
 
 add_library(common ${COMMON_LIB_SRCS})

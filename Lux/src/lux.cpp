@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 #include "linalg.h"
 #include "vect2.hpp"
 #include "vector_field.hpp"
@@ -6,8 +7,8 @@
 #include "fimage.hpp"
 #include "ucolor.hpp"
 #include "uimage.hpp"
-#include "effects.hpp"
-
+#include "scene.hpp"
+#include "next_element.hpp"
 
 #include <unistd.h>
 
@@ -193,13 +194,81 @@ void test_vector_field() {
     b.write_jpg( "hk_warp10.jpg", 100 );
 }
 
+void test_splat() {
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a *= 0.5f;
+    fimage splat;
+    splat.load( "../../Jen-C/orb.jpg" ); 
+    std::optional< frgb > tint; 
+   
+    a.splat( 
+        { 0.0f, 0.0f }, 			    // coordinates of splat center
+        0.3f, 			                // radius of splat
+        0.0f, 			                // rotation in degrees
+        tint,
+        splat 	);	                    // image of the splat  
+
+    tint =  { 0.5f, 0.5f, 0.5f };
+    a.splat( 
+        { 0.3, 0.4f }, 			        // coordinates of splat center
+        0.2f, 			                // radius of splat
+        60.0f, 			                // rotation in degrees
+        tint,
+        splat 	);	                    // image of the splat  
+
+    a.splat( 
+        { 0.4, 0.3f }, 			        // coordinates of splat center
+        0.2f, 			                // radius of splat
+        -30.0f, 			            // rotation in degrees
+        tint,		                    // change the color of splat
+        splat 	);	                    // image of the splat  
+
+    tint = { 1.0f, 0.5f, 0.0f };
+    a.splat( 
+        { 1.0f, -1.0f }, 			    // coordinates of splat center
+        0.8f, 			                // radius of splat
+        180.0f, 			            // rotation in degrees
+        tint,		                    // change the color of splat
+        splat 	);	                    // image of the splat
+
+    a.write_jpg( "hk_splat.jpg", 100 );
+}
+
+void test_cluster() {
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a *= 0.5;
+    vector_field vf( a.get_dim() );
+    vortex_params vort;
+    vf.vortex( vort );
+    //vf += { 0.5f, 0.0f };   // add wind
+    vf.normalize();
+    fimage splat;
+    splat.load( "../../Jen-C/orb.jpg" ); 
+    element< frgb > el( splat,              // image
+                        { -0.1f, 0.0f },    // position
+                        0.1f );             // scale
+    next_element< frgb > next_elem( 1000, a.get_bounds() );
+    advect_element< frgb > advector( vf, 1.4f );  
+    scale_ratio< frgb > shrinker( 0.99f );                  
+    next_elem.add_function( advector );
+    next_elem.add_function( shrinker );
+    cluster< frgb > cl( el, next_elem, 100, 0, 10, a.get_bounds() );
+    cl.render( a );
+    a.write_jpg( "hk_cluster.jpg", 100 );                    
+}
+
 int main() {
-    /* test_frgb();
-    test_vect2();
-    test_fimage();
-    test_uimage();
-    test_ucolor(); */
-    test_vector_field();
+    //test_frgb();
+    //test_vect2();
+    //test_fimage();
+    //test_uimage();
+    //test_ucolor(); 
+    //test_vector_field();
+    //test_splat(); 
+    test_cluster();
+
     return 0;
 }
 
