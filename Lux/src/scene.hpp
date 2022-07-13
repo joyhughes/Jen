@@ -54,7 +54,7 @@ template< class T > struct cluster {
     std::vector< std::unique_ptr< cluster< T > > > branches;
 
     element< T > root_elem;       // initial element in cluster
-    next_element< T >& next_elem; // Functor to iteratively generate elements in cluster
+    next_element< T >& next_elem; // Functor to recursively generate elements in cluster
 
     int max_n;      // limit to number of elements
     int depth;      // counter to keep track of depth in tree
