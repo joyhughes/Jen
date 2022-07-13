@@ -11,6 +11,7 @@
 #include <iterator>
 #include <vector>
 #include <memory>
+#include <optional>
 
 enum image_extend
 {
@@ -19,8 +20,6 @@ enum image_extend
 	SAMP_REFLECT
 };
 typedef enum image_extend image_extend;
-
-class vector_field;
 
 // Root template for raster-based data
 template< class T > class image {
@@ -108,12 +107,11 @@ public:
         const vec2f& center, 			// coordinates of splat center
         const float& scale, 			// radius of splat
         const float& theta, 			// rotation in degrees
-        const bool& tint_me,            // multiply by tint value?
-        const T& tint,				    // change the color of splat
+        std::optional< T >& tint,		// change the color of splat
         const I& g 	);		            // image of the splat
 
     void warp ( const image< T >& in, 
-                const vector_field& vf, 
+                const image< vec2f >& vf, 
                 const float& step = 1.0f, 
                 const bool& smooth = false, 
                 const bool& relative = true,
@@ -134,6 +132,11 @@ public:
     //void apply( unary_func< T > func ); // apply function to each pixel (in place)
     //void apply( unary_func< T > func, image< T >& result ); // apply function to each pixel (to target image)
     // apply function to two images
+};
+
+struct image_mask_pair {
+    
+    bool has_mask();
 };
 
 #endif // __IMAGE_HPP
