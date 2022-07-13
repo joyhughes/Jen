@@ -108,6 +108,7 @@ public:
         const vec2f& center, 			// coordinates of splat center
         const float& scale, 			// radius of splat
         const float& theta, 			// rotation in degrees
+        const bool& tint_me,            // multiply by tint value?
         const T& tint,				    // change the color of splat
         const I& g 	);		            // image of the splat
 

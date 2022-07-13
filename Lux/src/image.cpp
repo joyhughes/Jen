@@ -123,6 +123,62 @@ template< class T > void I::apply_mask( const I& layer, const I& mask ) {
     mip_it();
 }
 
+template< class T > void I::splat( 
+        const vec2f& center, 			// coordinates of splat center
+        const float& scale, 			// radius of splat
+        const float& theta, 			// rotation in degrees
+        const bool& tint_me,            // multiply by tint value?
+        const T& tint,				    // change the color of splat
+        const I& g 	)	                // image of the splat
+{
+    float thrad = theta / 360.0 * TAU;             // theta in radians
+    vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
+	int size = scale / ( bounds.b2.x - bounds.b1.x ) * dim.x; // scale in pixel coordinates
+    bb2i sbounds( p, size );    // bounding box of splat
+	vec2f smin = bounds.bb_map( sbounds.minv, ipbounds );
+	vec2f sc;
+	sc.x = (smin.x - center.x) / scale;
+	sc.y = -(smin.y - center.y) / scale;
+    sc = linalg::rot( -thrad, sc );
+
+	// calculate unit vectors - one pixel long
+	vec2f unx, uny;
+	unx.x = 1.0f / dim.x * ( bounds.b2.x - bounds.b1.x ) / scale;
+	unx.y = 0.0f;
+	unx = linalg::rot( -thrad, unx );
+	uny.x = 0.0f;
+	uny.y = -1.0f / dim.y * ( bounds.b2.y - bounds.b1.y ) / scale;
+	uny = linalg::rot( -thrad, uny );
+
+	// convert vectors to splat pixel space - fixed point
+    vec2i scfix = ( vec2i )(( sc * g.dim / 2.0f + g.dim / 2.0f ) * 65536.0f );
+    vec2i unxfix = ( vec2i )( unx * g.dim / 2.0f * 65536.0f );
+    vec2i unyfix = ( vec2i )( uny * g.dim / 2.0f * 65536.0f );
+	vec2i sfix;
+    bb2i fixbounds( { 0, 0 }, { ( g.dim.x - 1 ) << 16, ( g.dim.y - 1 ) << 16 });
+
+	// *** Critical loop below ***
+	// Quick and dirty sampling, high speed but risk of aliasing. 
+	// Should work best if splat is fairly large and smooth.
+    // future: add option to smooth sample into splat's mip-map
+    // future: add mask
+    // future: add effects ( warp, melt, hyper, life )
+
+	for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
+        sfix = scfix;
+		if( ( x >= 0 ) && ( x < dim.x ) ) {
+			for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
+				if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
+                    if( tint_me ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], tint );
+                    else          base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
+				}
+				sfix += unyfix;
+			}
+		}
+		scfix += unxfix;
+	}
+}
+
 template< class T > void I::warp (  const image< T >& in, 
                                     const vector_field& vf, 
                                     const float& step,            // default 1.0

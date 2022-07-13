@@ -58,9 +58,14 @@ template< class T, int M > struct bounding_box {
     V minp, maxp;  // Padded bounding box values to calculate if point is within a specified distance to bounding box in any dimension
 
     bounding_box()                           : 
-        b1( { -1.0f, -1.0f } ), b2( { 1.0f, 1.0f } ), minv( b1 ), maxv( b2 ), minp( b1 ), maxp( b2 )       { }    
+        b1( { -1.0f, 1.0f } ), b2( { 1.0f, -1.0f } ), minv( b1 ), maxv( b2 ), minp( b1 ), maxp( b2 )       { }  
+
     bounding_box( const V& v1, const V& v2 ) : 
-        b1( v1 ), b2(v2), minv( min( v1, v2 ) ), maxv( max( v1, v2 ) ), minp( minv ), maxp( maxv ) { }
+        b1( v1 ), b2( v2 ), minv( min( v1, v2 ) ), maxv( max( v1, v2 ) ), minp( minv ), maxp( maxv ) { }
+
+    bounding_box( const V& v, const T& size ) :
+        b1( v - size ), b2( v + size ), minv( min( b1, b2 ) ), maxv( max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
+           
     // copy+conversion constructor
     template< class U > bounding_box( const bounding_box< U, M >& bbc ) :
         b1( bbc.b1 ), b2( bbc.b2 ), minv( min( b1, b2 ) ), maxv( max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
