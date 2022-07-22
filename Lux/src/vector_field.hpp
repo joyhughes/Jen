@@ -3,7 +3,7 @@
 
 #include "image.hpp"
 
-struct vortex_params {
+struct vortex {
     float diameter;   // float - Overall size of vortex
     float soften;     // float - Avoids a singularity in the center of vortex
     float intensity;  // float - Strength of vortex. How vortexy is it? Negative value swirls the opposite direction.
@@ -15,11 +15,12 @@ struct vortex_params {
     int  velocity;   // float - Speed of revolution. Must be integer for animation to loop
     vec2f center_of_revolution;   // vect2 - vortex revolves around this point
 
-    vortex_params( float diam = 0.5f, float soft = 0.25f, float inten = 1.0f, vec2f c_orig = { 0.0f, 0.0f } ) :
+    vortex( float diam = 0.5f, float soft = 0.25f, float inten = 1.0f, vec2f c_orig = { 0.0f, 0.0f } ) :
         diameter( diam ), soften( soft ), intensity( inten ), center_orig( c_orig ),
         revolving( false ), velocity( 0 ), center_of_revolution( { 0.0f, 0.0f } ) {}
 
-    vec2f& eval( const vec2f& v );
+
+    vec2f operator () ( const vec2f& v, const float& t = 0.0f );
 };
 
 struct vortex_field  {                  // parameters for field of vortices
@@ -38,16 +39,18 @@ struct vortex_field  {                  // parameters for field of vortices
     rotation_direction velocity_direction;   // object of RotationDirection
     float min_orbital_radius, max_orbital_radius; // float
 
-    std::vector< vortex_params > vorts;
+    std::vector< vortex > vorts;
     bool generated;                     // has this.generate() been run?
+ 
+    void generate();
+
+    vec2f operator () ( const vec2f& v, const float& t = 0.0f );
 
     vortex_field( int num = 10, bool rev = true ) : n( num ), scale_factor( 0.5f ),
         min_diameter( 0.5f ), max_diameter( 0.5f ), min_soften( 0.25f ), max_soften( 0.25f ),
         min_intensity( 1.0f ), max_intensity( 1.0f ), intensity_direction( RANDOM ),
         revolving( rev ), min_velocity( 1 ), max_velocity( 1 ), velocity_direction( RANDOM ),
-        min_orbital_radius( 0.0f ), max_orbital_radius( 0.5f ), generated( false )  {}
-   
-    void generate();
+        min_orbital_radius( 0.0f ), max_orbital_radius( 0.5f ), generated( false )  {}  
 };
 
 class vector_field : public image< vec2f > {
@@ -60,8 +63,8 @@ public:
     // copy constructor
     vector_field( const I& img ) : image( img ) {}     
 
-    vec2f advect( const vec2f& v, const float& step, const float& angle = 0.0f, const bool& smooth = true, const image_extend& extend = SAMP_REPEAT );
-    vec2f advect( const vec2f& v, const float& step, const mat2f& m,            const bool& smooth = true, const image_extend& extend = SAMP_REPEAT );
+    vec2f advect( const vec2f& v, const float& step, const float& angle = 0.0f, const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;
+    vec2f advect( const vec2f& v, const float& step, const mat2f& m,            const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;
 
     void complement();
     void radial();
@@ -76,11 +79,12 @@ public:
     void rotation(   const vec2f& center = { 0.0f, 0.0f } );
     void spiral(     const vec2f& center = { 0.0f, 0.0f }, const float& cscale = 1.0f, const float& rscale = 1.0f );
 
-    void vortex( const vortex_params& vort, const float& t = 0.0f );
+    void vortex( const ::vortex& vort, const float& t = 0.0f );
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     void position_fill();
 
+    void apply( const vector_fn& vfn, const float& t = 0.0f );
 };
 
 #endif // __VECTOR_FIELD_HPP

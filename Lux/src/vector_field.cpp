@@ -2,8 +2,16 @@
 #include "vect2.hpp"
 #include "vector_field.hpp"
 
+vec2f vortex::operator () ( const vec2f& v, const float& t ) {
+    vec2f center = center_orig;
+    if( revolving ) center = center_of_revolution + linalg::rot( velocity * t * TAU, center_orig - center_of_revolution );
+    vec2f out = complement( v - center );
+    out = inverse( out, diameter, soften ) * intensity;
+    return out;
+}
+
 void vortex_field::generate() {
-    vortex_params vort;
+    vortex vort;
     std::uniform_int_distribution<> velocity_distribution( min_velocity, max_velocity );
 
     generated = true;
@@ -64,14 +72,14 @@ void vortex_field::generate() {
 
 // Use Newton's method to move along flow line proportional to step value
 // Angle in degrees
-vec2f vector_field::advect( const vec2f& v, const float& step, const float& angle, const bool& smooth, const image_extend& extend )
+vec2f vector_field::advect( const vec2f& v, const float& step, const float& angle, const bool& smooth, const image_extend& extend ) const
 {
     if( angle == 0.0f ) return v +                                    sample( v, smooth, extend )   * step;
     else                return v + linalg::rot( angle / 360.0f * TAU, sample( v, smooth, extend ) ) * step;
 }
 
 // This overload receives a matrix parameter - more efficient if invoked repeatedly with the same angle
-vec2f vector_field::advect( const vec2f& v, const float& step, const mat2f& m, const bool& smooth, const image_extend& extend )
+vec2f vector_field::advect( const vec2f& v, const float& step, const mat2f& m, const bool& smooth, const image_extend& extend ) const
 {
     return v + linalg::mul( m, sample( v, smooth, extend ) ) * step;
 }
@@ -123,7 +131,7 @@ void vector_field::spiral( const vec2f& center, const float& cscale, const float
     mip_it();
 }
 
-void vector_field::vortex( const vortex_params& vort, const float& t ) {
+void vector_field::vortex( const ::vortex& vort, const float& t ) {
     vec2f center= vort.center_orig;
     if( vort.revolving ) center = vort.center_of_revolution + linalg::rot( vort.velocity * t * TAU, vort.center_orig - vort.center_of_revolution );
     rotation( center );
