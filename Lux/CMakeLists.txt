@@ -10,6 +10,7 @@ include_directories(src)
 set(CMAKE_CXX_STANDARD 20)
 
 set(COMMON_LIB_SRCS
+src/effect.hpp
 src/fimage.hpp
 src/fimage.cpp
 src/frgb.cpp
@@ -33,6 +34,7 @@ src/vect2.cpp
 src/vect2.hpp 
 src/vector_field.hpp
 src/vector_field.cpp
+src/warp.hpp
 )
 
 add_library(common ${COMMON_LIB_SRCS})
