@@ -21,6 +21,9 @@ typedef linalg::vec< float, 2 > vec2f;
 typedef linalg::vec< int,   2 > vec2i;
 typedef linalg::mat< float, 2, 2 > mat2f;
 
+// Time-dependent vector function
+typedef std::function< vec2f ( const vec2f&, const float& ) > vector_fn;    
+
 enum rotation_direction
 {
 	COUNTERCLOCKWISE,
