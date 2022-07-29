@@ -8,29 +8,50 @@
 #include "fimage.hpp"
 
 //template< class T > struct effect;
+template< class T > struct element;
+template< class T > struct cluster;
 
+template< class T > struct element_context {
+    element< T >& el;
+    cluster< T >& cl;
+    image< T >& img;
+    // scene scn;
+    // derivative?
+
+    element_context( element< T >& el_init, cluster< T >& cl_init, image< T >& img_init ) :
+        el( el_init ), cl( cl_init ), img( img_init ) {}
+};
+
+// An element object contains all the data members needed to create an image splat
 template< class T > struct element {
     image< T >& img;
     //std::optional< effect< T >& > eff;
     
     vec2f position; 		    // coordinates of element center (relative to parent cluster)
     float scale; 			    // radius of element
-    float rotation; 	        // rotation in degrees
+    float rotation; 	        // image rotation in degrees
+    float orientation;          // direction of motion relative to vector field ( or function )
+    bool  orientation_lock;     // is rotation relative to orientation?
     std::optional< T > tint;	// change the color of element
     image< T >* mask;
     int index;
 
-    void render( image< T >& in ) { in.splat( position, scale, rotation, tint, img ); }
+    // approximate absolute derivative used to calculate angle of branches
+    // calculated from delta since last position or directly (for instance in the case of a circle)
+    vec2f derivative;   // move to element_holder?
+    bool derivative_lock;
 
-    element() : position( { 0.0f, 0.0f }), 
-                scale( 1.0f ), 
-                rotation( 0.0f ),
-                index( 0 ) {}
+    void render( image< T >& in, const float& t );
+
+    // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
+    // in this case the element serves as an effect functor 
+    void operator () ( buffer_pair< T >& buf, const float& t ); // render into a buffer pair. Rendering does not require buffer swap.
 
     element(    image< T >& img_init, 
                 const vec2f& position_init =  { 0.0f, 0.0f },
                 const float& scale_init = 1.0f,
                 const float& rotation_init = 0.0f,
+                const float& orientation_init = 0.0f,
                 const std::optional< T >& tint_init = std::nullopt,
                 image< T >* mask_init = NULL 
             ) : 
@@ -38,21 +59,15 @@ template< class T > struct element {
                 position( position_init ),
                 scale( scale_init ),
                 rotation( rotation_init ),
+                orientation( orientation_init ),
                 tint( tint_init ),
                 mask( mask_init ),
                 index( 0 ) {}
 };
 
-template< class T > struct cluster;
-
 template< class T > struct next_element;
 
 template< class T > struct cluster {
-    /* vec2f position;
-    float scale;
-    float rotation; */
-    std::vector< std::unique_ptr< cluster< T > > > branches;
-
     element< T > root_elem;       // initial element in cluster
     next_element< T >& next_elem; // Functor to recursively generate elements in cluster
 
@@ -61,21 +76,17 @@ template< class T > struct cluster {
     int max_depth;  // prevent infinite recursion
 
     std::optional< bb2f > bounds;
-    
 
-/*
-    void generate(  // generation function object , - fill the cluster based on its generator
-                    float t = 0.0f // time
-                    ); 
+    // Recursively generate branches and render elements
+    void render( image< T >& img, const float& t = 0.0f );
 
-    // needs a different name
-    void iterate(   // iteration function object , - evolve cluster based on current state
-                    float step = 1.0f // timestep, speed, scaling factor
-                    );
-    */
-    void render(    image< T >& in, float t = 0.0f );
+    // change root element parameters for branching cluster
+    void set_root( element< T >& el );
 
-    //cluster() : max_n( 100 ), depth( 0 ), max_depth( 10 ) {}
+    // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
+    // in this case the cluster serves as an effect functor (the effect being rendering)
+    void operator () ( buffer_pair< T >& buf, const float& t );
+
     cluster( const element< T >& el,  
              next_element< T >& next_elem_init, 
              const int& max_n_init = 100,
@@ -91,6 +102,7 @@ template< class T > struct cluster {
           bounds( bounds_init ) 
           {}
 };
+
 /*
 typedef std::variant<   std::unique_ptr< cluster< frgb > >, 
                         std::unique_ptr< cluster< ucolor > >, 
