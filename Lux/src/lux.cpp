@@ -9,8 +9,12 @@
 #include "uimage.hpp"
 #include "scene.hpp"
 #include "next_element.hpp"
+#include "warp.hpp"
 
 #include <unistd.h>
+#include <sstream>
+#include <string>
+#include <iomanip>
 
 unsigned long long getTotalSystemMemory()
 {
@@ -177,7 +181,7 @@ void test_vector_field() {
     //std::unique_ptr< image< frgb > > bptr( &b );
     vector_field vf( b.get_dim() );
     vortex_field vortf( false ); 
-    vortex_params vort;
+    vortex vort;
     //vf.turbulent( vortf );
     vf.vortex( vort );
     //vf.concentric();
@@ -240,7 +244,7 @@ void test_cluster() {
     a.load( "../../Jen-C/hk_square.jpg" ); 
     a *= 0.5;
     vector_field vf( a.get_dim() );
-    vortex_params vort;
+    vortex vort;
     vf.vortex( vort );
     //vf += { 0.5f, 0.0f };   // add wind
     vf.normalize();
@@ -259,6 +263,65 @@ void test_cluster() {
     a.write_jpg( "hk_cluster.jpg", 100 );                    
 }
 
+void test_melt() {
+    const int nframes = 100;
+    using std::cout;
+    cout << "\nTESTING MELT\n\n";
+
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+
+    vector_field vf( a.get_dim() );
+    vortex vort;
+    vf.vortex( vort );
+
+
+    eff_vector_warp< frgb > warper( vf, 0.025f, false, true, SAMP_REPEAT );
+    typedef std::function< bool ( buffer_pair< frgb >&, const float& ) > eff_fn_frgb;
+    eff_fn_frgb warp_fn( warper );
+    iterative_melt< frgb > melter( warp_fn, a ); 
+
+    for( int i = 0; i < nframes; i++ ) {
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "hk_iter_" << std::setfill('0') << std::setw(4) << i << ".jpg";
+        std::string filename;
+        filename = s.str();
+        ((fimage &)(melter())).write_jpg( filename, 100 );
+        melter.iterate();
+    }
+
+    vector_melt< frgb > vmelt( vf, 0.025f ); 
+    buffer_pair< frgb > buf( a );
+
+    for( int i = 0; i < nframes; i++ ) {
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "frames/hk_vect_" << std::setfill('0') << std::setw(4) << i << ".jpg";
+        std::string filename;
+        filename = s.str();
+        buf.reset( a );
+        vmelt( buf );
+        ((fimage &)(buf())).write_jpg( filename, 100 );
+        vmelt.iterate();
+    }
+
+    vector_fn vort_fn = vort;
+    functional_melt< frgb > fmelt( vort_fn, 0.025f, a.get_dim() );
+
+    for( int i = 0; i < nframes; i++ ) {
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "frames/hk_func_" << std::setfill('0') << std::setw(4) << i << ".jpg";
+        std::string filename;
+        filename = s.str();
+        buf.reset( a );
+        fmelt( buf );
+        ((fimage &)(buf())).write_jpg( filename, 100 );
+        fmelt.iterate();
+    }
+}
+
 int main() {
     //test_frgb();
     //test_vect2();
@@ -267,8 +330,11 @@ int main() {
     //test_ucolor(); 
     //test_vector_field();
     //test_splat(); 
-    test_cluster();
+    //test_cluster();
+    test_melt();
 
     return 0;
 }
 
+template struct iterative_melt< frgb >;
+template struct eff_vector_warp< frgb >;
