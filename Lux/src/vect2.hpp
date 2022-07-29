@@ -39,10 +39,12 @@ float sin_deg( const float& theta );
 float cos_deg( const float& theta );
 float tan_deg( const float& theta );
 float vtoa( const vec2f& v );
+vec2f unit_vector( const float& theta );
 float add_angle( const float& a1, const float& a2 );
 
 // Vector functions used in Jen not included in linalg.h
 // future: add complex multiply
+vec2f rot_deg( const vec2f& v, const float& ang_deg );
 vec2f complement( const vec2f& v );
 vec2f radial( const vec2f& v );
 vec2f cartesian( const vec2f& rad );
