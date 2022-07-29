@@ -15,6 +15,11 @@ float vtoa( const vec2f& v )
 	return ang;
 }
 
+vec2f unit_vector( const float& theta )
+{
+	return { cos_deg( theta ), sin_deg( theta ) };
+}
+
 float add_angle( const float& a1, const float& a2 )
 {
 	float a = fmodf(a1 + a2, 360.0 );
@@ -39,6 +44,8 @@ float tan_deg( const float& theta )
 
 // returns a vector 90 degrees to the left of input vector
 // equivalent to complex multiply by i
+vec2f rot_deg( const vec2f& v, const float& ang_deg ) { return linalg::rot( ang_deg / 360.0f * TAU, v ); }
+
 vec2f complement( const vec2f& v )     { return { -v.y, v.x }; }
 
 vec2f radial( const vec2f& v )         { return {linalg::length( v ), vtoa( v ) }; }
