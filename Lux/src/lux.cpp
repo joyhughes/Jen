@@ -238,7 +238,7 @@ void test_splat() {
 
     a.write_jpg( "hk_splat.jpg", 100 );
 }
-
+/*
 void test_cluster() {
     fimage a;
     a.load( "../../Jen-C/hk_square.jpg" ); 
@@ -259,34 +259,80 @@ void test_cluster() {
     angle_branch< frgb > brancher( 100 );                 
     next_elem.add_function( advector );
     next_elem.add_function( brancher );
-    cluster< frgb > cl( el, next_elem, 100, 0, 10, a.get_bounds() );
+    cluster< frgb > cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
     cl.render( a );
     a.write_jpg( "hk_cluster.jpg", 100 );                    
 }
-
+*/
 void test_branch() {
+    const int nframes = 100;
+    using std::cout;
+
     fimage a;
-    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a.load( "../../Jen-C/hk_square.jpg" );
     a *= 0.5;
     vector_field vf( a.get_dim() );
     vf.fill( { 1.0f, 0.0f } );   // add wind
     vf.normalize();
     fimage splat;
-    splat.load( "../../Jen-C/orb.jpg" ); 
+    splat.load( "../../Jen-C/orb.jpg" );
+
     element< frgb > el( splat,              // image
-                        { -0.7f, 0.0f },    // position
-                        0.12f );             // scale
+                        { 0.0f, 0.0f },     // position
+                        0.05f );            // scale
     next_element< frgb > next_elem( 100, a.get_bounds() );
     advect_element< frgb > advector( vf, 1.4f );  
-    scale_ratio< frgb > shrinker( 0.9f ); 
-    angle_branch< frgb > brancher( 4, 0, 2 );                 
-    next_elem.add_function( brancher );
+    ratio< frgb, float > shrinker( 0.9f ); 
+    scale_fn< frgb > scaler( shrinker );
+    angle_branch< frgb > brancher( 4, 1 ); 
+    curly< frgb > curler( 0.5f );
+
+    wiggle< frgb > wiggler1( 0.25f, 0.3f, 0.0f, 0.0f );
+    time_param< frgb > wiggle_time1( wiggler1 );
+    adder< frgb, float > add_wiggle1;
+    add_wiggle1.r.add_function( wiggle_time1 );
+    curler.curliness.add_function( add_wiggle1 );
+
+    wiggle< frgb > wiggler( 4.0f, 45.0f, 0.0f, 10.0f );
+    log_fn< frgb > wiggle_damper( -40.0f, 1.0f );
+    scale_param< frgb > wiggle_damper_param( wiggle_damper );
+    wiggler.amplitude.add_function( wiggle_damper_param );
+    index_param< frgb > wiggle_indexer( wiggler );
+    adder< frgb, float > add_wiggle;
+    add_wiggle.r.add_function( wiggle_indexer );
+    orientation_fn< frgb > orientation_wave( add_wiggle );
+
+    next_elem.add_function( scaler );
+    next_elem.add_function( curler );
+    next_elem.add_function( orientation_wave );
     next_elem.add_function( advector );
-    next_elem.add_function( shrinker );
+    next_elem.add_function( brancher );
+
     //next_elem.add_function( brancher );
-    cluster< frgb > cl( el, next_elem, 100, 0, 10, a.get_bounds() );
-    cl.render( a );
-    a.write_jpg( "hk_branch.jpg", 100 );                    
+    cluster< frgb > cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
+    float scale = 0.0f;
+    for( int i = 0; i < nframes; i++ ) {
+        float t = ( 1.0f * i ) / nframes;
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "frames/hk_branch_" << std::setfill('0') << std::setw(4) << i << ".jpg";
+        std::string filename;
+        filename = s.str();
+        scale += 0.00175f;
+        cl.root_elem.scale = scale;
+
+        // swim
+        element< frgb > el2 = cl.root_elem;
+        vec2f position = el2.position;
+        element_context< frgb > ctxt( el2, cl, a, t );
+        next_elem( ctxt );
+        vec2f delta = position - el2.position;
+        cl.root_elem.position += delta * 0.075f;
+
+        fimage b( a );
+        cl.render( b, t );
+        b.write_jpg( filename, 100 );
+    }                  
 }
 
 void test_melt() {
