@@ -255,12 +255,38 @@ void test_cluster() {
                         0.1f );             // scale
     next_element< frgb > next_elem( 1000, a.get_bounds() );
     advect_element< frgb > advector( vf, 1.4f );  
-    scale_ratio< frgb > shrinker( 0.99f );                  
+    scale_ratio< frgb > shrinker( 0.99f ); 
+    angle_branch< frgb > brancher( 100 );                 
     next_elem.add_function( advector );
-    next_elem.add_function( shrinker );
+    next_elem.add_function( brancher );
     cluster< frgb > cl( el, next_elem, 100, 0, 10, a.get_bounds() );
     cl.render( a );
     a.write_jpg( "hk_cluster.jpg", 100 );                    
+}
+
+void test_branch() {
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a *= 0.5;
+    vector_field vf( a.get_dim() );
+    vf.fill( { 1.0f, 0.0f } );   // add wind
+    vf.normalize();
+    fimage splat;
+    splat.load( "../../Jen-C/orb.jpg" ); 
+    element< frgb > el( splat,              // image
+                        { -0.7f, 0.0f },    // position
+                        0.12f );             // scale
+    next_element< frgb > next_elem( 100, a.get_bounds() );
+    advect_element< frgb > advector( vf, 1.4f );  
+    scale_ratio< frgb > shrinker( 0.9f ); 
+    angle_branch< frgb > brancher( 4, 0, 2 );                 
+    next_elem.add_function( brancher );
+    next_elem.add_function( advector );
+    next_elem.add_function( shrinker );
+    //next_elem.add_function( brancher );
+    cluster< frgb > cl( el, next_elem, 100, 0, 10, a.get_bounds() );
+    cl.render( a );
+    a.write_jpg( "hk_branch.jpg", 100 );                    
 }
 
 void test_melt() {
@@ -274,7 +300,6 @@ void test_melt() {
     vector_field vf( a.get_dim() );
     vortex vort;
     vf.vortex( vort );
-
 
     eff_vector_warp< frgb > warper( vf, 0.025f, false, true, SAMP_REPEAT );
     typedef std::function< bool ( buffer_pair< frgb >&, const float& ) > eff_fn_frgb;
@@ -331,7 +356,8 @@ int main() {
     //test_vector_field();
     //test_splat(); 
     //test_cluster();
-    test_melt();
+    test_branch();
+    //test_melt();
 
     return 0;
 }

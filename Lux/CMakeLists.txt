@@ -24,6 +24,7 @@ src/image.cpp
 src/joy_rand.hpp
 src/linalg.h
 src/next_element.hpp
+src/next_element.cpp
 src/scene.hpp
 src/scene.cpp
 src/ucolor.hpp
