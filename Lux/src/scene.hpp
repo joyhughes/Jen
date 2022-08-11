@@ -15,17 +15,18 @@ template< class T > struct element_context {
     element< T >& el;
     cluster< T >& cl;
     image< T >& img;
+    float t;  // time
     // scene scn;
     // derivative?
 
-    element_context( element< T >& el_init, cluster< T >& cl_init, image< T >& img_init ) :
-        el( el_init ), cl( cl_init ), img( img_init ) {}
+    element_context( element< T >& el_init, cluster< T >& cl_init, image< T >& img_init, const float& t_init = 0.0f ) :
+        el( el_init ), cl( cl_init ), img( img_init ), t( t_init ) {}
 };
 
 // An element object contains all the data members needed to create an image splat
 template< class T > struct element {
     image< T >& img;
-    //std::optional< effect< T >& > eff;
+    // std::vector< effect< T >& > effects; // should effects be generative functions?
     
     vec2f position; 		    // coordinates of element center (relative to parent cluster)
     float scale; 			    // radius of element
@@ -71,9 +72,10 @@ template< class T > struct cluster {
     element< T > root_elem;       // initial element in cluster
     next_element< T >& next_elem; // Functor to recursively generate elements in cluster
 
-    int max_n;      // limit to number of elements
-    int depth;      // counter to keep track of depth in tree
-    int max_depth;  // prevent infinite recursion
+    int max_n;          // limit to number of elements
+    int depth;          // counter to keep track of depth in tree
+    int max_depth;      // prevent infinite recursion
+    float min_scale;    // approximately one pixel
 
     std::optional< bb2f > bounds;
 
@@ -92,6 +94,7 @@ template< class T > struct cluster {
              const int& max_n_init = 100,
              const int& depth_init = 0,
              const int& max_depth_init = 10,
+             const float& min_scale_init = 0.001f,
              const std::optional< bb2f >& bounds_init = std::nullopt
             )
         : root_elem( el ),
@@ -99,6 +102,7 @@ template< class T > struct cluster {
           max_n( max_n_init ),
           depth( depth_init ),
           max_depth( max_depth_init ),
+          min_scale( min_scale_init ),
           bounds( bounds_init ) 
           {}
 };

@@ -19,10 +19,10 @@ template class element< vec2f >;
 // Recursively generate and render elements
 template< class T > void cluster< T >::render( image< T >& img, const float& t ) { 
     element< T > el = root_elem;
-    element_context context( el, *this, img );
+    element_context< T > context( el, *this, img, t );
     el.render( img, t );
-    while( next_elem( context, t ) ) { el.render( img, t ); }
-    //( ( fimage & )img ).write_jpg( "hk_cluster.jpg", 100 );                    
+    while( next_elem( context ) ) { el.render( img, t ); }
+    //( ( fimage & )img ).write_jpg( "hk_cluster.jpg", 100 ); // debug - save frame after each cluster                   
 }
 
 // change root element parameters for branching cluster
