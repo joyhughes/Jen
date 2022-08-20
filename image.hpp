@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <functional>
+//#include "any_image.hpp"
 
 enum image_extend
 {
@@ -20,6 +21,7 @@ enum image_extend
 	SAMP_REPEAT,
 	SAMP_REFLECT
 };
+
 typedef enum image_extend image_extend;
 
 // Root template for raster-based data
@@ -107,13 +109,17 @@ public:
     // masking
     void apply_mask( const I& layer, const I& mask );
 
+    typedef std::optional< std::reference_wrapper< T > > opt_pix_ref;
+    typedef std::optional< std::reference_wrapper< image< T > > > opt_img_ref;
+
     // rendering
     void splat( 
-        const vec2f& center, 			// coordinates of splat center
-        const float& scale, 			// radius of splat
-        const float& theta, 			// rotation in degrees
-        std::optional< T >& tint,		// change the color of splat
-        const I& g 	);		            // image of the splat
+        const vec2f& center, // coordinates of splat center
+        const float& scale,  // radius of splat
+        const float& theta,  // rotation in degrees
+        const opt_img_ref g = std::nullopt,    // image of the splat
+        const opt_img_ref mask = std::nullopt,    // optional mask image
+        const opt_pix_ref tint = std::nullopt );  // change the color of splat
 
     void warp ( const image< T >& in, 
                 const image< vec2f >& vf, 
@@ -152,7 +158,6 @@ public:
     //void apply( unary_func< T > func, image< T >& result ); // apply function to each pixel (to target image)
     // apply function to two images
 };
-
 
 // Used for double-buffered rendering. Owns pointer to image - makes a duplicate when 
 // double-buffering is needed for an effect. Can be used in effect-component stacks or for 
