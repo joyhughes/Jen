@@ -53,8 +53,8 @@ vec2f radial( const vec2f& v )         { return {linalg::length( v ), vtoa( v ) 
 vec2f cartesian( const vec2f& rad )    { return { rad.R * cos_deg( rad.THETA ), rad.R * sin_deg( rad.THETA ) }; }
 
 vec2f inverse( const vec2f& v, const float& diameter, const float& soften ) {
-	if( ( v.x == 0.0f ) && ( v.y == 0.0f ) && ( soften == 0.0f ) ) return { 0.0f, 0.0f };
-	return v / ( linalg::length2( v ) * diameter + soften );
+	if( ( ( v.x == 0.0f ) && ( v.y == 0.0f ) && ( soften == 0.0f ) ) || ( diameter == 0.0f ) ) return { 0.0f, 0.0f };
+	return v / ( linalg::length2( v ) / diameter + soften );
 }
 
 // less efficient - deprecated
