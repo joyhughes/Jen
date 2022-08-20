@@ -15,7 +15,7 @@ struct vortex {
     int  velocity;   // float - Speed of revolution. Must be integer for animation to loop
     vec2f center_of_revolution;   // vect2 - vortex revolves around this point
 
-    vortex( float diam = 0.5f, float soft = 0.25f, float inten = 1.0f, vec2f c_orig = { 0.0f, 0.0f } ) :
+    vortex( float diam = 0.33f, float soft = 0.25f, float inten = 1.0f, vec2f c_orig = { 0.0f, 0.0f } ) :
         diameter( diam ), soften( soft ), intensity( inten ), center_orig( c_orig ),
         revolving( false ), velocity( 0 ), center_of_revolution( { 0.0f, 0.0f } ) {}
 
@@ -46,10 +46,11 @@ struct vortex_field  {                  // parameters for field of vortices
 
     vec2f operator () ( const vec2f& v, const float& t = 0.0f );
 
-    vortex_field( int num = 10, bool rev = true ) : n( num ), scale_factor( 0.5f ),
-        min_diameter( 0.5f ), max_diameter( 0.5f ), min_soften( 0.25f ), max_soften( 0.25f ),
+    vortex_field( int n_init = 10, bool revolving_init = true ) 
+        : n( n_init ), scale_factor( 0.5f ),
+        min_diameter( 0.33f ), max_diameter( 0.33f ), min_soften( 0.25f ), max_soften( 0.25f ),
         min_intensity( 1.0f ), max_intensity( 1.0f ), intensity_direction( RANDOM ),
-        revolving( rev ), min_velocity( 1 ), max_velocity( 1 ), velocity_direction( RANDOM ),
+        revolving( revolving_init ), min_velocity( 1 ), max_velocity( 1 ), velocity_direction( RANDOM ),
         min_orbital_radius( 0.0f ), max_orbital_radius( 0.5f ), generated( false )  {}  
 };
 
@@ -83,8 +84,6 @@ public:
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     void position_fill();
-
-    void apply( const vector_fn& vfn, const float& t = 0.0f );
 };
 
 #endif // __VECTOR_FIELD_HPP
