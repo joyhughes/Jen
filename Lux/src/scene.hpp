@@ -5,27 +5,26 @@
 #include <map>
 #include <optional>
 #include "image.hpp"
-#include "fimage.hpp"
+#include "any_image.hpp"
 
 //template< class T > struct effect;
-template< class T > struct element;
-template< class T > struct cluster;
+struct element;
+struct cluster;
 
-template< class T > struct element_context {
-    element< T >& el;
-    cluster< T >& cl;
-    image< T >& img;
+struct element_context {
+    element& el;
+    cluster& cl;
+    any_image img;  // image being rendered upon
     float t;  // time
     // scene scn;
     // derivative?
 
-    element_context( element< T >& el_init, cluster< T >& cl_init, image< T >& img_init, const float& t_init = 0.0f ) :
+    element_context( element& el_init, cluster& cl_init, any_image& img_init, const float& t_init = 0.0f ) :
         el( el_init ), cl( cl_init ), img( img_init ), t( t_init ) {}
 };
 
 // An element object contains all the data members needed to create an image splat
-template< class T > struct element {
-    image< T >& img;
+struct element {
     // std::vector< effect< T >& > effects; // should effects be generative functions?
     
     vec2f position; 		    // coordinates of element center (relative to parent cluster)
@@ -33,64 +32,71 @@ template< class T > struct element {
     float rotation; 	        // image rotation in degrees
     float orientation;          // direction of motion relative to vector field ( or function )
     bool  orientation_lock;     // is rotation relative to orientation?
-    std::optional< T > tint;	// change the color of element
-    image< T >* mask;
-    int index;
+    int index;                  // index of element within cluster
+    mask_mode mmode;            // how will mask be applied to splat and backround?
+
+    any_image img;  // If no image, element not rendered, serves as placeholder
+    any_image mask;
+    any_pixel tint;	// change the color of element
 
     // approximate absolute derivative used to calculate angle of branches
     // calculated from delta since last position or directly (for instance in the case of a circle)
-    vec2f derivative;   // move to element_holder?
+    vec2f derivative;   // move to element_context?
     bool derivative_lock;
 
-    void render( image< T >& in, const float& t );
+    void render( any_image in, const float& t );
 
     // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
     // in this case the element serves as an effect functor 
-    void operator () ( buffer_pair< T >& buf, const float& t ); // render into a buffer pair. Rendering does not require buffer swap.
 
-    element(    image< T >& img_init, 
-                const vec2f& position_init =  { 0.0f, 0.0f },
+    //void operator () ( any_buffer_pair buf, const float& t ); // render into a buffer pair. Rendering does not require buffer swap.
+
+    element(    const vec2f& position_init =  { 0.0f, 0.0f },
                 const float& scale_init = 1.0f,
                 const float& rotation_init = 0.0f,
                 const float& orientation_init = 0.0f,
-                const std::optional< T >& tint_init = std::nullopt,
-                image< T >* mask_init = NULL 
-            ) : 
-                img( img_init ),
-                position( position_init ),
-                scale( scale_init ),
-                rotation( rotation_init ),
-                orientation( orientation_init ),
-                tint( tint_init ),
-                mask( mask_init ),
-                index( 0 ) {}
+                const any_image img_init = any_image(),
+                const any_image mask_init = any_image(),
+                const any_pixel tint_init = any_pixel(),
+                const mask_mode mmode_init = MASK_BLEND           
+            ) 
+        : position( position_init ),
+            scale( scale_init ),
+            rotation( rotation_init ),
+            orientation( orientation_init ),
+            img( img_init ),
+            mask( mask_init ),
+            tint( tint_init ),
+            mmode( mmode_init ),
+            index( 0 ) {}
 };
 
-template< class T > struct next_element;
+struct next_element;
 
-template< class T > struct cluster {
-    element< T > root_elem;       // initial element in cluster
-    next_element< T >& next_elem; // Functor to recursively generate elements in cluster
+struct cluster {
+    element root_elem;       // initial element in cluster
+    next_element& next_elem; // Functor to recursively generate elements in cluster
 
     int max_n;          // limit to number of elements
     int depth;          // counter to keep track of depth in tree
     int max_depth;      // prevent infinite recursion
     float min_scale;    // approximately one pixel
 
-    std::optional< bb2f > bounds;
+    std::optional< bb2f > bounds;   // Optionally, cluster will stop generating if it goes out of bounds
 
     // Recursively generate branches and render elements
-    void render( image< T >& img, const float& t = 0.0f );
+    void render( any_image img, const float& t = 0.0f );
 
     // change root element parameters for branching cluster
-    void set_root( element< T >& el );
+    void set_root( element& el );
 
     // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
     // in this case the cluster serves as an effect functor (the effect being rendering)
-    void operator () ( buffer_pair< T >& buf, const float& t );
+    // need generic buffer pair
+    //void operator () ( buffer_pair< T >& buf, const float& t );
 
-    cluster( const element< T >& el,  
-             next_element< T >& next_elem_init, 
+    cluster( const element& el,  
+             next_element& next_elem_init, 
              const int& max_n_init = 100,
              const int& depth_init = 0,
              const int& max_depth_init = 10,
@@ -108,23 +114,9 @@ template< class T > struct cluster {
 };
 
 /*
-typedef std::variant<   std::unique_ptr< cluster< frgb > >, 
-                        std::unique_ptr< cluster< ucolor > >, 
-                        std::unique_ptr< cluster< vec2f > > 
-                    > any_cluster;
-
-class fimage;
-class uimage;
-class vector_field;
-
-typedef std::variant<   std::unique_ptr< fimage >, 
-                        std::unique_ptr< uimage >, 
-                        std::unique_ptr< vector_field > 
-                    > any_image;
-
 struct scene {
     // global scene properties
-    fimage background;
+    fimage background; // can background be just another element?
     // effect< frgb > eff;
 
     std::vector< any_cluster > clusters;
