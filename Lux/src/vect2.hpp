@@ -16,6 +16,7 @@
 #define TAU 6.283185307179586f
 
 #include "linalg.h"
+#include "mask_mode.hpp"
 
 typedef linalg::vec< float, 2 > vec2f;
 typedef linalg::vec< int,   2 > vec2i;
@@ -53,11 +54,11 @@ vec2f inverse( const vec2f& in, const float& diameter, const float& soften = 0.0
 vec2f complex_power( const vec2f& in, const float& p );
 
 // masking functions
-void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask );
+void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode = MASK_BLEND  );
 
 // Axis-aligned bounding box
 template< class T, int M > struct bounding_box {
-    typedef linalg::vec< T, M >            V;
+    typedef linalg::vec< T, M > V;
     V b1, b2;  // Bounds define opposite corners of the box. Inputs to constructor do not need to be minimum and maximum - this is calculated automatically.
     V minv, maxv;  // Per-component vectors sorted so mins[ foo ] <= maxs[ foo ] is always true
     V minp, maxp;  // Padded bounding box values to calculate if point is within a specified distance to bounding box in any dimension
@@ -102,6 +103,8 @@ template< class T, int M > struct bounding_box {
     // return intersection of two bounding boxes
     template< class U > bounding_box< T, M > intersect( const bounding_box< U, M >& in ) const 
     { return bounding_box< U, M > ( max( minv, in.minv ), min( maxv, in.maxv ) ); }
+
+    V center() { return ( b1 + b2 ) / 2.0f; }
 };
 
 typedef bounding_box< int,   2 > bb2i;

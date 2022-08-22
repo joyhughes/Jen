@@ -84,7 +84,14 @@ vec2f complex_power( const vec2f& in, const float& p ) {
 	return out;
 } 
 
-void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask ) {
-    result = linalg::lerp( result, layer, mask );
+void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode ) {
+    if( mmode %2 )  {   // mask affects splat
+        if( mmode % 1 ) result = linalg::lerp( result, layer, mask );
+        else result = linalg::cmul( result, ( vec2f( { 1.0f, 1.0f } ) - mask ) )  + layer;
+    }
+    else{
+        if( mmode % 1 ) result += linalg::cmul( layer, mask );
+        else result += layer;   // mask has no effect
+    }    
 }
 
