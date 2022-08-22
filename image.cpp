@@ -2,9 +2,11 @@
 // Handles functions common to all of these classes.
 // Supports linear interpolated sampling and mip-mapping - multiple resolutions for anti-aliasing
 
-#include <optional>
 #include "image.hpp"
+#include "fimage.hpp"
+#include "uimage.hpp"
 #include "vector_field.hpp"
+#include "any_image.hpp"
 
 template< class T > void image< T >::mip_it() { // mip it good
     if( mip_me ) {
@@ -124,13 +126,20 @@ template< class T > void image< T >::apply_mask( const image< T >& layer, const 
 }
 
 template< class T > void image< T >::splat( 
-        const vec2f& center, 			// coordinates of splat center
-        const float& scale, 			// radius of splat
-        const float& theta, 			// rotation in degrees
-        std::optional< T >& tint,		// change the color of splat
-        const image< T >& g 	)	                // image of the splat
-{
-    float thrad = theta / 360.0 * TAU;             // theta in radians
+    const vec2f& center, 			    // coordinates of splat center
+    const float& scale, 			    // radius of splat
+    const float& theta, 			    // rotation in degrees
+    const std::optional< std::reference_wrapper< image< T > > > splat_image,    // image of the splat
+    const std::optional< std::reference_wrapper< image< T > > > mask,    // optional mask image - currentl must have same dimensions as splat
+    const std::optional< std::reference_wrapper< T > >          tint )  // change the color of splat
+{   
+    if( !(splat_image.has_value()) )   return;  // image missing
+    image< T >& g = splat_image->get();
+    bool has_tint = tint.has_value();
+    T my_tint;
+    if( has_tint ) my_tint = tint->get();
+
+    float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
 	int size = scale / ( bounds.b2.x - bounds.b1.x ) * dim.x; // scale in pixel coordinates
     bb2i sbounds( p, size );    // bounding box of splat
@@ -161,15 +170,15 @@ template< class T > void image< T >::splat(
 	// Should work best if splat is fairly large and smooth.
     // future: add option to smooth sample into splat's mip-map
     // future: add mask
-    // future: add effects ( warp, melt, hyper, life )
+    // future: add vector and color effects
 
 	for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
         sfix = scfix;
 		if( ( x >= 0 ) && ( x < dim.x ) ) {
 			for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
 				if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
-                    if( tint.has_value() ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], *tint );
-                    else          base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
+                    if( has_tint ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint );
+                    else           base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
 				}
 				sfix += unyfix;
 			}

@@ -10,6 +10,13 @@ vec2f vortex::operator () ( const vec2f& v, const float& t ) {
     return out;
 }
 
+vec2f vortex_field::operator () ( const vec2f& v, const float& t ) {
+    if( !generated ) generate();
+    vec2f out = { 0.0f, 0.0f };
+    for( auto vort : vorts ) out += vort( v, t );
+    return out;
+}
+
 void vortex_field::generate() {
     vortex vort;
     std::uniform_int_distribution<> velocity_distribution( min_velocity, max_velocity );
@@ -140,11 +147,11 @@ void vector_field::vortex( const ::vortex& vort, const float& t ) {
     mip_it();
 }
 
-void vector_field::turbulent( vortex_field& f, const float& t ) {
-    if( !f.generated ) f.generate();
+void vector_field::turbulent( vortex_field& ca, const float& t ) {
+    //if( !(ca.generated) ) ca.generate();
     fill( { 0.0f, 0.0f } );
     vector_field buffer( *this );
-    for( auto& vort : f.vorts ) { buffer.vortex( vort ); *this += buffer; }
+    for( auto& vort : ca.vorts ) { buffer.vortex( vort ); *this += buffer; }
     mip_it();
 }
  
