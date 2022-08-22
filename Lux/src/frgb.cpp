@@ -49,8 +49,22 @@ void constrain( frgb &c ) {
     }
 }
 
-void apply_mask( frgb &result, const frgb &layer, const frgb &mask ) {
-    result = linalg::lerp( result, layer, mask );
+void apply_mask( frgb &result, const frgb &layer, const frgb &mask, const mask_mode& mmode ) {
+    switch( mmode ) {
+        case MASK_ADDITIVE: result += layer; break;
+        case MASK_TRIM:     result += linalg::cmul( layer, mask ); break;
+        case MASK_OPACITY:  result =  linalg::cmul( result, ( frgb({ 1.0f, 1.0f, 1.0f }) - mask ) ) + layer; break;
+        case MASK_BLEND:    result =  linalg::lerp( result, layer, mask ); break;
+    }
+    /*
+    if( mmode % 2 )  {   // mask affects splat
+        if( mmode % 1 ) result = linalg::lerp( result, layer, mask );
+        else result += linalg::cmul( layer, mask );
+    }
+    else{
+        if( mmode % 1 ) result = linalg::cmul( result, ( frgb({ 1.0f, 1.0f, 1.0f }) - mask ) )  + layer;
+        else result += layer;   // mask has no effect
+    }   */ 
 }
 
 void print_SRGB( const frgb &c ) {

@@ -5,9 +5,8 @@
 #define __FRGB_HPP
 
 #include <iostream>
-//#include <array>
-//#include <algorithm>
 #include "linalg.h"
+#include "mask_mode.hpp"
 
 #ifndef R
     #define R x 
@@ -55,7 +54,7 @@ void print_SRGB( const frgb &c );
 void constrain( frgb &c );  // Clip to range [ 0.0, 1.0 ] but keep colors in proportion
 //frgb& constrain( const frgb &c );   
 
-void apply_mask( frgb& result, const frgb& layer, const frgb& mask );
+void apply_mask( frgb& result, const frgb& layer, const frgb& mask, const mask_mode& mmode = MASK_BLEND );
 // frgb apply_mask( const frgb &base, const frgb &mask, frgb &result );
 
 inline float luminance( const frgb &c );  // Returns approximate visual brightness of color
