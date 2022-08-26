@@ -28,7 +28,6 @@ typedef enum image_extend image_extend;
 template< class T > class image {
 
 protected:
-    typedef image< T > I;
 
     vec2i dim;              // Dimensions in pixels
     std::vector< T > base;  // Pixels
@@ -50,6 +49,8 @@ protected:
     void mip_it();  // mipit good
 
 public:
+    typedef image< T > I;
+
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
         mip_me( false ), mipped( false ), mip_utd( false ) {}     
@@ -71,7 +72,9 @@ public:
         }
 
     // load constructor
-    image( const std::string& filename ) : image() { load( filename ); }     
+    image( const std::string& filename ) : image() { load( filename ); } 
+
+    T* get_base() { return &(base[0]); }    
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
     auto begin() noexcept { return base.begin(); }
@@ -101,10 +104,12 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
+    // as opposed to crop cirle
     void circle_crop( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
     void fill( const T& c );
+    void noise( const float& a );
 
     // masking
     void apply_mask( const I& layer, const I& mask, const mask_mode& mmode = MASK_BLEND );
@@ -190,14 +195,5 @@ public:
     buffer_pair( const std::string& filename ) { load( filename ); }
     buffer_pair( const image< T >& img ) { reset( img ); }
 };
-
-// Owns a buffer pair for image, buffer pair for mask
-// Image class does not have alpha channel - instead uses 3-channel masking
-/*template< class T, class U > struct image_mask_pair {
-    std::unique_ptr< image< T > > img;
-    std::unique_ptr< image< T > > mask;
-
-    bool has_mask();
-}; */
 
 #endif // __IMAGE_HPP

@@ -112,7 +112,7 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
 
 // Colors black everything outside of a centered circle
 template< class T > void image< T >::circle_crop( const float& ramp_width ) {
-    T zero; zero *= 0;
+    T black; ::black( black );
     float r2;   // radius in pixel space
     if( dim.x > dim.y ) r2 = dim.x / 2.0; 
     else r2 = dim.y / 2.0;
@@ -123,7 +123,7 @@ template< class T > void image< T >::circle_crop( const float& ramp_width ) {
     for( int x = 0; x < dim.x; x++ ) {
         for( int y = 0; y < dim.y; y++ ) {
             float r = linalg::length2( vec2f( { x * 1.0f, y * 1.0f } ) - center );
-            if( r > r2 ) base[ y * dim.x + x ] *= zero;
+            if( r > r2 ) base[ y * dim.x + x ] *= black;
             if( r > r1 ) base[ y * dim.x + x ] *= ( 1.0f - sqrtf( r / r2 ) ) / ramp_width;
         }
     }
@@ -132,6 +132,13 @@ template< class T > void image< T >::circle_crop( const float& ramp_width ) {
 
 template< class T > void image< T >::fill( const T& c ) {
     std::fill( begin(), base.end(), c );
+    mip_it();
+}
+
+template< class T > void image< T >::noise( const float& a ) {
+    for ( auto& pix : base ) {
+        if( weighted_bit( a ) ) white( pix ); else black( pix );
+    }
     mip_it();
 }
 
