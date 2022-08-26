@@ -10,6 +10,7 @@
 #include "scene.hpp"
 #include "next_element.hpp"
 #include "warp.hpp"
+#include "life.hpp"
 
 #include <unistd.h>
 #include <sstream>
@@ -421,7 +422,7 @@ void test_branch() {
     }
 }
 */
-void circle_crop() {
+void circle_crop() {    // not crop circle
     fimage a;
     a.load( "../../Jen-C/RainbowMoon.jpg" ); 
     a.circle_crop( 0.15f );
@@ -450,6 +451,32 @@ void test_mask() {
     a.write_jpg( "galaxy_moon.jpg", 100 );
 }
 
+void test_life() {
+    const int nframes = 100;
+    using std::cout;
+    cout << "\nTESTING LIFE\n\n";
+
+    fimage a;
+    a.load( "../../Jen-C/hk_square.jpg" ); 
+    a.noise( 0.5 );
+
+    a.clamp();
+    life< frgb > lifer;
+    buffer_pair< frgb > buf( a );
+
+    for( int i = 0; i < nframes; i++ ) {
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "frames/hk_life_" << std::setfill('0') << std::setw(4) << i << ".png";
+        std::string filename;
+        filename = s.str();
+        //buf.reset( a );
+        lifer( buf );
+        ((fimage &)(buf())).write_png( filename );
+    }
+}
+
+
 int main() {
     //test_frgb();
     //test_vect2();
@@ -462,7 +489,8 @@ int main() {
     //test_branch();
     //test_melt();
     //circle_crop();
-    test_mask();
+    //test_mask();
+    test_life();
 
     return 0;
 }
