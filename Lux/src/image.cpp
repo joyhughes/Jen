@@ -2,9 +2,11 @@
 // Handles functions common to all of these classes.
 // Supports linear interpolated sampling and mip-mapping - multiple resolutions for anti-aliasing
 
-#include <optional>
 #include "image.hpp"
+#include "fimage.hpp"
+#include "uimage.hpp"
 #include "vector_field.hpp"
+#include "any_image.hpp"
 
 template< class T > void image< T >::mip_it() { // mip it good
     if( mip_me ) {
@@ -46,6 +48,7 @@ template< class T > void image< T >::set_dim( const vec2i& dims ) {
 }
 
 template< class T > const bb2f image< T >::get_bounds() const { return bounds; }
+template< class T > const bb2i image< T >::get_ipbounds() const { return ipbounds; }
 template< class T > void image< T >::set_bounds( const bounding_box< float, 2 >& bb ) { bounds = bb; }
 
 // returns true if images have same dimensions
@@ -66,7 +69,7 @@ template< class T > const T image< T >::index ( const vec2i& vi, const image_ext
             if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
             if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
         }
-        if( !ipbounds.in_bounds_half_open( { x, y } ) ) std::cout << "vi: " << vi.x << " " << vi.y << " xblock: " << xblock << " yblock: " << yblock << " { x, y }:" << x << " " << y << "\n";
+        // if( !ipbounds.in_bounds_half_open( { x, y } ) ) std::cout << "vi: " << vi.x << " " << vi.y << " xblock: " << xblock << " yblock: " << yblock << " { x, y }:" << x << " " << y << "\n";
         result = base[ y * dim.x + x ];    
     }
     return result;
@@ -107,29 +110,59 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
     else return( index( vi, extend ) ); // quick and dirty sampling of nearest pixel value
 }
 
+// Colors black everything outside of a centered circle
+template< class T > void image< T >::circle_crop( const float& ramp_width ) {
+    T zero; zero *= 0;
+    float r2;   // radius in pixel space
+    if( dim.x > dim.y ) r2 = dim.x / 2.0; 
+    else r2 = dim.y / 2.0;
+    float r1 = r2 * ( 1.0f - ramp_width );
+    r1 = r1 * r1; r2 = r2 * r2;
+    vec2f center = fpbounds.center();
+    
+    for( int x = 0; x < dim.x; x++ ) {
+        for( int y = 0; y < dim.y; y++ ) {
+            float r = linalg::length2( vec2f( { x * 1.0f, y * 1.0f } ) - center );
+            if( r > r2 ) base[ y * dim.x + x ] *= zero;
+            if( r > r1 ) base[ y * dim.x + x ] *= ( 1.0f - sqrtf( r / r2 ) ) / ramp_width;
+        }
+    }
+    mip_it(); 
+}
+
 template< class T > void image< T >::fill( const T& c ) {
     std::fill( begin(), base.end(), c );
     mip_it();
 }
 
-template< class T > void image< T >::apply_mask( const image< T >& layer, const image< T >& mask ) {
+template< class T > void image< T >::apply_mask( const image< T >& layer, const image< T >& mask, const mask_mode& mmode ) {
     auto l = layer.begin();
     auto m = mask.begin();
     for ( auto r = begin(); r <= end(); ) {
-        ::apply_mask( *r, *l, *m );
+        ::apply_mask( *r, *l, *m, mmode );
         r++; l++; m++;
     }
     mip_it();
 }
 
 template< class T > void image< T >::splat( 
-        const vec2f& center, 			// coordinates of splat center
-        const float& scale, 			// radius of splat
-        const float& theta, 			// rotation in degrees
-        std::optional< T >& tint,		// change the color of splat
-        const image< T >& g 	)	                // image of the splat
-{
-    float thrad = theta / 360.0 * TAU;             // theta in radians
+    const vec2f& center, 			    // coordinates of splat center
+    const float& scale, 			    // radius of splat
+    const float& theta, 			    // rotation in degrees
+    const std::optional< std::reference_wrapper< image< T > > > splat_image,    // image of the splat
+    const std::optional< std::reference_wrapper< image< T > > > mask,   // optional mask image - currentl must have same dimensions as splat
+    const std::optional< std::reference_wrapper< T > >          tint,   // change the color of splat
+    const mask_mode& mmode               // how will mask be applied to splat and backround?
+)  
+{   
+    if( !(splat_image.has_value()) )   return;  // image missing
+    image< T >& g = splat_image->get();
+    bool has_tint = tint.has_value();
+    T my_tint;
+    if( has_tint ) my_tint = tint->get();
+    bool has_mask = mask.has_value();
+
+    float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
 	int size = scale / ( bounds.b2.x - bounds.b1.x ) * dim.x; // scale in pixel coordinates
     bb2i sbounds( p, size );    // bounding box of splat
@@ -155,26 +188,87 @@ template< class T > void image< T >::splat(
 	vec2i sfix;
     bb2i fixbounds( { 0, 0 }, { ( g.dim.x - 1 ) << 16, ( g.dim.y - 1 ) << 16 });
 
-	// *** Critical loop below ***
-	// Quick and dirty sampling, high speed but risk of aliasing. 
-	// Should work best if splat is fairly large and smooth.
+    // *** Critical loop below ***
+    // Quick and dirty sampling, high speed but risk of aliasing. 
+    // Should work best if splat is fairly large and smooth.
     // future: add option to smooth sample into splat's mip-map
-    // future: add mask
-    // future: add effects ( warp, melt, hyper, life )
-
-	for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
-        sfix = scfix;
-		if( ( x >= 0 ) && ( x < dim.x ) ) {
-			for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
-				if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
-                    if( tint.has_value() ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], *tint );
-                    else          base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
-				}
-				sfix += unyfix;
-			}
-		}
-		scfix += unxfix;
-	}
+    // future: add vector and color effects
+    if( has_mask ) {
+        image< T >& m = mask->get();
+        // image and mask same size
+        if( m.dim == g.dim ) {
+            for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
+                sfix = scfix;
+                if( ( x >= 0 ) && ( x < dim.x ) ) {
+                    for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
+                        if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
+                             if( has_tint ) {
+                                ::apply_mask( base[ y * dim.x + x ], 
+                                linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
+                                m.base[ (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) ], 
+                                mmode ); }
+                            else {
+                                ::apply_mask( base[ y * dim.x + x ], 
+                                g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], 
+                                m.base[ (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) ],
+                                mmode );
+                            }
+                        }                        
+                        sfix += unyfix;
+                    }
+                }
+                scfix += unxfix;
+            }
+        }
+        else {        
+            // if image and mask are different sizes, step through separately
+            vec2i mscfix = ( vec2i )(( sc * m.dim / 2.0f + m.dim / 2.0f ) * 65536.0f );
+            vec2i munxfix = ( vec2i )( unx * m.dim / 2.0f * 65536.0f );
+            vec2i munyfix = ( vec2i )( uny * m.dim / 2.0f * 65536.0f );
+            vec2i msfix;
+            bb2i  mfixbounds( { 0, 0 }, { ( m.dim.x - 1 ) << 16, ( m.dim.y - 1 ) << 16 }); 
+            for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
+                sfix = scfix;
+                msfix = mscfix;
+                if( ( x >= 0 ) && ( x < dim.x ) ) {
+                    for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
+                        if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
+                            if( has_tint ) {
+                                ::apply_mask( base[ y * dim.x + x ], 
+                                linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
+                                m.base[ (msfix.y >> 16) * m.dim.x + (msfix.x >> 16) ],
+                                mmode ); }
+                            else {
+                                ::apply_mask( base[ y * dim.x + x ], 
+                                g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], 
+                                m.base[ (msfix.y >> 16) * m.dim.x + (msfix.x >> 16) ],
+                                mmode );
+                            }
+                        }
+                        sfix  +=  unyfix;
+                        msfix += munyfix;
+                    }
+                }
+                scfix += unxfix;
+                mscfix += munxfix;
+            }
+        }      
+    }
+    else {
+        for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
+            sfix = scfix;
+            if( ( x >= 0 ) && ( x < dim.x ) ) {
+                for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
+                    if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
+                        if( has_tint ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint );
+                        else           base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
+                    }
+                    sfix += unyfix;
+                }
+            }
+            scfix += unxfix;
+        }
+    }
 }
 
 template< class T > void image< T >::warp (  const image< T >& in, 
@@ -194,15 +288,10 @@ template< class T > void image< T >::warp (  const image< T >& in,
         bb2f vf_bounds = vf.get_bounds();
         for( int y = 0; y < dim.y; y++ ) {
             for( int x = 0; x < dim.x; x++ ) {
-                //std::cout << " x " << x << " y " << y << "\n";
                 coord = bounds.bb_map( { x, y }, ipbounds );
-                //std::cout << " coord " << coord.x << " " << coord.y << "\n";
                 if( same_dims ) { v = *vfit; vfit++; }
                 else { v = vf.sample( vf_bounds.bb_map( coord, bounds ), true ); }
-                //auto w = vf_bounds.bb_map( coord, bounds );
-                //std::cout << " vf_bounds.bb_map( coord, bounds ) " << w.x << " " << w.y << "\n";
                 if( relative ) v = v * step + coord;
-                //std::cout << " v " << v.x << " " << v.y << "\n";
                 *it = in.sample( v, smooth, extend );
                 it++;
             }
@@ -210,6 +299,32 @@ template< class T > void image< T >::warp (  const image< T >& in,
     }
     mip_it();
 }
+
+template< class T > void image< T >::warp (  const image< T >& in, 
+                                    const std::function< vec2f( vec2f ) >& vfn, 
+                                    const float& step,            // default 1.0
+                                    const bool& smooth,           // default false
+                                    const bool& relative,         // default true
+                                    const image_extend& extend )  // default SAMP_SINGLE 
+{
+    auto it = begin();
+    for( int y = 0; y < dim.y; y++ ) {
+        for( int x = 0; x < dim.x; x++ ) {
+            vec2f coord = bounds.bb_map( { x, y }, ipbounds );
+            vec2f v = vfn( coord );
+            if( relative ) v = v * step + coord;
+            *it = in.sample( v, smooth, extend );
+            it++;
+        }
+    }
+    mip_it();
+}
+
+// apply a vector function to each point in image
+template< class T > void image< T >::apply( const std::function< T ( const T&, const float& ) > fn, const float& t ) {
+    for( auto& v : base ) { v = fn( v, t ); }
+    mip_it();
+} 
 
 template< class T > image< T >& image< T >::operator += ( image< T >& rhs ) {
     using namespace linalg;
@@ -279,6 +394,8 @@ template< class T > image< T >& image< T >::operator /= ( const float& rhs ) {
     mip_it();
     return *this;
 }
+
+template< class T > image< T >& image< T >::operator () () { return *this; }
 
 template class image< frgb >;       // fimage
 template class image< ucolor >;     // uimage

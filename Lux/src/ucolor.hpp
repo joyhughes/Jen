@@ -4,6 +4,7 @@
 #ifndef __UCOLOR_HPP
 #define __UCOLOR_HPP
 
+#include "mask_mode.hpp"
 typedef unsigned int ucolor;
 
 float af( const ucolor &c );
@@ -44,7 +45,7 @@ ucolor shift_right_6( const ucolor &c );
 ucolor shift_right_7( const ucolor &c );
 
 ucolor blend( const ucolor& a, const ucolor& b );
-void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask );
+void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode = MASK_BLEND  );
 
 unsigned long luminance( const ucolor& in );
 ucolor gray( const ucolor& in );

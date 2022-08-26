@@ -69,7 +69,8 @@ ucolor blend( const ucolor& a, const ucolor& b )
    0xff000000;
 }
 
-void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask ) {
+// todo - implement different mask modes + handle overflow values
+void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode ) {
     result =     ( result & 0xff000000 ) |
              ( ( ( result & 0x00ff0000 ) * ( 0xff - ( ( mask & 0x00ff0000 ) >> 16 ) ) + ( layer & 0x00ff0000 ) * ( ( mask & 0x00ff0000 ) >> 16 ) ) >> 8 ) |
              ( ( ( result & 0x0000ff00 ) * ( 0xff - ( ( mask & 0x0000ff00 ) >>  8 ) ) + ( layer & 0x0000ff00 ) * ( ( mask & 0x0000ff00 ) >>  8 ) ) >> 8 ) |

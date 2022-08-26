@@ -179,23 +179,35 @@ void test_vector_field() {
     fimage b( a );
     //std::unique_ptr< image< frgb > > aptr( &a );
     //std::unique_ptr< image< frgb > > bptr( &b );
-    vector_field vf( b.get_dim() );
-    vortex_field vortf( false ); 
-    vortex vort;
-    //vf.turbulent( vortf );
-    vf.vortex( vort );
-    //vf.concentric();
-    //cout << "testing index \n";
-    //auto v =  vf.index( { 5, 5 } );
-    //cout << v.x << " " << v.y << "\n";
-    b.warp( a, vf,   1.0f, true, true, SAMP_REPEAT );
-    b.write_jpg( "hk_warp.jpg", 100 ); 
-    vector_field vf10( { 10, 10 } );
-    //vf10.turbulent( vortf );
-    vf10.vortex( vort );
-    //vf10.concentric();
-    b.warp( a, vf10, 1.0f, true, true, SAMP_REPEAT );
-    b.write_jpg( "hk_warp10.jpg", 100 );
+    vector_field vf( b.get_dim() / 4 );
+    vortex_field vortf( 20, true );
+    vortf.min_intensity = 0.1f; vortf.max_intensity = 0.1f;
+    vortf.generate();
+    int nframes = 100;
+    for( int i = 0; i < nframes; i++ ) {
+        float t = ( 1.0f * i ) / nframes;
+        cout << "frame " << i << "\n";
+        std::ostringstream s;
+        s << "frames/hk_turb_" << std::setfill('0') << std::setw(4) << i << ".jpg";
+        std::string filename;
+        filename = s.str(); 
+        //vortex vort;
+        vf.position_fill();
+        vf.apply( vortf, t );
+        //vf.vortex( vort );
+        //vf.concentric();
+        //cout << "testing index \n";
+        //auto v =  vf.index( { 5, 5 } );
+        //cout << v.x << " " << v.y << "\n";
+        b.warp( a, vf, 1.0f, true, true, SAMP_REFLECT );
+        b.write_jpg( filename, 100 ); 
+        //vector_field vf10( { 10, 10 } );
+        //vf10.turbulent( vortf );
+        //vf10.vortex( vort );
+        //vf10.concentric();
+        //b.warp( a, vf10, 1.0f, true, true, SAMP_REPEAT );
+        //b.write_jpg( "hk_warp10.jpg", 100 );
+    }
 }
 
 void test_splat() {
@@ -204,37 +216,44 @@ void test_splat() {
     a *= 0.5f;
     fimage splat;
     splat.load( "../../Jen-C/orb.jpg" ); 
-    std::optional< frgb > tint; 
+
+    std::optional< std::reference_wrapper< image< frgb  > > > mask; 
+    std::optional< std::reference_wrapper< frgb > > tint; 
    
     a.splat( 
         { 0.0f, 0.0f }, 			    // coordinates of splat center
         0.3f, 			                // radius of splat
         0.0f, 			                // rotation in degrees
-        tint,
-        splat 	);	                    // image of the splat  
+        splat,
+        mask,
+        tint 	);	                    // image of the splat  
 
-    tint =  { 0.5f, 0.5f, 0.5f };
+    frgb my_tint =  { 0.5f, 0.5f, 0.5f };
+    tint = std::ref( my_tint );
     a.splat( 
         { 0.3, 0.4f }, 			        // coordinates of splat center
         0.2f, 			                // radius of splat
         60.0f, 			                // rotation in degrees
-        tint,
-        splat 	);	                    // image of the splat  
+        splat,
+        mask,
+        tint 	);	                    // image of the splat  
 
     a.splat( 
         { 0.4, 0.3f }, 			        // coordinates of splat center
         0.2f, 			                // radius of splat
         -30.0f, 			            // rotation in degrees
-        tint,		                    // change the color of splat
-        splat 	);	                    // image of the splat  
+        splat,
+        mask,
+        tint 	);	                    // image of the splat  
 
-    tint = { 1.0f, 0.5f, 0.0f };
+    my_tint = { 1.0f, 0.5f, 0.0f }; 
     a.splat( 
         { 1.0f, -1.0f }, 			    // coordinates of splat center
         0.8f, 			                // radius of splat
         180.0f, 			            // rotation in degrees
-        tint,		                    // change the color of splat
-        splat 	);	                    // image of the splat
+        splat,
+        mask,
+        tint 	);	                    // image of the splat  
 
     a.write_jpg( "hk_splat.jpg", 100 );
 }
@@ -250,20 +269,24 @@ void test_cluster() {
     vf.normalize();
     fimage splat;
     splat.load( "../../Jen-C/orb.jpg" ); 
-    element< frgb > el( splat,              // image
-                        { -0.1f, 0.0f },    // position
-                        0.1f );             // scale
-    next_element< frgb > next_elem( 1000, a.get_bounds() );
-    advect_element< frgb > advector( vf, 1.4f );  
-    scale_ratio< frgb > shrinker( 0.99f ); 
-    angle_branch< frgb > brancher( 100 );                 
+
+    element el( { -0.1f, 0.0f },    // position
+            0.1f,                    // scale
+            0.0f,
+            0.0f,
+            splat );
+    next_element next_elem( 1000, a.get_bounds() );
+    advect_element advector( vf, 1.4f );  
+    //scale_ratio shrinker( 0.99f ); 
+    angle_branch brancher( 100 );                 
     next_elem.add_function( advector );
     next_elem.add_function( brancher );
-    cluster< frgb > cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
+    cluster cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
     cl.render( a );
     a.write_jpg( "hk_cluster.jpg", 100 );                    
 }
 */
+
 void test_branch() {
     const int nframes = 100;
     using std::cout;
@@ -277,30 +300,33 @@ void test_branch() {
     fimage splat;
     splat.load( "../../Jen-C/orb.jpg" );
 
-    element< frgb > el( splat,              // image
-                        { 0.0f, 0.0f },     // position
-                        0.05f );            // scale
-    next_element< frgb > next_elem( 100, a.get_bounds() );
-    advect_element< frgb > advector( vf, 1.4f );  
-    ratio< frgb, float > shrinker( 0.9f ); 
-    scale_fn< frgb > scaler( shrinker );
-    angle_branch< frgb > brancher( 4, 1 ); 
-    curly< frgb > curler( 0.5f );
+    element el( { -0.1f, 0.0f },    // position
+            0.05f,                    // scale
+            0.0f,
+            0.0f,
+            splat );
 
-    wiggle< frgb > wiggler1( 0.25f, 0.3f, 0.0f, 0.0f );
-    time_param< frgb > wiggle_time1( wiggler1 );
-    adder< frgb, float > add_wiggle1;
+    next_element next_elem( 100, a.get_bounds() );
+    advect_element advector( vf, 1.4f );  
+    ratio< float > shrinker( 0.9f ); 
+    scale_fn scaler( shrinker );
+    angle_branch brancher( 4, 1 ); 
+    curly curler( 0.5f );
+
+    wiggle wiggler1( 0.25f, 0.3f, 0.0f, 0.0f );
+    time_param wiggle_time1( wiggler1 );
+    adder< float > add_wiggle1;
     add_wiggle1.r.add_function( wiggle_time1 );
     curler.curliness.add_function( add_wiggle1 );
 
-    wiggle< frgb > wiggler( 4.0f, 45.0f, 0.0f, 10.0f );
-    log_fn< frgb > wiggle_damper( -40.0f, 1.0f );
-    scale_param< frgb > wiggle_damper_param( wiggle_damper );
+    wiggle wiggler( 4.0f, 45.0f, 0.0f, 10.0f );
+    log_fn wiggle_damper( -40.0f, 1.0f );
+    scale_param wiggle_damper_param( wiggle_damper );
     wiggler.amplitude.add_function( wiggle_damper_param );
-    index_param< frgb > wiggle_indexer( wiggler );
-    adder< frgb, float > add_wiggle;
+    index_param wiggle_indexer( wiggler );
+    adder< float > add_wiggle;
     add_wiggle.r.add_function( wiggle_indexer );
-    orientation_fn< frgb > orientation_wave( add_wiggle );
+    orientation_fn orientation_wave( add_wiggle );
 
     next_elem.add_function( scaler );
     next_elem.add_function( curler );
@@ -308,8 +334,7 @@ void test_branch() {
     next_elem.add_function( advector );
     next_elem.add_function( brancher );
 
-    //next_elem.add_function( brancher );
-    cluster< frgb > cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
+    cluster cl( el, next_elem, 100, 0, 10, 0.001f, a.get_bounds() );
     float scale = 0.0f;
     for( int i = 0; i < nframes; i++ ) {
         float t = ( 1.0f * i ) / nframes;
@@ -322,9 +347,10 @@ void test_branch() {
         cl.root_elem.scale = scale;
 
         // swim
-        element< frgb > el2 = cl.root_elem;
+        element el2 = cl.root_elem;
         vec2f position = el2.position;
-        element_context< frgb > ctxt( el2, cl, a, t );
+        any_image img( a );
+        element_context ctxt( el2, cl, img, t );
         next_elem( ctxt );
         vec2f delta = position - el2.position;
         cl.root_elem.position += delta * 0.075f;
@@ -335,7 +361,7 @@ void test_branch() {
     }                  
 }
 
-void test_melt() {
+/*void test_melt() {
     const int nframes = 100;
     using std::cout;
     cout << "\nTESTING MELT\n\n";
@@ -343,10 +369,11 @@ void test_melt() {
     fimage a;
     a.load( "../../Jen-C/hk_square.jpg" ); 
 
-    vector_field vf( a.get_dim() );
-    vortex vort;
-    vf.vortex( vort );
+    //vector_field vf( a.get_dim() );
+    vortex_field vort_field( 10, false ); */
+    //vf.apply( vort_field );
 
+/*
     eff_vector_warp< frgb > warper( vf, 0.025f, false, true, SAMP_REPEAT );
     typedef std::function< bool ( buffer_pair< frgb >&, const float& ) > eff_fn_frgb;
     eff_fn_frgb warp_fn( warper );
@@ -376,9 +403,10 @@ void test_melt() {
         ((fimage &)(buf())).write_jpg( filename, 100 );
         vmelt.iterate();
     }
-
-    vector_fn vort_fn = vort;
+*/ /*
+    vector_fn vort_fn = vort_field;
     functional_melt< frgb > fmelt( vort_fn, 0.025f, a.get_dim() );
+    buffer_pair< frgb > buf( a );
 
     for( int i = 0; i < nframes; i++ ) {
         cout << "frame " << i << "\n";
@@ -392,6 +420,35 @@ void test_melt() {
         fmelt.iterate();
     }
 }
+*/
+void circle_crop() {
+    fimage a;
+    a.load( "../../Jen-C/RainbowMoon.jpg" ); 
+    a.circle_crop( 0.15f );
+    a.write_jpg( "moonsplat.jpg", 100 );
+}
+
+void test_mask() {
+    fimage a;
+    a.load( "../../Jen-C/galaxy.jpg" ); 
+    fimage splat;
+    splat.load( "moonsplat.jpg");
+    fimage mask;
+    mask.load( "moonmask.jpg");
+    frgb tint = { 0.5f, 0.5f, 0.5f };
+
+    a.splat( 
+        { 0.3f, -0.3f }, 			    // coordinates of splat center
+        0.6f, 			                // radius of splat
+        0.0f, 			                // rotation in degrees
+        splat,                          // image of the splat
+        mask,
+        tint,
+        MASK_ADDITIVE
+    );	                      
+
+    a.write_jpg( "galaxy_moon.jpg", 100 );
+}
 
 int main() {
     //test_frgb();
@@ -402,8 +459,10 @@ int main() {
     //test_vector_field();
     //test_splat(); 
     //test_cluster();
-    test_branch();
+    //test_branch();
     //test_melt();
+    //circle_crop();
+    test_mask();
 
     return 0;
 }
