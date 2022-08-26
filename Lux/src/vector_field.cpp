@@ -44,7 +44,7 @@ void vortex_field::generate() {
                 break;
             
             case RANDOM:
-                if( rand_bit( gen ) ) vort.velocity *= -1;
+                if( fair_coin( gen ) ) vort.velocity *= -1;
                 break;
 
             case LAVA_LAMP:
@@ -65,7 +65,7 @@ void vortex_field::generate() {
             break;
         
        case RANDOM:
-            if( rand_bit( gen ) ) vort.intensity *= -1.0f;
+            if( fair_coin( gen ) ) vort.intensity *= -1.0f;
             break;
 
         case LAVA_LAMP:

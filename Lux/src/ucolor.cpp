@@ -60,7 +60,7 @@ ucolor shift_right_7( const ucolor &c ) { return ( c >> 7 ) & 0x01010101; }
 
 ucolor blend( const ucolor& a, const ucolor& b )
 {
-   unsigned int random_bit = rand_bit( gen );
+   unsigned int random_bit = fair_coin( gen );
 
    return
    ( ( ( ( a & 0x00ff0000 ) + ( b & 0x00ff0000 ) + 0x00010000 * random_bit ) >> 1 ) & 0x00ff0000 ) + 
