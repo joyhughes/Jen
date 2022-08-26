@@ -50,5 +50,34 @@ void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const 
 unsigned long luminance( const ucolor& in );
 ucolor gray( const ucolor& in );
 
+inline void white( ucolor& w ) { w = 0xffffffff; }
+inline void black( ucolor& b ) { b = 0x00000000; }
+
+inline ucolor manhattan( const ucolor& a, const ucolor& b )
+{
+   unsigned int out = 0;
+
+   if( ( a & 0x00ff0000 ) > ( b & 0x00ff0000 ) ) out += ( ( a & 0x00ff0000 ) >> 16 ) - ( ( b & 0x00ff0000 ) >> 16 );
+      else out += ( ( b & 0x00ff0000 ) >> 16 ) - ( ( a & 0x00ff0000 ) >> 16 );
+
+   if( ( a & 0x0000ff00 ) > ( b & 0x0000ff00 ) ) out += ( ( a & 0x0000ff00 ) >> 8 ) - ( ( b & 0x0000ff00 ) >> 8 );
+      else out +=  ( ( b & 0x0000ff00 ) >> 8 ) - ( ( a & 0x0000ff00 ) >> 8 );
+
+   if( ( a & 0x000000ff ) > ( b & 0x000000ff ) ) out += ( a & 0x000000ff ) - ( b & 0x000000ff );
+      else out += ( b & 0x0000ff00 ) - ( a & 0x0000ff00 );
+
+   return out;
+}
+
+/*inline ucolor blend( const ucolor& a, const ucolor& b )
+{
+   unsigned int random_bit = rand() % 2;
+
+   return
+   ( ( ( ( a & 0x00ff0000 ) + ( b & 0x00ff0000 ) + 0x00010000 * random_bit ) >> 1 ) & 0x00ff0000 ) + 
+   ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
+   ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
+   0xff000000;
+}*/
 
 #endif // __UCOLOR_HPP

@@ -56,6 +56,10 @@ vec2f complex_power( const vec2f& in, const float& p );
 // masking functions
 void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode = MASK_BLEND  );
 
+// included for cellular automata operating on vector fields (weird but maybe cool?)
+inline void white( vec2f& w ) { w = vec2f( { 1.0f, 1.0f } ); }
+inline void black( vec2f& b ) { b = vec2f( { 0.0f, 0.0f } ); }
+
 // Axis-aligned bounding box
 template< class T, int M > struct bounding_box {
     typedef linalg::vec< T, M > V;

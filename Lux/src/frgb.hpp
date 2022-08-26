@@ -59,6 +59,8 @@ void apply_mask( frgb& result, const frgb& layer, const frgb& mask, const mask_m
 
 inline float luminance( const frgb &c );  // Returns approximate visual brightness of color
 frgb gray( const frgb &c );        // Grays out the color
+inline void white( frgb& w ) { w = frgb( { 1.0f, 1.0f, 1.0f  } ); }
+inline void black( frgb& b ) { b = frgb( { 0.0f, 0.0f, 0.0f  } ); }
 
 // Future: HSV and other color spaces
 
