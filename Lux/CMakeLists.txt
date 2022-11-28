@@ -10,6 +10,7 @@ include_directories(src)
 set(CMAKE_CXX_STANDARD 20)
 
 set(COMMON_LIB_SRCS
+src/any_image.hpp
 src/effect.hpp
 src/fimage.hpp
 src/fimage.cpp
@@ -22,11 +23,16 @@ src/image_loader.cpp
 src/image.hpp
 src/image.cpp
 src/joy_rand.hpp
+src/json.hpp
+src/life.hpp
+src/life.cpp
 src/linalg.h
 src/next_element.hpp
 src/next_element.cpp
 src/scene.hpp
 src/scene.cpp
+src/scene_io.hpp
+src/scene_io.cpp
 src/ucolor.hpp
 src/ucolor.cpp
 src/uimage.hpp
