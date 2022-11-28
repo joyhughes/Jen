@@ -22,6 +22,7 @@ void fimage::grayscale() {
 }
 
 void fimage::load( const std::string& filename ) {
+    std::cout << "fimage::load\n";
     reset();
     image_loader loader( filename );
     set_dim( { loader.xsiz, loader.ysiz } );
@@ -61,6 +62,7 @@ void fimage::load( const std::string& filename ) {
         base.push_back( f );
     }
     mip_it();
+    std::cout << "Image load complete\n";
 }
 
 void fimage::quantize( std::vector< unsigned char >& img )

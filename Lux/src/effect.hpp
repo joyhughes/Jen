@@ -1,3 +1,7 @@
+
+#ifndef __EFFECT_HPP
+#define __EFFECT_HPP
+
 #include "image.hpp"
 
 // Component effect - wrapper for warp with vector field
@@ -12,9 +16,9 @@ template< class T > struct eff_vector_warp {
     bool operator () ( buffer_pair< T >& buf, const float& t = 0.0f ) { 
         if( buf.has_image() ) {
             // Use buffer_pair operator () to return reference to first member of pair
-            buf.get_buffer().warp( buf(), vf, step, smooth, relative, extend ); 
+            buf.get_buffer().warp( buf(), vf, step, smooth, relative, extend );
             buf.swap();
-            return true; 
+            return true;
         }
         else {
             return false;
@@ -48,7 +52,7 @@ template< class T > struct eff_n {
 
 // Composite effect. Runs a stack of component effects.
 template< class T > struct effect {
-    typedef std::function< bool ( buffer_pair< T >&, const float& ) > eff_fn;
+    typedef std::function< bool ( buffer_pair< T >&, const float& ) > eff_fn;   // eff_fn good!
 
     std::vector< eff_fn > functions; // component functions for effect
 
@@ -59,3 +63,5 @@ template< class T > struct effect {
 
     void add_effect( const eff_fn& eff ) { functions.push_back( eff ); }
 };
+
+#endif // __EFFECT_HPP
