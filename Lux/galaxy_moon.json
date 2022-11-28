@@ -1,0 +1,50 @@
+{
+    "name": "galaxy_moon",
+    "images": 
+    [ 
+        { 
+            "type" : "fimage", 
+            "filename": "../samples/galaxy.jpg", 
+            "name": "galaxy" 
+        },
+        { 
+            "type": "fimage", 
+            "filename": "../samples/moonsplat.jpg", 
+            "name": "moonsplat"
+        },
+        { 
+            "type": "fimage", 
+            "filename": "../samples/moonmask.jpg", 
+            "name": "moonmask"
+        }  
+    ],
+    "elements": 
+    [
+        { 
+            "name": "background_element",
+            "image": "galaxy"
+        },
+        {
+            "name": "moon_element",
+            "image": "moonsplat",
+            "mask": "moonmask",
+            "tint": { "frgb": [ 0.5, 0.5, 0.5] },
+            "position": [ 0.3, -0.3 ],
+            "scale": 0.6,
+            "mask_mode": "opacity"
+        }
+    ],
+    "clusters": 
+    [
+        {
+            "name": "background_cluster",
+            "element": "background_element",
+            "tlc": true
+        },
+        {
+            "name": "moon_cluster",
+            "element": "moon_element",
+            "tlc": true
+        }
+    ]
+}
