@@ -6,8 +6,9 @@
 #include <optional>
 #include "image.hpp"
 #include "any_image.hpp"
-#include "any_function.hpp"
+
 #include "effect.hpp"
+#include "next_element.hpp"
 
 //template< class T > struct effect;
 struct element;
@@ -78,8 +79,6 @@ struct element {
             index( 0 ) {}
 };
 
-struct next_element;
-
 // A default cluster with root set to default element with a single image should produce a full frame image, e.g. for background
 struct cluster {
     element root_elem;       // initial element in cluster
@@ -139,9 +138,11 @@ struct scene {
     std::map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::map< std::string, std::shared_ptr< cluster > > clusters; // scene defined as a set of clusters
     std::vector< std::string > tlc;   // list of top level cluster names in rendering order
+
     
     vec2i size; // size of output image
     
+
     scene( const std::string& filename, const vec2i& size_init = { 1024, 1024 } );   // Load scene file (JSON)
 
     void set_size( const vec2i& size_init );
