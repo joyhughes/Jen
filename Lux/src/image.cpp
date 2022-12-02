@@ -7,6 +7,8 @@
 #include "uimage.hpp"
 #include "vector_field.hpp"
 #include "any_image.hpp"
+#include <iostream>
+#include <fstream>
 
 template< class T > void image< T >::mip_it() { // mip it good
     if( mip_me ) {
@@ -43,6 +45,7 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
     dim = dims;
+    bounds.set( { -1.0, ( -1.0 * dim.y ) / dim.x }, { 1.0, ( 1.0 * dim.y ) / dim.x } );
     ipbounds.set( { 0, 0 }, dim );
     fpbounds.set( { 0.0f, 0.0f }, ( vec2f )dim - 1.0f );
 }
@@ -69,7 +72,6 @@ template< class T > const T image< T >::index ( const vec2i& vi, const image_ext
             if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
             if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
         }
-        // if( !ipbounds.in_bounds_half_open( { x, y } ) ) std::cout << "vi: " << vi.x << " " << vi.y << " xblock: " << xblock << " yblock: " << yblock << " { x, y }:" << x << " " << y << "\n";
         result = base[ y * dim.x + x ];    
     }
     return result;
@@ -84,7 +86,6 @@ template< class T > const T image< T >::sample_tile ( const vec2f& v, const bool
     if( v.y < 0.0f ) vi.y -= 1;
     if( smooth ) {  // linearly interpolated between neighboring values
         vec2f rem = v - bounds.bb_map( vi, ipbounds );  // Get remainders for interpolation
-        std::cout << "sample v = " << v.x << " " << v.y << " vi = " << vi.x << " " << vi.y << " rem " << rem.x << " " << rem.y << "\n";
         return lerp( lerp ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
                      lerp ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
  //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ), 
@@ -101,7 +102,6 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
     if( vf.y < 0.0f ) vi.y -= 1;
     if( smooth ) {  // linearly interpolated between neighboring values
         vec2f rem = vf - ( vec2f )vi;  // Get remainders for interpolation
-        //std::cout << "sample v = " << v.x << " " << v.y << " vi = " << vi.x << " " << vi.y << " rem " << rem.x << " " << rem.y << "\n";
         return lerp( lerp ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
                      lerp ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
  //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ), 
@@ -156,18 +156,18 @@ template< class T > void image< T >::splat(
     const vec2f& center, 			    // coordinates of splat center
     const float& scale, 			    // radius of splat
     const float& theta, 			    // rotation in degrees
-    const std::optional< std::reference_wrapper< image< T > > > splat_image,    // image of the splat
-    const std::optional< std::reference_wrapper< image< T > > > mask,   // optional mask image - currentl must have same dimensions as splat
-    const std::optional< std::reference_wrapper< T > >          tint,   // change the color of splat
-    const mask_mode& mmode               // how will mask be applied to splat and backround?
+    std::shared_ptr< image< T > > splat_image,    // image of the splat
+    std::shared_ptr< image< T > > mask, // optional mask image
+    const std::optional< T >&     tint, // change the color of splat
+    const mask_mode& mmode              // how will mask be applied to splat and backround?
 )  
 {   
-    if( !(splat_image.has_value()) )   return;  // image missing
-    image< T >& g = splat_image->get();
+    if( !(splat_image.get()) ) throw std::runtime_error( "  no splat image\n" ); // null pointer - image missing
+    image< T >& g = *splat_image;
     bool has_tint = tint.has_value();
     T my_tint;
-    if( has_tint ) my_tint = tint->get();
-    bool has_mask = mask.has_value();
+    if( has_tint ) my_tint = *tint;
+    bool has_mask = ( mask.get() != NULL );
 
     float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
@@ -176,7 +176,7 @@ template< class T > void image< T >::splat(
 	vec2f smin = bounds.bb_map( sbounds.minv, ipbounds );
 	vec2f sc;
 	sc.x = (smin.x - center.x) / scale;
-	sc.y = -(smin.y - center.y) / scale;
+	sc.y = (smin.y - center.y) / scale;
     sc = linalg::rot( -thrad, sc );
 
 	// calculate unit vectors - one pixel long
@@ -185,7 +185,7 @@ template< class T > void image< T >::splat(
 	unx.y = 0.0f;
 	unx = linalg::rot( -thrad, unx );
 	uny.x = 0.0f;
-	uny.y = 1.0f / dim.y * ( bounds.b2.y - bounds.b1.y ) / scale;
+	uny.y = -1.0f / dim.y * ( bounds.b2.y - bounds.b1.y ) / scale;
 	uny = linalg::rot( -thrad, uny );
 
 	// convert vectors to splat pixel space - fixed point
@@ -201,7 +201,7 @@ template< class T > void image< T >::splat(
     // future: add option to smooth sample into splat's mip-map
     // future: add vector and color effects
     if( has_mask ) {
-        image< T >& m = mask->get();
+        image< T >& m = *mask;
         // image and mask same size
         if( m.dim == g.dim ) {
             for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
@@ -325,6 +325,32 @@ template< class T > void image< T >::warp (  const image< T >& in,
         }
     }
     mip_it();
+}
+
+template< class T > void image< T >::read_binary(  const std::string &filename )
+{
+    vec2i new_dim;
+    bb2f new_bounds;
+
+    std::ifstream in_file( filename, std::ios::in | std::ios::binary );
+    in_file.read( (char*)&new_dim, sizeof( vec2i ) );
+    set_dim( new_dim );
+    base.resize( dim.x * dim.y );
+
+    in_file.read( (char*)&new_bounds, sizeof( bb2f ) );
+    set_bounds( new_bounds );
+
+    in_file.read( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
+    mip_it();
+}
+
+template< class T > void image< T >::write_binary( const std::string &filename )
+{
+    std::ofstream out_file( filename, std::ios::out | std::ios::binary );
+    out_file.write( (char*)&dim, sizeof( vec2i ) );
+    out_file.write( (char*)&bounds, sizeof( bb2f ) );
+    out_file.write( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
+    out_file.close();
 }
 
 // apply a vector function to each point in image
