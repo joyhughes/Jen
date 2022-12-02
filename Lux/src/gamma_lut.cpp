@@ -23,6 +23,7 @@ typedef union {
     unsigned int ui;
 } flubber;
 
+// Deprecated – for debugging purposes only
 void printBinary( int n, int i )
 {
     // Prints the binary representation
@@ -39,6 +40,7 @@ void printBinary( int n, int i )
 
 // Function to convert real value
 // to IEEE floating point representation
+// Deprecated – for debugging purposes only
 void printIEEE( flubber var )
 {
     // Prints the IEEE 754 representation

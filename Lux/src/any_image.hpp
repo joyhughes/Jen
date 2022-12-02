@@ -9,46 +9,28 @@
 class fimage;
 class uimage;
 class vector_field;
+template< class T > struct effect;
 template< class T > class buffer_pair;
 
 enum pixel_type
 {
 	PIXEL_FRGB,
 	PIXEL_UCOLOR,
-	PIXEL_VEC2F,
-    PIXEL_NULL
+	PIXEL_VEC2F
 };
 typedef enum pixel_type pixel_type;
 
 // generic image component                    
-typedef std::variant<   std::monostate, // null option
-                    std::reference_wrapper< frgb >, 
-                    std::reference_wrapper< ucolor >, 
-                    std::reference_wrapper< vec2f >
-                > any_pixel;
+typedef std::variant< frgb, ucolor, vec2f > any_pixel;
 
 // generic image
-typedef std::variant<   std::monostate, // null option
-                    std::reference_wrapper< image< frgb > >, 
-                    std::reference_wrapper< image< ucolor > >, 
-                    std::reference_wrapper< image< vec2f > >
-                > any_image;
 
-typedef std::variant<   std::monostate, // null option
-                    std::reference_wrapper< buffer_pair< frgb > >, 
-                    std::reference_wrapper< buffer_pair< ucolor > >, 
-                    std::reference_wrapper< buffer_pair< vec2f > >
-                > any_buffer_pair;
+typedef std::shared_ptr< image< frgb > >   fimage_ptr; 
+typedef std::shared_ptr< image< ucolor > > uimage_ptr; 
+typedef std::shared_ptr< image< vec2f > >  vfield_ptr; 
 
-// std::visit calls resolve functor, returns optional wrapped reference if visiting type the same
-template< class T > struct resolve {
-    std::optional< T > operator () ( T& a   ) { return a; }
-    std::optional< T > operator () ( auto a ) { return std::nullopt; }
-};
+typedef std::variant< fimage_ptr, uimage_ptr, vfield_ptr > any_image_ptr; 
 
-// overload pattern for lambda functions
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-// explicit deduction guide (not needed as of C++20)
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+static const fimage_ptr null_fimage_ptr = NULL;
 
 #endif // __ANY_IMAGE_HPP

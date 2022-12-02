@@ -10,12 +10,12 @@ protected:
     void spool( std :: vector< unsigned char >& img );
 
 public:
-    uimage() : image() {}     
-    // creates image of particular size 
-    uimage( const vec2i& dims ) : image( dims ){}     
-    uimage( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
-    // copy constructor
-    uimage( const I& img ) : image( img ) {}     
+    uimage() : image< ucolor >() {}     
+    uimage( const vec2i& dims ) : image< ucolor >( dims ){}     // creates image of particular size 
+    uimage( const vec2i& dims, const bb2f& bb ) : image< ucolor >( dims, bb ) {}     
+    uimage( const I& img ) : image< ucolor >( img ) {}          // copy constructor
+    uimage( const std::string& filename ) : image< ucolor >() { load( filename ); } 
+  
     // pixel modification functions
     void grayscale();
 
