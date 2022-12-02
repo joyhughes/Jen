@@ -49,4 +49,9 @@ add_library(common ${COMMON_LIB_SRCS})
 set(LUX_MAIN_SRCS src/lux.cpp)
 add_executable(lux ${LUX_MAIN_SRCS})
 
+set(SPLOOT_MAIN_SRCS src/sploot.cpp)
+add_executable(sploot ${SPLOOT_MAIN_SRCS})
+
 target_link_libraries(lux common)
+target_link_libraries(sploot common)
+

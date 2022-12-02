@@ -7,6 +7,8 @@
 #include "uimage.hpp"
 #include "vector_field.hpp"
 #include "any_image.hpp"
+#include <iostream>
+#include <fstream>
 
 template< class T > void image< T >::mip_it() { // mip it good
     if( mip_me ) {
@@ -323,6 +325,32 @@ template< class T > void image< T >::warp (  const image< T >& in,
         }
     }
     mip_it();
+}
+
+template< class T > void image< T >::read_binary(  const std::string &filename )
+{
+    vec2i new_dim;
+    bb2f new_bounds;
+
+    std::ifstream in_file( filename, std::ios::in | std::ios::binary );
+    in_file.read( (char*)&new_dim, sizeof( vec2i ) );
+    set_dim( new_dim );
+    base.resize( dim.x * dim.y );
+
+    in_file.read( (char*)&new_bounds, sizeof( bb2f ) );
+    set_bounds( new_bounds );
+
+    in_file.read( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
+    mip_it();
+}
+
+template< class T > void image< T >::write_binary( const std::string &filename )
+{
+    std::ofstream out_file( filename, std::ios::out | std::ios::binary );
+    out_file.write( (char*)&dim, sizeof( vec2i ) );
+    out_file.write( (char*)&bounds, sizeof( bb2f ) );
+    out_file.write( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
+    out_file.close();
 }
 
 // apply a vector function to each point in image

@@ -142,6 +142,8 @@ public:
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
     virtual void load( const std::string& filename ) {}
+    void read_binary(  const std::string& filename );  
+    void write_binary( const std::string& filename ); 
 
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 
