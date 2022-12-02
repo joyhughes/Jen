@@ -6,6 +6,7 @@
 #include <optional>
 #include "image.hpp"
 #include "any_image.hpp"
+
 #include "effect.hpp"
 #include "next_element.hpp"
 
@@ -137,9 +138,11 @@ struct scene {
     std::map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::map< std::string, std::shared_ptr< cluster > > clusters; // scene defined as a set of clusters
     std::vector< std::string > tlc;   // list of top level cluster names in rendering order
+
     
     vec2i size; // size of output image
     
+
     scene( const std::string& filename, const vec2i& size_init = { 1024, 1024 } );   // Load scene file (JSON)
 
     void set_size( const vec2i& size_init );

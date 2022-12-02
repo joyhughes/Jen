@@ -114,18 +114,15 @@ public:
     // masking
     void apply_mask( const I& layer, const I& mask, const mask_mode& mmode = MASK_BLEND );
 
-    typedef std::optional< std::reference_wrapper< T > > opt_pix_ref;
-    typedef std::optional< std::reference_wrapper< image< T > > > opt_img_ref;
-
     // rendering
     void splat( 
         const vec2f& center, // coordinates of splat center
         const float& scale,  // radius of splat
         const float& theta,  // rotation in degrees
-        const opt_img_ref g = std::nullopt,    // image of the splat
-        const opt_img_ref mask = std::nullopt, // optional mask image
-        const opt_pix_ref tint = std::nullopt, // change the color of the splat
-        const mask_mode& mmode = MASK_BLEND    // how will mask be applied to splat and backround?
+        std::shared_ptr< image< T > > splat_image = NULL,    // image of the splat
+        std::shared_ptr< image< T > > mask = NULL,           // optional mask image
+        const std::optional< T >& tint = std::nullopt,       // change the color of the splat
+        const mask_mode& mmode = MASK_BLEND // how will mask be applied to splat and backround?
     );  
 
     void warp ( const image< T >& in, 

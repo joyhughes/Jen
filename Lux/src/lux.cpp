@@ -60,6 +60,7 @@ void test_frgb() {
     cout << "Color mask result " << result << "\n\n";
 }
 
+/*
 void test_vect2() {
     using std::cout;
     using namespace linalg;
@@ -112,7 +113,7 @@ void test_vect2() {
     cout << "\n\n";
 
 }
-
+*/
 void test_fimage() {
     using std::cout;
     cout << "\nTESTING FIMAGE\n\n";
@@ -210,7 +211,7 @@ void test_vector_field() {
         //b.write_jpg( "hk_warp10.jpg", 100 );
     }
 }
-
+/*
 void test_splat() {
     fimage a;
     a.load( "../../Jen-C/hk_square.jpg" ); 
@@ -258,6 +259,7 @@ void test_splat() {
 
     a.write_jpg( "hk_splat.jpg", 100 );
 }
+*/
 /*
 void test_cluster() {
     fimage a;
@@ -287,7 +289,7 @@ void test_cluster() {
     a.write_jpg( "hk_cluster.jpg", 100 );                    
 }
 */
-
+/*
 void test_branch() {
     const int nframes = 100;
     using std::cout;
@@ -310,7 +312,7 @@ void test_branch() {
     next_element next_elem( 100, a.get_bounds() );
     advect_element advector( vf, 1.4f );  
     ratio< float > shrinker( 0.9f ); 
-    scale_fn scaler( shrinker );
+    scale_gen_fn scaler( shrinker );
     angle_branch brancher( 4, 1 ); 
     curly curler( 0.5f );
 
@@ -327,7 +329,7 @@ void test_branch() {
     index_param wiggle_indexer( wiggler );
     adder< float > add_wiggle;
     add_wiggle.r.add_function( wiggle_indexer );
-    orientation_fn orientation_wave( add_wiggle );
+    orientation_gen_fn orientation_wave( add_wiggle );
 
     next_elem.add_function( scaler );
     next_elem.add_function( curler );
@@ -361,7 +363,7 @@ void test_branch() {
         b.write_jpg( filename, 100 );
     }                  
 }
-
+*/
 /*void test_melt() {
     const int nframes = 100;
     using std::cout;
@@ -422,13 +424,13 @@ void test_branch() {
     }
 }
 */
-void circle_crop() {    // not crop circle
+void test_circle_crop() {    // not crop circle
     fimage a;
     a.load( "../../Jen-C/RainbowMoon.jpg" ); 
     a.circle_crop( 0.15f );
     a.write_jpg( "moonsplat.jpg", 100 );
 }
-
+/*
 void test_mask() {
     fimage a;
     a.load( "../../Jen-C/galaxy.jpg" ); 
@@ -450,6 +452,7 @@ void test_mask() {
 
     a.write_jpg( "galaxy_moon.jpg", 100 );
 }
+*/
 
 void test_life() {
     const int nframes = 100;
@@ -476,8 +479,22 @@ void test_life() {
     }
 }
 
+void render( std::string scene_filename, std::string file_out )
+{
+    scene s( scene_filename );
+    std::cout << "Scene object created\n";
+    s.render( file_out, 0.5f );
+    std::cout << "Render complete " << file_out << std::endl;
+}
 
-int main() {
+void animate( std::string scene_filename, std::string basename, int nframes ) {
+    scene s( scene_filename );
+    std::cout << "Scene object created\n";
+    s.animate( basename, nframes );
+    std::cout << "Render complete " << basename << std::endl;
+}
+
+int main( int argc, char** argv ) {
     //test_frgb();
     //test_vect2();
     //test_fimage();
@@ -488,12 +505,24 @@ int main() {
     //test_cluster();
     //test_branch();
     //test_melt();
-    //circle_crop();
+    //test_circle_crop();
     //test_mask();
-    test_life();
-
+    //test_life();
+    
+    if( argc < 3 ) std::cout << "Usage: ./lux file_in file_out [nframes]\n";
+    std::string scene_filename(  argv[ 1 ] );
+    std::string output_name( argv[ 2 ] );
+    if( argc == 3 ) render( scene_filename, output_name );
+    else {
+        int nframes;
+        std::stringstream ss( argv[ 3 ] );
+        ss >> nframes; 
+        animate( scene_filename, output_name, nframes );
+    }
     return 0;
 }
 
 template struct iterative_melt< frgb >;
 template struct eff_vector_warp< frgb >;
+
+template struct bounding_box< float, 2 >;

@@ -17,6 +17,7 @@
 
 #include "linalg.h"
 #include "mask_mode.hpp"
+#include <iostream>
 
 typedef linalg::vec< float, 2 > vec2f;
 typedef linalg::vec< int,   2 > vec2i;
@@ -68,11 +69,10 @@ template< class T, int M > struct bounding_box {
     V minp, maxp;  // Padded bounding box values to calculate if point is within a specified distance to bounding box in any dimension
 
     bounding_box()                           : 
-        b1( { -1.0f, 1.0f } ), b2( { 1.0f, -1.0f } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
+        b1( { -1.0f, -1.0f } ), b2( { 1.0f, 1.0f } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
 
     bounding_box( const V& v1, const V& v2 ) : 
         b1( v1 ), b2( v2 ), minv( linalg::min( v1, v2 ) ), maxv( linalg::max( v1, v2 ) ), minp( minv ), maxp( maxv ) { }
-    //    { minv.x = min( b1.x, b2.x ); minv.y = min( b1.y, b2.y ); maxv.x = max( b1.x, b2.x ); maxv.y = max( b1.y, b2.y ); minp = minv; maxp = mscv }
 
     bounding_box( const V& v, const T& size ) :
         b1( v - size ), b2( v + size ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
@@ -81,34 +81,51 @@ template< class T, int M > struct bounding_box {
     template< class U > bounding_box( const bounding_box< U, M >& bbc ) :
         b1( bbc.b1 ), b2( bbc.b2 ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
 
-    void set( const V& v1, const V& v2 ) { b1 = v1; b2 = v2; minv = linalg::min( v1, v2 ); maxv = linalg::max( v1, v2 ); minp = minv; maxp = maxv; }
+    void set( const V& v1, const V& v2 )
+    { b1 = v1; b2 = v2; minv = linalg::min( v1, v2 ); maxv = linalg::max( v1, v2 ); minp = minv; maxp = maxv; }
 
-    bool in_bounds(               const V& v ) const { return linalg::all( linalg::gequal(  v, minv ) & linalg::lequal( v, maxv ) ); }
-    bool in_bounds_pad(           const V& v ) const { return linalg::all( linalg::gequal(  v, minp ) & linalg::lequal( v, maxp ) ); }
-    bool in_bounds_exclusive(     const V& v ) const { return linalg::all( linalg::greater( v, minv ) & linalg::less(   v, maxv ) ); }
-    bool in_bounds_exclusive_pad( const V& v ) const { return linalg::all( linalg::greater( v, minp ) & linalg::less(   v, maxp ) ); }
-    bool in_bounds_half_open(     const V& v ) const { return linalg::all( linalg::gequal(  v, minv ) & linalg::less(   v, maxv ) ); }
-    bool in_bounds_half_open_pad( const V& v ) const { return linalg::all( linalg::gequal(  v, minp ) & linalg::less(   v, maxp ) ); }
+    bool in_bounds(               const V& v ) const
+    { return linalg::all( linalg::gequal(  v, minv ) & linalg::lequal( v, maxv ) ); }
 
-    void pad( const T& p ) { minp = minv - p; maxp = maxv + p; }  // pads the bounding box by a fixed amount in all dimensions
-    void pad( const V& p ) { minp = minv - p; maxp = maxv + p; }  // pads the bounding box by a specified amount in each dimension, represented by a vector
+    bool in_bounds_pad(           const V& v ) const
+    { return linalg::all( linalg::gequal(  v, minp ) & linalg::lequal( v, maxp ) ); }
+
+    bool in_bounds_exclusive(     const V& v ) const
+    { return linalg::all( linalg::greater( v, minv ) & linalg::less(   v, maxv ) ); }
+
+    bool in_bounds_exclusive_pad( const V& v ) const
+    { return linalg::all( linalg::greater( v, minp ) & linalg::less(   v, maxp ) ); }
+
+    bool in_bounds_half_open(     const V& v ) const
+    { return linalg::all( linalg::gequal(  v, minv ) & linalg::less(   v, maxv ) ); }
+
+    bool in_bounds_half_open_pad( const V& v ) const
+    { return linalg::all( linalg::gequal(  v, minp ) & linalg::less(   v, maxp ) ); }
+
+    void pad( const T& p )  // pads the bounding box by a fixed amount in all dimensions
+    { minp = minv - p; maxp = maxv + p; }
+
+    void pad( const V& p )  // pads the bounding box by a specified amount in each dimension, represented by a vector
+    { minp = minv - p; maxp = maxv + p; }
 
     // return a random point within the box using a uniform distribution
-    V box_of_random() const { return linalg::rbox( minv, maxv ); } 
+    V box_of_random() const { return linalg::rbox( minv, maxv ); }
 
     // Linear map from one bounding box to another
-    template< class U > V bb_map( const linalg::vec< U, M >& in, const bounding_box< U, M >& target ) const 
+    template< class U > V bb_map( const linalg::vec< U, M >& in, const bounding_box< U, M >& target ) const
     { return ( V )linalg::cmul( ( vec2f )( in - target.minv ), ( vec2f )( maxv - minv ) ) / ( V )( target.maxv - target.minv ) + minv; }
 
     // map bounding box from linear space of one box to another
-    template< class U > bounding_box< T, M > map_box( const bounding_box< U, M >& in, const bounding_box< U, M >& target ) const 
+    template< class U > bounding_box< T, M > map_box( const bounding_box< U, M >& in, const bounding_box< U, M >& target ) const
     { return bounding_box< T, M > ( bb_map( in.b1, target ), bb_map( in.b2, target ) ); }
 
     // return intersection of two bounding boxes
-    template< class U > bounding_box< T, M > intersect( const bounding_box< U, M >& in ) const 
+    template< class U > bounding_box< T, M > intersect( const bounding_box< U, M >& in ) const
     { return bounding_box< U, M > ( max( minv, in.minv ), min( maxv, in.maxv ) ); }
 
     V center() { return ( b1 + b2 ) / 2.0f; }
+
+    void print() { std::cout << "[ [ " << b1.x << ", " << b1.y << " ], [ " << b2.x << ", " << b2.y << " ] ]" << std::endl; }
 };
 
 typedef bounding_box< int,   2 > bb2i;

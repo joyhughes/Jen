@@ -95,3 +95,8 @@ void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mas
     }    
 }
 
+
+
+
+
+
