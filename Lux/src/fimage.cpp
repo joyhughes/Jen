@@ -23,7 +23,6 @@ void fimage::grayscale() {
 
 void fimage::load( const std::string& filename ) {
     std::cout << "fimage::load " << filename << std::endl;
-
     reset();
     image_loader loader( filename );
     set_dim( { loader.xsiz, loader.ysiz } );

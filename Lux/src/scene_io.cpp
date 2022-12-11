@@ -15,7 +15,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
 
     // scene fields
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
-    if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1024, 1024 };
+    if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
     if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )   read_image( jimg );
     // effects - TBI
     //if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );
@@ -93,12 +93,15 @@ void scene_reader::read_element( const json& j ) {
     if( j.contains( "rotation" ) )    j[ "rotation"    ].get_to( elem.rotation );
     if( j.contains( "orientation" ) ) j[ "orientation" ].get_to( elem.orientation );
     if( j.contains( "orientation_lock" ) ) j[ "orientation_lock" ].get_to( elem.orientation_lock );
+    // Set initial derivative - may need to be modified by initializers in next_element
+    if( j.contains( "derivative" ) ) elem.derivative = read_vec2f( j[ "derivative" ] );
+    if( j.contains( "derivative_lock" ) ) j[ "derivative_lock" ].get_to( elem.derivative_lock );
     if( j.contains( "mask_mode" ) )   j[ "mask_mode"   ].get_to( mask_mode );
     
-    if( mask_mode == "additive" ) elem.mmode = MASK_ADDITIVE;
-    if( mask_mode == "trim"     ) elem.mmode = MASK_TRIM;
-    if( mask_mode == "opacity"  ) elem.mmode = MASK_OPACITY;
-    if( mask_mode == "blend"    ) elem.mmode = MASK_BLEND;
+    if( mask_mode == "no_effect" ) elem.mmode = MASK_NOEFFECT;
+    if( mask_mode == "trim"      ) elem.mmode = MASK_TRIM;
+    if( mask_mode == "opacity"   ) elem.mmode = MASK_OPACITY;
+    if( mask_mode == "blend"     ) elem.mmode = MASK_BLEND;
 
     // image, mask, tint
     if( j.contains( "image" ) ) {

@@ -100,6 +100,29 @@ bool top_level(         bool& b, element_context& context ) { return  ( context.
 bool lower_level(       bool& b, element_context& context ) { return !( context.cl.depth == 0 ); }
 // even, odd, etc.
 
+bool random_condition::operator () ( bool& b, element_context& context ) { 
+    p( context );
+    return rand1( gen ) < *p; 
+}
+
+bool random_sticky_condition::operator () ( bool& b, element_context& context ) { 
+    if( !initialized ) {
+        p_start( context );
+        on = rand1( gen ) < *p_start;
+    }
+    else {
+        if( on ) {
+            p_change_true( context );
+            if( rand1( gen ) < *p_change_true ) on = false;
+        }
+        else {
+            p_change_false( context );
+            if( rand1( gen ) < *p_change_false ) on = true;
+        }
+    }
+    return on; 
+}
+
 bool filter::operator () ( element_context& context ) { 
     for( auto condition : conditions ) if( !condition( c, context ) ) return true;
     for( auto fn : functions ) {
@@ -117,7 +140,8 @@ bool next_element::operator () ( element_context& context ) {
         if( !fn( context ) ) return false;
     }
     if( el.scale < context.cl.min_scale ) return false;
-    el.derivative = el.position - p;
+    if( el.index != 0 ) el.derivative = el.position - p;
+    else el.derivative = rot_deg( el.derivative, el.orientation );
     // bounds check
     if( bounds.has_value() ) {
         bounds->pad( el.scale );
