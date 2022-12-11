@@ -51,7 +51,7 @@ void constrain( frgb &c ) {
 
 void apply_mask( frgb &result, const frgb &layer, const frgb &mask, const mask_mode& mmode ) {
     switch( mmode ) {
-        case MASK_ADDITIVE: result += layer; break;
+        case MASK_NOEFFECT: result += layer; break;
         case MASK_TRIM:     result += linalg::cmul( layer, mask ); break;
         case MASK_OPACITY:  result =  linalg::cmul( result, ( frgb({ 1.0f, 1.0f, 1.0f }) - mask ) ) + layer; break;
         case MASK_BLEND:    result =  linalg::lerp( result, layer, mask ); break;

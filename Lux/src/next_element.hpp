@@ -289,6 +289,29 @@ bool top_level(         bool& b, element_context& context );
 bool lower_level(       bool& b, element_context& context );
 // even, odd, etc.
 
+struct random_condition {
+    harness< float > p;
+
+    bool operator () ( bool& b, element_context& context );
+
+    random_condition( float p_init = 0.5f ) : p( p_init ) {}
+};
+
+struct random_sticky_condition {
+    bool initialized;
+    bool on;
+    harness< float > p_start; //        probability that condition is fulfilled at initialization
+    harness< float > p_change_true; //  probability of changing true conditon
+    harness< float > p_change_false; // probability of changing false condition
+
+    bool operator () ( bool& b, element_context& context );
+
+    random_sticky_condition( float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
+        p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
+};
+
+// Also need a random condition evaluated at the beginning, with a different probability of changing
+
 struct filter {
     bool c;
     std::vector< bool_fn > conditions;

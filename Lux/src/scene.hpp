@@ -6,7 +6,6 @@
 #include <optional>
 #include "image.hpp"
 #include "any_image.hpp"
-
 #include "effect.hpp"
 #include "next_element.hpp"
 
@@ -62,6 +61,8 @@ struct element {
                 const float& rotation_init = 0.0f,
                 const float& orientation_init = 0.0f,
                 const bool   orientation_lock_init = false,
+                const vec2f& derivative_init = { 1.0f, 0.0f },
+                const bool   derivative_lock_init = false,
                 any_image_ptr img_init = null_fimage_ptr,
                 any_image_ptr mask_init = null_fimage_ptr,
                 const std::optional< any_pixel > tint_init = std::nullopt,
@@ -72,6 +73,8 @@ struct element {
             rotation( rotation_init ),
             orientation( orientation_init ),
             orientation_lock( orientation_lock_init ),
+            derivative( derivative_init ),
+            derivative_lock( derivative_lock_init ),
             img( img_init ),
             mask( mask_init ),
             tint( tint_init ),
@@ -107,7 +110,7 @@ struct cluster {
              const int& max_n_init = 1,
              const int& depth_init = 0,
              const int& max_depth_init = 10,
-             const float& min_scale_init = 0.001f,
+             const float& min_scale_init = 0.01f,
              const std::optional< bb2f >& bounds_init = std::nullopt
             )
         : root_elem( el ),
@@ -138,12 +141,10 @@ struct scene {
     std::map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::map< std::string, std::shared_ptr< cluster > > clusters; // scene defined as a set of clusters
     std::vector< std::string > tlc;   // list of top level cluster names in rendering order
-
     
     vec2i size; // size of output image
     
-
-    scene( const std::string& filename, const vec2i& size_init = { 1024, 1024 } );   // Load scene file (JSON)
+    scene( const std::string& filename, const vec2i& size_init = { 1080, 1080 } );   // Load scene file (JSON)
 
     void set_size( const vec2i& size_init );
 
