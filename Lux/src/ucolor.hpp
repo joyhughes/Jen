@@ -12,7 +12,7 @@ float rf( const ucolor &c );
 float gf( const ucolor &c );
 float bf( const ucolor &c );
 
-// returns single bytes per component - assumes [0.0, 1.0] range
+// returns single bytes per component
 // clip or constrain out of range values before using
 unsigned char ac( const ucolor &c );    // alpha channel
 unsigned char rc( const ucolor &c );

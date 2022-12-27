@@ -44,7 +44,11 @@ void setrc( frgb &c, const unsigned char& r );
 void setgc( frgb &c, const unsigned char& g );
 void setbc( frgb &c, const unsigned char& b );
 void setc(  frgb &c, const unsigned char& r, const unsigned char& g, const unsigned char& b );
-frgb setc(           const unsigned char& r, const unsigned char& g, const unsigned char& b );
+frgb fsetc(          const unsigned char& r, const unsigned char& g, const unsigned char& b );
+
+// convert ucolor to frgb
+void setu( frgb &c, const unsigned int &uc );
+frgb fsetu( const unsigned int &c );
 
 // I/O operators
 //std::ostream &operator << ( std::ostream &out, const frgb& f );

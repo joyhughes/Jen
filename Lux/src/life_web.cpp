@@ -6,7 +6,7 @@
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
   SDL_Surface *screen;
-  life< ucolor > *lifer;
+  CA< ucolor > *my_CA;
   buffer_pair< ucolor > *buf;
   vec2i *dims;
 };
@@ -18,7 +18,7 @@ void iterate_and_display(void *arg)
   context = (frame_context *)arg;
   // unpack context
   SDL_Surface *screen = context->screen;
-  life< ucolor >& lifer = *(context->lifer);
+  CA< ucolor >& my_CA = *(context->my_CA);
   buffer_pair< ucolor >& buf = *(context->buf);
   vec2i dims = *(context->dims);
 
@@ -30,7 +30,7 @@ void iterate_and_display(void *arg)
     *pixel_ptr = *base_ptr;
     pixel_ptr++; base_ptr++;
   }
-  lifer( buf );
+  my_CA( buf );
   SDL_Flip(screen);
   if (SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
 }
@@ -39,16 +39,20 @@ int main(int argc, char** argv) {
   ucolor white, black;
   ::white( white ); ::black( black );
 
+  ucolor on = white;
+  ucolor off = black;
+
   vec2i dims( { 512, 512 } );
   uimage img( dims );
   ucolor* base = img.get_base();
   // fill image with random black and white pixels
   for( int i=0; i< dims.x * dims.y; i++ ) {
-    if( weighted_bit( 0.33f ) ) base[ i ] = 0xffffffff;
-    else base[ i ] = 0xff000000;
+    if( weighted_bit( 0.33f ) ) base[ i ] = on;
+    else base[ i ] = off;
   }
 
-  life< ucolor > lifer;
+  life< ucolor > lifer( on, off );
+  CA< ucolor > my_CA( lifer, lifer.neighborhood );
   buffer_pair< ucolor > buf( img );
 
   SDL_Init(SDL_INIT_VIDEO);
@@ -57,7 +61,7 @@ int main(int argc, char** argv) {
   // pack context
   frame_context context;
   context.screen = screen;
-  context.lifer = &lifer;
+  context.my_CA = &my_CA;
   context.buf = &buf;
   context.dims = &dims;
 

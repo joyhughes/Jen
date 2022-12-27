@@ -3,112 +3,90 @@
 #include "ucolor.hpp"
 #include "vect2.hpp"
 
-#define MOORE_NEIGHBORHOOD_BEGIN \
-if( buf.has_image() ) {    \
-    auto in =  buf.get_image().begin();                     \
-    auto out = buf.get_buffer().begin();                    \
-    int xdim = buf.get_image().get_dim().x;                 \
-    int ydim = buf.get_image().get_dim().y;                 \
-    auto ul = in + xdim * ydim - 1;      auto um = in + (ydim - 1) * xdim;    auto ur = in + (ydim - 1) * xdim + 1; \
-    auto ml = in + xdim - 1;             auto mm = in;                        auto mr = in + 1;                     \
-    auto dl = in + 2 * xdim - 1;         auto dm = in + xdim;                 auto dr = in + xdim + 1;              \
-    auto result = out; \
-    for( int y=0; y<ydim; y++ ) { \
-        for( int x=0; x<xdim; x++ ) {
+// Moore neighborhood shortcuts
+#define UL neighbors[0]
+#define UM neighbors[1]
+#define UR neighbors[2]
+#define ML neighbors[3]
+#define MM neighbors[4]
+#define MR neighbors[5]
+#define DL neighbors[6]
+#define DM neighbors[7]
+#define DR neighbors[8]
 
-#define MOORE_NEIGHBORHOOD_END \
-                ul++; um++; ur++; ml++; mm++; mr++; dl++; dm++; dr++; result++; \
-                if(x == 0) { ul -= xdim; ml -= xdim; dl -= xdim; } \
-                if(x == xdim-2) { ur -= xdim; mr -= xdim; dr -= xdim; } \
-            } \
-            ul+=xdim; ml+=xdim; dl+=xdim; \
-            ur+=xdim; mr+=xdim; dr+=xdim; \
-            if(y == 0)      { ul -= xdim * ydim; um -= xdim * ydim; ur -= xdim * ydim; } \
-            if(y == ydim-2) { dl -= xdim * ydim; dm -= xdim * ydim; dr -= xdim * ydim; } \
-        } \
-        buf.swap(); \
-        return true; \
-    } \
-    else { \
-       return false; \
-    }  
+// future - implement multiresolution rule on mip-map
 
+// Uses toroidal boundary conditions
+template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float &t ) {
+    if(!buf.has_image()) return false;
+    auto in =  buf.get_image().begin();
+    auto out = buf.get_buffer().begin();
+    vec2i dim = buf.get_image().get_dim();
 
-/* Sample rule showing Moore neighborhood written out  
-template< class T > bool life< T >::operator () ( buffer_pair< T >& buf, const float& t ) { 
-    T white, black;
-    ::white( white ); ::black( black );
-    if( buf.has_image() ) {
-        // Use buffer_pair operator () to return reference to first member of pair
-        auto in =  buf.get_image().begin();
-        auto out = buf.get_buffer().begin();
+    unsigned int on  = 0xffffffff;
+    unsigned int off = 0xff000000;
 
-        int xdim = buf.get_image().get_dim().x;
-        int ydim = buf.get_image().get_dim().y;
-
-        // initialize pointers for the upper left corner - wrap around (toroidal topolgy)
-        auto ul = in + xdim * ydim - 1;      auto um = in + (ydim - 1) * xdim;    auto ur = in + (ydim - 1) * xdim + 1;
-        auto ml = in + xdim - 1;             auto mm = in;                        auto mr = in + 1;
-        auto dl = in + 2 * xdim - 1;         auto dm = in + xdim;                 auto dr = in + xdim + 1;
-
-        auto result = out;
-
-        for( int y=0; y<ydim; y++ ) {
-        for( int x=0; x<xdim; x++ ) {
-
-            // implement game of life rule 
-            // ***************************
-            
-            int count = 0;
-            if( *ul == white ) count++;  if( *um == white ) count++;  if( *ur == white ) count++; 
-            if( *ml == white ) count++;                               if( *mr == white ) count++; 
-            if( *dl == white ) count++;  if( *dm == white ) count++;  if( *dr == white ) count++;
-
-            // count = *ul + *um + *ur + *ml + *mr + *dl + *dm + *dr;
-            if( *mm == white )
-            {
-                // case where center cell is filled
-                if(count == 2 | count == 3) *result = white; else *result = black;
+    // check neighborhood type
+    if( neighborhood == NEIGHBORHOOD_MOORE ) {
+        neighbors.resize( 9 );
+        result.resize( 1 );
+        auto out_it = out;
+        auto dl_it = in;
+        auto dm_it = in;
+        auto dr_it = in;
+        // scan through image by column
+        for( int x = 0; x < dim.x; x++ ) {
+            // set intial neighborhood
+            if( x == 0 ) {
+                UL = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
+                ML = *(in + dim.x - 1);
+                dl_it = in + (2 * dim.x - 1); 
             }
-            else
-            {
-                // case where center cell is empty
-                if(count == 3) *result = white; else *result = black;
-            }   
-
-            // ***************************
-            // end rule implementation
-
-            // increment iterators
-            ul++; um++; ur++; ml++; mm++; mr++; dl++; dm++; dr++; result++;
-
-            //deal with horizontal wrap 
-            // pop left hand pointers to far left (previous row)
-            if(x == 0) { ul -= xdim; ml -= xdim; dl -= xdim; }
-            // move right hand pointers to far left
-            if(x == xdim-2) { ur -= xdim; mr -= xdim; dr -= xdim; }
+            else {
+                UL = *(in + ( dim.y - 1 ) * dim.x + x - 1);
+                ML = *(in + x - 1);
+                dl_it = in + (dim.x + x - 1);
+            }
+            DL = *dl_it;
+            UM = *(in + ( dim.y - 1 ) * dim.x + x);
+            MM = *(in + x); 
+            dm_it = in + (dim.x + x); DM = *dm_it;
+            if( x == dim.x - 1 ) {
+                UR = *(in + ( dim.y - 1 ) * dim.x);
+                MR = *in; 
+                dr_it = in + dim.x; 
+            }
+            else {
+                UR = *(in + ( dim.y - 1 ) * dim.x + x + 1);
+                MR = *(in + x + 1);
+                dr_it = in + (dim.x + x + 1);
+            }
+            DR = *dr_it;
+            out_it = out + x;
+            for( int y = 0; y < dim.y - 1; y++ ) {
+                rule( neighbors, result );  // apply rule
+                *out_it = result[0];        // set output
+                out_it += dim.x;
+                // update neighborhood
+                UL = ML; UM = MM; UR = MR;
+                ML = DL; MM = DM; MR = DR;
+                dl_it += dim.x; dm_it += dim.x; dr_it += dim.x;
+                DL = *dl_it; DM = *dm_it; DR = *dr_it;
+            }
+            // set last row
+            if( x == 0 ) DL = *(in + dim.x - 1); else DL = *(in + x - 1);
+            DM = *(in + x);
+            if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
+            rule( neighbors, result );  // apply rule
+            *out_it = result[0];
         }
 
-        // move right and left colums down
-        ul+=xdim; ml+=xdim; dl+=xdim; 
-        ur+=xdim; mr+=xdim; dr+=xdim; 
-
-        // deal with vertical wrap
-        // pop upper pointers to upper row
-        if(y == 0)      { ul -= xdim * ydim; um -= xdim * ydim; ur -= xdim * ydim; }
-
-        // move lower pointers to upper row
-        if(y == ydim-2) { dl -= xdim * ydim; dm -= xdim * ydim; dr -= xdim * ydim; }          
-        }
-
-        buf.swap();
-        return true;
-    }
-    else {
-        return false;
-    }
-} 
-*/
+    } else if( neighborhood == NEIGHBORHOOD_VON_NEUMANN ) {
+    } else if( neighborhood == NEIGHBORHOOD_MARGOLIS ) {
+    } 
+    buf.swap();
+    return true;
+}
 
 /*
  *  Conway's Game of Life
@@ -117,35 +95,26 @@ template< class T > bool life< T >::operator () ( buffer_pair< T >& buf, const f
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template< class T > bool life< T >::operator () ( buffer_pair< T >& buf, const float& t ) { 
-    T white, black;
-    ::white( white ); ::black( black );
-    MOORE_NEIGHBORHOOD_BEGIN
-            // implement game of life rule 
-            // ***************************
-            
-            int count = 0;
-            if( *ul == white ) count++;  if( *um == white ) count++;  if( *ur == white ) count++; 
-            if( *ml == white ) count++;                               if( *mr == white ) count++; 
-            if( *dl == white ) count++;  if( *dm == white ) count++;  if( *dr == white ) count++;
-
-            // count = *ul + *um + *ur + *ml + *mr + *dl + *dm + *dr;
-            if( *mm == white )
-            {
-                // case where center cell is filled
-                if(count == 2 | count == 3) *result = white; else *result = black;
-            }
-            else
-            {
-                // case where center cell is empty
-                if(count == 3) *result = white; else *result = black;
-            }   
-
-            // ***************************
-            // end rule implementation
-
-    MOORE_NEIGHBORHOOD_END
+template<class T> void life<T>::operator()(const std::vector<T>& neighbors, std::vector<T>& result) {    
+    int count = 0;
+    for( int i=0; i<4; i++ ) {
+        if( neighbors[ i ] == on ) count++;
+    }    
+    for( int i=5; i<9; i++ ) {
+        if( neighbors[ i ] == on ) count++;
+    }
+    if( MM == on ) {
+        if( count == 2 || count == 3 ) result[0] = on;
+        else result[0] = off;
+    } else {
+        if( count == 3 ) result[0] = on;
+        else result[0] = off;
+    }
 }
+
+//template class CA< frgb >;       // fimage
+template class CA< ucolor >;     // uimage
+//template class CA< vec2f >;      // vector_field
 
 template class life< frgb >;       // fimage
 template class life< ucolor >;     // uimage
