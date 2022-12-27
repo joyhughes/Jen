@@ -64,15 +64,17 @@ template< class T > const T image< T >::index ( const vec2i& vi, const image_ext
         if( ipbounds.in_bounds_half_open( vi ) ) result = base[ vi.y * dim.x + vi.x ]; // else retain zero-initialized result
     }
     else {
-        int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
-        int yblock = vi.y / dim.y;  if( vi.y < 0 ) { yblock -= 1; }
-		int x = vi.x - ( xblock * dim.x );
-		int y = vi.y - ( yblock * dim.y );
-        if( extend == SAMP_REFLECT ) {
-            if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
-            if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
-        }
-        result = base[ y * dim.x + x ];    
+        else {
+            int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
+            int yblock = vi.y / dim.y;  if( vi.y < 0 ) { yblock -= 1; }
+            int x = vi.x - ( xblock * dim.x );
+            int y = vi.y - ( yblock * dim.y );
+            if( extend == SAMP_REFLECT ) {
+                if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
+                if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
+            }
+            result = base[ y * dim.x + x ];
+        }    
     }
     return result;
 }

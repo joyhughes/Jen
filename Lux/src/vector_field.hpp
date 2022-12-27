@@ -62,7 +62,7 @@ public:
     vector_field( const vec2i& dims ) : image( dims ){}     
     vector_field( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
     // copy constructor
-    vector_field( const I& img ) : image( img ) {}     
+    vector_field( const image< vec2f >& img ) : image( img ) {}     
 
     vec2f advect( const vec2f& v, const float& step, const float& angle = 0.0f, const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;
     vec2f advect( const vec2f& v, const float& step, const mat2f& m,            const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;

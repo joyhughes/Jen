@@ -32,8 +32,20 @@ void setgc( frgb &c, const unsigned char& g ) { c.G = glut.SRGB_to_linear( g ); 
 void setbc( frgb &c, const unsigned char& b ) { c.B = glut.SRGB_to_linear( b ); }
 void setc(  frgb &c, const unsigned char& r, const unsigned char& g, const unsigned char& b ) 
 { setrc( c, r );   setgc( c, g );   setbc( c, b ); }
-frgb setc( const unsigned char& r, const unsigned char& g, const unsigned char& b )
+frgb fsetc( const unsigned char& r, const unsigned char& g, const unsigned char& b )
 { return { glut.SRGB_to_linear( r ), glut.SRGB_to_linear( g ), glut.SRGB_to_linear( b ) }; }
+
+void setu( frgb &c, const unsigned int& u ) {
+    c.R = glut.SRGB_to_linear( (unsigned char)( ( u & 0x00ff0000 ) >> 16 ) );
+    c.G = glut.SRGB_to_linear( (unsigned char)( ( u & 0x0000ff00 ) >> 8 ) );
+    c.B = glut.SRGB_to_linear( (unsigned char)(   u & 0x000000ff ) );
+}
+
+frgb fsetu( const unsigned int& u ) {
+    return { glut.SRGB_to_linear( (unsigned char)( ( u & 0x00ff0000 ) >> 16 ) ),
+             glut.SRGB_to_linear( (unsigned char)( ( u & 0x0000ff00 ) >> 8 ) ),
+             glut.SRGB_to_linear( (unsigned char)(   u & 0x000000ff ) ) };
+}
 
 //void setul( unsigned int in ) {} // bit shifty stuff
 

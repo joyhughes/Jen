@@ -46,7 +46,6 @@ protected:
     std::vector< std::unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
     // resamples image to crate mip-map            
     void de_mip();  // deallocate all mip-maps
-    void mip_it();  // mipit good
 
 public:
     typedef image< T > I;
@@ -84,6 +83,7 @@ public:
 
     void reset();                          // clear memory & set dimensions to zero (mip_me remembered)
     void use_mip( bool m );
+    void mip_it();  // mipit good
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
     const bb2f get_bounds() const;
