@@ -46,13 +46,21 @@ int main(int argc, char** argv) {
   uimage img( dims );
   ucolor* base = img.get_base();
   // fill image with random black and white pixels
-  for( int i=0; i< dims.x * dims.y; i++ ) {
+  /*for( int i=0; i< dims.x * dims.y; i++ ) {
     if( weighted_bit( 0.33f ) ) base[ i ] = on;
     else base[ i ] = off;
+  }*/
+
+  for( int y=0; y <  dims.y; y++ ) {
+    for( int x=0; x <  dims.x; x++ ) {
+      if( x > dims.x / 4 && x < dims.x * 3 / 4 && y > dims.y / 4 && y < dims.y * 3 / 4 ) base[ y * dims.x + x ] = on;
+      else base[ y * dims.x + x ] = off;
+    }
   }
 
-  life< ucolor > lifer( on, off );
-  CA< ucolor > my_CA( lifer, lifer.neighborhood );
+  //life< ucolor > lifer( on, off );
+  diffuse< ucolor > diffuser;
+  CA< ucolor > my_CA( diffuser, diffuser.neighborhood );
   buffer_pair< ucolor > buf( img );
 
   SDL_Init(SDL_INIT_VIDEO);
