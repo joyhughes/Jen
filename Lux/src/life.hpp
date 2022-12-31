@@ -3,6 +3,9 @@
 #include "warp_field.hpp"
 #include "joy_rand.hpp"
 
+typedef enum direction4 { UP, RIGHT, DOWN, LEFT } direction4; // clockwise
+//typedef enum direction8 { UP, UPRIGHT, RIGHT, DOWNRIGHT, DOWN, DOWNLEFT, LEFT, UPLEFT } direction8;
+
 typedef enum CA_neighborhood  {  NEIGHBORHOOD_MOORE, 
                                  NEIGHBORHOOD_VON_NEUMANN,
                                  NEIGHBORHOOD_VON_NEUMANN_DIAGONAL, 
@@ -64,12 +67,48 @@ template< class T > struct life {
 // Rule functor for diffusion
 template< class T > struct diffuse {
    const CA_neighborhood neighborhood;
-   std::uniform_int_distribution< int > rand_4; 
+   std::uniform_int_distribution< int > rand_4;
+   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
 
    void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
 
-   diffuse() : neighborhood( NEIGHBORHOOD_MARGOLIS ), rand_4( std::uniform_int_distribution< int >( 0, 3 ) ) {}
+   diffuse( bool alpha_block_init = false ) :
+      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
+      alpha_block( alpha_block_init) {}
+};
+
+// Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
+template< class T > struct gravitate {
+   const CA_neighborhood neighborhood;
+   std::uniform_int_distribution< int > rand_4;
+   direction4 direction;
+   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
+
+   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+
+   gravitate( direction4 direction_init = DOWN, bool alpha_block_init = false ) :
+      direction( direction_init ),
+      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
+      alpha_block( alpha_block_init) {}
 };
 
 
+// Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
+template< class T > struct pixel_sort {
+   const CA_neighborhood neighborhood;
+   std::uniform_int_distribution< int > rand_4;
+   direction4 direction;
+   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
+   int max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 
+   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+
+   pixel_sort( direction4 direction_init = DOWN, bool alpha_block_init = false, int max_diff_init = 100 ) :
+      direction( direction_init ),
+      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
+      alpha_block( alpha_block_init),
+      max_diff( max_diff_init ) {}
+};
