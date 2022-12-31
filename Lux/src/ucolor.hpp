@@ -64,7 +64,7 @@ inline ucolor manhattan( const ucolor& a, const ucolor& b )
       else out +=  ( ( b & 0x0000ff00 ) >> 8 ) - ( ( a & 0x0000ff00 ) >> 8 );
 
    if( ( a & 0x000000ff ) > ( b & 0x000000ff ) ) out += ( a & 0x000000ff ) - ( b & 0x000000ff );
-      else out += ( b & 0x0000ff00 ) - ( a & 0x0000ff00 );
+      else out += ( b & 0x000000ff ) - ( a & 0x000000ff );
 
    return out;
 }
