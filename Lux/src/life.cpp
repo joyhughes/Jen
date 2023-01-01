@@ -21,11 +21,17 @@
 #define VNR neighbors[3]
 #define VND neighbors[4]
 
-// Margolis neighborhood shortcuts
+// Margolis neighborhood shortcuts (clockwise from upper left)
 #define MUL neighbors[0]
 #define MUR neighbors[1]
-#define MLL neighbors[2]
-#define MLR neighbors[3]
+#define MLR neighbors[2]
+#define MLL neighbors[3]
+
+// Margolis neighborhood result shortcuts (clockwise from upper left)
+#define RUL result[0]
+#define RUR result[1]
+#define RLR result[2]
+#define RLL result[3]
 
 // future - implement multiresolution rule on mip-map
 
@@ -120,7 +126,7 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
 
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                     rule( neighbors, result );  // apply rule
-                    *out_ul = result[0]; *out_ur = result[1]; *out_ll = result[2]; *out_lr = result[3];
+                    *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                     out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
                     out_ll = out + 1;                         out_lr = out + 2;
@@ -137,7 +143,7 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
 
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                     rule( neighbors, result );  // apply rule
-                    *out_ul = result[0]; *out_ur = result[1]; *out_ll = result[2]; *out_lr = result[3];
+                    *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                     out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
                     out_ll = out + (y + 1) * dim.x + 1; out_lr = out + (y + 1) * dim.x + 2;
@@ -150,7 +156,7 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
                 // set neighborhood
                 MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                 rule( neighbors, result );  // apply rule
-                *out_ul = result[0]; *out_ur = result[1]; *out_ll = result[2]; *out_lr = result[3];
+                *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                 // update neighborhood
                 in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
                 out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
@@ -184,7 +190,95 @@ template< class T > void life< T >::operator () (const std::vector<T>& neighbors
 
 template< class T > void diffuse< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r = rand_4( gen );
+    
+    if( alpha_block ) {
+        bool blocked = false;
+        // how to make this work with other types? e.g frgb
+        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] & 0xff000000 ) != 0 ; 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
     result[0] = neighbors[ r ];
+    result[1] = neighbors[ (r + 1) % 4 ];
+    result[2] = neighbors[ (r + 2) % 4 ];
+    result[3] = neighbors[ (r + 3) % 4 ];
+}
+
+template< class T > void pixel_sort< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+    int r;
+    
+    if( alpha_block ) {
+        bool blocked = false;
+        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] &  0xff000000 ) != 0 ; 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    // Sort pixels by brightness
+    if( direction == UP || direction == DOWN ) {
+        if( ( wul > wll ) == ( direction == DOWN ) && ( manhattan( MLL, MUL ) < max_diff ) ) 
+             { RUL = MLL; RLL = MUL; } // swap left column
+        else { RUL = MUL; RLL = MLL; }
+        if( ( ( wur > wlr ) == ( direction == DOWN ) ) && ( manhattan( MLR, MUR ) < max_diff ) ) 
+             { RUR = MLR; RLR = MUR; } // swap right column
+        else { RUR = MUR; RLR = MLR; }
+    }
+    else {
+        if( ( ( wul > wur ) == ( direction == RIGHT ) ) && ( manhattan( MUL, MUR ) < max_diff ) ) 
+             { RUL = MUR; RUR = MUL; } // swap upper row
+        else { RUL = MUL; RUR = MUR; }
+        if( ( ( wll > wlr ) == ( direction == RIGHT ) ) && ( manhattan( MLR, MLL ) < max_diff ) ) 
+             { RLL = MLR; RLR = MLL; } // swap lower row
+        else { RLL = MLL; RLR = MLR; }
+    }
+}
+
+template< class T > void gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+    int r;
+    
+    if( alpha_block ) {
+        bool blocked = false;
+        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] &  0xff000000 ) != 0 ; 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    int wu = wul + wur;
+    int wd = wll + wlr;
+    int wl = wul + wll;
+    int wr = wur + wlr;
+
+    int udiff = wu - wd;
+    int ldiff = wl - wr;
+
+    if( abs( udiff ) > abs( ldiff ) ) {
+        if( udiff > 0 ) r = 0;
+        else r = 2;
+    } else {
+        if( ldiff > 0 ) r = 3;
+        else r = 1;
+    }
+    r = direction - r + 4;
+
+    result[0] = neighbors[ r % 4 ];
     result[1] = neighbors[ (r + 1) % 4 ];
     result[2] = neighbors[ (r + 2) % 4 ];
     result[3] = neighbors[ (r + 3) % 4 ];
@@ -198,7 +292,10 @@ template class life< frgb >;       // fimage
 template class life< ucolor >;     // uimage
 template class life< vec2f >;      // vector_field
 
-template class diffuse< frgb >;       // fimage
+//template class diffuse< frgb >;       // fimage
 template class diffuse< ucolor >;     // uimage
-template class diffuse< vec2f >;      // vector_field
+//template class diffuse< vec2f >;      // vector_field
 
+template class gravitate< ucolor >;       // uimage
+
+template class pixel_sort< ucolor >;       // uimage
