@@ -24,6 +24,13 @@ enum image_extend
 
 typedef enum image_extend image_extend;
 
+typedef enum file_type
+{
+    FILE_JPG,
+    FILE_PNG,
+    FILE_BINARY
+} file_type;
+
 // Root template for raster-based data
 template< class T > class image {
 
@@ -105,7 +112,7 @@ public:
     void resize( vec2i siz );
     void crop( const bb2i& bb );
     // as opposed to crop cirle
-    void circle_crop( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void circle_crop( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
     void fill( const T& c );
@@ -142,8 +149,12 @@ public:
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
     virtual void load( const std::string& filename ) {}
+    virtual void write_jpg( const std::string& filename, int quality ) {}
+    virtual void write_png( const std::string& filename ) {}
     void read_binary(  const std::string& filename );  
-    void write_binary( const std::string& filename ); 
+    void write_binary( const std::string& filename );
+    // determine file type from extension?
+    virtual void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
 
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 

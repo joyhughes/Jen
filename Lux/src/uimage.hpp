@@ -23,6 +23,7 @@ public:
     void load(      const std :: string& filename );
     void write_jpg( const std :: string& filename, int quality );
     void write_png( const std :: string& filename );
+    void write_file( const std::string& filename, file_type type = FILE_JPG, int quality = 100 );
 };
 
 #endif // __UIMAGE_HPP

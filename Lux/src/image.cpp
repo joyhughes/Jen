@@ -64,17 +64,15 @@ template< class T > const T image< T >::index ( const vec2i& vi, const image_ext
         if( ipbounds.in_bounds_half_open( vi ) ) result = base[ vi.y * dim.x + vi.x ]; // else retain zero-initialized result
     }
     else {
-        else {
-            int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
-            int yblock = vi.y / dim.y;  if( vi.y < 0 ) { yblock -= 1; }
-            int x = vi.x - ( xblock * dim.x );
-            int y = vi.y - ( yblock * dim.y );
-            if( extend == SAMP_REFLECT ) {
-                if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
-                if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
-            }
-            result = base[ y * dim.x + x ];
-        }    
+        int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
+        int yblock = vi.y / dim.y;  if( vi.y < 0 ) { yblock -= 1; }
+        int x = vi.x - ( xblock * dim.x );
+        int y = vi.y - ( yblock * dim.y );
+        if( extend == SAMP_REFLECT ) {
+            if( xblock % 2 ) 	{ x = dim.x - 1 - x; }
+            if( yblock % 2 ) 	{ y = dim.y - 1 - y; }
+        }
+        result = base[ y * dim.x + x ];
     }
     return result;
 }
@@ -113,7 +111,7 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
 }
 
 // Colors black everything outside of a centered circle
-template< class T > void image< T >::circle_crop( const float& ramp_width ) {
+template< class T > void image< T >::circle_crop( const float& ramp_width, const T& background ) {
     T black; ::black( black );
     float r2;   // radius in pixel space
     if( dim.x > dim.y ) r2 = dim.x / 2.0; 
@@ -126,7 +124,7 @@ template< class T > void image< T >::circle_crop( const float& ramp_width ) {
         for( int y = 0; y < dim.y; y++ ) {
             float r = linalg::length2( vec2f( { x * 1.0f, y * 1.0f } ) - center );
             if( r > r2 ) base[ y * dim.x + x ] *= black;
-            if( r > r1 ) base[ y * dim.x + x ] *= ( 1.0f - sqrtf( r / r2 ) ) / ramp_width;
+            else blend( base[ y * dim.x + x ], background, ( 1.0f - sqrtf( r / r2 ) ) / ramp_width );
         }
     }
     mip_it(); 
@@ -213,7 +211,7 @@ template< class T > void image< T >::splat(
                         if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
                              if( has_tint ) {
                                 ::apply_mask( base[ y * dim.x + x ], 
-                                linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
+                                mulc( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
                                 m.base[ (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) ], 
                                 mmode ); }
                             else {
@@ -244,7 +242,7 @@ template< class T > void image< T >::splat(
                         if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
                             if( has_tint ) {
                                 ::apply_mask( base[ y * dim.x + x ], 
-                                linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
+                                mulc( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ), 
                                 m.base[ (msfix.y >> 16) * m.dim.x + (msfix.x >> 16) ],
                                 mmode ); }
                             else {
@@ -269,8 +267,8 @@ template< class T > void image< T >::splat(
             if( ( x >= 0 ) && ( x < dim.x ) ) {
                 for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
                     if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
-                        if( has_tint ) base[ y * dim.x + x ] += linalg::cmul( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint );
-                        else           base[ y * dim.x + x ] +=               g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
+                        if( has_tint ) addc( base[ y * dim.x + x ], mulc( g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ], my_tint ) );
+                        else           addc( base[ y * dim.x + x ], g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ] );
                     }
                     sfix += unyfix;
                 }

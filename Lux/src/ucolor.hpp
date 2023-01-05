@@ -5,6 +5,7 @@
 #define __UCOLOR_HPP
 
 #include "mask_mode.hpp"
+#include <algorithm>
 typedef unsigned int ucolor;
 
 float af( const ucolor &c );
@@ -44,8 +45,26 @@ ucolor shift_right_5( const ucolor &c );
 ucolor shift_right_6( const ucolor &c );
 ucolor shift_right_7( const ucolor &c );
 
-ucolor blend( const ucolor& a, const ucolor& b );
+
 void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode = MASK_BLEND  );
+ucolor blend( const ucolor& a, const ucolor& b );
+
+// proportion 0-256 -> 0-100%
+static inline ucolor blend( const ucolor& a, const ucolor& b, const unsigned int prop )
+{
+    // should a random bit be included and at what probability?
+    // unsigned int random_bit = fair_coin( gen );
+    unsigned int iprop = 256-prop;
+
+    return 
+        ( a & 0xff000000 ) |
+    ( ( ( a & 0x00ff0000 ) * prop + ( b & 0x00ff0000 ) * iprop ) >> 8 & 0x00ff0000 ) |
+    ( ( ( a & 0x0000ff00 ) * prop + ( b & 0x0000ff00 ) * iprop ) >> 8 & 0x0000ff00 ) |
+    ( ( ( a & 0x000000ff ) * prop + ( b & 0x000000ff ) * iprop ) >> 8 );
+}
+
+static inline ucolor blend(  const ucolor& a, const ucolor& b, const float& prop ) 
+{ return blend( a, b, (unsigned int)( prop * 256.0f ) ); }
 
 unsigned long luminance( const ucolor& in );
 ucolor gray( const ucolor& in );
@@ -53,7 +72,7 @@ ucolor gray( const ucolor& in );
 inline void white( ucolor& w ) { w = 0xffffffff; }
 inline void black( ucolor& b ) { b = 0xff000000; } // Alpha channel set
 
-inline ucolor manhattan( const ucolor& a, const ucolor& b )
+static inline unsigned int manhattan( const ucolor& a, const ucolor& b )
 {
    unsigned int out = 0;
 
@@ -69,15 +88,36 @@ inline ucolor manhattan( const ucolor& a, const ucolor& b )
    return out;
 }
 
-/*inline ucolor blend( const ucolor& a, const ucolor& b )
-{
-   unsigned int random_bit = rand() % 2;
+// add colors, handling overflow
+static inline void addc( ucolor& c1, const ucolor& c2 ) {
+   c1 = ( c1 & 0xff000000 ) + 
+      std::min< unsigned int>( ( c1 & 0x00ff0000 ) + ( c2 & 0x00ff0000 ), 0x00ff0000 ) +
+      std::min< unsigned int>( ( c1 & 0x0000ff00 ) + ( c2 & 0x0000ff00 ), 0x0000ff00 ) +
+      std::min< unsigned int>( ( c1 & 0x000000ff ) + ( c2 & 0x000000ff ), 0x000000ff );
+}
 
-   return
-   ( ( ( ( a & 0x00ff0000 ) + ( b & 0x00ff0000 ) + 0x00010000 * random_bit ) >> 1 ) & 0x00ff0000 ) + 
-   ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
-   ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
-   0xff000000;
-}*/
+// subtract colors, handling underflow
+static inline void subc( ucolor& c1, const ucolor& c2 )
+{
+   unsigned int r, g, b;
+   if( ( c1 & 0x00ff0000 ) > ( c2 & 0x00ff0000 ) ) r = ( c1 & 0x00ff0000 ) - ( c2 & 0x00ff0000 );
+      else r = 0;
+   if( ( c1 & 0x0000ff00 ) > ( c2 & 0x0000ff00 ) ) g = ( c1 & 0x0000ff00 ) - ( c2 & 0x0000ff00 );
+      else g = 0;
+   if( ( c1 & 0x000000ff ) > ( c2 & 0x000000ff ) ) b = ( c1 & 0x000000ff ) - ( c2 & 0x000000ff );
+      else b = 0;
+
+   // preserve alpha channel
+   c1 = ( c1 & 0xff000000 ) + r + g + b;
+}
+
+// multiply colors, handling overflow
+static inline ucolor mulc( const ucolor& c1, const ucolor& c2 )
+{
+   return ( c1 & 0xff000000 ) + 
+      std::min< unsigned int>( ( ( c1 & 0x00ff0000 ) * ( c2 & 0x00ff0000 ) ) >> 8, 0x00ff0000 ) +
+      std::min< unsigned int>( ( ( c1 & 0x0000ff00 ) * ( c2 & 0x0000ff00 ) ) >> 8, 0x0000ff00 ) +
+      std::min< unsigned int>( ( ( c1 & 0x000000ff ) * ( c2 & 0x000000ff ) ) >> 8, 0x000000ff );
+}
 
 #endif // __UCOLOR_HPP

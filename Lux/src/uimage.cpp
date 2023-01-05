@@ -72,3 +72,12 @@ void uimage::write_jpg( const std::string& filename, int quality ) {
 void uimage::write_png( const std::string& filename ) {
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }
+
+void uimage::write_file(const std::string &filename, file_type type, int quality ) {
+    switch( type ) {
+        case FILE_JPG: write_jpg( filename, quality ); break;
+        case FILE_PNG: write_png( filename ); break;
+        case FILE_BINARY: write_binary( filename ); break;
+        default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
+    }
+}

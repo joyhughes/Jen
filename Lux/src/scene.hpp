@@ -149,7 +149,12 @@ struct scene {
     void set_size( const vec2i& size_init );
 
     // Add template - T is image type (fimage, uimage, vfield, etc.)
-    void render( const std::string& filename, const float& time = 0.0f, const float& time_interval = 1.0f );
+    void render(    const std::string& filename, 
+                    const float& time = 0.0f, 
+                    const float& time_interval = 1.0f, 
+                    pixel_type ptype = PIXEL_UCOLOR, 
+                    file_type ftype = FILE_JPG, 
+                    int quality = 100 );
 
     void animate( std::string basename, int nframes = 100 );
 };

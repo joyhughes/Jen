@@ -65,6 +65,12 @@ inline float luminance( const frgb &c );  // Returns approximate visual brightne
 frgb gray( const frgb &c );        // Grays out the color
 inline void white( frgb& w ) { w = frgb( { 1.0f, 1.0f, 1.0f  } ); }
 inline void black( frgb& b ) { b = frgb( { 0.0f, 0.0f, 0.0f  } ); }
+static inline frgb blend( const frgb& a, const frgb& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
+
+// Wrappers for addition and subtraction - used for image compatibility
+static inline void addc( frgb& c1, const frgb& c2 ) { c1 += c2; }
+static inline void subc( frgb& c1, const frgb& c2 ) { c1 -= c2; }
+static inline frgb mulc( const frgb& c1, const frgb& c2 ) { return linalg::cmul( c1, c2 ); }
 
 // Future: HSV and other color spaces
 
