@@ -1,18 +1,23 @@
-#include "image.hpp"
-#include "vector_field.hpp"
+#include "warp_field.hpp"
 
-class warp_field : public image< unsigned int > {
+// fill warp field values based on vector field - fields should be same size
+void warp_field::fill(const vector_field &vfield, bool relative ) {
+    if( vfield.get_dim() != dim ) {
+        std::cerr << "Error: vector field and warp field must be same size" << std::endl;
+        return;
+    }
+    for( int x = 0; x < dim.x; x++ ) {
+        for( int y = 0; y < dim.y; y++ ) {
+            vec2f vi = vfield.index( y * dim.x + x ); 
+            vi.x += 0.5f; vi.y += 0.5f;
+            int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
+            int yblock = vi.y / dim.y;  if( vi.y < 0 ) { yblock -= 1; }
+            int outx = vi.x - ( xblock * dim.x );
+            int outy = vi.y - ( yblock * dim.y );
 
-public:
-    warp_field() : image() {}     
-    // creates image of particular size 
-    warp_field( const vec2i& dims ) : image( dims ){}     
-    warp_field( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
-    // copy constructor
-    warp_field( const image< unsigned int >& img ) : image( img ) {}  
-    warp_field( const vector_field& vfield ) { fill( vfield ); }  
-    
-    // fill warp field values based on vector field
-    void fill( const vector_field& vfield );
-    template< class T > T advect( unsigned int index, image< T >& img );
-};
+            base[ y * dim.x + x ] = outx + outy * dim.x;
+        }
+    }
+}
+
+

@@ -99,7 +99,9 @@ public:
     template< class U > bool compare_dims( const image< U >& img ) const { return ( dim == img.get_dim() ); }  // returns true if images have same dimensions
 
     // Sample base image
+    inline void set( const unsigned int& i, const T& val ) { base[ i ] = val; }
     const T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE ) const;
+    inline T index( const unsigned int& i ) const { return base[ i ]; }
     const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
     // Preserved intersting bug       
     const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;           
