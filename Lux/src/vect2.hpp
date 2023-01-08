@@ -56,10 +56,16 @@ vec2f complex_power( const vec2f& in, const float& p );
 
 // masking functions
 void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode = MASK_BLEND  );
+static inline vec2f blend( const vec2f& a, const vec2f& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
 
 // included for cellular automata operating on vector fields (weird but maybe cool?)
 inline void white( vec2f& w ) { w = vec2f( { 1.0f, 1.0f } ); }
 inline void black( vec2f& b ) { b = vec2f( { 0.0f, 0.0f } ); }
+
+// wrappers for addition and subtraction - used for image compatibility
+static inline void  addc( vec2f& c1, const vec2f& c2 ) { c1 += c2; }
+static inline void  subc( vec2f& c1, const vec2f& c2 ) { c1 -= c2; }
+static inline vec2f mulc( const vec2f& c1, const vec2f& c2 ) { return linalg::cmul( c1, c2 ); }
 
 // Axis-aligned bounding box
 template< class T, int M > struct bounding_box {

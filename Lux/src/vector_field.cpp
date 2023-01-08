@@ -166,3 +166,24 @@ void vector_field::position_fill() {
     // rather than using mip_it() here, calculate directly up hierarchy using bounding box
 }
 
+void vector_field::write_jpg(const std::string &filename, int quality) {
+    image< frgb > img( dim );
+    visualize( img );
+    img.write_jpg( filename, quality );
+}
+
+void vector_field::write_png(const std::string &filename ) {
+    image< ucolor > img( dim );
+    visualize( img );
+    img.write_png( filename );
+}
+
+void vector_field::write_file(const std::string &filename, file_type type, int quality ) {
+    switch( type ) {
+        case FILE_JPG: write_jpg( filename, quality ); break;
+        case FILE_PNG: write_png( filename ); break;
+        case FILE_BINARY: write_binary( filename ); break;
+        default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
+    }
+}
+

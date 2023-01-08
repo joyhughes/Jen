@@ -84,6 +84,15 @@ public:
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     void position_fill();
+
+    // TODO:  implement vector field visualization
+    void visualize( image< frgb >& img ) const {}
+    void visualize( image< ucolor >& img ) const {}
+
+    void write_jpg( const std :: string& filename, int quality );
+    void write_png( const std :: string& filename );
+    void write_file( const std::string& filename, file_type type = FILE_JPG, int quality = 100 );
+
 };
 
 #endif // __VECTOR_FIELD_HPP

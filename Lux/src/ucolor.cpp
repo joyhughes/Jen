@@ -58,8 +58,17 @@ ucolor shift_right_5( const ucolor &c ) { return ( c >> 5 ) & 0x07070707; }
 ucolor shift_right_6( const ucolor &c ) { return ( c >> 6 ) & 0x03030303; }
 ucolor shift_right_7( const ucolor &c ) { return ( c >> 7 ) & 0x01010101; }
 
+// todo - implement different mask modes + handle overflow values
+void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode ) {
+    result =     ( result & 0xff000000 ) |
+             ( ( ( result & 0x00ff0000 ) * ( 0xff - ( ( mask & 0x00ff0000 ) >> 16 ) ) + ( layer & 0x00ff0000 ) * ( ( mask & 0x00ff0000 ) >> 16 ) ) >> 8 ) |
+             ( ( ( result & 0x0000ff00 ) * ( 0xff - ( ( mask & 0x0000ff00 ) >>  8 ) ) + ( layer & 0x0000ff00 ) * ( ( mask & 0x0000ff00 ) >>  8 ) ) >> 8 ) |
+             ( ( ( result & 0x000000ff ) * ( 0xff - ( ( mask & 0x000000ff )       ) ) + ( layer & 0x000000ff ) * ( ( mask & 0x000000ff )       ) ) >> 8 );
+}
+
 ucolor blend( const ucolor& a, const ucolor& b )
 {
+   // Random bit assures average color stays the same
    unsigned int random_bit = fair_coin( gen );
 
    return
@@ -67,14 +76,6 @@ ucolor blend( const ucolor& a, const ucolor& b )
    ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
    ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
    0xff000000;
-}
-
-// todo - implement different mask modes + handle overflow values
-void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode ) {
-    result =     ( result & 0xff000000 ) |
-             ( ( ( result & 0x00ff0000 ) * ( 0xff - ( ( mask & 0x00ff0000 ) >> 16 ) ) + ( layer & 0x00ff0000 ) * ( ( mask & 0x00ff0000 ) >> 16 ) ) >> 8 ) |
-             ( ( ( result & 0x0000ff00 ) * ( 0xff - ( ( mask & 0x0000ff00 ) >>  8 ) ) + ( layer & 0x0000ff00 ) * ( ( mask & 0x0000ff00 ) >>  8 ) ) >> 8 ) |
-             ( ( ( result & 0x000000ff ) * ( 0xff - ( ( mask & 0x000000ff )       ) ) + ( layer & 0x000000ff ) * ( ( mask & 0x000000ff )       ) ) >> 8 );
 }
 
 unsigned long luminance( const ucolor& in ) {

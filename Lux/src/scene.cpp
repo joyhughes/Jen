@@ -107,12 +107,20 @@ template< class T > void scene::render(std::string filename, float time)
 }
 */
 
-void scene::render( const std::string& filename, const float& time, const float& time_interval )
+void scene::render( const std::string& filename, 
+                    const float& time, 
+                    const float& time_interval, 
+                    pixel_type ptype, 
+                    file_type ftype, 
+                    int quality )
 { 
-    // future: allow for optional render to uimage
-    auto out = std::make_shared< fimage >( size );
-    out->set_bounds( { { -1.0, 1.0 }, { 1.0, -1.0 } } );
-    any_image_ptr any_out = out;
+    any_image_ptr any_out;
+    // bounds set automatically by image constructor
+    switch( ptype ) {
+        case( PIXEL_FRGB ):   any_out = std::make_shared< fimage >( size ); break;
+        case( PIXEL_UCOLOR ): any_out = std::make_shared< uimage >( size ); break;
+        case( PIXEL_VEC2F ):  any_out = std::make_shared< vector_field >( size ); break;
+    }
     // std::cout << "Created image pointer\n";
     // future: add pre-effects here
     for( auto& name : tlc ) {
@@ -122,7 +130,7 @@ void scene::render( const std::string& filename, const float& time, const float&
     }
     // future: add after-effects here
     // future: optional write to png
-    out->write_jpg( filename, 100 );
+    std::visit( [ & ]( auto&& out ){ out->write_file( filename, ftype, quality ); }, any_out );
 } 
 
 void scene::animate( std::string basename, int nframes )
