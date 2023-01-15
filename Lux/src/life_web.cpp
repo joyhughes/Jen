@@ -2,6 +2,12 @@
 #include "life.hpp"
 #include "uimage.hpp"
 #include <emscripten.h>
+#include <emscripten/bind.h>
+
+using namespace emscripten;
+
+static bool running = true;
+static bool displayed = false;
 
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
@@ -14,6 +20,7 @@ struct frame_context {
 // used as emscripten main loop
 void iterate_and_display(void *arg)
 {
+  if( !running && displayed ) return;
   frame_context *context;
   context = (frame_context *)arg;
   // unpack context
@@ -30,9 +37,17 @@ void iterate_and_display(void *arg)
     *pixel_ptr = *base_ptr;
     pixel_ptr++; base_ptr++;
   }
-  my_CA( buf );
+  if( running ) {
+    my_CA( buf );
+    displayed = false;
+  }
+  else displayed = true;
   SDL_Flip(screen);
   if (SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
+}
+
+void run_pause() {
+  running = !running;
 }
 
 int main(int argc, char** argv) {
@@ -100,4 +115,8 @@ int main(int argc, char** argv) {
   SDL_Quit();
 
   return 0;
+}
+
+EMSCRIPTEN_BINDINGS(my_module) {
+    function("run_pause", &run_pause);
 }
