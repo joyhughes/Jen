@@ -1,0 +1,69 @@
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+    canvas.emscripten {
+        border: 0px none;
+        margin-left:auto;
+        margin-right:auto;
+        display:block
+    }
+
+    p#fullScreenButton {
+        text-align: center;
+        background-color: #e55b49;
+        font-family: Sans-Serif;
+        padding: 10px;
+        visibility: hidden;
+    }
+
+    p.startButton {
+        text-align: center;
+        background-color: #4c7aff;
+        font-family: Sans-Serif;
+        padding: 10px;
+    }
+    #loadingDiv {
+        text-align: center;
+    }
+</style>
+    </head>
+
+    <body>
+      <div id="loadingDiv"><h1>Lux Vitae by Joyographic</h1></div>
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+      <div style="width:200px; margin-left:auto; margin-right:auto">
+      <p class="startButton" onclick="start_function(this)">Run / Pause</p>
+      <!--<p id="fullScreenButton" onclick="Module.requestFullScreen(true, false)">Click for full-screen</p>-->
+      </div>
+
+    <script type='text/javascript'>
+        var Module = {
+            onRuntimeInitialized: function() {
+                //var e = document.getElementById('loadingDiv');
+                //e.style.visibility = 'hidden';
+            }, 
+            canvas: (function() {
+                var canvas = document.getElementById('canvas');
+                return canvas;
+                })()
+        };
+
+        var start_function = function(o) {
+            //o.style.visibility = "hidden";
+            //document.getElementById("fullScreenButton").style.visibility="visible";
+            Module.run_pause();
+        };
+
+    </script>
+    <script>
+
+          var script = document.createElement('script');
+          script.src = "gravitate.js";
+          document.body.appendChild(script);
+
+</script>
+
+    </body>
+</html>
