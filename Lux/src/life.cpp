@@ -96,9 +96,50 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
             rule( neighbors, result );  // apply rule
             *out_it = result[0];
         }
-
-    } else if( neighborhood == NEIGHBORHOOD_VON_NEUMANN ) {
-    } else if( neighborhood == NEIGHBORHOOD_MARGOLIS ) { // Works best if image dimensions are multiples of 2
+    } 
+    
+    // Copilot generated code for Von Neumann neighborhood - needs review
+    else if( neighborhood == NEIGHBORHOOD_VON_NEUMANN ) {
+        neighbors.resize( 5 );
+        result.resize( 1 );
+        auto out_it = out;
+        auto dm_it = in;
+        // scan through image by column
+        for( int x = 0; x < dim.x; x++ ) {
+            // set intial neighborhood
+            if( x == 0 ) {
+                VNU = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
+                VNL = *(in + dim.x - 1);
+                dm_it = in + (2 * dim.x - 1); 
+            }
+            else {
+                VNU = *(in + ( dim.y - 1 ) * dim.x + x - 1);
+                VNL = *(in + x - 1);
+                dm_it = in + (dim.x + x - 1);
+            }
+            VNM = *(in + ( dim.y - 1 ) * dim.x + x);
+            VND = *dm_it;
+            if( x == dim.x - 1 ) VNR = *(in + ( dim.y - 1 ) * dim.x); else VNR = *(in + ( dim.y - 1 ) * dim.x + x + 1);
+            out_it = out + x;
+            for( int y = 0; y < dim.y - 1; y++ ) {
+                rule( neighbors, result );  // apply rule
+                *out_it = result[0];        // set output
+                out_it += dim.x;
+                // update neighborhood
+                VNU = VNM; VNL = VND; VNM = VNR;
+                dm_it += dim.x; VND = *dm_it;
+                if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
+            }
+            // set last row
+            if( x == 0 ) VND = *(in + dim.x - 1); else VND = *(in + x - 1);
+            VNM = *(in + x);
+            if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
+            rule( neighbors, result );  // apply rule
+            *out_it = result[0];
+        }
+    } 
+    
+    else if( neighborhood == NEIGHBORHOOD_MARGOLIS ) { // Works best if image dimensions are multiples of 2
         neighbors.resize( 4 );
         result.resize( 4 );
         auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
@@ -160,6 +201,10 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
                 // update neighborhood
                 in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
                 out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
+                if( x == dim.x - 3 ) { // right edge
+                    in_ur  -= dim.x; in_lr  -= dim.x;
+                    out_ur -= dim.x; out_lr -= dim.x;
+                }
             }
         }
     } 
@@ -248,7 +293,7 @@ template< class T > void gravitate< T >::operator () (const std::vector<T> &neig
     
     if( alpha_block ) {
         bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] &  0xff000000 ) != 0 ; 
+        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
         if( blocked ) {
             result.assign( neighbors.begin(), neighbors.end() );
             return;
@@ -256,11 +301,18 @@ template< class T > void gravitate< T >::operator () (const std::vector<T> &neig
     }
 
     // Calculate approximate brighness of pixels (sum of color components)
-    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
     int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
     int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
     int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+*/
 
+    int wul = luminance( MUL );
+    int wur = luminance( MUR );
+    int wll = luminance( MLL );
+    int wlr = luminance( MLR );
+
+    // Sort pixels by brightness
     int wu = wul + wur;
     int wd = wll + wlr;
     int wl = wul + wll;
@@ -273,8 +325,8 @@ template< class T > void gravitate< T >::operator () (const std::vector<T> &neig
         if( udiff > 0 ) r = 0;
         else r = 2;
     } else {
-        if( ldiff > 0 ) r = 3;
-        else r = 1;
+        if( ldiff > 0 ) r = 1;
+        else r = 3;
     }
     r = direction - r + 4;
 
