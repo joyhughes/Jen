@@ -78,12 +78,6 @@ ucolor blend( const ucolor& a, const ucolor& b )
    0xff000000;
 }
 
-unsigned long luminance( const ucolor& in ) {
-    return( ( ( ( shift_right_2( in ) + shift_right_4( in ) ) >> 16 ) +   // r * 5/16
-              ( ( shift_right_1( in ) + shift_right_4( in ) ) >> 8  ) +   // g * 9/16
-                  shift_right_3( in ) ) & 0x000000ff );                  // b * 2/16
-}       
-
 ucolor gray( const ucolor& in ) {
     unsigned int lum = luminance( in );
     return( ( in & 0xff000000 ) + ( lum << 16 ) + ( lum << 8 ) + lum );
