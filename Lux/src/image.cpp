@@ -123,7 +123,7 @@ template< class T > void image< T >::circle_crop( const float& ramp_width, const
     for( int x = 0; x < dim.x; x++ ) {
         for( int y = 0; y < dim.y; y++ ) {
             float r = linalg::length2( vec2f( { x * 1.0f, y * 1.0f } ) - center );
-            if( r > r2 ) base[ y * dim.x + x ] *= black;
+            if( r > r2 ) base[ y * dim.x + x ] = background;
             else blend( base[ y * dim.x + x ], background, ( 1.0f - sqrtf( r / r2 ) ) / ramp_width );
         }
     }
@@ -132,12 +132,36 @@ template< class T > void image< T >::circle_crop( const float& ramp_width, const
 
 template< class T > void image< T >::fill( const T& c ) {
     std::fill( begin(), base.end(), c );
+}
+
+template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
+    if( ( bb.minv == ipbounds.minv ) && ( bb.maxv == ipbounds.maxv ) ) fill( c );
+    else {
+        auto bb1 = bb.intersect( ipbounds );
+        for( int y = bb1.minv.y; y < bb1.maxv.y; y++ ) {
+            // half open interval
+            auto beg_it = base.begin() + ( y * dim.x + bb1.minv.x );
+            auto end_it = base.begin() + ( y * dim.x + bb1.maxv.x - 1);
+            std::fill( beg_it, end_it, c );
+        }
+    }
     mip_it();
 }
 
+// Black and white noise
 template< class T > void image< T >::noise( const float& a ) {
-    for ( auto& pix : base ) {
-        if( weighted_bit( a ) ) white( pix ); else black( pix );
+    for( auto& pix : base ) { if( weighted_bit( a ) ) white( pix ); else black( pix ); }
+}
+
+template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
+    if( ( bb.minv == ipbounds.minv ) && ( bb.maxv == ipbounds.maxv ) ) noise( a );
+    else {
+        auto bb1 = bb.intersect( ipbounds );
+        for( int y = bb1.minv.y; y < bb1.maxv.y; y++ ) {
+            for( int x = bb1.minv.x; x < bb1.maxv.x; x++ ) {
+                if( weighted_bit( a ) ) white( base[ y * dim.x + x ] ); else black( base[ y * dim.x + x ] );
+            }
+        }
     }
     mip_it();
 }

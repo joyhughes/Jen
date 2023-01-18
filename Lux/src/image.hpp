@@ -118,7 +118,10 @@ public:
 
     // pixel modification functions
     void fill( const T& c );
+    void fill( const T& c, const bb2i& bb );
     void noise( const float& a );
+    void noise( const float& a, const bb2i& bb );
+    //void color_noise( const T& minc, const T& maxc, const float& a = 1.0f, const bb2i& );
 
     // masking
     void apply_mask( const I& layer, const I& mask, const mask_mode& mmode = MASK_BLEND );
