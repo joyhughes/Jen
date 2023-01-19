@@ -13,9 +13,12 @@ static bool displayed = false;
 struct frame_context {
   SDL_Surface *screen;
   CA< ucolor > *my_CA;
+  image< ucolor > *img;
   buffer_pair< ucolor > *buf;
   vec2i *dims;
 };
+
+frame_context *global_context;
 
 // used as emscripten main loop
 void iterate_and_display(void *arg)
@@ -48,6 +51,11 @@ void iterate_and_display(void *arg)
 
 void run_pause() {
   running = !running;
+}
+
+void restart() {
+  global_context->buf->reset( *(global_context->img) );
+  displayed = false;
 }
 
 int main(int argc, char** argv) {
@@ -104,8 +112,10 @@ int main(int argc, char** argv) {
   frame_context context;
   context.screen = screen;
   context.my_CA = &my_CA;
+  context.img = &img;
   context.buf = &buf;
   context.dims = &dims;
+  global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
   EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
@@ -119,4 +129,5 @@ int main(int argc, char** argv) {
 
 EMSCRIPTEN_BINDINGS(my_module) {
     function("run_pause", &run_pause);
+    function("restart",   &restart);
 }

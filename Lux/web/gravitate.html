@@ -10,19 +10,22 @@
         display:block
     }
 
-    p#fullScreenButton {
+    .runPauseButton {
         text-align: center;
-        background-color: #e55b49;
+        background-color: #ffffff;
+        font-size: 32px;
+        border: none;
         font-family: Sans-Serif;
-        padding: 10px;
-        visibility: hidden;
+        padding: 0px;
     }
 
-    p.startButton {
+    .restartButton {
         text-align: center;
-        background-color: #4c7aff;
+        background-color: #ffffff;
+        font-size: 32px;
+        border: none;
         font-family: Sans-Serif;
-        padding: 10px;
+        padding: 0px;
     }
     #loadingDiv {
         text-align: center;
@@ -34,8 +37,9 @@
       <div id="loadingDiv"><h1>Lux Vitae by Joyographic</h1></div>
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
       <div style="width:200px; margin-left:auto; margin-right:auto">
-      <p class="startButton" onclick="start_function(this)">Run / Pause</p>
-      <!--<p id="fullScreenButton" onclick="Module.requestFullScreen(true, false)">Click for full-screen</p>-->
+        <button class="restartButton"  onclick="restart_function(this)">&#x23EE;</button>
+        <button class="runPauseButton" onclick="run_pause_function(this)">&#x23EF;</button>
+        <!--<p id="fullScreenButton" onclick="Module.requestFullScreen(true, false)">Click for full-screen</p>-->
       </div>
 
     <script type='text/javascript'>
@@ -50,10 +54,16 @@
                 })()
         };
 
-        var start_function = function(o) {
+        var run_pause_function = function(o) {
             //o.style.visibility = "hidden";
             //document.getElementById("fullScreenButton").style.visibility="visible";
             Module.run_pause();
+        };
+
+        var restart_function = function(o) {
+            //o.style.visibility = "hidden";
+            //document.getElementById("fullScreenButton").style.visibility="visible";
+            Module.restart();
         };
 
     </script>
