@@ -3,12 +3,12 @@
     "images": 
     [ 
         { 
-            "type" : "fimage", 
+            "type" : "uimage", 
             "filename": "../samples/hk_square.jpg", 
             "name": "hk_square" 
         },
         { 
-            "type": "fimage", 
+            "type": "uimage", 
             "filename": "../samples/orb.jpg", 
             "name": "orb"
         } 
@@ -36,7 +36,7 @@
         },
         {
             "name": "initial_scaler_param",
-            "type": "time_param",
+            "type": "time_param_float",
             "fn":   "initial_scaler_ratio"
         },
         {
@@ -112,7 +112,7 @@
         },
         {
             "name": "wiggle_time1",
-            "type": "time_param",
+            "type": "time_param_float",
             "fn": "wiggler1"
         },
         {
@@ -138,7 +138,7 @@
         },
         {
             "name": "wiggle_damper_param",
-            "type" : "scale_param",
+            "type" : "scale_param_float",
             "fn": "wiggle_damper" 
         },
         {
@@ -154,7 +154,7 @@
         },
         {
             "name": "wiggle_indexer",
-            "type": "index_param",
+            "type": "index_param_float",
             "fn": "wiggler"
         },
         {

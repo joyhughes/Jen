@@ -1,0 +1,55 @@
+{
+    "name": "minimal_function_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "../samples/orb.jpg", 
+            "name": "orb"
+        } 
+    ],
+    "elements": 
+    [
+        {
+            "name": "orb_element",
+            "image": "orb",
+            "scale": 0.1
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "advector",
+            "type": "advect_element"
+        },
+        {
+            "name": "shrinker",
+            "type": "ratio_float",
+            "r": 0.9
+        },
+        {
+            "name": "scaler",
+            "type": "scale_gen_fn",
+            "scale": { 
+                "value": 0.1,
+                "functions": [ "shrinker" ] 
+            }
+        },
+        {
+            "name": "following_scaler",
+            "type": "filter",
+            "conditions": [ "following_element" ],
+            "functions": [ "scaler" ]
+        }
+    ],
+    "clusters": 
+    [ 
+        {
+            "name": "minimal_function",
+            "element": "orb_element",
+            "max_n": 10,
+            "next_element": [ "advector", "following_scaler" ],
+            "tlc": true
+        }
+    ]   
+}

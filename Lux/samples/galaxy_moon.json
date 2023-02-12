@@ -3,17 +3,17 @@
     "images": 
     [ 
         { 
-            "type" : "fimage", 
+            "type" : "uimage", 
             "filename": "../samples/galaxy.jpg", 
             "name": "galaxy" 
         },
         { 
-            "type": "fimage", 
+            "type": "uimage", 
             "filename": "../samples/moonsplat.jpg", 
             "name": "moonsplat"
         },
         { 
-            "type": "fimage", 
+            "type": "uimage", 
             "filename": "../samples/moonmask.jpg", 
             "name": "moonmask"
         }  
