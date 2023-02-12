@@ -1,7 +1,7 @@
-#include "warp_field.hpp"
+#include "offset_field.hpp"
 
 // fill warp field values based on vector field - fields should be same size
-void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_extend extend ) {
+void offset_field::fill(const image< vec2f >& vfield, const bool relative, const image_extend extend ) {
     if( vfield.get_dim() != dim ) {
         std::cerr << "Error: vector field and warp field must be same size" << std::endl;
         return;
@@ -13,9 +13,9 @@ void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_
             vec2i vi( vf + 0.5f );
             if( !relative ) { vi.x += x; vi.y += y; }
             if( extend == SAMP_SINGLE ) {
-                if( ipbounds.in_bounds( vi ) ) base[ y * dim.x + x ] = vi.y * dim.x + vi.x;
-                else if( relative ) base[ y * dim.x + x ] = 0;
-                else base[ y * dim.x + x ] = y * dim.x + x;
+                if( ipbounds.in_bounds( vi ) ) base[ y * dim.x + x ] = vi;
+                else if( relative ) base[ y * dim.x + x ] = { 0, 0 };
+                else base[ y * dim.x + x ] = { x, y };
             }
             else {
                 int xblock = vi.x / dim.x;  if( vi.x < 0 ) { xblock -= 1; }
@@ -26,10 +26,8 @@ void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_
                     if( xblock % 2 ) 	{ outx = dim.x - 1 - outx; }
                     if( yblock % 2 ) 	{ outy = dim.y - 1 - outy; }
                 }
-                base[ y * dim.x + x ] = outx + outy * dim.x;
+                base[ y * dim.x + x ] = { outx, outy };
             }
         }
     }
 }
-
-

@@ -10,6 +10,14 @@ struct cluster;
 struct scene;
 struct element_context;
 
+template< class T > struct any_fn;
+template<> struct any_fn< float >;
+template<> struct any_fn< int >;
+template<> struct any_fn< vec2f >;
+template<> struct any_fn< vec2i >;
+struct any_condition_fn;
+struct any_gen_fn;
+
 // change to template if possible:     typedef std::function< T ( const U&, const element_context& ) > gen_fn;
 typedef std::function< bool  ( bool&, element_context&  ) > bool_fn; 
 typedef std::function< float ( float&, element_context& ) > float_fn; 
@@ -20,25 +28,19 @@ typedef std::function< vec2i ( vec2i&, element_context& ) > vec2i_fn;
 typedef std::function< bool ( element_context& ) > gen_fn;
 
 template< class U > struct harness {
-    typedef std::function< U ( U&, element_context& ) > harness_fn;
-    std::vector< harness_fn > functions;
+    std::vector< any_fn< U > > functions;
     U val;
 
-    void operator () ( element_context& context ) 
-        { for( auto fn : functions ) val = fn( val , context ); }
+    void operator () ( element_context& context );
 
     U  operator *  () { return  val; }
     U* operator -> () { return &val; }
-    harness< U >& operator = ( const U& u ) { val = u; }
+    harness< U >& operator = ( const U& u ) { val = u; return *this; }
 
-    void add_function( const harness_fn& fn ) { functions.push_back( fn ); }
+    void add_function( const any_fn< U >& fn );
 
     harness( const U& val_init = 0.0f ) : val( val_init ) {}
-    harness( const harness& h ) {
-        val = h.val;
-        for (int i = 0; i < h.functions.size(); i++) 
-            functions.push_back( h.functions[ i ] ); 
-    }
+    harness( const harness& h );
 };
 
 // harness functions
@@ -53,20 +55,16 @@ typedef identity_fn< float > identity_float;
 typedef identity_fn< vec2i > identity_vec2i;
 typedef identity_fn< vec2f > identity_vec2f;
 
-static identity_int   identity_static_int;
-static identity_float identity_static_float;
-static identity_vec2f identity_static_vec2f;
-static identity_vec2i identity_static_vec2i;
-
 template< class U > struct adder {
     harness< U > r;
     
     U operator () ( U& u, element_context& context ) { 
-        r( context ); 
+        r( context );
+        //std::cout << "adder: " << *r << " + " << u << " = " << *r + u << std::endl; 
         return *r + u; 
     }
 
-    adder( const float& r_init = 0.0f ) : r( r_init ) {}
+    adder( const U& r_init = 0 ) : r( r_init ) {}
 };
 
 typedef adder< int >   adder_int;
@@ -116,34 +114,51 @@ struct wiggle {
 
 // parameterizes the member function by float-converted index of element ( distance from beginning )
 // potentially can be templated, or implemented as int_fn with a type converter function
-struct index_param {
-    float_fn fn;
-    // future: add cushioney stuff like scale, offset, etc.
+template< class U > struct index_param {
+    any_fn< U > fn;
 
-    float operator () ( float& val, element_context& context );
+    U operator () ( U& val, element_context& context );
 
-    index_param( const float_fn& fn_init = identity_static_float ) : fn( fn_init ) {}
+    index_param();
+    index_param( any_fn< U >& fn_init );
 };
+
+typedef index_param< float > index_param_float;
+typedef index_param< int  >  index_param_int;
+typedef index_param< vec2f > index_param_vec2f;
+typedef index_param< vec2i > index_param_vec2i;
 
 // parameterizes the member function by scale of element 
-struct scale_param {
-    float_fn fn;
+template< class U > struct scale_param {
+    any_fn< U > fn;
     // future: add cushioney stuff like scale, offset, etc.
 
-    float operator () ( float& val, element_context& context );
+    U operator () ( U& val, element_context& context );
 
-    scale_param( const float_fn& fn_init = identity_static_float ) : fn( fn_init ) {}
+    scale_param();
+    scale_param( any_fn< U >& fn_init );
 };
+
+typedef scale_param< float > scale_param_float;
+typedef scale_param< int  >  scale_param_int;
+typedef scale_param< vec2f > scale_param_vec2f;
+typedef scale_param< vec2i > scale_param_vec2i;
 
 // parameterizes the member function by time
-struct time_param {
-    float_fn fn;
+template< class U > struct time_param {
+    any_fn< U > fn;
     // future: add cushioney stuff like scale, offset, etc.
 
-    float operator () ( float& val, element_context& context );
+    U operator () ( U& val, element_context& context );
 
-    time_param( const float_fn& fn_init = identity_static_float ) : fn( fn_init ) {}
+    time_param();
+    time_param( any_fn< U >& fn_init );
 };
+
+typedef time_param< float > time_param_float;
+typedef time_param< int  >  time_param_int;
+typedef time_param< vec2f > time_param_vec2f;
+typedef time_param< vec2i > time_param_vec2i;
 
 // composite of multiple sine waves
 /* struct squiggle { 
@@ -157,7 +172,7 @@ struct time_param {
     float operator () ( float& val, element_context& context ) {
         squish( context ); volume( context ); speed( context ); phase_shift( context );
         float out = 0.0f;
-        for( auto w : wiggles ) { out += *volume * w( val * *squish + *phase_shift + *speed * context.t, context ); }
+        for( auto& w : wiggles ) { out += *volume * w( val * *squish + *phase_shift + *speed * context.t, context ); }
         return out;
     }
 
@@ -166,6 +181,11 @@ struct time_param {
 }; */
 
 // generalized functions - type gen_fn
+
+// identity function - no effect
+struct identity_gen_fn {
+    bool operator () ( element_context& context ) { return true; }
+};
 
 // generalized functor to change the orientation of an element using a float_fn
 struct orientation_gen_fn {
@@ -250,6 +270,7 @@ struct curly {
     curly( const float& curliness_init = 1.0f ): curliness( curliness_init ) {}
 };
 
+/*
 struct position_list {
     harness< std::vector< vec2f > > positions;
 
@@ -257,6 +278,7 @@ struct position_list {
 
     position_list( std::vector< vec2f > positions_init ) : positions( positions_init ) {}
 };
+*/
 
 /*struct rotate_around {
     harness< vec2f > center;
@@ -282,11 +304,22 @@ struct position_list {
 };
 */
 
-// Conditions for index_filter and depth_filter - included by default
-bool initial_element(   bool& b, element_context& context );
-bool following_element( bool& b, element_context& context );
-bool top_level(         bool& b, element_context& context );
-bool lower_level(       bool& b, element_context& context );
+struct switch_condition {
+    bool val;
+
+    void on()  { val = true; }
+    void off() { val = false; }
+    void flip() { val = !val; }
+    bool operator () ( bool& b, element_context& context ) { return val; }
+
+    switch_condition( bool val_init = true ) : val( val_init ) {}
+};
+
+// Conditions for index_filter and depth_filter 
+struct initial_element_condition   { bool operator () ( bool& b, element_context& context ); };
+struct following_element_condition { bool operator () ( bool& b, element_context& context ); };
+struct top_level_condition         { bool operator () ( bool& b, element_context& context ); };
+struct lower_level_condition       { bool operator () ( bool& b, element_context& context ); };
 // even, odd, etc.
 
 struct random_condition {
@@ -310,16 +343,14 @@ struct random_sticky_condition {
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
 
-// Also need a random condition evaluated at the beginning, with a different probability of changing
-
 struct filter {
     bool c;
-    std::vector< bool_fn > conditions;
-    std::vector< gen_fn > functions;        // list of component functions, executed in order
+    std::vector< any_condition_fn > conditions;
+    std::vector< any_gen_fn > functions;        // list of component functions, executed in order
 
     bool operator () ( element_context& context );
-    void add_function(  gen_fn fn ) { functions.push_back( fn ); }
-    void add_condition( bool_fn c ) { conditions.push_back( c ); }
+    void add_function(  const any_gen_fn& fn );
+    void add_condition( const any_condition_fn& c );
 
     filter( bool c_init = true ) : c( c_init ) {}
 };
@@ -328,10 +359,10 @@ struct filter {
 struct next_element {
     int max_index;                          // Maximum number of elements - prevents infinite loop
     std::optional< bb2f > bounds;           // Optional bounding box - iteration stops when element outside the box
-    std::vector< gen_fn > functions;        // list of component functions, executed in order
+    std::vector< any_gen_fn > functions;        // list of component functions, executed in order
 
     bool operator () ( element_context& context );
-    void add_function( gen_fn fn ) { functions.push_back( fn ); }
+    void add_function( any_gen_fn fn );
 
     next_element() : max_index( 100 ) {}
     next_element( const int& max_index_init, const std::optional< bb2f >  bounds_init = std::nullopt ) 

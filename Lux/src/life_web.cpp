@@ -13,6 +13,7 @@ static bool displayed = false;
 struct frame_context {
   SDL_Surface *screen;
   CA< ucolor > *my_CA;
+  std::shared_ptr< pixel_sort< ucolor > > my_rule;
   image< ucolor > *img;
   buffer_pair< ucolor > *buf;
   vec2i *dims;
@@ -58,6 +59,10 @@ void restart() {
   displayed = false;
 }
 
+void slider_value( int value ) {
+  global_context->my_rule->max_diff = value;
+}
+
 int main(int argc, char** argv) {
   ucolor white, black;
   ::white( white ); ::black( black );
@@ -99,8 +104,9 @@ int main(int argc, char** argv) {
   } 
 
   //life< ucolor > lifer( on, off );
-  gravitate< ucolor > gravitator( DOWN, true ); // alpha block enabled
-  CA< ucolor > my_CA( gravitator, gravitator.neighborhood );
+  std::shared_ptr< pixel_sort< ucolor >  > sorter( new pixel_sort< ucolor >( DOWN, true ) ); // alpha block enabled
+ // CA< ucolor > my_CA( sort_wrapper, sorter.neighborhood );
+  CA< ucolor > my_CA( std::ref( *sorter ), sorter->neighborhood );
   //pixel_sort< ucolor > pixel_sort( DOWN, true, 300 ); // alpha block enabled
   //CA< ucolor > my_CA( pixel_sort, pixel_sort.neighborhood );
   buffer_pair< ucolor > buf( img );
@@ -112,6 +118,7 @@ int main(int argc, char** argv) {
   frame_context context;
   context.screen = screen;
   context.my_CA = &my_CA;
+  context.my_rule = sorter;
   context.img = &img;
   context.buf = &buf;
   context.dims = &dims;
@@ -128,6 +135,7 @@ int main(int argc, char** argv) {
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
-    function("run_pause", &run_pause);
-    function("restart",   &restart);
+    function( "run_pause",    &run_pause );
+    function( "restart",      &restart );
+    function( "slider_value", &slider_value );
 }

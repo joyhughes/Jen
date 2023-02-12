@@ -3,21 +3,24 @@
 #include "fimage.hpp"
 #include "uimage.hpp"
 #include "vector_field.hpp"
+#include "warp_field.hpp"
+#include "offset_field.hpp"
 #include "scene_io.hpp"
 #include <optional>
 #include <sstream>
 
+#define SCENE_DEBUG
 
 // splats any element onto a particular image
 template< class T > void splat_element( std::shared_ptr< image< T > > target, element& el ) {
-    //std::cout << " splat_element\n";
+    //std::cout << " splat_element" << std::endl; 
     typedef std::shared_ptr< image< T > > image_ptr;    
 
     image_ptr img = NULL;
     image_ptr mask = NULL;
     std::optional< T > tint = std::nullopt;
     
-    if( std::holds_alternative< image_ptr >( el.img  ) ) { 
+    if( std::holds_alternative< image_ptr >( el.img ) ) { 
         img  = std::get< image_ptr >( el.img ); 
         //std::cout << "Element holds image alternative\n";
     }
@@ -45,29 +48,40 @@ void element::render( any_image_ptr& target, const float& t ) {
     pixel_type ptype = ( pixel_type )target.index();
     //std::cout << " pixel type " << ptype << std::endl;
     switch( ( pixel_type )target.index() ) {
-        case( PIXEL_FRGB ):   splat_element< frgb   >( std::get< fimage_ptr >( target ), *this ); break;
+        case( PIXEL_FRGB   ): splat_element< frgb   >( std::get< fimage_ptr >( target ), *this ); break;
         case( PIXEL_UCOLOR ): splat_element< ucolor >( std::get< uimage_ptr >( target ), *this ); break;
-        case( PIXEL_VEC2F ):  splat_element< vec2f  >( std::get< vfield_ptr >( target ), *this ); break;
+        case( PIXEL_VEC2F  ): splat_element< vec2f  >( std::get< vfield_ptr >( target ), *this ); break;
+        case( PIXEL_INT    ): splat_element< int    >( std::get< wfield_ptr >( target ), *this ); break;
+        case( PIXEL_VEC2I  ): splat_element< vec2i  >( std::get< ofield_ptr >( target ), *this ); break;
     }
 }
 
-/*
-void element::operator () ( any_buffer_pair buf, const float& t ) {
-    render( buf.get_image(), t );
-    std::visit( [ this ]( auto&& arg ){ this->render( arg.get().get_image(), t ); }, buf );
+// needed?
+// render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
+// in this case the element serves as an effect functor
+template<class T> void element::operator()(buffer_pair<T> &buf, const float &t) {
+    if( !buf.get_image() ) throw std::runtime_error( "element: null image pointer" );
+    render( buf.get_image(), t ); // does not require buffer swap
 }
-*/
 
 // Recursively generate and render elements
 void cluster::render( scene& s, any_image_ptr& img, const float& t, const float& time_interval ) { 
     element el = root_elem;
     element_context context( el, *this, s, img, t, time_interval );
-    //std::cout << " context created\n";
+    //std::cout << " context created" << std::endl;
     // If next_element contains no functions, simply render initial element
     if( next_elem.functions.size() == 0 ) el.render( img, t );
-    //std::cout << "rendered first element\n";
-    else while( next_elem( context ) ) { el.render( img, t ); }
+    else while( next_elem( context ) ) { 
+        el.render( img, t ); 
+        //std::cout << "rendered element " << el.index << std::endl; 
+    }
     //( ( fimage & )img ).write_jpg( "hk_cluster.jpg", 100 ); // debug - save frame after each cluster                   
+}
+
+template<class T> void cluster::operator()(buffer_pair<T> &buf, const float &t) {
+    if( !buf.get_image().get() ) throw std::runtime_error( "cluster: null image pointer" );
+    render( buf.get_image(), t ); // does not require buffer swap
+    // add logic for double buffering if background dependent and top level true
 }
 
 // change root element parameters for branching cluster
@@ -114,18 +128,20 @@ void scene::render( const std::string& filename,
                     file_type ftype, 
                     int quality )
 { 
+    //std::cout << "scene::render" << std::endl;
     any_image_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
-        case( PIXEL_FRGB ):   any_out = std::make_shared< fimage >( size ); break;
-        case( PIXEL_UCOLOR ): any_out = std::make_shared< uimage >( size ); break;
-        case( PIXEL_VEC2F ):  any_out = std::make_shared< vector_field >( size ); break;
+        case( PIXEL_FRGB   ): any_out = std::make_shared< fimage       >( size ); break;
+        case( PIXEL_UCOLOR ): any_out = std::make_shared< uimage       >( size ); break;
+        case( PIXEL_VEC2F  ): any_out = std::make_shared< vector_field >( size ); break;
+        case( PIXEL_INT    ): any_out = std::make_shared< warp_field   >( size ); break;
+        case( PIXEL_VEC2I  ): any_out = std::make_shared< offset_field >( size ); break;
     }
-    // std::cout << "Created image pointer\n";
+    //std::cout << "Created image pointer" << std::endl;
     // future: add pre-effects here
     for( auto& name : tlc ) {
         clusters[ name ]->render( *this, any_out, time );    // render top level clusters in order
-        // future: effects here? maybe...
         //std::cout << "rendered cluster " << name << std::endl;
     }
     // future: add after-effects here
@@ -135,6 +151,7 @@ void scene::render( const std::string& filename,
 
 void scene::animate( std::string basename, int nframes )
 {
+    //std::cout << "scene::animate" << std::endl;
     float time_interval = 1.0f / nframes;
     float time = 0.0f;
     for( int frame = 0; frame < nframes; frame++ ) {

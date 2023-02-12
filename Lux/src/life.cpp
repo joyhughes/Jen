@@ -36,8 +36,8 @@
 // future - implement multiresolution rule on mip-map
 
 // Uses toroidal boundary conditions
-template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float &t ) {
-    if(!buf.has_image()) return false;
+template< class T > void CA< T >::operator() ( buffer_pair<T> &buf, const float &t ) {
+    if( !buf.has_image() ) throw std::runtime_error( "CA: no image buffer" );
     auto in =  buf.get_image().begin();
     auto out = buf.get_buffer().begin();
     vec2i dim = buf.get_image().get_dim();
@@ -210,7 +210,6 @@ template< class T > bool CA< T >::operator() ( buffer_pair<T> &buf, const float 
     } 
     frame++;
     buf.swap();
-    return true;
 }
 
 /*
@@ -288,7 +287,8 @@ template< class T > void pixel_sort< T >::operator () (const std::vector<T> &nei
     }
 }
 
-template< class T > void gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
+template< class T > void snow< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r;
     
     if( alpha_block ) {
@@ -327,6 +327,54 @@ template< class T > void gravitate< T >::operator () (const std::vector<T> &neig
     } else {
         if( ldiff > 0 ) r = 1;
         else r = 3;
+    }
+    r = direction - r + 4;
+
+    result[0] = neighbors[ r % 4 ];
+    result[1] = neighbors[ (r + 1) % 4 ];
+    result[2] = neighbors[ (r + 2) % 4 ];
+    result[3] = neighbors[ (r + 3) % 4 ];
+}
+
+template< class T > void gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+    int r;
+    
+    if( alpha_block ) {
+        bool blocked = false;
+        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+*/
+
+    int wul = luminance( MUL );
+    int wur = luminance( MUR );
+    int wll = luminance( MLL );
+    int wlr = luminance( MLR );
+
+    // Sort pixels by brightness
+    int wu = wul + wur;
+    int wd = wll + wlr;
+    int wl = wul + wll;
+    int wr = wur + wlr;
+
+    int udiff = wu - wd;
+    int ldiff = wl - wr;
+
+    if( abs( udiff ) > abs( ldiff ) ) {
+        if( udiff > 0 ) r = 0;
+        else r = 2;
+    } else {
+        if( ldiff > 0 ) r = 3;
+        else r = 1;
     }
     r = direction - r + 4;
 

@@ -55,17 +55,54 @@ vec2f inverse( const vec2f& in, const float& diameter, const float& soften = 0.0
 vec2f complex_power( const vec2f& in, const float& p );
 
 // masking functions
+// vector_field
 void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode = MASK_BLEND  );
 static inline vec2f blend( const vec2f& a, const vec2f& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
 
-// included for cellular automata operating on vector fields (weird but maybe cool?)
+// warp_field
+void apply_mask( int& result, const int& layer, const int& mask, const mask_mode& mmode = MASK_BLEND  );
+static inline int blend( const int& a, const int& b, const float& prop ) { return (int) std::lerp( (float) a, (float) b, prop ); }
+
+// offset_field
+void apply_mask( vec2i& result, const vec2i& layer, const vec2i& mask, const mask_mode& mmode = MASK_BLEND  );
+static inline vec2i blend( const vec2i& a, const vec2i& b, const float& prop ) { return vec2i( { (int) std::lerp( (float) a.x, (float) b.x, prop ), (int) std::lerp( (float) a.y, (float) b.y, prop ) } ); }
+
+// default colors for various image operations
+// imagine cellular automata operating on vector fields (weird but maybe cool?)
+// vector_field
 inline void white( vec2f& w ) { w = vec2f( { 1.0f, 1.0f } ); }
 inline void black( vec2f& b ) { b = vec2f( { 0.0f, 0.0f } ); }
 
+// warp_field
+inline void white( int& w ) { w = 1; }
+inline void black( int& b ) { b = 0; }
+
+// offset_field
+inline void white( vec2i& w ) { w = vec2i( { 1, 1 } ); }
+inline void black( vec2i& b ) { b = vec2i( { 0, 0 } ); }
+
 // wrappers for addition and subtraction - used for image compatibility
+// vector_field
 static inline void  addc( vec2f& c1, const vec2f& c2 ) { c1 += c2; }
 static inline void  subc( vec2f& c1, const vec2f& c2 ) { c1 -= c2; }
 static inline vec2f mulc( const vec2f& c1, const vec2f& c2 ) { return linalg::cmul( c1, c2 ); }
+
+// warp_field
+static inline void  addc( int& c1, const int& c2 ) { c1 += c2; }
+static inline void  subc( int& c1, const int& c2 ) { c1 -= c2; }
+static inline int   mulc( const int& c1, const int& c2 ) { return c1 * c2; }
+
+// offset_field
+static inline void  addc( vec2i& c1, const vec2i& c2 ) { c1 += c2; }
+static inline void  subc( vec2i& c1, const vec2i& c2 ) { c1 -= c2; }
+static inline vec2i mulc( const vec2i& c1, const vec2i& c2 ) { return linalg::cmul( c1, c2 ); }
+
+// template function that returns a value of all ones for a given type
+template< class T > T iden() {}
+template<> inline vec2f iden< vec2f >() { return vec2f( { 1.0f, 1.0f } ); }
+template<> inline vec2i iden< vec2i >() { return vec2i( { 1 , 1 } ); }
+template<> inline float iden< float >() { return 1.0f; }
+template<> inline int   iden< int >  () { return 1; }
 
 // Axis-aligned bounding box
 template< class T, int M > struct bounding_box {

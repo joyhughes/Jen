@@ -48,7 +48,7 @@ template< class T > struct CA {
    int frame;  // frame counter
 
    void set_rule( CA_rule rule, CA_neighborhood neighborhood ) { this->rule = rule; this->neighborhood = neighborhood; }
-   bool operator () ( buffer_pair< T >& buf, const float& t = 0.0f ); // iterates CA
+   void operator () ( buffer_pair< T >& buf, const float& t = 0.0f ); // iterates CA
 
    CA( CA_rule rule, CA_neighborhood neighborhood, mutation_type mutate_type = MUTATE_NONE, float mutate_amount = 0.0f, float mutate_probability = 0.0f ) : rule( rule ), neighborhood( neighborhood ), mutate_type( mutate_type ), mutate_amount( mutate_amount ), mutate_probability( mutate_probability ), frame(0) {}
 };
@@ -94,6 +94,22 @@ template< class T > struct gravitate {
       alpha_block( alpha_block_init) {}
 };
 
+// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
+// Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
+template< class T > struct snow {
+   const CA_neighborhood neighborhood;
+   std::uniform_int_distribution< int > rand_4;
+   direction4 direction;
+   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
+
+   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+
+   snow( direction4 direction_init = DOWN, bool alpha_block_init = false ) :
+      direction( direction_init ),
+      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
+      alpha_block( alpha_block_init) {}
+};
 
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct pixel_sort {
@@ -105,7 +121,7 @@ template< class T > struct pixel_sort {
 
    void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
 
-   pixel_sort( direction4 direction_init = DOWN, bool alpha_block_init = false, int max_diff_init = 100 ) :
+   pixel_sort( direction4 direction_init = DOWN, bool alpha_block_init = false, int max_diff_init = 300 ) :
       direction( direction_init ),
       neighborhood( NEIGHBORHOOD_MARGOLIS ), 
       rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),

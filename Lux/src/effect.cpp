@@ -1,55 +1,37 @@
 #include "effect.hpp"
 
 // In this case t has no effect
-template< class T > bool eff_vector_warp<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
-    if( buf.has_image() ) {
-        // Use buffer_pair operator () to return reference to first member of pair
-        buf.get_buffer().warp( buf(), vf, step, smooth, relative, extend );
-        buf.swap();
-        return true;
-    }
-    else {
-        return false;
-    }
+template< class T > void eff_vector_warp<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
+    if( !buf.has_image() ) throw std::runtime_error( "eff_vector_warp: no image in buffer" );
+    // Use buffer_pair operator () to return reference to first member of pair
+    buf.get_buffer().warp( buf(), vf, step, smooth, relative, extend );
+    buf.swap();
 }
 
 // Fill image with color
-template< class T > bool eff_fill<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
-    if( buf.has_image() ) {
-        if( bounded ) buf.get_image().fill( fill_color, bounds );
-        else          buf.get_image().fill( fill_color );
-        return true;
-    }
-    else {
-        return false;
-    }
+template< class T > void eff_fill<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
+    if( !buf.has_image() ) throw std::runtime_error( "eff_fill: no image in buffer" );
+    if( bounded ) buf.get_image().fill( fill_color, bounds );
+    else          buf.get_image().fill( fill_color );
 }
 
 // Noise effect
-template< class T > bool eff_noise<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
-    if( buf.has_image() ) {
-        if( bounded ) buf.get_image().noise( a, bounds );
-        else          buf.get_image().noise( a );
-        return true;
-    }
-    else {
-        return false;
-    }
+template< class T > void eff_noise<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
+    if( !buf.has_image() ) throw std::runtime_error( "eff_noise: no image in buffer" );
+    if( bounded ) buf.get_image().noise( a, bounds );
+    else          buf.get_image().noise( a );
 }
 
-// Component effect - runs the same component effect n times
-template< class T > bool eff_n<T>::operator () ( buffer_pair< T > &buf, const float &t )  { 
-    if( buf.has_image() ) {
-        for( int i = 0; i < n; i++ ) { if( !eff( buf ) ) return false; }
-        return true;
-    }
-    else return false;
+template< class T > void feedback< T > :: operator () ( buffer_pair<T> &buf, const float &t )
+{
+    if( !buf.has_image() ) throw std::runtime_error( "feedback: no image in buffer" );
+    buf.get_image().warp( buf(), wf, 1.0f, false, true, SAMP_SINGLE );
+    buf.swap();
 }
 
 // Composite effect - runs a list of component effects
-template< class T > bool effect<T>::operator () ( buffer_pair< T > &buf, const float &t )  {
-    for( eff_fn fn : functions ) { if( !fn( buf, t ) ) return false; }
-    return true;
+template< class T > void effect<T>::operator () ( buffer_pair< T > &buf, const float &t )  {
+    for( eff_fn fn : functions ) { fn( buf, t )  }
 }
 
 
