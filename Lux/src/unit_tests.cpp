@@ -424,10 +424,10 @@ void test_branch() {
     }
 }
 */
-void test_circle_crop() {    // not crop circle
+void test_crop_circle() {    // not crop circle
     fimage a;
     a.load( "../../Jen-C/RainbowMoon.jpg" ); 
-    a.circle_crop( 0.15f );
+    a.crop_circle( 0.15f );
     a.write_jpg( "moonsplat.jpg", 100 );
 }
 /*
@@ -490,7 +490,7 @@ int main( int argc, char** argv ) {
     //test_cluster();
     //test_branch();
     //test_melt();
-    //test_circle_crop();
+    //test_crop_circle();
     //test_mask();
     //test_life();
     

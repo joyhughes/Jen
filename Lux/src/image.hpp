@@ -113,8 +113,7 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    // as opposed to crop cirle
-    void circle_crop( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
     void fill( const T& c );
@@ -137,6 +136,7 @@ public:
         const mask_mode& mmode = MASK_BLEND // how will mask be applied to splat and backround?
     );  
 
+    // warp with vector field
     void warp ( const image< T >& in, 
                 const image< vec2f >& vf, 
                 const float& step = 1.0f, 
@@ -144,12 +144,25 @@ public:
                 const bool& relative = true,
                 const image_extend& extend = SAMP_SINGLE );
 
+    // warp with vector function
     void warp ( const image< T >& in, 
                 const std::function< vec2f( vec2f ) >& vfn, 
                 const float& step = 1.0f, 
                 const bool& smooth = false, 
                 const bool& relative = true,
                 const image_extend& extend = SAMP_SINGLE );
+
+    // warp with warp field
+    // can possibly slide by adding or subtracting int value from index
+    void warp ( const image< T >& in,
+                const image< int >& wf ); 
+
+    // warp with offset field
+    void warp ( const image< T >& in,
+                const image< vec2i >& of,
+                const vec2i &slide = vec2i( 0, 0 ),
+                const image_extend& extend    = SAMP_SINGLE,
+                const image_extend& of_extend = SAMP_SINGLE );
 
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
@@ -161,6 +174,7 @@ public:
     // determine file type from extension?
     virtual void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
 
+    // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 
     // operators

@@ -8,6 +8,7 @@
 #include "any_image.hpp"
 #include "effect.hpp"
 #include "next_element.hpp"
+#include "any_function.hpp"
 
 //template< class T > struct effect;
 struct element;
@@ -51,10 +52,10 @@ struct element {
 
     void render( any_image_ptr& in, const float& t );
 
+    // needed?
     // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
-    // in this case the element serves as an effect functor 
-
-    //void operator () ( any_buffer_pair buf, const float& t ); // render into a buffer pair. Rendering does not require buffer swap.
+    // in this case the element serves as an effect functor
+    template< class T > void operator () ( buffer_pair< T >& buf, const float& t );
 
     element(    const vec2f& position_init =  { 0.0f, 0.0f },
                 const float& scale_init = 1.0f,
@@ -91,6 +92,7 @@ struct cluster {
     int depth;          // counter to keep track of depth in tree
     int max_depth;      // prevent infinite recursion
     float min_scale;    // approximately one pixel
+    bool background_dependent;  // if true, cluster will double buffer on rendering
 
     std::optional< bb2f > bounds;   // Optionally, cluster will stop generating if it goes out of bounds
 
@@ -100,10 +102,12 @@ struct cluster {
     // change root element parameters for branching cluster
     void set_root( element& el );
 
-    // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
+    // render into a buffer pair. Rendering modifies image directly - usually does not require 
+    // buffer swap, but could if cluster generation depends on background image.
     // in this case the cluster serves as an effect functor (the effect being rendering)
+    // only at top level cluster. Effects would need to reference background image directly
     // need generic buffer pair
-    //void operator () ( buffer_pair< T >& buf, const float& t );
+    template< class T > void operator () ( buffer_pair< T >& buf, const float& t );
 
     cluster( const element& el,  
              next_element& next_elem_init, 
@@ -111,6 +115,7 @@ struct cluster {
              const int& depth_init = 0,
              const int& max_depth_init = 10,
              const float& min_scale_init = 0.01f,
+             const bool& background_dependent_init = false,
              const std::optional< bb2f >& bounds_init = std::nullopt
             )
         : root_elem( el ),
@@ -119,6 +124,7 @@ struct cluster {
           depth( depth_init ),
           max_depth( max_depth_init ),
           min_scale( min_scale_init ),
+          background_dependent( background_dependent_init ),
           bounds( bounds_init ) 
           {}
 };
@@ -126,21 +132,23 @@ struct cluster {
 struct scene {
     // scene owns clusters, elements, images, effects, and functions
     std::string name;
-    std::map< std::string, any_image_ptr > images;
-    //std::map< std::string, any_eff_fn_ptr > effects;
-    std::map< std::string, std::shared_ptr< element > > elements;
 
     // need list of harness functions by type (map of maps?)
-    std::map< std::string, bool_fn  >  bool_fns;
-    std::map< std::string, float_fn > float_fns;    
-    std::map< std::string, int_fn   >   int_fns;    
-    std::map< std::string, vec2f_fn > vec2f_fns;    
-    std::map< std::string, vec2i_fn > vec2i_fns;
-    std::map< std::string, gen_fn   >   gen_fns;
+    std::map< std::string, any_fn< float >  > float_fns;    
+    std::map< std::string, any_fn< int   >  > int_fns;    
+    std::map< std::string, any_fn< vec2f >  > vec2f_fns;    
+    std::map< std::string, any_fn< vec2i >  > vec2i_fns;
+    std::map< std::string, any_gen_fn       > gen_fns;
+    std::map< std::string, any_condition_fn > condition_fns;
 
+    std::map< std::string, any_image_ptr > images;
+    std::map< std::string, std::shared_ptr< element > > elements;
     std::map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::map< std::string, std::shared_ptr< cluster > > clusters; // scene defined as a set of clusters
+    //std::map< std::string, any_eff_fn_ptr > effects;
+
     std::vector< std::string > tlc;   // list of top level cluster names in rendering order
+    // replace with top level effect - must resolve to type of image being rendered
     
     vec2i size; // size of output image
     

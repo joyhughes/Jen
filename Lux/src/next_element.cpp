@@ -1,26 +1,62 @@
 #include "next_element.hpp"
+#include "any_function.hpp"
 #include "scene.hpp"
+
+template< class U > void harness< U >::operator () ( element_context &context ) 
+{ for( auto& fn : functions ) {
+    //std::cout << "      harness function " << fn.name << std::endl;
+    val = fn.fn( val, context ); 
+    }
+}
+
+template< class U > void harness< U >::add_function( const any_fn< U >& fn)
+{ functions.push_back( fn ); }
+
+template<class U> inline harness<U>::harness(const harness<U> &h) {
+    val = h.val;
+    for (int i = 0; i < h.functions.size(); i++) 
+        functions.push_back( h.functions[ i ] ); 
+}
 
 float wiggle::operator () ( float& val, element_context& context  )
 {
     wavelength( context ); amplitude( context ); phase( context ); wiggliness( context );
-    if( *wavelength != 0.0f ) 
+    //std::cout << "wiggle: val " << val  << " wavelength " << *wavelength << " amplitude " << *amplitude << " phase " << *phase << " wiggliness " << *wiggliness << std::endl;
+    if( *wavelength != 0.0f ) {
+        //std::cout << "   wiggle return value " << *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.t ) * TAU ) << std::endl;
         return *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.t ) * TAU );
+    }
     else return 0.0f; 
 }
 
-float index_param::operator () ( float& val, element_context& context ) {
-    float findex = context.el.index * 1.0f;    
-    return fn( findex, context );
+template< class U > U index_param< U >::operator () ( U &val, element_context &context ) { 
+    U arg = context.el.index * iden< U >();
+    return fn.fn( arg, context );
 }
 
-float scale_param::operator () ( float& val, element_context& context ) { 
-    return fn( context.el.scale, context );
+template< class U > index_param< U >::index_param() {}
+template< class U > index_param< U >::index_param( any_fn<U> &fn_init ) { fn = fn_init; }
+
+template< class U > U scale_param< U >::operator () ( U &val, element_context &context ) { 
+    U arg = context.el.scale * iden< U >();
+    return fn.fn( arg, context );
 }
 
-float time_param::operator () ( float& val, element_context& context ) {  
-    return fn( context.t, context );
+template< class U > scale_param< U >::scale_param() {}
+template< class U > scale_param< U >::scale_param( any_fn<U> &fn_init ) { fn = fn_init; }
+
+/*
+template< class U > U time_param< U >::operator () ( U &val, element_context &context ) { 
+    U arg = context.t * iden< U >();
+    return fn.fn( arg, context );
 }
+*/
+template<> float time_param< float >::operator () ( float &val, element_context &context ) { 
+    return fn.fn( context.t, context );
+}
+
+template< class U > time_param< U >::time_param() {}
+template< class U > time_param< U >::time_param( any_fn<U> &fn_init ) { fn = fn_init; }
 
 bool orientation_gen_fn::operator () ( element_context& context ) { 
     orientation.val = context.el.orientation;
@@ -80,24 +116,42 @@ bool angle_branch::operator () ( element_context& context ) {
 }
 
 bool curly::operator () ( element_context& context ) {
+    auto c = *curliness;
     curliness( context );
     element& el = context.el;
     if( el.scale > 0.0f ) el.orientation += *curliness / el.scale;
+    curliness = c;  // forget
     return true;
 }
-
+/*
 bool position_list::operator () ( element_context& context ) {
     positions( context );
     element& el = context.el;
     if( el.index < (*positions).size() ) el.position = (*positions)[ el.index ];
     return true;
 }
-
+*/
 // Conditions for index_filter
-bool initial_element(   bool& b, element_context& context ) { return  ( context.el.index == 0 ); }
-bool following_element( bool& b, element_context& context ) { return !( context.el.index == 0 ); }
-bool top_level(         bool& b, element_context& context ) { return  ( context.cl.depth == 0 ); }
-bool lower_level(       bool& b, element_context& context ) { return !( context.cl.depth == 0 ); }
+bool initial_element_condition  ::operator () ( bool& b, element_context& context ) { 
+    //std::cout << "initial_element_condition" << std::endl;
+    return  ( context.el.index == 0 ); 
+}
+
+bool following_element_condition::operator () ( bool& b, element_context& context ) { 
+    //std::cout << "following_element_condition" << std::endl;
+    return !( context.el.index == 0 ); 
+}
+
+bool top_level_condition        ::operator () ( bool& b, element_context& context ) { 
+    //std::cout << "top_level_condition" << std::endl;
+    return  ( context.cl.depth == 0 ); 
+}
+
+bool lower_level_condition      ::operator () ( bool& b, element_context& context ) { 
+    //std::cout << "lower_level_condition" << std::endl;
+    return !( context.cl.depth == 0 ); 
+}
+
 // even, odd, etc.
 
 bool random_condition::operator () ( bool& b, element_context& context ) { 
@@ -124,22 +178,36 @@ bool random_sticky_condition::operator () ( bool& b, element_context& context ) 
 }
 
 bool filter::operator () ( element_context& context ) { 
-    for( auto condition : conditions ) if( !condition( c, context ) ) return true;
-    for( auto fn : functions ) {
-        if( !fn( context ) ) return false;
+    //std::cout << "filter operator ()" << std::endl;
+    for( auto& condition : conditions ) {
+        //std::cout << "filter condition: " << condition.name << std::endl;
+        if( !condition.fn( c, context ) ) return true;
+    }
+    for( auto& fn : functions ) {
+        //std::cout << "   filter function: " << fn.name << std::endl;
+        if( !fn.fn( context ) ) return false;
     }
     return true;
 }
+
+void filter::add_function(  const any_gen_fn      &fn ) { functions.push_back( fn ); }
+void filter::add_condition( const any_condition_fn &c ) { conditions.push_back( c ); }
+
+void next_element::add_function( any_gen_fn fn ) { functions.push_back( fn ); }
 
 bool next_element::operator () ( element_context& context ) { 
     element& el = context.el;
     if( functions.size() == 0 ) return false;   // if no functions, no next element
     if( el.index >= max_index ) return false;
     vec2f p = el.position;
+    // calculate functions in order
+    //std::cout << "next_element: index = " << el.index << " depth = " << context.cl.depth << std::endl;
     for( auto fn : functions ) {
-        if( !fn( context ) ) return false;
+        //std::cout << "function: " << fn.name << "\n";
+        if( !fn.fn( context ) ) return false;
     }
     if( el.scale < context.cl.min_scale ) return false;
+    // calculate derivative - difference between current and previous positions (special case for first element)
     if( el.index != 0 ) el.derivative = el.position - p;
     else el.derivative = rot_deg( el.derivative, el.orientation );
     // bounds check
@@ -151,3 +219,11 @@ bool next_element::operator () ( element_context& context ) {
     return true; 
 }
    
+template struct harness< float >;
+template struct harness< vec2f >;
+template struct harness< int >;
+template struct harness< vec2i >;
+
+template struct index_param< float >;
+template struct scale_param< float >;
+template struct time_param<  float >;

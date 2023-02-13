@@ -8,7 +8,6 @@
 #include "ucolor.hpp"
 #include "uimage.hpp"
 #include "scene.hpp"
-#include "next_element.hpp"
 #include "warp.hpp"
 #include "life.hpp"
 
@@ -18,16 +17,17 @@
 
 void render( std::string scene_filename, std::string file_out ) {
     scene s( scene_filename );
-    std::cout << "Scene object created\n";
+    //std::cout << "Scene object created" << std::endl;
     s.render( file_out, 0.5f );
-    std::cout << "Render complete " << file_out << std::endl;
+    //std::cout << "Render complete " << file_out << std::endl;
 }
 
 void animate( std::string scene_filename, std::string basename, int nframes ) {
+    //std::cout << "scene::animate" << std::endl;
     scene s( scene_filename );
-    std::cout << "Scene object created\n";
+    //std::cout << "Scene object created" << std::endl;
     s.animate( basename, nframes );
-    std::cout << "Render complete " << basename << std::endl;
+    //std::cout << "Render complete " << basename << std::endl;
 }
 
 int main( int argc, char** argv ) {
@@ -37,6 +37,7 @@ int main( int argc, char** argv ) {
     }
     std::string scene_filename(  argv[ 1 ] );
     std::string output_name( argv[ 2 ] );
+    
     if( argc == 3 ) render( scene_filename, output_name );
     else {
         int nframes;
@@ -44,5 +45,7 @@ int main( int argc, char** argv ) {
         ss >> nframes; 
         animate( scene_filename, output_name, nframes );
     }
+    
+    //std::cout << "Done!" << std::endl;
     return 0;
 }

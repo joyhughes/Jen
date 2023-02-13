@@ -21,13 +21,16 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     //if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );
     if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  );  
 
-    // add default conditions
-    s.bool_fns[ "initial_element"   ] = initial_element;
+    // add default conditions (deprecated - default conditions promoted to any_condition objects)
+    /*s.bool_fns[ "initial_element"   ] = initial_element;
     s.bool_fns[ "following_element" ] = following_element;
     s.bool_fns[ "top_level"         ] = top_level;
-    s.bool_fns[ "lower_level"       ] = lower_level;
+    s.bool_fns[ "lower_level"       ] = lower_level; */
     
-    if( j.contains( "functions" ) ) for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
+    if( j.contains( "functions" ) ) {
+        add_default_conditions();
+        for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
+    }
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
 }
 
@@ -123,7 +126,7 @@ void scene_reader::read_element( const json& j ) {
 }
 
 // forward references not implemented
-template< class T > void scene_reader::read_harness( const json& j, harness< T >& h, std::map< std::string, std::function< T ( T&, element_context& ) > >& harness_fns ) {
+template< class T > void scene_reader::read_harness( const json& j, harness< T >& h, std::map< std::string, any_fn< T > >& harness_fns ) {
     if( j.is_object() ) {
         if( j.contains( "value" ) ) { 
             read( h.val, j[ "value" ] );
@@ -136,6 +139,17 @@ template< class T > void scene_reader::read_harness( const json& j, harness< T >
     else read( h.val, j );
 }
 
+void scene_reader::add_default_conditions() {
+    std::shared_ptr< initial_element_condition > initial_element( new initial_element_condition );
+    s.condition_fns[ "initial_element" ] = any_condition_fn( initial_element, std::ref( *initial_element ), "initial_element" );
+    std::shared_ptr< following_element_condition > following_element( new following_element_condition );
+    s.condition_fns[ "following_element" ] = any_condition_fn( following_element, std::ref( *following_element ), "following_element" );
+    std::shared_ptr< top_level_condition > top_level( new top_level_condition );
+    s.condition_fns[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
+    std::shared_ptr< lower_level_condition > lower_level( new lower_level_condition );
+    s.condition_fns[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
+}
+
 void scene_reader::read_function( const json& j ) {
     std::string name, type, fn_name;
 
@@ -144,44 +158,49 @@ void scene_reader::read_function( const json& j ) {
 
     // special case for conditionals
     if( type == "filter" ) {
-        auto fn = filter();
-        if( j.contains( "conditions" ) ) for( auto c : j[ "conditions" ] ) fn.add_condition( s.bool_fns[ c ] );
-        if( j.contains( "functions"  ) ) for( auto f : j[ "functions"  ] ) fn.add_function(  s.gen_fns[  f ] );
-        s.gen_fns[ name ] = fn;
+        std::shared_ptr< filter > fn ( new filter );
+        any_gen_fn gen_func( fn, std::ref( *fn ), name );
+        if( j.contains( "conditions" ) ) for( auto& c : j[ "conditions" ] ) fn->add_condition( s.condition_fns[ c ] );
+        if( j.contains( "functions"  ) ) for( auto& f : j[ "functions"  ] ) fn->add_function(  s.gen_fns[  f ] );
+        s.gen_fns[ name ] = gen_func;
     }
 
     // example of expanded macro sequence
     /* if( type == "orientation_gen_fn" ) { 
         auto fn = orientation_gen_fn(); 
+        any_gen_fn func( std::make_shared< orientation_gen_fn >( fn ), std::ref( fn ), name );
         if( j.contains( "orientation" ) ) read_any_harness( j[ "orientation" ], fn. orientation );
-        s.functions[ name ] = fn;
+        s.functions[ name ] = func;
     } */
 
-    #define FN( _T_ )      if( type == #_T_ ) {  auto fn = _T_ ();  
-    #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn. _T_ );
-    #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn. _T_, j[ #_T_ ] );
-    #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn.fn = s. _T_##_fns[ fn_name ]; }
-    #define END_FN( _T_ )  s. _T_##_fns[ name ] = fn; }
+    #define FN( _T_, _U_ ) if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ > func( fn, std::ref( *fn ), name );
+    #define END_FN( _T_ )  s. _T_##_fns[ name ] = func; }
+    #define GEN_FN( _T_ )  if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_gen_fn    func( fn, std::ref( *fn ), name ); 
+    #define END_GEN_FN()   s.gen_fns[ name ] = func; }
+    #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
+    #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
+    #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = s. _T_##_fns[ fn_name ]; }
+
 
     // harness float functions
-    FN( adder_float ) HARNESS( r ) END_FN( float )
-    FN( log_fn      ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
-    FN( ratio_float ) HARNESS( r ) END_FN( float )
-    FN( wiggle      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
+    FN( adder_float, float ) HARNESS( r ) END_FN( float )
+    FN( log_fn, float      ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
+    FN( ratio_float, float ) HARNESS( r ) END_FN( float )
+    FN( wiggle, float      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
 
     // parameter functions
-    FN( index_param ) PARAM( float ) END_FN( float )
-    FN( scale_param ) PARAM( float ) END_FN( float )
-    FN( time_param  ) PARAM( float ) END_FN( float )
+    FN( index_param_float, float ) PARAM( float ) END_FN( float )
+    FN( scale_param_float, float ) PARAM( float ) END_FN( float )
+    FN( time_param_float,  float ) PARAM( float ) END_FN( float )
 
     // single field modifiers
-    FN( orientation_gen_fn ) HARNESS( orientation ) END_FN( gen )
-    FN( scale_gen_fn       ) HARNESS( scale ) END_FN( gen )
+    GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN( gen )
+    GEN_FN( scale_gen_fn       ) HARNESS( scale ) END_FN( gen )
 
     // generalized functions (alphabetical order)
-    FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN( gen )
-    FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN( gen )
-    FN( curly ) HARNESS( curliness ) END_FN( gen )
+    GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN( gen )
+    GEN_FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN( gen )
+    GEN_FN( curly ) HARNESS( curliness ) END_FN( gen )
     // position_list should go here - figure out how to work the vector of positions
 }
 

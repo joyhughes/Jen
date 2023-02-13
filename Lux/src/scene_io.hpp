@@ -1,6 +1,7 @@
 #include "scene.hpp"
 #include "json.hpp"
 #include "next_element.hpp"
+#include "any_function.hpp"
 
 struct scene_reader {
     using json = nlohmann::json;
@@ -8,6 +9,8 @@ struct scene_reader {
     scene& s;
 
     scene_reader( scene& s_init, std::string( filename ) );
+
+    void add_default_conditions();
 
     void read( bool& b,   const json& j ) { b =  j.get<float>();  }
     void read( int& i,    const json& j ) { i =  j.get<float>();  }
@@ -20,7 +23,7 @@ struct scene_reader {
     void read( ucolor& u, const json& j ) { u =  read_ucolor( j );}
     void read( std::optional< int   >& i, const json& j ) { i = j.get<int>();  }    
     void read( std::optional< float >& f, const json& j ) { f = j.get<float>();  }  
-    void read( std::vector< vec2f >& v,   const json& j ) { for( auto k : j ) { v.push_back( read_vec2f( k ) ); } }
+    void read( std::vector< vec2f >& v,   const json& j ) { for( auto& k : j ) { v.push_back( read_vec2f( k ) ); } }
 
     vec2f  read_vec2f(  const json& j );
     vec2i  read_vec2i(  const json& j );
@@ -35,7 +38,7 @@ struct scene_reader {
     void  read_function( const json& j );
     void  read_cluster(  const json& j );
 
-    template< class T > void read_harness( const json& j, harness< T >& h, std::map< std::string, std::function< T ( T&, element_context& ) > >& harness_fns );
+    template< class T > void read_harness( const json& j, harness< T >& h, std::map< std::string, any_fn< T > >& harness_fns );
     #define READ_ANY_HARNESS( _T_, _U_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h, _U_ ); }
     READ_ANY_HARNESS( float, s.float_fns )
     READ_ANY_HARNESS( int, s.int_fns )

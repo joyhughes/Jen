@@ -13,7 +13,7 @@ vec2f vortex::operator () ( const vec2f& v, const float& t ) {
 vec2f vortex_field::operator () ( const vec2f& v, const float& t ) {
     if( !generated ) generate();
     vec2f out = { 0.0f, 0.0f };
-    for( auto vort : vorts ) out += vort( v, t );
+    for( auto& vort : vorts ) out += vort( v, t );
     return out;
 }
 
@@ -151,6 +151,7 @@ void vector_field::turbulent( vortex_field& ca, const float& t ) {
     //if( !(ca.generated) ) ca.generate();
     fill( { 0.0f, 0.0f } );
     vector_field buffer( *this );
+    // cavort cavort cavort
     for( auto& vort : ca.vorts ) { buffer.vortex( vort ); *this += buffer; }
     mip_it();
 }

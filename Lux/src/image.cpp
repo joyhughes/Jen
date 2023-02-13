@@ -6,6 +6,7 @@
 #include "fimage.hpp"
 #include "uimage.hpp"
 #include "vector_field.hpp"
+#include "warp_field.hpp"
 #include "any_image.hpp"
 #include <iostream>
 #include <fstream>
@@ -86,8 +87,8 @@ template< class T > const T image< T >::sample_tile ( const vec2f& v, const bool
     if( v.y < 0.0f ) vi.y -= 1;
     if( smooth ) {  // linearly interpolated between neighboring values
         vec2f rem = v - bounds.bb_map( vi, ipbounds );  // Get remainders for interpolation
-        return lerp( lerp ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
-                     lerp ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
+        return blend( blend ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
+                      blend ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
  //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ), 
  //                    lerp ( index( { vi.x + 1, vi.y     }, extend ), index( vi ,               extend ), rem.x ), rem.y );
     }
@@ -102,8 +103,8 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
     if( vf.y < 0.0f ) vi.y -= 1;
     if( smooth ) {  // linearly interpolated between neighboring values
         vec2f rem = vf - ( vec2f )vi;  // Get remainders for interpolation
-        return lerp( lerp ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
-                     lerp ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
+        return blend( blend ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
+                      blend ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
  //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ), 
  //                    lerp ( index( { vi.x + 1, vi.y     }, extend ), index( vi ,               extend ), rem.x ), rem.y );
     }
@@ -111,7 +112,7 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
 }
 
 // Colors black everything outside of a centered circle
-template< class T > void image< T >::circle_crop( const float& ramp_width, const T& background ) {
+template< class T > void image< T >::crop_circle( const float& ramp_width, const T& background ) {
     T black; ::black( black );
     float r2;   // radius in pixel space
     if( dim.x > dim.y ) r2 = dim.x / 2.0; 
@@ -351,6 +352,35 @@ template< class T > void image< T >::warp (  const image< T >& in,
     mip_it();
 }
 
+template< class T > void image< T >::warp ( const image< T >& in, 
+                                            const image< int >& wf ) {
+    if( !compare_dims( wf ) ) return; // Vector field and warp field must be same dimension
+    if( !compare_dims( in ) ) return; // Vector field and input image must be same dimension
+    std::transform( begin(), end(), wf.begin(), begin(), [ &in ] ( T &r, const unsigned int &i ) { return in.index( i ); } );
+    mip_it();
+}
+
+template< class T > void image< T >::warp(  const image< T > &in, 
+                                            const image< vec2i > &of, 
+                                            const vec2i &slide, 
+                                            const image_extend &extend, 
+                                            const image_extend &of_extend ) {
+    
+    auto warp_bounds = ipbounds;
+    if( of_extend == SAMP_SINGLE ) warp_bounds.intersect( bb2i( slide, slide + of.get_dim() ) );
+
+    vec2i v;
+    for ( v.y = warp_bounds.minv.y; v.y < warp_bounds.maxv.y; v.y++) {
+        auto it = begin() + v.y * dim.x + warp_bounds.minv.x;
+        for ( v.x = warp_bounds.minv.x; v.x < warp_bounds.maxv.x; v.x++) {
+            vec2i coord = of.index( v - slide, of_extend );
+            *it = in.index( v + coord , extend );
+            it++;
+        }
+    }
+    mip_it();
+}
+
 template< class T > void image< T >::read_binary(  const std::string &filename )
 {
     vec2i new_dim;
@@ -427,10 +457,11 @@ template< class T > image< T >& image< T >::operator *= ( const T& rhs ) {
 
 template< class T > image< T >& image< T >::operator *= ( const float& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a * rhs; } );
+    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return ( T )( a * rhs ); } );
     mip_it();
     return *this;
 }
+
 template< class T > image< T >& image< T >::operator /= ( image< T >& rhs ) {
     using namespace linalg;
     std::transform( begin(), base.end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a / b; } );
@@ -447,7 +478,7 @@ template< class T > image< T >& image< T >::operator /= ( const T& rhs ) {
 
 template< class T > image< T >& image< T >::operator /= ( const float& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a / rhs; } );
+    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return ( T )( a / rhs ); } );
     mip_it();
     return *this;
 }
@@ -457,3 +488,6 @@ template< class T > image< T >& image< T >::operator () () { return *this; }
 template class image< frgb >;       // fimage
 template class image< ucolor >;     // uimage
 template class image< vec2f >;      // vector_field
+//template class image< float >;      // scalar_field
+template class image< int >;        // warp_field
+template class image< vec2i >;      // offset_field

@@ -84,6 +84,7 @@ vec2f complex_power( const vec2f& in, const float& p ) {
 	return out;
 } 
 
+// vec2f 
 void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode ) {
     if( mmode %2 )  {   // mask affects splat
         if( mmode % 1 ) result = linalg::lerp( result, layer, mask );
@@ -93,6 +94,30 @@ void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mas
         if( mmode % 1 ) result += linalg::cmul( layer, mask );
         else result += layer;   // mask has no effect
     }    
+}
+
+// int
+void apply_mask( int& result, const int& layer, const int& mask, const mask_mode& mmode ) {
+	if( mmode %2 )  {   // mask affects splat
+		if( mmode % 1 ) result = std::lerp( ( float )result, ( float )layer, ( float )mask );
+		else result = ( 1 - mask ) * result + layer;
+	}
+	else{
+		if( mmode % 1 ) result += layer * mask;
+		else result += layer;   // mask has no effect
+	}    
+}
+
+// vec2i
+void apply_mask( vec2i& result, const vec2i& layer, const vec2i& mask, const mask_mode& mmode ) {
+	if( mmode %2 )  {   // mask affects splat
+		if( mmode % 1 ) result = vec2i( { (int) std::lerp( (float) result.x, (float) layer.x, mask.x ), (int) std::lerp( (float) result.y, (float) layer.y, mask.y ) } );
+		else result = linalg::cmul( result, ( vec2i( { 1, 1 } ) - mask ) )  + layer;
+	}
+	else{
+		if( mmode % 1 ) result += linalg::cmul( layer, mask );
+		else result += layer;   // mask has no effect
+	}    
 }
 
 
