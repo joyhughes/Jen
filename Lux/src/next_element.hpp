@@ -39,8 +39,9 @@ template< class U > struct harness {
 
     void add_function( const any_fn< U >& fn );
 
-    harness( const U& val_init = 0.0f ) : val( val_init ) {}
+    harness( const U& val_init = 0 );
     harness( const harness& h );
+    ~harness();
 };
 
 // harness functions
@@ -352,7 +353,7 @@ struct filter {
     void add_function(  const any_gen_fn& fn );
     void add_condition( const any_condition_fn& c );
 
-    filter( bool c_init = true ) : c( c_init ) {}
+    filter( bool c_init = true );
 };
 
 // container functor to recursively generate elements in cluster
@@ -364,9 +365,8 @@ struct next_element {
     bool operator () ( element_context& context );
     void add_function( any_gen_fn fn );
 
-    next_element() : max_index( 100 ) {}
-    next_element( const int& max_index_init, const std::optional< bb2f >  bounds_init = std::nullopt ) 
-        : max_index( max_index_init ), bounds( bounds_init ) {}
+    next_element();
+    next_element( const int& max_index_init, const std::optional< bb2f > bounds_init );
 };
 
 #endif // __NEXT_ELEMENT_HPP

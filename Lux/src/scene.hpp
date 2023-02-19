@@ -149,22 +149,29 @@ struct scene {
 
     std::vector< std::string > tlc;   // list of top level cluster names in rendering order
     // replace with top level effect - must resolve to type of image being rendered
-    
-    vec2i size; // size of output image
-    
-    scene( const std::string& filename, const vec2i& size_init = { 1080, 1080 } );   // Load scene file (JSON)
+        
+    scene();                                // create empty scene file
+    scene( const std::string& filename );   // Load scene file (JSON)
 
-    void set_size( const vec2i& size_init );
+    // Render scene on any image type
+    void render(    
+        any_image_ptr& any_out,
+        const float& time = 0.0f, 
+        const float& time_interval = 1.0f
+    );
 
-    // Add template - T is image type (fimage, uimage, vfield, etc.)
-    void render(    const std::string& filename, 
-                    const float& time = 0.0f, 
-                    const float& time_interval = 1.0f, 
-                    pixel_type ptype = PIXEL_UCOLOR, 
-                    file_type ftype = FILE_JPG, 
-                    int quality = 100 );
+    // Render and save to file
+    void render_and_save(    
+        const std::string& filename, 
+        const vec2i& dim = { 1080, 1080 },
+        const float& time = 0.0f, 
+        const float& time_interval = 1.0f, 
+        pixel_type ptype = PIXEL_UCOLOR, 
+        file_type ftype = FILE_JPG, 
+        int quality = 100 
+    );
 
-    void animate( std::string basename, int nframes = 100 );
+    void animate( std::string basename, int nframes = 100, vec2i dim = { 1080, 1080 } );
 };
 
 #endif // __SCENE_HPP

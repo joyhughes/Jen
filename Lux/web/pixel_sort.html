@@ -1,0 +1,131 @@
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>
+    canvas.emscripten {
+        border: 0px none;
+        margin-left:auto;
+        margin-right:auto;
+        display:block
+    }
+
+    .runPauseButton {
+        text-align: center;
+        background-color: #ffffff;
+        font-size: 32px;
+        border: none;
+        font-family: Sans-Serif;
+        padding: 0px;
+    }
+
+    .restartButton {
+        text-align: center;
+        background-color: #ffffff;
+        font-size: 32px;
+        border: none;
+        font-family: Sans-Serif;
+        padding: 0px;
+    }
+
+    #loadingDiv {
+        text-align: center;
+    }
+    .slidecontainer {
+    width: 100%; /* Width of the outside container */
+    }
+
+    /* The slider itself */
+    .slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    width: 100%; /* Full-width */
+    height: 25px; /* Specified height */
+    background: #d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+    }
+
+    /* Mouse-over effects */
+    .slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+    }
+
+    /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+    .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #04AA6D; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+    }
+
+    .slider::-moz-range-thumb {
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #04AA6D; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+    }
+
+</style>
+    </head>
+
+    <body>
+      <div id="loadingDiv"><h1>Lux Vitae by Joyographic</h1></div>
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+      <div style="width:200px; margin-left:auto; margin-right:auto">
+        <button class="restartButton"  onclick="restart_function(this)">&#x23EE;</button>
+        <button class="runPauseButton" onclick="run_pause_function(this)">&#x23EF;</button>
+        <!--<p id="fullScreenButton" onclick="Module.requestFullScreen(true, false)">Click for full-screen</p>-->
+      </div>
+      <div class="slidecontainer">
+        <input type="range" min="0" max="768" value="300" class="slider" id="myRange">
+      </div>
+
+    <script type='text/javascript'>
+
+        var Module = {
+            onRuntimeInitialized: function() {
+                //var e = document.getElementById('loadingDiv');
+                //e.style.visibility = 'hidden';
+            }, 
+            canvas: (function() {
+                var canvas = document.getElementById('canvas');
+                return canvas;
+                })()
+        };
+
+        var slider = document.getElementById("myRange");
+        var output = document.getElementById("demo");
+
+        // Update the current slider value (each time you drag the slider handle)
+        slider.oninput = function() {
+            Module.slider_value( this.value );
+        } 
+
+        var run_pause_function = function(o) {
+            //o.style.visibility = "hidden";
+            //document.getElementById("fullScreenButton").style.visibility="visible";
+            Module.run_pause();
+        };
+
+        var restart_function = function(o) {
+            //o.style.visibility = "hidden";
+            //document.getElementById("fullScreenButton").style.visibility="visible";
+            Module.restart();
+        };
+
+    </script>
+    <script>
+
+          var script = document.createElement('script');
+          script.src = "pixel_sort.js";
+          document.body.appendChild(script);
+
+</script>
+
+    </body>
+</html>
