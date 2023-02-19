@@ -5,17 +5,21 @@
 #include "vector_field.hpp"
 #include <fstream>
 #include <sstream>
+//#include <emscripten.h>
 
 using json = nlohmann::json;
 
 scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init ) {
     // read a JSON file
+    //emscripten_run_script("console.log('scene_reader constructor');");
     std::ifstream in_stream(filename);
+    //emscripten_run_script("console.log('input stream opened');");
     json j = json::parse(in_stream); 
+    //emscripten_run_script("console.log('scene file parsed into json object');");
 
     // scene fields
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
-    if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
+    //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
     if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )   read_image( jimg );
     // effects - TBI
     //if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );

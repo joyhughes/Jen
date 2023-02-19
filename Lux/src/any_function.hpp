@@ -151,9 +151,9 @@ struct any_gen_fn {
 
     any_gen_fn( any_gen_fn_ptr my_gen_fn, gen_fn fn, std::string name ) : my_gen_fn( my_gen_fn ), fn( fn ), name( name ) {}
 };
-
-template< class T > gen_fn   to_gen_fn(   std::shared_ptr< T > ptr );
-gen_fn resolve_gen_fn( any_gen_fn_ptr any_fn_ptr);
+/*
+template< class T > gen_fn   to_gen_fn(   std::shared_ptr< T >& ptr );
+gen_fn resolve_gen_fn( any_gen_fn_ptr& any_fn_ptr);
 
 template< class T > float_fn to_float_fn( std::shared_ptr< T > ptr );
 float_fn resolve_float_fn( any_float_fn_ptr any_fn_ptr);
@@ -166,5 +166,5 @@ vec2f_fn resolve_vec2f_fn( any_vec2f_fn_ptr any_fn_ptr);
 
 template< class T > vec2i_fn to_vec2i_fn( std::shared_ptr< T > ptr );
 vec2i_fn resolve_vec2i_fn( any_vec2i_fn_ptr any_fn_ptr);
-
+*/
 #endif // __ANY_FUNCTION

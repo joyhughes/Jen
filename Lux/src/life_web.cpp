@@ -5,7 +5,7 @@
 #include <emscripten/bind.h>
 
 using namespace emscripten;
-
+ 
 static bool running = true;
 static bool displayed = false;
 
@@ -60,6 +60,7 @@ void restart() {
 }
 
 void slider_value( int value ) {
+  //emscripten_run_script("console.log('slider value: ' + value);");
   global_context->my_rule->max_diff = value;
 }
 

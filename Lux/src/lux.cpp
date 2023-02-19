@@ -15,10 +15,10 @@
 #include <string>
 #include <iomanip>
 
-void render( std::string scene_filename, std::string file_out ) {
+void render( std::string scene_filename, std::string file_out, vec2i dim = { 1080, 1080 } ) {
     scene s( scene_filename );
     //std::cout << "Scene object created" << std::endl;
-    s.render( file_out, 0.5f );
+    s.render_and_save( file_out, dim, 0.5f );
     //std::cout << "Render complete " << file_out << std::endl;
 }
 

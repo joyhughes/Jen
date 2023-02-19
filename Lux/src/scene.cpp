@@ -104,52 +104,49 @@ void cluster::operator () ( any_buffer_pair buf, const float& t ) {
 }
 */
 
-scene::scene( const std::string& filename, const vec2i& size_init ) : size( size_init )
+scene::scene() {}
+
+scene::scene( const std::string& filename ) 
 {
     scene_reader reader( *this, filename );
 }
 
-void scene::set_size( const vec2i& size_init ) { size = size_init; }
-
-/*
-// T is image type (fimage, uimage, vfield, etc.)
-template< class T > void scene::render(std::string filename, float time) 
-{ 
-    T out( size );  
-    for( auto& name : tlc ) clusters[ name ]->render( out );    // render top level clusters in order
-    out.write_jpg( filename, 100 );
+void scene::render( any_image_ptr &any_out, const float &time, const float &time_interval ) {
+    for( auto& name : tlc ) {
+        clusters[ name ]->render( *this, any_out, time );    // render top level clusters in order
+        //std::cout << "rendered cluster " << name << std::endl;
+    }
 }
-*/
 
-void scene::render( const std::string& filename, 
-                    const float& time, 
-                    const float& time_interval, 
-                    pixel_type ptype, 
-                    file_type ftype, 
-                    int quality )
+void scene::render_and_save( 
+    const std::string& filename, 
+    const vec2i& dim,
+    const float& time, 
+    const float& time_interval, 
+    pixel_type ptype, 
+    file_type ftype, 
+    int quality )
 { 
     //std::cout << "scene::render" << std::endl;
     any_image_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
-        case( PIXEL_FRGB   ): any_out = std::make_shared< fimage       >( size ); break;
-        case( PIXEL_UCOLOR ): any_out = std::make_shared< uimage       >( size ); break;
-        case( PIXEL_VEC2F  ): any_out = std::make_shared< vector_field >( size ); break;
-        case( PIXEL_INT    ): any_out = std::make_shared< warp_field   >( size ); break;
-        case( PIXEL_VEC2I  ): any_out = std::make_shared< offset_field >( size ); break;
+        case( PIXEL_FRGB   ): any_out = std::make_shared< fimage       >( dim ); break;
+        case( PIXEL_UCOLOR ): any_out = std::make_shared< uimage       >( dim ); break;
+        case( PIXEL_VEC2F  ): any_out = std::make_shared< vector_field >( dim ); break;
+        case( PIXEL_INT    ): any_out = std::make_shared< warp_field   >( dim ); break;
+        case( PIXEL_VEC2I  ): any_out = std::make_shared< offset_field >( dim ); break;
     }
     //std::cout << "Created image pointer" << std::endl;
     // future: add pre-effects here
-    for( auto& name : tlc ) {
-        clusters[ name ]->render( *this, any_out, time );    // render top level clusters in order
-        //std::cout << "rendered cluster " << name << std::endl;
-    }
+    render( any_out, time, time_interval ); // render into image
+
     // future: add after-effects here
     // future: optional write to png
     std::visit( [ & ]( auto&& out ){ out->write_file( filename, ftype, quality ); }, any_out );
 } 
 
-void scene::animate( std::string basename, int nframes )
+void scene::animate( std::string basename, int nframes, vec2i dim )
 {
     //std::cout << "scene::animate" << std::endl;
     float time_interval = 1.0f / nframes;
@@ -158,7 +155,7 @@ void scene::animate( std::string basename, int nframes )
         std::ostringstream s;
         s << basename << std::setfill('0') << std::setw(4) << frame << ".jpg";
         std::string filename = s.str();
-        render( filename, time, time_interval );
+        render_and_save( filename, dim, time, time_interval );
         time += time_interval;
         std::cout << "frame " << frame << std::endl;
     }

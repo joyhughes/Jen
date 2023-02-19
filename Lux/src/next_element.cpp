@@ -12,11 +12,15 @@ template< class U > void harness< U >::operator () ( element_context &context )
 template< class U > void harness< U >::add_function( const any_fn< U >& fn)
 { functions.push_back( fn ); }
 
-template<class U> inline harness<U>::harness(const harness<U> &h) {
+template< class U > harness< U >::harness( const U& val_init ) : val( val_init ) {}
+
+template< class U > inline harness< U >::harness(const harness< U > &h) {
     val = h.val;
     for (int i = 0; i < h.functions.size(); i++) 
         functions.push_back( h.functions[ i ] ); 
 }
+
+template< class U > harness< U >::~harness() {}
 
 float wiggle::operator () ( float& val, element_context& context  )
 {
@@ -193,6 +197,8 @@ bool filter::operator () ( element_context& context ) {
 void filter::add_function(  const any_gen_fn      &fn ) { functions.push_back( fn ); }
 void filter::add_condition( const any_condition_fn &c ) { conditions.push_back( c ); }
 
+filter::filter( bool c_init ) : c( c_init ) {}
+
 void next_element::add_function( any_gen_fn fn ) { functions.push_back( fn ); }
 
 bool next_element::operator () ( element_context& context ) { 
@@ -218,7 +224,12 @@ bool next_element::operator () ( element_context& context ) {
     el.index++;
     return true; 
 }
-   
+
+next_element::next_element() : max_index( 100 ) {}
+
+next_element::next_element( const int& max_index_init, const std::optional< bb2f >  bounds_init = std::nullopt ) 
+    : max_index( max_index_init ), bounds( bounds_init ) {}
+
 template struct harness< float >;
 template struct harness< vec2f >;
 template struct harness< int >;
