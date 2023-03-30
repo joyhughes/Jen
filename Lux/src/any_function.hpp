@@ -1,5 +1,5 @@
-#ifndef __ANY_FUNCTION
-#define __ANY_FUNCTION
+#ifndef __ANY_FUNCTION_HPP
+#define __ANY_FUNCTION_HPP
 
 #include <variant>
 #include "next_element.hpp"
@@ -26,6 +26,8 @@ template<> struct any_fn< float > {
     float_fn fn;
     std::string name;
 
+    float operator () ( float& val, element_context& context ) { return fn( val, context ); }
+
     any_fn< float>() : name( "identity_float_default" ) { 
         std::shared_ptr< identity_float > f( new identity_float );
         fn = std::ref( *f ); 
@@ -48,6 +50,8 @@ template<> struct any_fn< int > {
     int_fn fn;
     std::string name;
 
+    int operator () ( int& val, element_context& context ) { return fn( val, context ); }
+
     any_fn< int >() : name( "identity_int_default" ) { 
         std::shared_ptr< identity_int > f( new identity_int );
         fn = std::ref( *f ); 
@@ -69,6 +73,8 @@ template<> struct any_fn< vec2f > {
     vec2f_fn fn;
     std::string name;
 
+    vec2f operator () ( vec2f& val, element_context& context ) { return fn( val, context ); }
+
     any_fn< vec2f >() : name( "identity_vec2f_default" ) { 
         std::shared_ptr< identity_vec2f > f( new identity_vec2f );
         fn = std::ref( *f ); 
@@ -88,6 +94,8 @@ template<> struct any_fn< vec2i > {
     any_vec2i_fn_ptr any_vec2i_fn;
     vec2i_fn fn;
     std::string name;
+
+    vec2i operator () ( vec2i& val, element_context& context ) { return fn( val, context ); }
 
     any_fn< vec2i >() : name( "identity_vec2i_default" ) { 
         std::shared_ptr< identity_vec2i > f( new identity_vec2i );
@@ -112,6 +120,8 @@ struct any_condition_fn {
     any_condition_fn_ptr my_condition_fn;
     bool_fn fn;
     std::string name;
+
+    bool operator () ( bool& val, element_context& context ) { return fn( val, context ); }
 
     //any_condition_fn() : my_condition_fn( std::shared_ptr< switch_condition >( &switch_static_condition ) ), fn( std::ref( switch_static_condition ) ), name( "switch_static_condition" ) {}
     any_condition_fn() : name( "switch_condition_default" ) { 
@@ -143,14 +153,16 @@ struct any_gen_fn {
     any_gen_fn_ptr my_gen_fn;
     gen_fn fn;
     std::string name;
-    //any_gen_fn() : my_gen_fn( std::shared_ptr< identity_gen_fn >( &identity_static_gen ) ), fn( std::ref( identity_static_gen ) ), name( "identity_static_gen" ) {}
+
+    bool operator () ( element_context& context ) { return fn( context ); }
+
     any_gen_fn() : name( "identity_gen_default" ) { 
         std::shared_ptr< identity_gen_fn > f( new identity_gen_fn );
         fn = std::ref( *f ); 
         my_gen_fn = f; }
-
     any_gen_fn( any_gen_fn_ptr my_gen_fn, gen_fn fn, std::string name ) : my_gen_fn( my_gen_fn ), fn( fn ), name( name ) {}
 };
+
 /*
 template< class T > gen_fn   to_gen_fn(   std::shared_ptr< T >& ptr );
 gen_fn resolve_gen_fn( any_gen_fn_ptr& any_fn_ptr);
@@ -167,4 +179,4 @@ vec2f_fn resolve_vec2f_fn( any_vec2f_fn_ptr any_fn_ptr);
 template< class T > vec2i_fn to_vec2i_fn( std::shared_ptr< T > ptr );
 vec2i_fn resolve_vec2i_fn( any_vec2i_fn_ptr any_fn_ptr);
 */
-#endif // __ANY_FUNCTION
+#endif // __ANY_FUNCTION_HPP

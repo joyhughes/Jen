@@ -39,7 +39,8 @@ template< class U > struct harness {
 
     void add_function( const any_fn< U >& fn );
 
-    harness( const U& val_init = 0 );
+    harness();
+    harness( const U& val_init );
     harness( const harness& h );
     ~harness();
 };

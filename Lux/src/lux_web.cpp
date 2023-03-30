@@ -18,7 +18,7 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 struct frame_context {
   SDL_Surface *screen;
   scene *s;
-  std::shared_ptr< image< ucolor > > img;
+  std::shared_ptr< buffer_pair< ucolor > > buf;
   int frame, nframes;
   int curliness;
 };
@@ -33,7 +33,8 @@ void render_and_display( void *arg )
     context = (frame_context *)arg;
     // unpack context
     SDL_Surface *screen = context->screen;
-    vec2i dim = context->img->get_dim();
+    uimage& img = (uimage &)(context->buf->get_image());
+    vec2i dim = img.get_dim();
     scene &s = *(context->s);
     float time_interval = 1.0f / (float)context->nframes;
     float time = (float)context->frame * time_interval;
@@ -42,7 +43,7 @@ void render_and_display( void *arg )
 
     // copy Lux buffer into SDL buffer
     unsigned int* pixel_ptr = (unsigned int*)screen->pixels;
-    unsigned int* base_ptr = context->img->get_base();
+    unsigned int* base_ptr = img.get_base();
     for( int i=0; i< dim.x * dim.y; i++ ) {
         *pixel_ptr = *base_ptr;
         pixel_ptr++; base_ptr++;
@@ -58,11 +59,11 @@ void render_and_display( void *arg )
         std::visit (overloaded {
             [ v ]( std::shared_ptr< curly >& c ) { c->curliness = v; },
             []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
-        }, fn );        context->img->fill(0x0);
+        }, fn );        img.fill(0x0);
 
         // clear image and render scene
-        any_image_ptr any_out = context->img;
-        s.render( any_out, time, time_interval );
+        //any_image_ptr any_out = context->img;
+        s.render();
         //displayed = false;
     }
 
@@ -96,10 +97,12 @@ void slider_value( int value ) {
 */
 int main(int argc, char** argv) {
     vec2i dim( { 512, 512 } );
-    std::shared_ptr< uimage > img( new uimage( dim ) );
+    std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
+    any_buffer_pair_ptr any_buf = buf;
     //auto dims = img.get_dim();
     //emscripten_run_script("console.log('preparing to load scene');");
     scene s( "curly_files/curly.json" );
+    s.set_output_buffer( any_buf );
     //scene s( "moon_files/galaxy_moon.json" ); 
     //scene s( "foo.json" );
     //scene s;
@@ -116,7 +119,7 @@ int main(int argc, char** argv) {
     frame_context context;
     context.screen = screen;
     context.s = &s;
-    context.img = img;
+    context.buf = buf;
     context.nframes = 100;
     context.frame = 0;
     global_context = &context;

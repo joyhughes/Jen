@@ -149,6 +149,10 @@ template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
     mip_it();
 }
 
+template< class T > void image< T >::fill( const T& c, const bb2f& bb ) {
+    fill( c, bb.map_box( bounds, ipbounds ) );
+}
+
 // Black and white noise
 template< class T > void image< T >::noise( const float& a ) {
     for( auto& pix : base ) { if( weighted_bit( a ) ) white( pix ); else black( pix ); }
@@ -167,6 +171,10 @@ template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
     mip_it();
 }
 
+template< class T > void image< T >::noise( const float& a, const bb2f& bb ) {
+    noise( a, bb.map_box( bounds, ipbounds ) );
+}
+
 template< class T > void image< T >::apply_mask( const image< T >& layer, const image< T >& mask, const mask_mode& mmode ) {
     auto l = layer.begin();
     auto m = mask.begin();
@@ -181,18 +189,17 @@ template< class T > void image< T >::splat(
     const vec2f& center, 			    // coordinates of splat center
     const float& scale, 			    // radius of splat
     const float& theta, 			    // rotation in degrees
-    std::shared_ptr< image< T > > splat_image,    // image of the splat
-    std::shared_ptr< image< T > > mask, // optional mask image
+    const image< T >& splat_image,      // image of the splat
+    const std::optional< std::reference_wrapper< image< T > > > mask,  // optional mask image
     const std::optional< T >&     tint, // change the color of splat
     const mask_mode& mmode              // how will mask be applied to splat and backround?
 )  
 {   
-    if( !(splat_image.get()) ) throw std::runtime_error( "  no splat image\n" ); // null pointer - image missing
-    image< T >& g = *splat_image;
+    const image< T >& g = splat_image;
     bool has_tint = tint.has_value();
     T my_tint;
     if( has_tint ) my_tint = *tint;
-    bool has_mask = ( mask.get() != NULL );
+    bool has_mask = mask.has_value();
 
     float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
@@ -226,7 +233,7 @@ template< class T > void image< T >::splat(
     // future: add option to smooth sample into splat's mip-map
     // future: add vector and color effects
     if( has_mask ) {
-        image< T >& m = *mask;
+        const image< T >& m = mask->get();
         // image and mask same size
         if( m.dim == g.dim ) {
             for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
@@ -320,7 +327,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
         bb2f vf_bounds = vf.get_bounds();
         for( int y = 0; y < dim.y; y++ ) {
             for( int x = 0; x < dim.x; x++ ) {
-                coord = bounds.bb_map( { x, y }, ipbounds );
+                coord = bounds.bb_map( vec2i( x, y ), ipbounds );
                 if( same_dims ) { v = *vfit; vfit++; }
                 else { v = vf.sample( vf_bounds.bb_map( coord, bounds ), true ); }
                 if( relative ) v = v * step + coord;
@@ -342,7 +349,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
     auto it = begin();
     for( int y = 0; y < dim.y; y++ ) {
         for( int x = 0; x < dim.x; x++ ) {
-            vec2f coord = bounds.bb_map( { x, y }, ipbounds );
+            vec2f coord = bounds.bb_map( vec2i( x, y ), ipbounds );
             vec2f v = vfn( coord );
             if( relative ) v = v * step + coord;
             *it = in.sample( v, smooth, extend );

@@ -2,13 +2,14 @@
 #define __SCENE_HPP
 
 #include <variant>
-#include <map>
+#include <unordered_map>
 #include <optional>
 #include "image.hpp"
 #include "any_image.hpp"
 #include "effect.hpp"
 #include "next_element.hpp"
 #include "any_function.hpp"
+#include "any_rule.hpp"
 
 //template< class T > struct effect;
 struct element;
@@ -19,14 +20,14 @@ struct element_context {
     element& el;
     cluster& cl;
     scene& s;
-    any_image_ptr& img;  // image being rendered upon
-    float t;  // time
-    float time_interval;
+    any_buffer_pair_ptr& buf;  // buffer pair being rendered upon - access to original image and image being rendered
+    //float t;  // time
+    //float time_interval;
     // scene scn;
     // derivative?
 
-    element_context( element& el_init, cluster& cl_init, scene& s_init, any_image_ptr& img_init, const float& t_init = 0.0f, const float& time_interval_init = 1.0f ) :
-        el( el_init ), cl( cl_init ), s( s_init ), img( img_init ), t( t_init ), time_interval( time_interval_init ) {}
+    element_context( element& el_init, cluster& cl_init, scene& s_init, any_buffer_pair_ptr& buf_init ) :
+        el( el_init ), cl( cl_init ), s( s_init ), buf( buf_init ) {}
 };
 
 // An element object contains all the data members needed to create an image splat
@@ -41,8 +42,8 @@ struct element {
     int index;                  // index of element within cluster
     mask_mode mmode;            // how will mask be applied to splat and backround?
 
-    any_image_ptr img;  // If no image, element not rendered, serves as placeholder
-    any_image_ptr mask;
+    std::string img;  // If no image, element not rendered, serves as placeholder (could make default element white instead)
+    std::string mask;
     std::optional< any_pixel > tint;	// change the color of element
 
     // approximate absolute derivative used to calculate angle of branches
@@ -50,12 +51,12 @@ struct element {
     vec2f derivative;   // move to element_context?
     bool derivative_lock;
 
-    void render( any_image_ptr& in, const float& t );
+    void render( any_buffer_pair_ptr& target, element_context& context );
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );    // single element effect
 
     // needed?
     // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
     // in this case the element serves as an effect functor
-    template< class T > void operator () ( buffer_pair< T >& buf, const float& t );
 
     element(    const vec2f& position_init =  { 0.0f, 0.0f },
                 const float& scale_init = 1.0f,
@@ -64,8 +65,8 @@ struct element {
                 const bool   orientation_lock_init = false,
                 const vec2f& derivative_init = { 1.0f, 0.0f },
                 const bool   derivative_lock_init = false,
-                any_image_ptr img_init = null_fimage_ptr,
-                any_image_ptr mask_init = null_fimage_ptr,
+                std::string  img_init  = "none",
+                std::string  mask_init = "none",
                 const std::optional< any_pixel > tint_init = std::nullopt,
                 const mask_mode mmode_init = MASK_BLEND           
             ) 
@@ -97,7 +98,7 @@ struct cluster {
     std::optional< bb2f > bounds;   // Optionally, cluster will stop generating if it goes out of bounds
 
     // Recursively generate branches and render elements
-    void render( scene& s, any_image_ptr& img, const float& t = 0.0f, const float& time_interval = 1.0f );
+    void render( scene& s, any_buffer_pair_ptr& img );
 
     // change root element parameters for branching cluster
     void set_root( element& el );
@@ -107,7 +108,7 @@ struct cluster {
     // in this case the cluster serves as an effect functor (the effect being rendering)
     // only at top level cluster. Effects would need to reference background image directly
     // need generic buffer pair
-    template< class T > void operator () ( buffer_pair< T >& buf, const float& t );
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
     cluster( const element& el,  
              next_element& next_elem_init, 
@@ -129,43 +130,76 @@ struct cluster {
           {}
 };
 
+struct effect_list {
+    std::string name;
+    any_buffer_pair_ptr buf;
+    std::vector< std::string > effects;
+    pixel_type ptype;   // pixel type of buffer
+    float relative_dim; // proportion of buffer size to use for effect
+    bool dynamic;   // If true, effect list is updated every frame
+    bool rendered;  // Has static buffer already been rendered? Set to false after changing any effect
+
+    effect_list( const std::string& name = "default",
+                 const pixel_type& ptype_init = PIXEL_UCOLOR, 
+                 const bool& dynamic_init = false, 
+                 const bool& rendered_init = false, 
+                 const float& relative_dim_init = 1.0f ) :
+    name( name ),
+    ptype( ptype_init ), 
+    dynamic( dynamic_init ), 
+    rendered( rendered_init ), 
+    relative_dim( relative_dim_init ) {}
+};
+
 struct scene {
     // scene owns clusters, elements, images, effects, and functions
     std::string name;
 
-    // need list of harness functions by type (map of maps?)
-    std::map< std::string, any_fn< float >  > float_fns;    
-    std::map< std::string, any_fn< int   >  > int_fns;    
-    std::map< std::string, any_fn< vec2f >  > vec2f_fns;    
-    std::map< std::string, any_fn< vec2i >  > vec2i_fns;
-    std::map< std::string, any_gen_fn       > gen_fns;
-    std::map< std::string, any_condition_fn > condition_fns;
+    std::unordered_map< std::string, any_fn< float  > > float_fns;    
+    std::unordered_map< std::string, any_fn< int    > > int_fns;    
+    std::unordered_map< std::string, any_fn< vec2f  > > vec2f_fns;    
+    std::unordered_map< std::string, any_fn< vec2i  > > vec2i_fns;
+    std::unordered_map< std::string, any_fn< frgb   > > frgb_fns;
+    std::unordered_map< std::string, any_fn< ucolor > > ucolor_fns;
+    std::unordered_map< std::string, any_fn< bb2i   > > bb2i_fns;
+    std::unordered_map< std::string, any_fn< bb2f   > > bb2f_fns;
+    std::unordered_map< std::string, any_gen_fn       > gen_fns;
+    std::unordered_map< std::string, any_condition_fn > condition_fns;
 
-    std::map< std::string, any_image_ptr > images;
-    std::map< std::string, std::shared_ptr< element > > elements;
-    std::map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
-    std::map< std::string, std::shared_ptr< cluster > > clusters; // scene defined as a set of clusters
-    //std::map< std::string, any_eff_fn_ptr > effects;
+    std::unordered_map< std::string, any_image_ptr > images;
+    std::unordered_map< std::string, std::shared_ptr< element > > elements;
+    std::unordered_map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
+    std::unordered_map< std::string, std::shared_ptr< cluster > > clusters;           // scene defined as a set of clusters
+    std::unordered_map< std::string, any_rule > CA_rules;                             // rules for cellular automata
+    std::unordered_map< std::string, any_effect_fn > effects;
 
-    std::vector< std::string > tlc;   // list of top level cluster names in rendering order
-    // replace with top level effect - must resolve to type of image being rendered
+    std::unordered_map< std::string, any_buffer_pair_ptr > buffers; // buffers for rendering
+    std::vector< effect_list > queue; // list of buffers rendered in order - last in list displayed on screen (should be named "display" )
+
+    float time; 
+    float time_interval; 
+    float default_time_interval;
+    bool paused;
+    float aspect;   // aspect ratio of output buffer
         
-    scene();                                // create empty scene file
-    scene( const std::string& filename );   // Load scene file (JSON)
+    scene( float time_interval_init = 1.0f );                                // create empty scene object
+    scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
-    // Render scene on any image type
-    void render(    
-        any_image_ptr& any_out,
-        const float& time = 0.0f, 
-        const float& time_interval = 1.0f
-    );
+    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
+    void pause();                               // Pause animation
+    void unpause();                             // Set animation to runnning
+    void run_pause();                           // Toggle animation pause
+    void set_time_interval( const float& t );   // Set time interval for animation
+ // void resize( const vec2i& dim );            // Resize all buffers in render list
+    void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
+    effect_list& get_effect_list( const std::string& name ); // get effect list by name
+
+    void render();  // Render scene on any image type
 
     // Render and save to file
     void render_and_save(    
         const std::string& filename, 
         const vec2i& dim = { 1080, 1080 },
-        const float& time = 0.0f, 
-        const float& time_interval = 1.0f, 
         pixel_type ptype = PIXEL_UCOLOR, 
         file_type ftype = FILE_JPG, 
         int quality = 100 

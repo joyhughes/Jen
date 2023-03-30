@@ -155,11 +155,11 @@ template< class T, int M > struct bounding_box {
     V box_of_random() const { return linalg::rbox( minv, maxv ); }
 
     // Linear map from one bounding box to another
-    template< class U > V bb_map( const linalg::vec< U, M >& in, const bounding_box< U, M >& target ) const
+    template< class U, class W > V bb_map( const linalg::vec< U, M >& in, const bounding_box< W, M >& target ) const
     { return ( V )linalg::cmul( ( vec2f )( in - target.minv ), ( vec2f )( maxv - minv ) ) / ( V )( target.maxv - target.minv ) + minv; }
 
     // map bounding box from linear space of one box to another
-    template< class U > bounding_box< T, M > map_box( const bounding_box< U, M >& in, const bounding_box< U, M >& target ) const
+    template< class U, class W > bounding_box< T, M > map_box( const bounding_box< U, M >& in, const bounding_box< W, M >& target ) const
     { return bounding_box< T, M > ( bb_map( in.b1, target ), bb_map( in.b2, target ) ); }
 
     // return intersection of two bounding boxes

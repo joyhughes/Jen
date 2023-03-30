@@ -31,6 +31,9 @@ typedef enum file_type
     FILE_BINARY
 } file_type;
 
+typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
+typedef enum direction8 { D8_UP, D8_UPRIGHT, D8_RIGHT, D8_DOWNRIGHT, D8_DOWN, D8_DOWNLEFT, D8_LEFT, D8_UPLEFT } direction8;
+
 // Root template for raster-based data
 template< class T > class image {
 
@@ -118,8 +121,10 @@ public:
     // pixel modification functions
     void fill( const T& c );
     void fill( const T& c, const bb2i& bb );
+    void fill( const T& c, const bb2f& bb );
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
+    void noise( const float& a, const bb2f& bb );
     //void color_noise( const T& minc, const T& maxc, const float& a = 1.0f, const bb2i& );
 
     // masking
@@ -130,8 +135,8 @@ public:
         const vec2f& center, // coordinates of splat center
         const float& scale,  // radius of splat
         const float& theta,  // rotation in degrees
-        std::shared_ptr< image< T > > splat_image = NULL,    // image of the splat
-        std::shared_ptr< image< T > > mask = NULL,           // optional mask image
+        const image< T >& splat_image,    // image of the splat
+        const std::optional< std::reference_wrapper< image< T > > > mask = std::nullopt,  // optional mask image
         const std::optional< T >& tint = std::nullopt,       // change the color of the splat
         const mask_mode& mmode = MASK_BLEND // how will mask be applied to splat and backround?
     );  
@@ -222,7 +227,8 @@ public:
 
     buffer_pair() : image_pair( NULL, NULL ) {}
     buffer_pair( const std::string& filename ) { load( filename ); }
-    buffer_pair( const image< T >& img ) { reset( img ); }
+    buffer_pair( const image< T >& img ) { reset( img ); }  // copy image into buffer
+    buffer_pair( vec2i& dim ) { image_pair.first.reset( new image< T >( dim ) ); image_pair.second.reset( NULL ); }
 };
 
 #endif // __IMAGE_HPP

@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
   } 
 
   //life< ucolor > lifer( on, off );
-  std::shared_ptr< pixel_sort< ucolor >  > sorter( new pixel_sort< ucolor >( DOWN, true ) ); // alpha block enabled
+  std::shared_ptr< rule_pixel_sort< ucolor >  > sorter( new rule_pixel_sort< ucolor >( D4_DOWN, true ) ); // alpha block enabled
  // CA< ucolor > my_CA( sort_wrapper, sorter.neighborhood );
   CA< ucolor > my_CA( std::ref( *sorter ), sorter->neighborhood );
   //pixel_sort< ucolor > pixel_sort( DOWN, true, 300 ); // alpha block enabled

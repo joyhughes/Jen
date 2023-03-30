@@ -33,10 +33,14 @@
 #define RLR result[2]
 #define RLL result[3]
 
-// future - implement multiresolution rule on mip-map
+ template<class T> void CA<T>::set_rule( any_rule rule ) { 
+    this->rule = rule; 
+    std::visit([&]( auto&& arg ) { this->neighborhood = arg.neighborhood; }, rule );
+}
 
+// future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
-template< class T > void CA< T >::operator() ( buffer_pair<T> &buf, const float &t ) {
+template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
     if( !buf.has_image() ) throw std::runtime_error( "CA: no image buffer" );
     auto in =  buf.get_image().begin();
     auto out = buf.get_buffer().begin();
@@ -219,7 +223,7 @@ template< class T > void CA< T >::operator() ( buffer_pair<T> &buf, const float 
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template< class T > void life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) {    
+template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) {    
     int count = 0;
     for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == on); }    
     for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == on); } 
@@ -232,7 +236,7 @@ template< class T > void life< T >::operator () (const std::vector<T>& neighbors
     }
 }
 
-template< class T > void diffuse< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > void rule_diffuse< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r = rand_4( gen );
     
     if( alpha_block ) {
@@ -250,7 +254,7 @@ template< class T > void diffuse< T >::operator () (const std::vector<T> &neighb
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > void pixel_sort< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > void rule_pixel_sort< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r;
     
     if( alpha_block ) {
@@ -269,26 +273,26 @@ template< class T > void pixel_sort< T >::operator () (const std::vector<T> &nei
     int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
 
     // Sort pixels by brightness
-    if( direction == UP || direction == DOWN ) {
-        if( ( wul > wll ) == ( direction == DOWN ) && ( manhattan( MLL, MUL ) < max_diff ) ) 
+    if( direction == direction4::D4_UP || direction == direction4::D4_DOWN ) {
+        if( ( ( wul > wll ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) 
              { RUL = MLL; RLL = MUL; } // swap left column
         else { RUL = MUL; RLL = MLL; }
-        if( ( ( wur > wlr ) == ( direction == DOWN ) ) && ( manhattan( MLR, MUR ) < max_diff ) ) 
+        if( ( ( wur > wlr ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLR, MUR ) < *max_diff ) ) 
              { RUR = MLR; RLR = MUR; } // swap right column
         else { RUR = MUR; RLR = MLR; }
     }
     else {
-        if( ( ( wul > wur ) == ( direction == RIGHT ) ) && ( manhattan( MUL, MUR ) < max_diff ) ) 
+        if( ( ( wul > wur ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
              { RUL = MUR; RUR = MUL; } // swap upper row
         else { RUL = MUL; RUR = MUR; }
-        if( ( ( wll > wlr ) == ( direction == RIGHT ) ) && ( manhattan( MLR, MLL ) < max_diff ) ) 
+        if( ( ( wll > wlr ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
              { RLL = MLR; RLR = MLL; } // swap lower row
         else { RLL = MLL; RLR = MLR; }
     }
 }
 
 // Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
-template< class T > void snow< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > void rule_snow< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r;
     
     if( alpha_block ) {
@@ -336,7 +340,7 @@ template< class T > void snow< T >::operator () (const std::vector<T> &neighbors
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > void gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > void rule_gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
     int r;
     
     if( alpha_block ) {
@@ -384,18 +388,22 @@ template< class T > void gravitate< T >::operator () (const std::vector<T> &neig
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template class CA< frgb >;       // fimage
+//template class CA< frgb >;       // fimage
 template class CA< ucolor >;     // uimage
-template class CA< vec2f >;      // vector_field
+//template class CA< vec2f >;      // vector_field
 
-template class life< frgb >;       // fimage
-template class life< ucolor >;     // uimage
-template class life< vec2f >;      // vector_field
+template class rule_identity< ucolor >;       // uimage
+
+//template class rule_life< frgb >;       // fimage
+template class rule_life< ucolor >;     // uimage
+//template class rule_life< vec2f >;      // vector_field
 
 //template class diffuse< frgb >;       // fimage
-template class diffuse< ucolor >;     // uimage
+template class rule_diffuse< ucolor >;     // uimage
 //template class diffuse< vec2f >;      // vector_field
 
-template class gravitate< ucolor >;       // uimage
+template class rule_gravitate< ucolor >;       // uimage
 
-template class pixel_sort< ucolor >;       // uimage
+template class rule_snow< ucolor >;       // uimage
+
+template class rule_pixel_sort< ucolor >;       // uimage

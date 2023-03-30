@@ -5,12 +5,14 @@
 template< class U > void harness< U >::operator () ( element_context &context ) 
 { for( auto& fn : functions ) {
     //std::cout << "      harness function " << fn.name << std::endl;
-    val = fn.fn( val, context ); 
+    val = fn( val, context ); 
     }
 }
 
 template< class U > void harness< U >::add_function( const any_fn< U >& fn)
 { functions.push_back( fn ); }
+
+template< class U > harness< U >::harness() {}
 
 template< class U > harness< U >::harness( const U& val_init ) : val( val_init ) {}
 
@@ -22,45 +24,61 @@ template< class U > inline harness< U >::harness(const harness< U > &h) {
 
 template< class U > harness< U >::~harness() {}
 
+template struct harness< float >;
+template struct harness< vec2f >;
+template struct harness< int >;
+template struct harness< vec2i >;
+template struct harness< frgb >;
+template struct harness< ucolor >;
+template struct harness< bb2f >;
+
 float wiggle::operator () ( float& val, element_context& context  )
 {
     wavelength( context ); amplitude( context ); phase( context ); wiggliness( context );
     //std::cout << "wiggle: val " << val  << " wavelength " << *wavelength << " amplitude " << *amplitude << " phase " << *phase << " wiggliness " << *wiggliness << std::endl;
     if( *wavelength != 0.0f ) {
         //std::cout << "   wiggle return value " << *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.t ) * TAU ) << std::endl;
-        return *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.t ) * TAU );
+        return *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.s.time ) * TAU );
     }
     else return 0.0f; 
 }
 
 template< class U > U index_param< U >::operator () ( U &val, element_context &context ) { 
     U arg = context.el.index * iden< U >();
-    return fn.fn( arg, context );
+    return fn( arg, context );
 }
 
 template< class U > index_param< U >::index_param() {}
 template< class U > index_param< U >::index_param( any_fn<U> &fn_init ) { fn = fn_init; }
 
+template struct index_param< float >;
+
 template< class U > U scale_param< U >::operator () ( U &val, element_context &context ) { 
     U arg = context.el.scale * iden< U >();
-    return fn.fn( arg, context );
+    return fn( arg, context );
 }
 
 template< class U > scale_param< U >::scale_param() {}
 template< class U > scale_param< U >::scale_param( any_fn<U> &fn_init ) { fn = fn_init; }
 
-/*
+template struct scale_param< float >;
+
+
 template< class U > U time_param< U >::operator () ( U &val, element_context &context ) { 
     U arg = context.t * iden< U >();
-    return fn.fn( arg, context );
+    return fn( arg, context );
+}
+
+/*
+template<> float time_param< float >::operator () ( float &val, element_context &context ) { 
+    return fn( context.t, context );
 }
 */
-template<> float time_param< float >::operator () ( float &val, element_context &context ) { 
-    return fn.fn( context.t, context );
-}
 
 template< class U > time_param< U >::time_param() {}
 template< class U > time_param< U >::time_param( any_fn<U> &fn_init ) { fn = fn_init; }
+
+template struct time_param<  float >;
 
 bool orientation_gen_fn::operator () ( element_context& context ) { 
     orientation.val = context.el.orientation;
@@ -84,7 +102,7 @@ bool advect_element::operator () ( element_context& context ) {
     
     float prop = *step;
     if( proportional ) prop *= el.scale; 
-    if( time_interval_proportional ) prop *= context.time_interval;
+    if( time_interval_proportional ) prop *= context.s.time_interval;
     el.position += dir * prop;
     return true;
 }
@@ -105,7 +123,7 @@ void angle_branch::render_branch( const float& ang, element_context& context )
         //float ang = vtoa( el.derivative ) + branch_ang;
         el.position += *branch_dist * ( linalg::normalize( el.derivative ) * ( context.el.scale + el.scale ) );
         // render branch (depth first traversal)
-        cl.render( context.s, context.img, context.t );
+        cl.render( context.s, context.buf );
     }
 }
 
@@ -185,11 +203,11 @@ bool filter::operator () ( element_context& context ) {
     //std::cout << "filter operator ()" << std::endl;
     for( auto& condition : conditions ) {
         //std::cout << "filter condition: " << condition.name << std::endl;
-        if( !condition.fn( c, context ) ) return true;
+        if( !condition( c, context ) ) return true;
     }
     for( auto& fn : functions ) {
         //std::cout << "   filter function: " << fn.name << std::endl;
-        if( !fn.fn( context ) ) return false;
+        if( !fn( context ) ) return false;
     }
     return true;
 }
@@ -210,7 +228,7 @@ bool next_element::operator () ( element_context& context ) {
     //std::cout << "next_element: index = " << el.index << " depth = " << context.cl.depth << std::endl;
     for( auto fn : functions ) {
         //std::cout << "function: " << fn.name << "\n";
-        if( !fn.fn( context ) ) return false;
+        if( !fn( context ) ) return false;
     }
     if( el.scale < context.cl.min_scale ) return false;
     // calculate derivative - difference between current and previous positions (special case for first element)
@@ -230,11 +248,4 @@ next_element::next_element() : max_index( 100 ) {}
 next_element::next_element( const int& max_index_init, const std::optional< bb2f >  bounds_init = std::nullopt ) 
     : max_index( max_index_init ), bounds( bounds_init ) {}
 
-template struct harness< float >;
-template struct harness< vec2f >;
-template struct harness< int >;
-template struct harness< vec2i >;
 
-template struct index_param< float >;
-template struct scale_param< float >;
-template struct time_param<  float >;
