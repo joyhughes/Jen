@@ -119,9 +119,11 @@ public:
     void crop_circle( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
+    void copy( const I& img );
     void fill( const T& c );
     void fill( const T& c, const bb2i& bb );
     void fill( const T& c, const bb2f& bb );
+    void clear();  // sets all pixels to zero
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
@@ -171,13 +173,13 @@ public:
 
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
-    virtual void load( const std::string& filename ) {}
-    virtual void write_jpg( const std::string& filename, int quality ) {}
-    virtual void write_png( const std::string& filename ) {}
+    void load( const std::string& filename ) { std::cout << "default image load" << std::endl; }
+    void write_jpg( const std::string& filename, int quality ) { std::cout << "default image write_jpg" << std::endl; }
+    void write_png( const std::string& filename ) { std::cout << "default image write_png" << std::endl; }
     void read_binary(  const std::string& filename );  
     void write_binary( const std::string& filename );
     // determine file type from extension?
-    virtual void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
+    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
 
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
@@ -208,19 +210,49 @@ template< class T > class buffer_pair {
     std::pair< image_ptr, image_ptr > image_pair;
 public:
     bool has_image() { return image_pair.first.get() != NULL; }
-    image< T >& get_image() { return *image_pair.first; }
+
+    image< T >& get_image() { 
+        std::cout << "buffer_pair::get_image()" << std::endl;
+        return *image_pair.first; 
+    }
+
+    std::unique_ptr< image< T > >& get_image_ptr() { return image_pair.first; }
+
     image< T >& get_buffer() {
         if( image_pair.second.get() == NULL ) image_pair.second.reset( new image< T >( *image_pair.first ) );
         return *image_pair.second;
     }
+
     void swap() { image_pair.first.swap( image_pair.second ); }
+
     void load( const std::string& filename ) { 
         image_pair.first.reset( new image< T >( filename ) );
         image_pair.second.reset( NULL );
     }
+
     void reset( const image< T >& img ) { 
         image_pair.first.reset( new image< T >( img ) );
         image_pair.second.reset( NULL );
+    }
+
+    void reset( vec2i& dim ) { 
+        image_pair.first.reset( new image< T >( dim ) );
+        image_pair.second.reset( NULL );
+    }
+
+    void set( const image< T >& img ) { 
+        if( image_pair.first.get() == NULL ) image_pair.first->copy( img );
+        else reset( img );
+    }
+
+    void set( const buffer_pair<T>& bp ) { 
+        if( image_pair.first.get() == NULL ) image_pair.first->copy( bp.get_image() );
+        else reset( bp.get_image() );
+    }
+
+    void set( vec2i& dim ) { 
+        if( image_pair.first.get() == NULL ) image_pair.first->clear();
+        else reset( dim );
     }
 
     image< T >& operator () () { return get_image(); }

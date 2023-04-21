@@ -81,6 +81,10 @@ inline void black( int& b ) { b = 0; }
 inline void white( vec2i& w ) { w = vec2i( { 1, 1 } ); }
 inline void black( vec2i& b ) { b = vec2i( { 0, 0 } ); }
 
+// scalar field
+inline void white( float& w ) { w = 1.0f; }
+inline void black( float& b ) { b = 0.0f; }
+
 // wrappers for addition and subtraction - used for image compatibility
 // vector_field
 static inline void  addc( vec2f& c1, const vec2f& c2 ) { c1 += c2; }
@@ -96,6 +100,11 @@ static inline int   mulc( const int& c1, const int& c2 ) { return c1 * c2; }
 static inline void  addc( vec2i& c1, const vec2i& c2 ) { c1 += c2; }
 static inline void  subc( vec2i& c1, const vec2i& c2 ) { c1 -= c2; }
 static inline vec2i mulc( const vec2i& c1, const vec2i& c2 ) { return linalg::cmul( c1, c2 ); }
+
+// scalar field
+static inline void  addc( float& c1, const float& c2 ) { c1 += c2; }
+static inline void  subc( float& c1, const float& c2 ) { c1 -= c2; }
+static inline float mulc( const float& c1, const float& c2 ) { return c1 * c2; }
 
 // template function that returns a value of all ones for a given type
 template< class T > T iden() {}
@@ -174,5 +183,31 @@ template< class T, int M > struct bounding_box {
 typedef bounding_box< int,   2 > bb2i;
 typedef bounding_box< float, 2 > bb2f;
 typedef bounding_box< float, 3 > bb3f;
+
+static inline void addc( bb2i& b, const bb2i& v )
+{
+    b.b1.x += v.b1.x;
+    b.b1.y += v.b1.y;
+    b.b2.x += v.b2.x;
+    b.b2.y += v.b2.y;
+}
+
+static inline void addc( bb2f& b, const bb2f& v )
+{
+    b.b1.x += v.b1.x;
+    b.b1.y += v.b1.y;
+    b.b2.x += v.b2.x;
+    b.b2.y += v.b2.y;
+}
+
+static inline void addc( bb3f& b, const bb3f& v )
+{
+    b.b1.x += v.b1.x;
+    b.b1.y += v.b1.y;
+    b.b1.z += v.b1.z;
+    b.b2.x += v.b2.x;
+    b.b2.y += v.b2.y;
+    b.b2.z += v.b2.z;
+}
 
 #endif // __VECT2_HPP

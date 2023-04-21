@@ -65,7 +65,7 @@ template struct scale_param< float >;
 
 
 template< class U > U time_param< U >::operator () ( U &val, element_context &context ) { 
-    U arg = context.t * iden< U >();
+    U arg = context.s.time * iden< U >();
     return fn( arg, context );
 }
 

@@ -34,10 +34,16 @@ template< class T > void eff_noise< T >::operator () ( any_buffer_pair_ptr& buf,
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_fill: no image in buffer" );
         if( bounded ) buf_ptr->get_image().noise( *a, *bounds );
-        else          buf_ptr->get_image().noise( *a64l );
+        else          buf_ptr->get_image().noise( *a );
     }
     // else convert between pixel types
 }
+
+template class eff_noise< frgb >;
+template class eff_noise< ucolor >;
+template class eff_noise< vec2f >;
+template class eff_noise< int >;
+template class eff_noise< vec2i >;
 
 template< class T > void eff_vector_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
@@ -51,6 +57,12 @@ template< class T > void eff_vector_warp< T >::operator () ( any_buffer_pair_ptr
     }
 }
 
+template class eff_vector_warp< frgb >;
+template class eff_vector_warp< ucolor >;
+template class eff_vector_warp< vec2f >;
+template class eff_vector_warp< int >;
+template class eff_vector_warp< vec2i >;
+
 template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
@@ -59,10 +71,16 @@ template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& b
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
         any_buffer_pair_ptr wf_buf = context.s.buffers[ wf_name ];
         auto& wf = std::get< wbuf_ptr >( wf_buf )->get_image();  // extract warp field from buffer variant
-        buf_ptr->get_image().warp( buf_ptr->get_image(), wf, 1.0f, false, true, SAMP_SINGLE );
+        buf_ptr->get_image().warp( buf_ptr->get_image(), wf );
         buf_ptr->swap();
     }
 }
+
+template class eff_feedback< frgb >;
+template class eff_feedback< ucolor >;
+template class eff_feedback< vec2f >;
+template class eff_feedback< int >;
+template class eff_feedback< vec2i >;
 
 void eff_n::operator () ( any_buffer_pair_ptr &buf, element_context &context )
 {

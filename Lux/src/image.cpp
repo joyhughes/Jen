@@ -131,6 +131,15 @@ template< class T > void image< T >::crop_circle( const float& ramp_width, const
     mip_it(); 
 }
 
+// copy image of same size ( may need to be able to scale as well )
+template< class T > void image< T >::copy( const image< T >& img ) {
+    if( img.dim == dim ) {
+        std::copy( img.begin(), img.end(), base.begin() );
+        mip_it();
+    }
+    else std::cout << "image< T >::copy() : images are not the same size" << std::endl;
+}
+
 template< class T > void image< T >::fill( const T& c ) {
     std::fill( begin(), base.end(), c );
 }
@@ -151,6 +160,12 @@ template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
 
 template< class T > void image< T >::fill( const T& c, const bb2f& bb ) {
     fill( c, bb.map_box( bounds, ipbounds ) );
+}
+
+template< class T > void image< T >::clear() {
+    T b;
+    black( b );
+    fill( b );
 }
 
 // Black and white noise

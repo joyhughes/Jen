@@ -106,6 +106,72 @@ template<> struct any_fn< vec2i > {
     any_fn< vec2i >( any_vec2i_fn_ptr any_vec2i_fn, vec2i_fn fn, std::string name ) : any_vec2i_fn( any_vec2i_fn ), fn( fn ), name( name ) {}
 };
 
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_frgb >,
+    std::shared_ptr< adder_frgb >
+> any_frgb_fn_ptr;
+
+template<> struct any_fn< frgb > {
+    any_frgb_fn_ptr any_frgb_fn;
+    frgb_fn fn;
+    std::string name;
+
+    frgb operator () ( frgb& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< frgb >() : name( "identity_vec2i_default" ) { 
+        std::shared_ptr< identity_frgb > f( new identity_frgb );
+        fn = std::ref( *f ); 
+        any_frgb_fn = f; 
+    }
+
+    any_fn< frgb >( any_frgb_fn_ptr any_frgb_fn, frgb_fn fn, std::string name ) : any_frgb_fn( any_frgb_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_ucolor >,
+    std::shared_ptr< adder_ucolor >
+> any_ucolor_fn_ptr;
+
+template<> struct any_fn< ucolor > {
+    any_ucolor_fn_ptr any_ucolor_fn;
+    ucolor_fn fn;
+    std::string name;
+
+    ucolor operator () ( ucolor& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< ucolor >() : name( "identity_ucolor_default" ) { 
+        std::shared_ptr< identity_ucolor > f( new identity_ucolor );
+        fn = std::ref( *f ); 
+        any_ucolor_fn = f; 
+    }
+
+    any_fn< ucolor >( any_ucolor_fn_ptr any_ucolor_fn, ucolor_fn fn, std::string name ) : any_ucolor_fn( any_ucolor_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_bb2f >,
+    std::shared_ptr< adder_bb2f >
+> any_bb2f_fn_ptr;
+
+template<> struct any_fn< bb2f > {
+    any_bb2f_fn_ptr any_bb2f_fn;
+    bb2f_fn fn;
+    std::string name;
+
+    bb2f operator () ( bb2f& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< bb2f >() : name( "identity_bb2f_default" ) { 
+        std::shared_ptr< identity_bb2f > f( new identity_bb2f );
+        fn = std::ref( *f ); 
+        any_bb2f_fn = f; 
+    }
+
+    any_fn< bb2f >( any_bb2f_fn_ptr any_bb2f_fn, bb2f_fn fn, std::string name ) : any_bb2f_fn( any_bb2f_fn ), fn( fn ), name( name ) {}
+};
+
 typedef std::variant < 
     std::shared_ptr< switch_condition >,
     std::shared_ptr< initial_element_condition >,

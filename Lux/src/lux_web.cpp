@@ -20,7 +20,7 @@ struct frame_context {
   scene *s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
   int frame, nframes;
-  int curliness;
+  //int curliness;
 };
 
 frame_context *global_context;
@@ -54,13 +54,14 @@ void render_and_display( void *arg )
 
     if( running || !displayed ) {
         // set curliness based on slider value
+        /*
         float v = (float)context->curliness / 100.0f;
         any_gen_fn_ptr& fn = global_context->s->gen_fns[ "curler" ].my_gen_fn;
         std::visit (overloaded {
             [ v ]( std::shared_ptr< curly >& c ) { c->curliness = v; },
             []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
         }, fn );        img.fill(0x0);
-
+        */
         // clear image and render scene
         //any_image_ptr any_out = context->img;
         s.render();
@@ -85,8 +86,8 @@ void restart() {
 }
 
 void slider_value( int value ) {
-    global_context->curliness = value;
-    displayed = false;
+    //global_context->curliness = value;
+    //displayed = false;
 }
 
 /*
@@ -100,19 +101,21 @@ int main(int argc, char** argv) {
     std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
     any_buffer_pair_ptr any_buf = buf;
     //auto dims = img.get_dim();
-    //emscripten_run_script("console.log('preparing to load scene');");
+    emscripten_run_script("console.log('preparing to load scene');");
     scene s( "curly_files/curly.json" );
+
+//    scene s( "samples/diffuser.json" );
+    emscripten_run_script("console.log('scene loaded');");
     s.set_output_buffer( any_buf );
     //scene s( "moon_files/galaxy_moon.json" ); 
     //scene s( "foo.json" );
     //scene s;
-    //emscripten_run_script("console.log('scene loaded');");
     /*any_gen_fn_ptr& fn = s.gen_fns[ "curler" ].my_gen_fn;
     std::visit (overloaded {
         []( std::shared_ptr< curly >& c ) { c->curliness = 0.0f; },
         []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
     }, fn ); */
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO); 
     SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
     // pack context

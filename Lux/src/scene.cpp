@@ -105,6 +105,50 @@ void cluster::operator () ( any_buffer_pair buf, const float& t ) {
 }
 */
 
+void effect_list::resize( const vec2i& new_dim ) {
+    // need to resize buffer instead?
+    dim = new_dim;
+    switch( ptype ) {
+        case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( dim ); break;
+        case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( dim ); break;
+        case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( dim ); break;
+        case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( dim ); break;
+        default: break;
+    }
+}
+
+void effect_list::render( scene& s ) {
+    std::cout << "effect_list::render()" << std::endl;
+    if( rmode == MODE_EPHEMERAL || !rendered ) { // ephemeral buffers are re-rendered each frame
+        if( s.buffers.contains( source_name ) ) {  // load source image or result into buffer
+            any_buffer_pair_ptr b = s.buffers[ source_name ];
+            switch( ptype ) {
+                case( PIXEL_FRGB   ): std::get< std::shared_ptr< buffer_pair< frgb   > > >( buf )->set( std::get< std::shared_ptr< buffer_pair< frgb   > > >( b )->get_image() ); break;
+                case( PIXEL_UCOLOR ): std::get< std::shared_ptr< buffer_pair< ucolor > > >( buf )->set( std::get< std::shared_ptr< buffer_pair< ucolor > > >( b )->get_image() ); break;
+                case( PIXEL_VEC2F  ): std::get< std::shared_ptr< buffer_pair< vec2f  > > >( buf )->set( std::get< std::shared_ptr< buffer_pair< vec2f  > > >( b )->get_image() ); break;
+                case( PIXEL_INT    ): std::get< std::shared_ptr< buffer_pair< int    > > >( buf )->set( std::get< std::shared_ptr< buffer_pair< int    > > >( b )->get_image() ); break;
+                case( PIXEL_VEC2I  ): std::get< std::shared_ptr< buffer_pair< vec2i  > > >( buf )->set( std::get< std::shared_ptr< buffer_pair< vec2i  > > >( b )->get_image() ); break;
+            }
+        }
+        else {  // blank buffer
+            std::visit( [&]( auto& buf_ptr ) { buf_ptr->set( dim ); }, buf );       
+        }
+    }
+    if( !( rmode == MODE_STATIC && rendered ) ) { // no need to re-render static buffers
+        for( auto& name : effects ) {
+            // default element and cluster
+            element default_element;
+            next_element default_next_element;
+            cluster default_cluster( default_element, default_next_element );
+            element_context context( default_element, default_cluster, s, buf );
+            s.effects[ name ]( buf, context );
+            //std::cout << "rendered effect " << name << std::endl
+        }
+        rendered = true;
+    }
+}
+
+
 scene::scene( float time_interval_init ) : time_interval( time_interval_init ), default_time_interval( time_interval_init ) {}
 
 scene::scene( const std::string& filename, float time_interval_init ) 
@@ -113,20 +157,9 @@ scene::scene( const std::string& filename, float time_interval_init )
     scene_reader reader( *this, filename );
 }
 
-void scene::render() { 
-    for( auto& eff_list : queue )
-        if( eff_list.dynamic || !eff_list.rendered ) {
-            for( auto& name : eff_list.effects ) {
-                // default element and cluster
-                element default_element;
-                next_element default_next_element;
-                cluster default_cluster( default_element, default_next_element );
-                element_context context( default_element, default_cluster, *this, eff_list.buf );
-                effects[ name ]( eff_list.buf, context );
-                //std::cout << "rendered effect " << name << std::endl
-            }
-            eff_list.rendered = true;
-        }
+void scene::render() {
+    std::cout << "scene::render()" << std::endl; 
+    for( auto& eff_list : queue ) eff_list.render( *this );
     time += time_interval;
 }
 
@@ -137,7 +170,7 @@ void scene::render_and_save(
     file_type ftype, 
     int quality )
 { 
-    //std::cout << "scene::render" << std::endl;
+    std::cout << "scene::render_and_save()" << std::endl;
     any_buffer_pair_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
@@ -152,9 +185,15 @@ void scene::render_and_save(
     set_output_buffer( any_out ); // set output buffer
     render(); // render into image
 
-    // future: add after-effects here
-    // future: optional write to png
-    std::visit( [ & ]( auto&& out ){ out->get_image().write_file( filename, ftype, quality ); }, any_out );
+    auto out = std::get< ubuf_ptr >( any_out );
+    if( out->has_image() ) {
+        std::cout << "writing image" << std::endl;
+        ((uimage *)(out->get_image_ptr().get()))->write_jpg( filename, quality );
+    }
+    else {
+        std::cout << "no image to write" << std::endl;
+    }
+    //std::visit( [ & ]( auto& out ){ out->get_image().write_file( filename, ftype, quality ); }, any_out );
 } 
 
 void scene::animate( std::string basename, int nframes, vec2i dim )
@@ -175,6 +214,7 @@ void scene::animate( std::string basename, int nframes, vec2i dim )
 }
 
 void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
+    std::cout << "scene::set_output_buffer()" << std::endl;
     auto& output_list = queue[ queue.size() - 1 ];
     output_list.buf = buf;
     output_list.ptype = ( pixel_type )buf.index();
@@ -184,13 +224,7 @@ void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
         auto& eff_list = queue[ i ];
         eff_list.rendered = false;
         vec2i dim = { std::round( dim_out.x * eff_list.relative_dim ), std::round( dim_out.y * eff_list.relative_dim ) };
-        switch( eff_list.ptype ) {
-            case( PIXEL_FRGB   ): eff_list.buf = std::make_shared< buffer_pair< frgb >   >( dim ); break;
-            case( PIXEL_UCOLOR ): eff_list.buf = std::make_shared< buffer_pair< ucolor > >( dim ); break;
-            case( PIXEL_VEC2F  ): eff_list.buf = std::make_shared< buffer_pair< vec2f >  >( dim ); break;
-            case( PIXEL_INT    ): eff_list.buf = std::make_shared< buffer_pair< int >    >( dim ); break;
-            case( PIXEL_VEC2I  ): eff_list.buf = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
-        }
+        eff_list.resize( dim );
     }
 }
 

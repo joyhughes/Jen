@@ -22,9 +22,6 @@ struct element_context {
     scene& s;
     any_buffer_pair_ptr& buf;  // buffer pair being rendered upon - access to original image and image being rendered
     //float t;  // time
-    //float time_interval;
-    // scene scn;
-    // derivative?
 
     element_context( element& el_init, cluster& cl_init, scene& s_init, any_buffer_pair_ptr& buf_init ) :
         el( el_init ), cl( cl_init ), s( s_init ), buf( buf_init ) {}
@@ -130,25 +127,51 @@ struct cluster {
           {}
 };
 
+typedef enum {
+    MODE_STATIC,        // render once
+    MODE_ITERATIVE,    // render every frame based on previous frame
+    MODE_EPHEMERAL      // render every frame starting with background
+} render_mode;
+
+// An effect list contains a list of effects to be rendered in sequence
 struct effect_list {
+    render_mode rmode;          // how will effects be rendered?
+    std::string source_name;    // name of source image or buffer (if name not in list assume blank source)
     std::string name;
     any_buffer_pair_ptr buf;
     std::vector< std::string > effects;
     pixel_type ptype;   // pixel type of buffer
-    float relative_dim; // proportion of buffer size to use for effect
-    bool dynamic;   // If true, effect list is updated every frame
-    bool rendered;  // Has static buffer already been rendered? Set to false after changing any effect
+    vec2i dim;          // dimensions of buffer
+    float relative_dim; // proportion of buffer size to use for effect - deferred
+    bool rendered;      // Has static buffer already been rendered? Set to false after changing any effect
 
-    effect_list( const std::string& name = "default",
+    any_image_ptr get_initial_image();
+
+    void render( scene& s );
+    void resize( const vec2i& new_dim );
+
+    effect_list( const std::string& name_init = "default",
+                 const std::string& source_name_init = "none",
+                 const vec2i& dim_init = { 0, 0 },
                  const pixel_type& ptype_init = PIXEL_UCOLOR, 
-                 const bool& dynamic_init = false, 
-                 const bool& rendered_init = false, 
-                 const float& relative_dim_init = 1.0f ) :
-    name( name ),
+                 const render_mode& rmode_init = MODE_STATIC, 
+                 const float& relative_dim_init = 1.0f) :
+    name( name_init ),
+    source_name( source_name_init ),
+    dim( dim_init ),
     ptype( ptype_init ), 
-    dynamic( dynamic_init ), 
-    rendered( rendered_init ), 
-    relative_dim( relative_dim_init ) {}
+    rmode( rmode_init ), 
+    relative_dim( relative_dim_init ),
+    rendered( false ) 
+    {
+        switch( ptype ) {
+            case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( dim ); break;
+            case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( dim ); break;
+            case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( dim ); break;
+            case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( dim ); break;
+            case( PIXEL_VEC2I  ): buf = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
+        }
+    }
 };
 
 struct scene {
@@ -166,14 +189,14 @@ struct scene {
     std::unordered_map< std::string, any_gen_fn       > gen_fns;
     std::unordered_map< std::string, any_condition_fn > condition_fns;
 
-    std::unordered_map< std::string, any_image_ptr > images;
+    //std::unordered_map< std::string, any_image_ptr > images; // images now stored in buffers map
     std::unordered_map< std::string, std::shared_ptr< element > > elements;
     std::unordered_map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::unordered_map< std::string, std::shared_ptr< cluster > > clusters;           // scene defined as a set of clusters
     std::unordered_map< std::string, any_rule > CA_rules;                             // rules for cellular automata
     std::unordered_map< std::string, any_effect_fn > effects;
 
-    std::unordered_map< std::string, any_buffer_pair_ptr > buffers; // buffers for rendering
+    std::unordered_map< std::string, any_buffer_pair_ptr > buffers; // Source images and results of effect stacks
     std::vector< effect_list > queue; // list of buffers rendered in order - last in list displayed on screen (should be named "display" )
 
     float time; 
@@ -199,13 +222,13 @@ struct scene {
     // Render and save to file
     void render_and_save(    
         const std::string& filename, 
-        const vec2i& dim = { 1080, 1080 },
+        const vec2i& dim = { 512, 512 },
         pixel_type ptype = PIXEL_UCOLOR, 
         file_type ftype = FILE_JPG, 
         int quality = 100 
     );
 
-    void animate( std::string basename, int nframes = 100, vec2i dim = { 1080, 1080 } );
+    void animate( std::string basename, int nframes = 100, vec2i dim = { 512, 512 } );
 };
 
 #endif // __SCENE_HPP

@@ -160,7 +160,7 @@ void vector_field::position_fill() {
     auto v = base.begin();
     for( int y = 0; y < dim.y; y++ ) {
         for( int x = 0; x < dim.x; x++ ) {
-            *v = bounds.bb_map( { x, y }, ipbounds );
+            *v = bounds.bb_map( vec2f( x, y ), ipbounds );
             v++;
         }
     }

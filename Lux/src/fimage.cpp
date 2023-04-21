@@ -4,6 +4,9 @@
 #include <memory>
 #include "image_loader.hpp"
 
+fimage::fimage(const std::__1::string &filename) : image<frgb>() {
+    load(filename);
+}
 // pixel modification functions
 
 void fimage::clamp( float minc, float maxc ) {
@@ -21,7 +24,7 @@ void fimage::grayscale() {
     mip_it();
 }
 
-void fimage::load( const std::string& filename ) {
+template<> void image< frgb >::load( const std::string& filename ) {
     std::cout << "fimage::load " << filename << std::endl;
     reset();
     image_loader loader( filename );
@@ -65,27 +68,27 @@ void fimage::load( const std::string& filename ) {
     std::cout << "Image load complete\n";
 }
 
-void fimage::quantize( std::vector< unsigned char >& img )
-{
+template<> void image< frgb >::write_jpg( const std::string& filename, int quality ) {
+    std::vector< unsigned char > img;
     for( auto& f : base ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
-        img.push_back( bc( f ) ); }
+        img.push_back( bc( f ) ); 
+    }
+    wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void fimage::write_jpg( const std::string& filename, int quality ) {
+template<> void image< frgb >::write_png( const std::string& filename ) {    
     std::vector< unsigned char > img;
-	quantize( img );
-	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
-}
-
-void fimage::write_png( const std::string& filename ) {    
-    std::vector< unsigned char > img;
-	quantize( img );
+    for( auto& f : base ) {
+        img.push_back( rc( f ) );
+        img.push_back( gc( f ) );
+        img.push_back( bc( f ) ); 
+    }
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
 }
 
-void fimage::write_file(const std::string &filename, file_type type, int quality ) {
+template<> void image< frgb >::write_file(const std::string &filename, file_type type, int quality ) {
     switch( type ) {
         case FILE_JPG: write_jpg( filename, quality ); break;
         case FILE_PNG: write_png( filename ); break;

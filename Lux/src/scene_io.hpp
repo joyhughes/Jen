@@ -26,6 +26,7 @@ struct scene_reader {
     void read( direction4& d,   const json& j ) { d = read_direction4( j ); }
     void read( pixel_type& p,   const json& j ) { p = read_pixel_type( j ); }
     void read( image_extend& e, const json& j ) { e = read_image_extend( j ); }
+    void read( render_mode& r,  const json& j ) { r = read_render_mode( j ); }
     void read( std::optional< int   >& i, const json& j ) { i = j.get<int>();  }    
     void read( std::optional< float >& f, const json& j ) { f = j.get<float>();  }  
     void read( std::vector< vec2f >& v,   const json& j ) { for( auto& k : j ) { v.push_back( read_vec2f( k ) ); } }
@@ -40,6 +41,7 @@ struct scene_reader {
     direction4   read_direction4(   const json& j );
     pixel_type   read_pixel_type(   const json& j );
     image_extend read_image_extend( const json& j );
+    render_mode  read_render_mode(  const json& j );
 
     void read_image(    const json& j );
     void read_rule(     const json& j );   // Cellular automata rule

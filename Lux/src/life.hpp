@@ -8,26 +8,6 @@
 #include "any_rule.hpp"
 #include "any_image.hpp"
 #include "next_element.hpp"
-
-typedef enum CA_neighborhood  {  NEIGHBORHOOD_MOORE, 
-                                 NEIGHBORHOOD_VON_NEUMANN,
-                                 NEIGHBORHOOD_VON_NEUMANN_DIAGONAL, 
-                                 NEIGHBORHOOD_MARGOLIS,
-                                 NEIGHBORHOOD_HEXAGONAL,
-                                 NEIGHBORHOOD_HEXAGONAL_RANDOM,
-                                 NEIGHBORHOOD_TRIANGULAR,
-                                 NEIGHBORHOOD_TRIANGULAR_RANDOM,
-                                 NEIGHBORHOOD_PENTAGONAL,
-                                 NEIGHBORHOOD_PENTAGONAL_RANDOM,
-                                 NEIGHBORHOOD_HEXADECAGONAL,
-                                 NEIGHBORHOOD_HEXADECAGONAL_RANDOM,
-                                 NEIGHBORHOOD_OCTAGONAL,
-                                 NEIGHBORHOOD_OCTAGONAL_RANDOM,
-                                 NEIGHBORHOOD_STAR,
-                                 NEIGHBORHOOD_STAR_RANDOM,
-                                 NEIGHBORHOOD_CUSTOM,
-                                 NEIGHBORHOOD_CUSTOM_RANDOM
-} CA_neighborhood;
  
 typedef enum mutation_type {  MUTATE_NONE, 
                               MUTATE_COLOR, 
