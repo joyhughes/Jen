@@ -1,0 +1,29 @@
+{
+    "name": "diffuser_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "../samples/hk_square_512.jpg", 
+            "name": "kh_square"
+        } 
+    ],
+    "effects":
+    [
+        {
+            "name": "diffuser",
+            "type": "CA",
+            "rule": "rule_diffuse_ucolor"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "hk_diffuse",
+            "source": "kh_square",
+            "type": "uimage",
+            "dynamic": true,  
+            "effects": [ "diffuser" ]
+        }
+    ]
+}
