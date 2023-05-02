@@ -1,7 +1,8 @@
 #include "warp_field.hpp"
 
 // fill warp field values based on vector field - fields should be same size
-void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_extend extend ) {
+template<> void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_extend extend ) {
+
     if( vfield.get_dim() != dim ) {
         std::cerr << "Error: vector field and warp field must be same size" << std::endl;
         return;
@@ -31,5 +32,3 @@ void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_
         }
     }
 }
-
-

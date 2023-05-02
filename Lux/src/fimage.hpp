@@ -5,24 +5,11 @@
 
 #include "image.hpp"
 
-class fimage : public image< frgb > {
-public:
-    fimage() : image< frgb >() {}      
-    fimage( const vec2i& dims ) : image< frgb >( dims ){}   // creates image of particular size
-    fimage( const vec2i& dims, const bb2f& bb ) : image< frgb >( dims, bb ) {}        
-    fimage( const I& img ) : image< frgb >( img ) {}        // copy constructor
-    fimage( const std::string& filename );
+#define fimage image< frgb >
 
-    // pixel modification functions
-    void clamp( float minc = 0.0f, float maxc = 1.0f );
-    void constrain();
-    void grayscale();
-};
-
-// I/O functions using template specialization
-template<> void image< frgb >::load(       const std::string& filename );
-template<> void image< frgb >::write_jpg(  const std::string& filename, int quality );
-template<> void image< frgb >::write_png(  const std::string& filename );
-template<> void image< frgb >::write_file( const std::string& filename, file_type type, int quality );
+// pixel modification functions using template specialization
+template<> void fimage::grayscale();
+template<> void fimage::clamp( float minc, float maxc );
+template<> void fimage::constrain();
 
 #endif // __FIMAGE_HPP

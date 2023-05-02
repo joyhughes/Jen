@@ -429,6 +429,16 @@ template< class T > void image< T >::write_binary( const std::string &filename )
     out_file.close();
 }
 
+template< class T > void image< T >::write_file(const std::string &filename, file_type type, int quality ) {
+    std::cout << "uimage::write_file: " << filename << std::endl;
+    switch( type ) {
+        case FILE_JPG: write_jpg( filename, quality ); break;
+        case FILE_PNG: write_png( filename ); break;
+        case FILE_BINARY: write_binary( filename ); break;
+        default: std::cout << "image::write_file: unknown file type " << type << std::endl;
+    }
+}
+
 // apply a vector function to each point in image
 template< class T > void image< T >::apply( const std::function< T ( const T&, const float& ) > fn, const float& t ) {
     for( auto& v : base ) { v = fn( v, t ); }

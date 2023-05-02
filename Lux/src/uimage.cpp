@@ -4,12 +4,12 @@
 
 
 // pixel modification functions
-void uimage::grayscale() {
+template<> void uimage::grayscale() {
     for( auto& f : base ) { f = gray( f ); }
     mip_it();
 }
 
-template<> void image< ucolor >::load( const std::string& filename ) {
+template<> void uimage::load( const std::string& filename ) {
     std::cout << "uimage::load(): " << filename << std::endl;
     reset();
     image_loader loader( filename );
@@ -56,7 +56,7 @@ template<> void image< ucolor >::load( const std::string& filename ) {
     mip_it();
 }
 
-template<> void image< ucolor >::write_jpg( const std::string& filename, int quality ) {
+template<> void uimage::write_jpg( const std::string& filename, int quality ) {
     std::cout << "uimage::write_jpg: " << filename << std::endl;
     std::vector< unsigned char > carray;
     for( auto& f : base ) {
@@ -67,20 +67,7 @@ template<> void image< ucolor >::write_jpg( const std::string& filename, int qua
 	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, carray.data(), quality );
 }
 
-template<> void image< ucolor >::write_png( const std::string& filename ) {
+template<> void uimage::write_png( const std::string& filename ) {
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }
 
-template<> void image< ucolor >::write_file(const std::string &filename, file_type type, int quality ) {
-    std::cout << "uimage::write_file: " << filename << std::endl;
-    switch( type ) {
-        case FILE_JPG: write_jpg( filename, quality ); break;
-        case FILE_PNG: write_png( filename ); break;
-        case FILE_BINARY: write_binary( filename ); break;
-        default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
-    }
-}
-
-uimage::uimage(const std::__1::string &filename) : image<ucolor>() {
-    load(filename);
-}

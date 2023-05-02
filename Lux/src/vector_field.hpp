@@ -54,15 +54,18 @@ struct vortex_field  {                  // parameters for field of vortices
         min_orbital_radius( 0.0f ), max_orbital_radius( 0.5f ), generated( false )  {}  
 };
 
-class vector_field : public image< vec2f > {
+#define vector_field image< vec2f >
+
+// I/O functions using template specialization
+//template<> void vector_field::load( const std::string& filename );
+
+class vf_tools {
+    vector_field& img;
 
 public:
-    vector_field() : image() {}     
-    // creates image of particular size 
-    vector_field( const vec2i& dims ) : image( dims ){}     
-    vector_field( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
-    // copy constructor
-    vector_field( const image< vec2f >& img ) : image( img ) {}     
+    vf_tools( vector_field& img ) : img( img ) {}
+
+    //vector_field& get_image() { return img; }
 
     vec2f advect( const vec2f& v, const float& step, const float& angle = 0.0f, const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;
     vec2f advect( const vec2f& v, const float& step, const mat2f& m,            const bool& smooth = true, const image_extend& extend = SAMP_REPEAT ) const;
@@ -88,11 +91,6 @@ public:
     // TODO:  implement vector field visualization
     void visualize( image< frgb >& img ) const {}
     void visualize( image< ucolor >& img ) const {}
-
-    void write_jpg( const std :: string& filename, int quality );
-    void write_png( const std :: string& filename );
-    void write_file( const std::string& filename, file_type type = FILE_JPG, int quality = 100 );
-
 };
 
 #endif // __VECTOR_FIELD_HPP

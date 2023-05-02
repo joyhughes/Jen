@@ -34,6 +34,8 @@ typedef enum file_type
 typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
 typedef enum direction8 { D8_UP, D8_UPRIGHT, D8_RIGHT, D8_DOWNRIGHT, D8_DOWN, D8_DOWNLEFT, D8_LEFT, D8_UPLEFT } direction8;
 
+template< class T > class image;
+
 // Root template for raster-based data
 template< class T > class image {
 
@@ -83,6 +85,8 @@ public:
     // load constructor
     image( const std::string& filename ) : image() { load( filename ); } 
 
+    friend class vf_tools;  // additional functions for vector fields
+
     T* get_base() { return &(base[0]); }    
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
@@ -127,6 +131,15 @@ public:
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
+    // functions below use template specialization
+    void grayscale() {}
+    void clamp( float minc = 1.0f, float maxc = 1.0f ) {}
+    void constrain() {}
+    // fill warp field or offset field values based on vector field - fields should be same size
+    void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
+    template< class U > inline void advect( int index, image< U >& in, image< U > out ) {} // advect one pixel (warp field and offset field)
+    template< class U > void advect( image< U >& in, image< U >& out ) {} // advect entire image (warp field and offset field)
+
     //void color_noise( const T& minc, const T& maxc, const float& a = 1.0f, const bb2i& );
 
     // masking
@@ -179,7 +192,7 @@ public:
     void read_binary(  const std::string& filename );  
     void write_binary( const std::string& filename );
     // determine file type from extension?
-    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
+    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 );
 
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );

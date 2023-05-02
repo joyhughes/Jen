@@ -4,11 +4,8 @@
 #include "image.hpp"
 #include <variant>
 
-class fimage;
-class uimage;
-class vector_field;
-template< class T > struct effect;
-template< class T > class buffer_pair;
+//template< class T > struct effect;
+//template< class T > class buffer_pair;
 
 enum pixel_type
 {
