@@ -1,5 +1,5 @@
 {
-    "name": "diffuser_scene",
+    "name": "identity_scene",
     "images": 
     [ 
         { 
@@ -11,23 +11,19 @@
     "effects":
     [
         {
-            "name": "diffuser",
-            "type": "CA_ucolor",
-            "rule": 
-            {
-                "name": "diffuse",
-                "type": "rule_diffuse_ucolor"
-            }
+            "name": "identity",
+            "type": "eff_identity"
         }
     ],
     "queue":
     [
         {
-            "name": "hk_diffuse",
+            "name": "hk_identity",
             "source": "kh_square",
             "type": "uimage",
-            "mode": "iterative",  
-            "effects": [ "diffuser" ]
+            "dynamic": true,  
+            "effects": [ "identity" ]
         }
     ]
 }
+

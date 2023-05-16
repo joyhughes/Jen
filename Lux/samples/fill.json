@@ -1,5 +1,5 @@
 {
-    "name": "diffuser_scene",
+    "name": "dill_scene",
     "images": 
     [ 
         { 
@@ -11,23 +11,20 @@
     "effects":
     [
         {
-            "name": "diffuser",
-            "type": "CA_ucolor",
-            "rule": 
-            {
-                "name": "diffuse",
-                "type": "rule_diffuse_ucolor"
-            }
+            "name": "fill",
+            "type": "eff_fill_ucolor",
+            "fill_color": "0xff0000ff"
         }
     ],
     "queue":
     [
         {
-            "name": "hk_diffuse",
+            "name": "hk_fill",
             "source": "kh_square",
             "type": "uimage",
-            "mode": "iterative",  
-            "effects": [ "diffuser" ]
+            "dynamic": true,  
+            "effects": [ "fill" ]
         }
     ]
 }
+
