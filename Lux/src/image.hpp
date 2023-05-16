@@ -81,6 +81,16 @@ public:
             std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
             mip_it();
         }
+    
+    // move constructor
+    image( I&& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
+        {
+            // move mip map
+            mip = std::move( img.mip );
+            base = std::move( img.base );
+            mip_it();
+        }
 
     // load constructor
     image( const std::string& filename ) : image() { load( filename ); } 
@@ -198,7 +208,9 @@ public:
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 
     // operators
-    I& operator += ( I& rhs );
+    I& operator = ( const I& rhs ); // copy assignment
+    I& operator = ( I&& rhs );      // move assignment
+    I& operator += ( I& rhs );      // add rhs to this
     I& operator += ( const T& rhs );
     I& operator -= ( I& rhs );
     I& operator -= ( const T& rhs );
@@ -222,6 +234,11 @@ template< class T > class buffer_pair {
     typedef std::unique_ptr< image< T > > image_ptr;
     std::pair< image_ptr, image_ptr > image_pair;
 public:
+    buffer_pair() : image_pair( NULL, NULL ) {}
+    buffer_pair( const std::string& filename ) { load( filename ); }
+    buffer_pair( const image< T >& img ) { reset( img ); }  // copy image into buffer
+    buffer_pair( vec2i& dim ) { image_pair.first.reset( new image< T >( dim ) ); image_pair.second.reset( NULL ); }
+
     bool has_image() { return image_pair.first.get() != NULL; }
 
     image< T >& get_image() { 
@@ -269,11 +286,6 @@ public:
     }
 
     image< T >& operator () () { return get_image(); }
-
-    buffer_pair() : image_pair( NULL, NULL ) {}
-    buffer_pair( const std::string& filename ) { load( filename ); }
-    buffer_pair( const image< T >& img ) { reset( img ); }  // copy image into buffer
-    buffer_pair( vec2i& dim ) { image_pair.first.reset( new image< T >( dim ) ); image_pair.second.reset( NULL ); }
 };
 
 #endif // __IMAGE_HPP

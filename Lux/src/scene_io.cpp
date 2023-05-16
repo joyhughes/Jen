@@ -60,7 +60,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     // render list - list of images, elements, clusters, and effects (each represented as an effect)
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
         effect_list eff_list;
-        read_eff_list( q, eff_list );
+        read_queue( q, eff_list );
         s.queue.push_back( eff_list );              // add to render queue
         s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
     }
@@ -324,14 +324,14 @@ void scene_reader::read_cluster( const json& j ) {
     }*/
 }
 
-void scene_reader::read_rule( const json& j ) {
+void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) {
     std::string name, type;
 
     // Required fields
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
 
-    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), r->neighborhood, name );
+    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), r->neighborhood, name ); ca->rule = rule;
     #define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }
@@ -360,7 +360,7 @@ void scene_reader::read_effect( const json& j ) {
 
     // special case for CA rules
     EFF( CA_ucolor )
-    if( j.contains( "rule" ) ) read_rule( j[ "rule" ] );
+    if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
     else ERROR( "CA rule missing\n" )
     END_EFF()
 
@@ -411,7 +411,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
 }
 
-void scene_reader::read_eff_list( const json& j, effect_list& elist ) {
+void scene_reader::read_queue( const json& j, effect_list& elist ) {
     if( j.contains( "name"         ) ) read( elist.name,           j[ "name"         ] );
     if( j.contains( "source"       ) ) read( elist.source_name,    j[ "source"       ] );
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  

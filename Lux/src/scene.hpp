@@ -129,7 +129,7 @@ struct cluster {
 
 typedef enum {
     MODE_STATIC,        // render once
-    MODE_ITERATIVE,    // render every frame based on previous frame
+    MODE_ITERATIVE,     // render every frame based on previous frame
     MODE_EPHEMERAL      // render every frame starting with background
 } render_mode;
 
@@ -219,8 +219,7 @@ struct scene {
 
     void render();  // Render scene on any image type
 
-    // Render and save to file
-    void render_and_save(    
+    void save_result(    
         const std::string& filename, 
         const vec2i& dim = { 512, 512 },
         pixel_type ptype = PIXEL_UCOLOR, 
@@ -228,7 +227,24 @@ struct scene {
         int quality = 100 
     );
 
-    void animate( std::string basename, int nframes = 100, vec2i dim = { 512, 512 } );
+    // Render and save to file
+    void render_and_save(    
+        const std::string& filename, 
+        const vec2i& dim = { 512, 512 },
+        pixel_type ptype = PIXEL_UCOLOR, 
+        file_type ftype = FILE_JPG, 
+        int quality = 100 
+    );          
+
+    void animate( 
+        std::string basename, 
+        int nframes = 100, 
+        vec2i dim = { 512, 512 },
+        pixel_type ptype = PIXEL_UCOLOR, 
+        file_type ftype = FILE_JPG, 
+        int quality = 100   
+    );
+    
 };
 
 #endif // __SCENE_HPP

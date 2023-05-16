@@ -44,12 +44,12 @@ struct scene_reader {
     render_mode  read_render_mode(  const json& j );
 
     void read_image(    const json& j );
-    void read_rule(     const json& j );   // Cellular automata rule
+    void read_rule(     const json& j, std::shared_ptr< CA_ucolor >& ca );   // Cellular automata rule
     void read_effect(   const json& j );
     void read_element(  const json& j );
     void read_function( const json& j );
     void read_cluster(  const json& j );
-    void read_eff_list( const json& j, effect_list& elist );
+    void read_queue( const json& j, effect_list& elist );
 
     template< class T > void read_harness( const json& j, harness< T >& h, std::unordered_map< std::string, any_fn< T > >& harness_fns );
     #define READ_ANY_HARNESS( _T_, _U_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h, _U_ ); }

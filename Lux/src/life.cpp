@@ -41,7 +41,8 @@
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
-   if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
+    std::cout << "CA: operator()" << std::endl;
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
         auto img = buf_ptr->get_image();
@@ -227,7 +228,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) {    
+template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) { 
+    std::cout << "life" << std::endl;   
     int count = 0;
     for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == on); }    
     for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == on); } 

@@ -7,6 +7,7 @@ void eff_identity::operator () ( any_buffer_pair_ptr &buf, element_context &cont
 
 // Fill image with color
 template< class T > void eff_fill< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    std::cout << "eff_fill: " << std::endl;
     fill_color( context ); 
     bounds( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))

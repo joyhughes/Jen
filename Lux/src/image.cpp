@@ -445,6 +445,30 @@ template< class T > void image< T >::apply( const std::function< T ( const T&, c
     mip_it();
 } 
 
+// copy assignment
+template< class T > image< T >& image< T >::operator = ( const image< T >& rhs ) {
+    if( this != &rhs ) {
+        base = rhs.base;
+        dim = rhs.dim;
+        bounds = rhs.bounds;
+        ipbounds = rhs.ipbounds;
+        mip_it();
+    }
+    return *this;
+}
+
+// move assignment
+template< class T > image< T >& image< T >::operator = ( image< T >&& rhs ) {
+    if( this != &rhs ) {
+        base = std::move( rhs.base );
+        dim = rhs.dim;
+        bounds = rhs.bounds;
+        ipbounds = rhs.ipbounds;
+        mip_it();
+    }
+    return *this;
+}
+
 template< class T > image< T >& image< T >::operator += ( image< T >& rhs ) {
     using namespace linalg;
     std::transform( begin(), base.end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a + b; } );

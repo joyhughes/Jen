@@ -138,11 +138,11 @@ template< class T > struct rule_pixel_sort {
 
 // future - move alpha block to CA
 template< class T > struct CA {
-   std::vector< T > neighbors, result;
+   std::vector< T > neighbors, result; // vector of neighbors - size depends on neighborhood
    // Future - use for image targeting
    // std::optional< std::reference_wrapper< image< T >& > > target;
    // std::optional< std::reference_wrapper< warp_field& > > warper;  
-   any_rule rule;   // vector of neighbors - size depends on neighborhood
+   any_rule rule;   
    CA_neighborhood neighborhood;
    mutation_type mutate_type;
    harness< int > mutate_amount;

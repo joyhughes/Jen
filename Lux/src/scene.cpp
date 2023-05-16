@@ -142,7 +142,7 @@ void effect_list::render( scene& s ) {
             cluster default_cluster( default_element, default_next_element );
             element_context context( default_element, default_cluster, s, buf );
             s.effects[ name ]( buf, context );
-            //std::cout << "rendered effect " << name << std::endl
+            std::cout << "rendered effect " << name << std::endl;
         }
         rendered = true;
     }
@@ -163,6 +163,28 @@ void scene::render() {
     time += time_interval;
 }
 
+void scene::save_result( 
+    const std::string& filename, 
+    const vec2i& dim,
+    pixel_type ptype, 
+    file_type ftype, 
+    int quality )
+{ 
+    // temporary - assumes result type uimage
+    auto out = std::get< ubuf_ptr >( queue.back().buf );
+    if( out->has_image() ) {
+        std::cout << "writing image" << std::endl;
+        ((uimage *)(out->get_image_ptr().get()))->write_jpg( filename, quality );
+    }
+    else {
+        std::cout << "no image to write" << std::endl;
+    }
+
+    // the proper way something like this? Or use temlate for this function?
+    //std::visit( [ & ]( auto& out ){ out->get_image().write_file( filename, ftype, quality ); }, queue.back().buf );
+
+}
+
 void scene::render_and_save( 
     const std::string& filename, 
     const vec2i& dim,
@@ -181,23 +203,30 @@ void scene::render_and_save(
         case( PIXEL_VEC2I  ): any_out = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
     }
     //std::cout << "Created image pointer" << std::endl;
-    // future: add pre-effects here
     set_output_buffer( any_out ); // set output buffer
     render(); // render into image
-
-    auto out = std::get< ubuf_ptr >( any_out );
-    if( out->has_image() ) {
-        std::cout << "writing image" << std::endl;
-        ((uimage *)(out->get_image_ptr().get()))->write_jpg( filename, quality );
-    }
-    else {
-        std::cout << "no image to write" << std::endl;
-    }
-    //std::visit( [ & ]( auto& out ){ out->get_image().write_file( filename, ftype, quality ); }, any_out );
+    save_result( filename, dim, ptype, ftype, quality ); // save image
 } 
 
-void scene::animate( std::string basename, int nframes, vec2i dim )
+void scene::animate( 
+    std::string basename, 
+    int nframes, 
+    vec2i dim,
+    pixel_type ptype, 
+    file_type ftype, 
+    int quality )
 {
+    any_buffer_pair_ptr any_out;
+    switch( ptype ) {
+        case( PIXEL_FRGB   ): any_out = std::make_shared< buffer_pair< frgb >   >( dim ); break;
+        case( PIXEL_UCOLOR ): any_out = std::make_shared< buffer_pair< ucolor > >( dim ); break;
+        case( PIXEL_VEC2F  ): any_out = std::make_shared< buffer_pair< vec2f >  >( dim ); break;
+        case( PIXEL_INT    ): any_out = std::make_shared< buffer_pair< int >    >( dim ); break;
+        case( PIXEL_VEC2I  ): any_out = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
+    }
+    //std::cout << "Created image pointer" << std::endl;
+    set_output_buffer( any_out ); // set output buffer
+
     //std::cout << "scene::animate" << std::endl;
     time_interval = 1.0f / nframes;
     time = 0.0f;
@@ -205,7 +234,8 @@ void scene::animate( std::string basename, int nframes, vec2i dim )
         std::ostringstream s;
         s << basename << std::setfill('0') << std::setw(4) << frame << ".jpg";
         std::string filename = s.str();
-        render_and_save( filename, dim );
+        render();
+        save_result( filename, dim, ptype, ftype, quality );
         time += time_interval;
         std::cout << "frame " << frame << std::endl;
     }
@@ -215,7 +245,7 @@ void scene::animate( std::string basename, int nframes, vec2i dim )
 
 void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     std::cout << "scene::set_output_buffer()" << std::endl;
-    auto& output_list = queue[ queue.size() - 1 ];
+    auto& output_list = queue.back();
     output_list.buf = buf;
     output_list.ptype = ( pixel_type )buf.index();
     vec2i dim_out;
