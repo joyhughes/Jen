@@ -19,7 +19,7 @@ struct frame_context {
   SDL_Surface *screen;
   scene *s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
-  int frame, nframes;
+  //int frame, nframes;
   //int curliness;
 };
 
@@ -36,8 +36,8 @@ void render_and_display( void *arg )
     uimage& img = (uimage &)(context->buf->get_image());
     vec2i dim = img.get_dim();
     scene &s = *(context->s);
-    float time_interval = 1.0f / (float)context->nframes;
-    float time = (float)context->frame * time_interval;
+    //float time_interval = 1.0f / (float)context->nframes;
+    //float time = (float)context->frame * time_interval;
     
     if (SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
 
@@ -68,11 +68,11 @@ void render_and_display( void *arg )
         //displayed = false;
     }
 
-    if( displayed ) context->frame++;
+    /*if( displayed ) context->frame++;
     if( context->frame >= context->nframes ) {
         context->frame = 0;
         // reset scene functors
-    }
+    }*/
     displayed = true;
 }
 
@@ -81,7 +81,8 @@ void run_pause() {
 }
 
 void restart() {
-    global_context->frame = 0;
+    //global_context->frame = 0;
+    //future: global_context->s->reset();
     displayed = false;
 }
 
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "curly_files/curly.json" );
+    scene s( "diffuser_files/diffuser.json" );
 
 //    scene s( "samples/diffuser.json" );
     emscripten_run_script("console.log('scene loaded');");
@@ -123,8 +124,8 @@ int main(int argc, char** argv) {
     context.screen = screen;
     context.s = &s;
     context.buf = buf;
-    context.nframes = 100;
-    context.frame = 0;
+    //context.nframes = 100;
+    //context.frame = 0;
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS

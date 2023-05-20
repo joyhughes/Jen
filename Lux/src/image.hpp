@@ -287,5 +287,5 @@ public:
 
     image< T >& operator () () { return get_image(); }
 };
-
+ 
 #endif // __IMAGE_HPP

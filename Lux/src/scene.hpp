@@ -212,6 +212,7 @@ struct scene {
     void pause();                               // Pause animation
     void unpause();                             // Set animation to runnning
     void run_pause();                           // Toggle animation pause
+    void restart();                             // Reset time to zero, reload all buffers
     void set_time_interval( const float& t );   // Set time interval for animation
  // void resize( const vec2i& dim );            // Resize all buffers in render list
     void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
@@ -244,7 +245,7 @@ struct scene {
         file_type ftype = FILE_JPG, 
         int quality = 100   
     );
-    
+
 };
 
 #endif // __SCENE_HPP

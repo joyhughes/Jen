@@ -229,7 +229,6 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
  */
 
 template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) { 
-    std::cout << "life" << std::endl;   
     int count = 0;
     for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == on); }    
     for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == on); } 

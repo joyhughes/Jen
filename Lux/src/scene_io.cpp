@@ -14,8 +14,13 @@ void emscripten_message( std::string msg ) {
     emscripten_run_script( msg.c_str() );
 }
 
+void emscripten_error( std::string msg ) {
+    emscripten_message( msg );
+    exit( 0 );
+}
+
 #define DEBUG( msg ) emscripten_message( msg );
-#define ERROR( msg ) emscripten_message( msg ); exit( 0 );
+#define ERROR( msg ) emscripten_error( msg ); 
 #else
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
 #define ERROR( msg ) throw std::runtime_error( msg );
@@ -26,6 +31,9 @@ using json = nlohmann::json;
 scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init ) {
     // read a JSON file
     DEBUG( "scene_reader constructor" );
+#ifdef __EMSCRIPTEN__
+    DEBUG( "emscripten defined" )
+#endif // __EMSCRIPTEN__
     std::ifstream in_stream(filename);
     json j;
     DEBUG( "input stream opened" )
@@ -40,8 +48,10 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
 
     // scene fields
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
+    DEBUG( "Name: " + s.name )
     //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
     if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )   read_image( jimg );
+    DEBUG( "Images loaded" ) 
     // effects - TBI
     if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );
     if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  );  
@@ -52,6 +62,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     s.bool_fns[ "top_level"         ] = top_level;
     s.bool_fns[ "lower_level"       ] = lower_level; */
     
+    DEBUG( "Elements loaded" )
     if( j.contains( "functions" ) ) {
         add_default_conditions();
         for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
@@ -64,6 +75,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
         s.queue.push_back( eff_list );              // add to render queue
         s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
     }
+    DEBUG( "scene_reader constructor finished" )
 }
 
 vec2f scene_reader::read_vec2f( const json& j ) { return vec2f( { j[0], j[1] } ); }
@@ -136,15 +148,19 @@ render_mode scene_reader::read_render_mode( const json& j ) {
 
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
- 
-    if( j.contains( "type") ) j[ "type" ].get_to( type );
-    else ERROR( "scene_reader::read_image error - image type missing\n" )
+    DEBUG( "scene_reader::read_image" )
 
     if( j.contains( "filename" ) ) j[ "filename" ].get_to( filename );
     else ERROR( "scene_reader::read_image error - image filename missing\n" )
+    DEBUG( "scene_reader::read_image - filename: " + filename )
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );
     else name = filename;
+    DEBUG( "scene_reader::read_image - name: " + name )
+
+    if( j.contains( "type") ) j[ "type" ].get_to( type );
+    else ERROR( "scene_reader::read_image error - image type missing\n" )
+    DEBUG( "scene_reader::read_image - type: " + type )
 
     // future: add binary file format for all image types
 
@@ -154,7 +170,9 @@ void scene_reader::read_image( const json& j ) {
     }
 
     if( type == "uimage" ) {
+        DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
+        DEBUG( "scene_reader::read_image - uimage read" )
         s.buffers[ name ] = img;
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
