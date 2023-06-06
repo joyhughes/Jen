@@ -15,10 +15,10 @@
 #include <string>
 #include <iomanip>
 
-void render( std::string scene_filename, std::string file_out, vec2i dim = { 1080, 1080 } ) {
+void render( std::string scene_filename, std::string file_out, vec2i dim = { 512, 512 } ) {
     scene s( scene_filename );
     //std::cout << "Scene object created" << std::endl;
-    s.render_and_save( file_out, dim, 0.5f );
+    s.render_and_save( file_out, dim );
     //std::cout << "Render complete " << file_out << std::endl;
 }
 
@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
     std::string scene_filename(  argv[ 1 ] );
     std::string output_name( argv[ 2 ] );
     
-    if( argc == 3 ) render( scene_filename, output_name );
+    if( argc == 3 ) render( scene_filename, output_name /*, { 3648, 3648 } */);
     else {
         int nframes;
         std::stringstream ss( argv[ 3 ] );
@@ -48,4 +48,4 @@ int main( int argc, char** argv ) {
     
     //std::cout << "Done!" << std::endl;
     return 0;
-}
+} 

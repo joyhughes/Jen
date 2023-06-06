@@ -2,7 +2,7 @@
 #define __NEXT_ELEMENT_HPP
 
 #include <functional>
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include "vector_field.hpp"
 
 struct element;
@@ -15,15 +15,21 @@ template<> struct any_fn< float >;
 template<> struct any_fn< int >;
 template<> struct any_fn< vec2f >;
 template<> struct any_fn< vec2i >;
+template<> struct any_fn< frgb >;
+template<> struct any_fn< ucolor >;
+template<> struct any_fn< bb2f >;
 struct any_condition_fn;
 struct any_gen_fn;
 
 // change to template if possible:     typedef std::function< T ( const U&, const element_context& ) > gen_fn;
-typedef std::function< bool  ( bool&, element_context&  ) > bool_fn; 
-typedef std::function< float ( float&, element_context& ) > float_fn; 
-typedef std::function< int   ( int&, element_context&   ) > int_fn; 
-typedef std::function< vec2f ( vec2f&, element_context& ) > vec2f_fn; 
-typedef std::function< vec2i ( vec2i&, element_context& ) > vec2i_fn; 
+typedef std::function< bool   ( bool&,   element_context& ) > bool_fn; 
+typedef std::function< float  ( float&,  element_context& ) > float_fn; 
+typedef std::function< int    ( int&,    element_context& ) > int_fn; 
+typedef std::function< vec2f  ( vec2f&,  element_context& ) > vec2f_fn; 
+typedef std::function< vec2i  ( vec2i&,  element_context& ) > vec2i_fn; 
+typedef std::function< frgb   ( frgb&,   element_context& ) > frgb_fn; 
+typedef std::function< ucolor ( ucolor&, element_context& ) > ucolor_fn; 
+typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn; 
 
 typedef std::function< bool ( element_context& ) > gen_fn;
 
@@ -39,7 +45,8 @@ template< class U > struct harness {
 
     void add_function( const any_fn< U >& fn );
 
-    harness( const U& val_init = 0 );
+    harness();
+    harness( const U& val_init );
     harness( const harness& h );
     ~harness();
 };
@@ -51,27 +58,35 @@ template< class U > struct identity_fn {
     U operator () ( U& in, element_context& context ) { return in; }
 };
 
-typedef identity_fn< int >   identity_int;
-typedef identity_fn< float > identity_float;
-typedef identity_fn< vec2i > identity_vec2i;
-typedef identity_fn< vec2f > identity_vec2f;
+typedef identity_fn< int    > identity_int;
+typedef identity_fn< float  > identity_float;
+typedef identity_fn< vec2i  > identity_vec2i;
+typedef identity_fn< vec2f  > identity_vec2f;
+typedef identity_fn< frgb   > identity_frgb;
+typedef identity_fn< ucolor > identity_ucolor;
+typedef identity_fn< bb2f   > identity_bb2f;
 
 template< class U > struct adder {
     harness< U > r;
     
     U operator () ( U& u, element_context& context ) { 
         r( context );
+        U v = *r;
         //std::cout << "adder: " << *r << " + " << u << " = " << *r + u << std::endl; 
-        return *r + u; 
+        addc( v, u );
+        return v; 
     }
 
     adder( const U& r_init = 0 ) : r( r_init ) {}
 };
 
-typedef adder< int >   adder_int;
-typedef adder< float > adder_float;
-typedef adder< vec2i > adder_vec2i;
-typedef adder< vec2f > adder_vec2f;
+typedef adder< int    > adder_int;
+typedef adder< float  > adder_float;
+typedef adder< vec2i  > adder_vec2i;
+typedef adder< vec2f  > adder_vec2f;
+typedef adder< frgb   > adder_frgb;
+typedef adder< ucolor > adder_ucolor;
+typedef adder< bb2f   > adder_bb2f;
 
 struct log_fn {
     harness< float > scale;
@@ -173,7 +188,7 @@ typedef time_param< vec2i > time_param_vec2i;
     float operator () ( float& val, element_context& context ) {
         squish( context ); volume( context ); speed( context ); phase_shift( context );
         float out = 0.0f;
-        for( auto& w : wiggles ) { out += *volume * w( val * *squish + *phase_shift + *speed * context.t, context ); }
+        for( auto& w : wiggles ) { out += *volume * w( val * *squish + *phase_shift + *speed * context.s.time, context ); }
         return out;
     }
 

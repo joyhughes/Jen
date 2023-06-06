@@ -7,12 +7,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../stb_image/stb_image_write.h"
 #include "image_loader.hpp"
+#include <iostream>
 #include <stdexcept>
 
 image_loader :: image_loader( const std::string& filename ) : stbi_ptr( stbi_load( filename.c_str(), &xsiz, &ysiz, &channels, 0 ) ) {
     if(!stbi_ptr) 
         throw std::runtime_error (std::string( "Image load error: \nFile" ) + filename + "\nReason:" + stbi_failure_reason() + "\n" ); 
-    img = std::span< unsigned char >( stbi_ptr, xsiz * ysiz * 3 ); 
+    img = std::span< unsigned char >( stbi_ptr, xsiz * ysiz * channels );
 } 
 
 image_loader :: ~image_loader() {

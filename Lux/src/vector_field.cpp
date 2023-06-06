@@ -79,94 +79,101 @@ void vortex_field::generate() {
 
 // Use Newton's method to move along flow line proportional to step value
 // Angle in degrees
-vec2f vector_field::advect( const vec2f& v, const float& step, const float& angle, const bool& smooth, const image_extend& extend ) const
+vec2f vf_tools::advect( const vec2f& v, const float& step, const float& angle, const bool& smooth, const image_extend& extend ) const
 {
-    if( angle == 0.0f ) return v +                                    sample( v, smooth, extend )   * step;
-    else                return v + linalg::rot( angle / 360.0f * TAU, sample( v, smooth, extend ) ) * step;
+    if( angle == 0.0f ) return v +                                    img.sample( v, smooth, extend )   * step;
+    else                return v + linalg::rot( angle / 360.0f * TAU, img.sample( v, smooth, extend ) ) * step;
 }
 
 // This overload receives a matrix parameter - more efficient if invoked repeatedly with the same angle
-vec2f vector_field::advect( const vec2f& v, const float& step, const mat2f& m, const bool& smooth, const image_extend& extend ) const
+vec2f vf_tools::advect( const vec2f& v, const float& step, const mat2f& m, const bool& smooth, const image_extend& extend ) const
 {
-    return v + linalg::mul( m, sample( v, smooth, extend ) ) * step;
+    return v + linalg::mul( m, img.sample( v, smooth, extend ) ) * step;
 }
 
-void vector_field::complement() { for( auto& v : base ) { v = ::complement( v ); } mip_it(); }
-void vector_field::radial()     { for( auto& v : base ) { v = ::radial( v );     } mip_it(); }
-void vector_field::cartesian()  { for( auto& v : base ) { v = ::cartesian( v );  } mip_it(); }
+void vf_tools::complement() { for( auto& v : img.base ) { v = ::complement( v ); } img.mip_it(); }
+void vf_tools::radial()     { for( auto& v : img.base ) { v = ::radial( v );     } img.mip_it(); }
+void vf_tools::cartesian()  { for( auto& v : img.base ) { v = ::cartesian( v );  } img.mip_it(); }
 
-void vector_field::rotate_vectors( const float& ang ) {
+void vf_tools::rotate_vectors( const float& ang ) {
     mat2f m = linalg::rotation_matrix_2D( ang / 360.0f * TAU );
-    for( auto& v : base ) { v = linalg::mul( m, v ); }
-    mip_it();
+    for( auto& v : img.base ) { v = linalg::mul( m, v ); }
+    img.mip_it();
 }
 
-void vector_field::normalize() { std::transform( base.begin(), base.end(), base.begin(), [] ( const vec2f& v ) { return linalg::normalize( v );  } ); mip_it();}
-
-void vector_field::inverse( float diameter, float soften ) {
-    if( diameter == 0.0f ) { fill( { 0.0f, 0.0f } ); }
-    else for( auto& v : base ) { v = ::inverse( v, diameter, soften ); }
-    mip_it();
+void vf_tools::normalize() { 
+    std::transform( img.base.begin(), img.base.end(), img.base.begin(), [] ( const vec2f& v ) { return linalg::normalize( v );  } ); 
+    img.mip_it();
 }
 
-void vector_field::inverse_square( float diameter, float soften ) {
-    if( diameter == 0.0f ) { fill( { 0.0f, 0.0f } ); }
-    else for( auto& v : base ) { v = ::inverse_square( v, diameter, soften ); }
-    mip_it();
+void vf_tools::inverse( float diameter, float soften ) {
+    if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
+    else for( auto& v : img.base ) { v = ::inverse( v, diameter, soften ); }
+    img.mip_it();
 }
 
-void vector_field::concentric( const vec2f& center ) { 
+void vf_tools::inverse_square( float diameter, float soften ) {
+    if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
+    else for( auto& v : img.base ) { v = ::inverse_square( v, diameter, soften ); }
+    img.mip_it();
+}
+
+void vf_tools::concentric( const vec2f& center ) { 
     position_fill();
-    for( auto& v : base ) { v = v - center; }
-    mip_it(); 
+    for( auto& v : img.base ) { v = v - center; }
+    img.mip_it(); 
 }
 
-void vector_field::rotation( const vec2f& center ) { 
+void vf_tools::rotation( const vec2f& center ) { 
     concentric();
     complement();
 }
 
-void vector_field::spiral( const vec2f& center, const float& cscale, const float& rscale )
+void vf_tools::spiral( const vec2f& center, const float& cscale, const float& rscale )
 {
-    vector_field buffer( *this );
+    vector_field buffer( img );
+    vf_tools buffer_tools( buffer );
 
     concentric();
-    *this *= cscale;
-    buffer.rotation();
+    img *= cscale;
+    buffer_tools.rotation();
     buffer *= rscale;
-    *this += buffer;
-    mip_it();
+    img += buffer;
+    img.mip_it();
 }
 
-void vector_field::vortex( const ::vortex& vort, const float& t ) {
+void vf_tools::vortex( const ::vortex& vort, const float& t ) {
     vec2f center= vort.center_orig;
     if( vort.revolving ) center = vort.center_of_revolution + linalg::rot( vort.velocity * t * TAU, vort.center_orig - vort.center_of_revolution );
     rotation( center );
     inverse( vort.diameter, vort.soften );
-    *this *= vort.intensity;
-    mip_it();
+    img *= vort.intensity;
+    img.mip_it();
 }
 
-void vector_field::turbulent( vortex_field& ca, const float& t ) {
+void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     //if( !(ca.generated) ) ca.generate();
-    fill( { 0.0f, 0.0f } );
-    vector_field buffer( *this );
+    img.fill( { 0.0f, 0.0f } );
+    vector_field buffer( img );
+    vf_tools buffer_tools( buffer );
+
     // cavort cavort cavort
-    for( auto& vort : ca.vorts ) { buffer.vortex( vort ); *this += buffer; }
-    mip_it();
+    for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
+    img.mip_it();
 }
  
-void vector_field::position_fill() { 
-    auto v = base.begin();
-    for( int y = 0; y < dim.y; y++ ) {
-        for( int x = 0; x < dim.x; x++ ) {
-            *v = bounds.bb_map( { x, y }, ipbounds );
+void vf_tools::position_fill() { 
+    auto v = img.base.begin();
+    for( int y = 0; y < img.dim.y; y++ ) {
+        for( int x = 0; x < img.dim.x; x++ ) {
+            *v = img.bounds.bb_map( vec2f( x, y ), img.ipbounds );
             v++;
         }
     }
     // rather than using mip_it() here, calculate directly up hierarchy using bounding box
 }
 
+/*
 void vector_field::write_jpg(const std::string &filename, int quality) {
     image< frgb > img( dim );
     visualize( img );
@@ -178,11 +185,12 @@ void vector_field::write_png(const std::string &filename ) {
     visualize( img );
     img.write_png( filename );
 }
+*/
 
-void vector_field::write_file(const std::string &filename, file_type type, int quality ) {
+template<> void vector_field::write_file(const std::string &filename, file_type type, int quality ) {
     switch( type ) {
-        case FILE_JPG: write_jpg( filename, quality ); break;
-        case FILE_PNG: write_png( filename ); break;
+        //case FILE_JPG: write_jpg( filename, quality ); break;
+        //case FILE_PNG: write_png( filename ); break;
         case FILE_BINARY: write_binary( filename ); break;
         default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
     }

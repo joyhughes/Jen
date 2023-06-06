@@ -31,7 +31,6 @@ template< class T > void image< T >::de_mip() {
 }
 
 template< class T > void image< T >::reset() { 
-    base.clear();
     set_dim( { 0, 0 } );
     de_mip(); 
 }
@@ -44,9 +43,17 @@ template< class T > void image< T >::use_mip( bool m ) {
 
 template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
+// Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
+    std::cout << "image::set_dim " << dim.x << " " << dim.y << " <== " << dims.x << " " << dims.y << std::endl;
+    if( dim != dims ) base.resize( dims.x * dims.y );
     dim = dims;
-    bounds.set( { -1.0, ( -1.0 * dim.y ) / dim.x }, { 1.0, ( 1.0 * dim.y ) / dim.x } );
+    refresh_bounds();
+}
+
+// calculates default bounding boxes based on pixel dimensions
+template< class T > void image< T >::refresh_bounds() { 
+    bounds.set( { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } );
     ipbounds.set( { 0, 0 }, dim );
     fpbounds.set( { 0.0f, 0.0f }, ( vec2f )dim - 1.0f );
 }
@@ -111,9 +118,8 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
     else return( index( vi, extend ) ); // quick and dirty sampling of nearest pixel value
 }
 
-// Colors black everything outside of a centered circle
-template< class T > void image< T >::crop_circle( const float& ramp_width, const T& background ) {
-    T black; ::black( black );
+// Sets to background color everything outside of a centered circle
+template< class T > void image< T >::crop_circle( const T& background, const float& ramp_width ) {
     float r2;   // radius in pixel space
     if( dim.x > dim.y ) r2 = dim.x / 2.0; 
     else r2 = dim.y / 2.0;
@@ -129,6 +135,35 @@ template< class T > void image< T >::crop_circle( const float& ramp_width, const
         }
     }
     mip_it(); 
+}
+
+// Colors black everything outside of a centered circle
+template< class T > void image< T >::crop_circle( const float& ramp_width ) {
+    T b; 
+    black( b );
+    crop_circle( b, ramp_width );
+}
+
+// copy image of same size ( may need to be able to scale as well )
+template< class T > void image< T >::copy( const image< T >& img ) {
+    std::cout << "image::copy()" << std::endl;
+    set_dim( img.dim );
+    set_bounds( img.bounds );
+    std::cout << "image::copy() preparing to std::copy" << std::endl;
+    std::cout << "image::copy() base.size() = " << base.size() << std::endl;
+    std::cout << "image::copy() img.base.size() = " << img.base.size() << std::endl;
+    std::copy( img.base.begin(), img.base.end(), base.begin() );
+    
+    /*
+    auto base_it = base.begin();
+    //auto img_it = img.begin();
+    for( auto it = img.base.begin(); it != img.base.end(); it++ ) {
+        *base_it = *it;
+        base_it++;
+    }
+    */
+    std::cout << "image::copy() std::copy done" << std::endl;
+    mip_it();    
 }
 
 template< class T > void image< T >::fill( const T& c ) {
@@ -149,6 +184,16 @@ template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
     mip_it();
 }
 
+template< class T > void image< T >::fill( const T& c, const bb2f& bb ) {
+    fill( c, bb.map_box( bounds, ipbounds ) );
+}
+
+template< class T > void image< T >::clear() {
+    T b;
+    black( b );
+    fill( b );
+}
+
 // Black and white noise
 template< class T > void image< T >::noise( const float& a ) {
     for( auto& pix : base ) { if( weighted_bit( a ) ) white( pix ); else black( pix ); }
@@ -167,6 +212,10 @@ template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
     mip_it();
 }
 
+template< class T > void image< T >::noise( const float& a, const bb2f& bb ) {
+    noise( a, bb.map_box( bounds, ipbounds ) );
+}
+
 template< class T > void image< T >::apply_mask( const image< T >& layer, const image< T >& mask, const mask_mode& mmode ) {
     auto l = layer.begin();
     auto m = mask.begin();
@@ -181,44 +230,67 @@ template< class T > void image< T >::splat(
     const vec2f& center, 			    // coordinates of splat center
     const float& scale, 			    // radius of splat
     const float& theta, 			    // rotation in degrees
-    std::shared_ptr< image< T > > splat_image,    // image of the splat
-    std::shared_ptr< image< T > > mask, // optional mask image
+    const image< T >& splat_image,      // image of the splat
+    const std::optional< std::reference_wrapper< image< T > > > mask,  // optional mask image
     const std::optional< T >&     tint, // change the color of splat
     const mask_mode& mmode              // how will mask be applied to splat and backround?
 )  
-{   
-    if( !(splat_image.get()) ) throw std::runtime_error( "  no splat image\n" ); // null pointer - image missing
-    image< T >& g = *splat_image;
+{  
+    const image< T >& g( splat_image );
+
+    std::cout << "splatting" << std::endl; 
+    std::cout << "target image dim: " << dim.x << " " << dim.y << " bounds: ";
+    bounds.print();
+    std::cout << "target image ipbounds: ";
+    ipbounds.print();
+    std::cout << "splat image dim: " << g.dim.x << " " << g.dim.y << " bounds: ";
+    g.bounds.print();
+    std::cout << "splat image ipbounds: ";
+    g.ipbounds.print();
+
     bool has_tint = tint.has_value();
     T my_tint;
     if( has_tint ) my_tint = *tint;
-    bool has_mask = ( mask.get() != NULL );
+    bool has_mask = mask.has_value();
 
     float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
+    //std::cout << "center of splat: " << p.x << " " << p.y << std::endl;
 	int size = scale / ( bounds.b2.x - bounds.b1.x ) * dim.x; // scale in pixel coordinates
+    //std::cout << "size of splat: " << size << std::endl;
     bb2i sbounds( p, size );    // bounding box of splat
+    std::cout << "splat bounds: ";
+    sbounds.print();
 	vec2f smin = bounds.bb_map( sbounds.minv, ipbounds );
+    std::cout << "splat min: " << smin.x << " " << smin.y << std::endl;
 	vec2f sc;
 	sc.x = (smin.x - center.x) / scale;
 	sc.y = (smin.y - center.y) / scale;
     sc = linalg::rot( -thrad, sc );
+    std::cout << "sc: " << sc.x << " " << sc.y << std::endl;
 
 	// calculate unit vectors - one pixel long
 	vec2f unx, uny;
 	unx.x = 1.0f / dim.x * ( bounds.b2.x - bounds.b1.x ) / scale;
 	unx.y = 0.0f;
 	unx = linalg::rot( -thrad, unx );
+    std::cout << "unx: " << unx.x << " " << unx.y << std::endl;
 	uny.x = 0.0f;
 	uny.y = -1.0f / dim.y * ( bounds.b2.y - bounds.b1.y ) / scale;
 	uny = linalg::rot( -thrad, uny );
+    std::cout << "uny: " << uny.x << " " << uny.y << std::endl;
 
 	// convert vectors to splat pixel space - fixed point
     vec2i scfix = ( vec2i )(( sc * g.dim / 2.0f + g.dim / 2.0f ) * 65536.0f );
+    std::cout << "scfix: " << scfix.x << " " << scfix.y << std::endl;
     vec2i unxfix = ( vec2i )( unx * g.dim / 2.0f * 65536.0f );
+    std::cout << "unxfix: " << unxfix.x << " " << unxfix.y << std::endl;
     vec2i unyfix = ( vec2i )( uny * g.dim / 2.0f * 65536.0f );
+    std::cout << "unyfix: " << unyfix.x << " " << unyfix.y << std::endl;
 	vec2i sfix;
     bb2i fixbounds( { 0, 0 }, { ( g.dim.x - 1 ) << 16, ( g.dim.y - 1 ) << 16 });
+    std::cout << "fixbounds: ";
+    fixbounds.print();
 
     // *** Critical loop below ***
     // Quick and dirty sampling, high speed but risk of aliasing. 
@@ -226,7 +298,7 @@ template< class T > void image< T >::splat(
     // future: add option to smooth sample into splat's mip-map
     // future: add vector and color effects
     if( has_mask ) {
-        image< T >& m = *mask;
+        const image< T >& m = mask->get();
         // image and mask same size
         if( m.dim == g.dim ) {
             for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
@@ -301,6 +373,7 @@ template< class T > void image< T >::splat(
             scfix += unxfix;
         }
     }
+    std::cout << "splat complete" << std::endl;
 }
 
 template< class T > void image< T >::warp (  const image< T >& in, 
@@ -320,7 +393,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
         bb2f vf_bounds = vf.get_bounds();
         for( int y = 0; y < dim.y; y++ ) {
             for( int x = 0; x < dim.x; x++ ) {
-                coord = bounds.bb_map( { x, y }, ipbounds );
+                coord = bounds.bb_map( vec2i( x, y ), ipbounds );
                 if( same_dims ) { v = *vfit; vfit++; }
                 else { v = vf.sample( vf_bounds.bb_map( coord, bounds ), true ); }
                 if( relative ) v = v * step + coord;
@@ -342,7 +415,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
     auto it = begin();
     for( int y = 0; y < dim.y; y++ ) {
         for( int x = 0; x < dim.x; x++ ) {
-            vec2f coord = bounds.bb_map( { x, y }, ipbounds );
+            vec2f coord = bounds.bb_map( vec2i( x, y ), ipbounds );
             vec2f v = vfn( coord );
             if( relative ) v = v * step + coord;
             *it = in.sample( v, smooth, extend );
@@ -407,11 +480,45 @@ template< class T > void image< T >::write_binary( const std::string &filename )
     out_file.close();
 }
 
+template< class T > void image< T >::write_file(const std::string &filename, file_type type, int quality ) {
+    std::cout << "uimage::write_file: " << filename << std::endl;
+    switch( type ) {
+        case FILE_JPG: write_jpg( filename, quality ); break;
+        case FILE_PNG: write_png( filename ); break;
+        case FILE_BINARY: write_binary( filename ); break;
+        default: std::cout << "image::write_file: unknown file type " << type << std::endl;
+    }
+}
+
 // apply a vector function to each point in image
 template< class T > void image< T >::apply( const std::function< T ( const T&, const float& ) > fn, const float& t ) {
     for( auto& v : base ) { v = fn( v, t ); }
     mip_it();
 } 
+
+// copy assignment
+template< class T > image< T >& image< T >::operator = ( const image< T >& rhs ) {
+    if( this != &rhs ) {
+        base = rhs.base;
+        dim = rhs.dim;
+        bounds = rhs.bounds;
+        ipbounds = rhs.ipbounds;
+        mip_it();
+    }
+    return *this;
+}
+
+// move assignment
+template< class T > image< T >& image< T >::operator = ( image< T >&& rhs ) {
+    if( this != &rhs ) {
+        base = std::move( rhs.base );
+        dim = rhs.dim;
+        bounds = rhs.bounds;
+        ipbounds = rhs.ipbounds;
+        mip_it();
+    }
+    return *this;
+}
 
 template< class T > image< T >& image< T >::operator += ( image< T >& rhs ) {
     using namespace linalg;
@@ -485,9 +592,9 @@ template< class T > image< T >& image< T >::operator /= ( const float& rhs ) {
 
 template< class T > image< T >& image< T >::operator () () { return *this; }
 
-template class image< frgb >;       // fimage
-template class image< ucolor >;     // uimage
-template class image< vec2f >;      // vector_field
-//template class image< float >;      // scalar_field
-template class image< int >;        // warp_field
-template class image< vec2i >;      // offset_field
+template class image< frgb   >;      // fimage
+template class image< ucolor >;      // uimage
+template class image< vec2f  >;      // vector_field
+//template class image< float >;     // scalar_field
+template class image< int    >;      // warp_field
+template class image< vec2i  >;      // offset_field 

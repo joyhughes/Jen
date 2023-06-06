@@ -5,28 +5,16 @@
 
 #include "image.hpp"
 
-class fimage : public image< frgb > {
+#define fimage image< frgb >
 
-protected:
-    void quantize( std :: vector< unsigned char >& img );
+// pixel modification functions using template specialization
+template<> void fimage::grayscale();
+template<> void fimage::clamp( float minc, float maxc );
+template<> void fimage::constrain();
 
-public:
-    fimage() : image< frgb >() {}      
-    fimage( const vec2i& dims ) : image< frgb >( dims ){}   // creates image of particular size
-    fimage( const vec2i& dims, const bb2f& bb ) : image< frgb >( dims, bb ) {}        
-    fimage( const I& img ) : image< frgb >( img ) {}        // copy constructor
-    fimage( const std::string& filename ) : image< frgb >() { load( filename ); } 
-
-    // pixel modification functions
-    void clamp( float minc = 0.0f, float maxc = 1.0f );
-    void constrain();
-    void grayscale();
-
-    // I/O functions
-    void load(      const std::string& filename );
-    void write_jpg( const std::string& filename, int quality );
-    void write_png( const std::string& filename );
-    void write_file( const std::string& filename, file_type type = FILE_JPG, int quality = 100 );
-};
+// I/O functions using template specialization
+template<> void fimage::load( const std::string& filename );
+template<> void fimage::write_jpg( const std :: string& filename, int quality );
+template<> void fimage::write_png( const std :: string& filename );
 
 #endif // __FIMAGE_HPP

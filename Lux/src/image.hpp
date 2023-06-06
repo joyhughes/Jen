@@ -31,6 +31,11 @@ typedef enum file_type
     FILE_BINARY
 } file_type;
 
+typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
+typedef enum direction8 { D8_UP, D8_UPRIGHT, D8_RIGHT, D8_DOWNRIGHT, D8_DOWN, D8_DOWNLEFT, D8_LEFT, D8_UPLEFT } direction8;
+
+template< class T > class image;
+
 // Root template for raster-based data
 template< class T > class image {
 
@@ -76,9 +81,21 @@ public:
             std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
             mip_it();
         }
+    
+    // move constructor
+    image( I&& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
+        {
+            // move mip map
+            mip = std::move( img.mip );
+            base = std::move( img.base );
+            mip_it();
+        }
 
     // load constructor
     image( const std::string& filename ) : image() { load( filename ); } 
+
+    friend class vf_tools;  // additional functions for vector fields
 
     T* get_base() { return &(base[0]); }    
 
@@ -93,6 +110,7 @@ public:
     void mip_it();  // mipit good
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
+    void refresh_bounds(); // calculates default bounding boxes based on pixel dimensions
     const bb2f get_bounds() const;
     const bb2i get_ipbounds() const;
     void set_bounds( const bb2f& bb );
@@ -113,13 +131,27 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void crop_circle( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const T& background, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
+    void copy( const I& img );
     void fill( const T& c );
     void fill( const T& c, const bb2i& bb );
+    void fill( const T& c, const bb2f& bb );
+    void clear();  // sets all pixels to zero
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
+    void noise( const float& a, const bb2f& bb );
+    // functions below use template specialization
+    void grayscale() {}
+    void clamp( float minc = 1.0f, float maxc = 1.0f ) {}
+    void constrain() {}
+    // fill warp field or offset field values based on vector field - fields should be same size
+    void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
+    template< class U > inline void advect( int index, image< U >& in, image< U > out ) {} // advect one pixel (warp field and offset field)
+    template< class U > void advect( image< U >& in, image< U >& out ) {} // advect entire image (warp field and offset field)
+
     //void color_noise( const T& minc, const T& maxc, const float& a = 1.0f, const bb2i& );
 
     // masking
@@ -130,8 +162,8 @@ public:
         const vec2f& center, // coordinates of splat center
         const float& scale,  // radius of splat
         const float& theta,  // rotation in degrees
-        std::shared_ptr< image< T > > splat_image = NULL,    // image of the splat
-        std::shared_ptr< image< T > > mask = NULL,           // optional mask image
+        const image< T >& splat_image,    // image of the splat
+        const std::optional< std::reference_wrapper< image< T > > > mask = std::nullopt,  // optional mask image
         const std::optional< T >& tint = std::nullopt,       // change the color of the splat
         const mask_mode& mmode = MASK_BLEND // how will mask be applied to splat and backround?
     );  
@@ -166,19 +198,25 @@ public:
 
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
-    virtual void load( const std::string& filename ) {}
-    virtual void write_jpg( const std::string& filename, int quality ) {}
-    virtual void write_png( const std::string& filename ) {}
+    void load( const std::string& filename ) { std::cout << "default image load" << std::endl; }
+    void write_jpg( const std::string& filename, int quality ) { std::cout << "default image write_jpg" << std::endl; }
+    void write_png( const std::string& filename ) { std::cout << "default image write_png" << std::endl; }
     void read_binary(  const std::string& filename );  
     void write_binary( const std::string& filename );
     // determine file type from extension?
-    virtual void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 ) {}  
+    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 );
 
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 
+    // Debugging functions
+    void dump() {} // dump image to console
+    unsigned int size() { return base.size(); } // return size of image
+
     // operators
-    I& operator += ( I& rhs );
+    I& operator = ( const I& rhs ); // copy assignment
+    I& operator = ( I&& rhs );      // move assignment
+    I& operator += ( I& rhs );      // add rhs to this
     I& operator += ( const T& rhs );
     I& operator -= ( I& rhs );
     I& operator -= ( const T& rhs );
@@ -193,36 +231,6 @@ public:
     //void apply( unary_func< T > func ); // apply function to each pixel (in place)
     //void apply( unary_func< T > func, image< T >& result ); // apply function to each pixel (to target image)
     // apply function to two images
-};
-
-// Used for double-buffered rendering. Owns pointer to image - makes a duplicate when 
-// double-buffering is needed for an effect. Can be used in effect-component stacks or for 
-// persistent effects such as CA, melt, or hyperspace
-template< class T > class buffer_pair {
-    typedef std::unique_ptr< image< T > > image_ptr;
-    std::pair< image_ptr, image_ptr > image_pair;
-public:
-    bool has_image() { return image_pair.first.get() != NULL; }
-    image< T >& get_image() { return *image_pair.first; }
-    image< T >& get_buffer() {
-        if( image_pair.second.get() == NULL ) image_pair.second.reset( new image< T >( *image_pair.first ) );
-        return *image_pair.second;
-    }
-    void swap() { image_pair.first.swap( image_pair.second ); }
-    void load( const std::string& filename ) { 
-        image_pair.first.reset( new image< T >( filename ) );
-        image_pair.second.reset( NULL );
-    }
-    void reset( const image< T >& img ) { 
-        image_pair.first.reset( new image< T >( img ) );
-        image_pair.second.reset( NULL );
-    }
-
-    image< T >& operator () () { return get_image(); }
-
-    buffer_pair() : image_pair( NULL, NULL ) {}
-    buffer_pair( const std::string& filename ) { load( filename ); }
-    buffer_pair( const image< T >& img ) { reset( img ); }
 };
 
 #endif // __IMAGE_HPP

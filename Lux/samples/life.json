@@ -1,0 +1,32 @@
+{
+    "name": "life_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "../samples/moonmask.jpg", 
+            "name": "moonmask"
+        } 
+    ],
+    "effects":
+    [
+        {
+            "name": "life",
+            "type": "CA_ucolor",
+            "rule": {
+                "name": "life_rule",
+                "type": "rule_life_ucolor"
+            }
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "life_test",
+            "source": "moonmask",
+            "type": "uimage",
+            "mode": "iterative",  
+            "effects": [ "life" ]
+        }
+    ]
+}

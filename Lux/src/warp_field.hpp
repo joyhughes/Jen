@@ -3,21 +3,13 @@
 
 #include "image.hpp"
 
-class warp_field : public image< int > {
+#define warp_field image< int >
 
-public:
-    warp_field() : image() {}     
-    // creates image of particular size 
-    warp_field( const vec2i& dims ) : image( dims ){}     
-    warp_field( const vec2i& dims, const bb2f& bb ) : image( dims, bb ) {}     
-    // copy constructor
-    warp_field( const image< int >& img ) : image( img ) {}  
-    warp_field( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) { fill( vfield, relative ); }  
-    
-    // fill warp field values based on vector field
-    void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT );
-    template< class T > inline T advect( int index, image< T >& img ) 
-        { img.set( index, img.index[ base[ index ] ] ); }
-};
+// fill warp field values based on vector field
+template<> void warp_field::fill( const image< vec2f >& vfield, const bool relative, const image_extend extend );
+template<> template< class U > inline void warp_field::advect( int index, image< U >& in, image< U > out ) // advect one pixel
+    { out.set( index, in.index[ base[ index ] ] ); }
+template<> template< class U > void warp_field::advect( image< U >& in, image< U >& out ) // advect entire image
+    { for( int i = 0; i < base.size(); i++ ) advect( i, in, out ); }
 
 #endif // __WARP_FIELD_HPP

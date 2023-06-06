@@ -6,27 +6,27 @@
 
 // pixel modification functions
 
-void fimage::clamp( float minc, float maxc ) {
+template<> void fimage::clamp( float minc, float maxc ) {
     for( auto& c : base ) { linalg::clamp( c, minc, maxc ); }
     mip_it();
 }
 
-void fimage::constrain() {
+template<> void fimage::constrain() {
     for( auto& c : base ) { ::constrain( c ); }
     mip_it();
 }
 
-void fimage::grayscale() {
+template<> void fimage::grayscale() {
     for( auto& c : base ) { c = gray( c ); }
     mip_it();
 }
 
-void fimage::load( const std::string& filename ) {
+template<> void fimage::load( const std::string& filename ) {
     std::cout << "fimage::load " << filename << std::endl;
     reset();
     image_loader loader( filename );
-    set_dim( { loader.xsiz, loader.ysiz } );
-
+    dim = { loader.xsiz, loader.ysiz };
+    refresh_bounds();
 	int c = 0;
     frgb f;
 
@@ -65,31 +65,23 @@ void fimage::load( const std::string& filename ) {
     std::cout << "Image load complete\n";
 }
 
-void fimage::quantize( std::vector< unsigned char >& img )
-{
+template<> void fimage::write_jpg( const std::string& filename, int quality ) {
+    std::vector< unsigned char > img;
     for( auto& f : base ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
-        img.push_back( bc( f ) ); }
+        img.push_back( bc( f ) ); 
+    }
+    wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
 }
 
-void fimage::write_jpg( const std::string& filename, int quality ) {
+template<> void fimage::write_png( const std::string& filename ) {    
     std::vector< unsigned char > img;
-	quantize( img );
-	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
-}
-
-void fimage::write_png( const std::string& filename ) {    
-    std::vector< unsigned char > img;
-	quantize( img );
+    for( auto& f : base ) {
+        img.push_back( rc( f ) );
+        img.push_back( gc( f ) );
+        img.push_back( bc( f ) ); 
+    }
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
 }
 
-void fimage::write_file(const std::string &filename, file_type type, int quality ) {
-    switch( type ) {
-        case FILE_JPG: write_jpg( filename, quality ); break;
-        case FILE_PNG: write_png( filename ); break;
-        case FILE_BINARY: write_binary( filename ); break;
-        default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
-    }
-}

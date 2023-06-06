@@ -1,0 +1,30 @@
+{
+    "name": "dill_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "../samples/hk_square_512.jpg", 
+            "name": "kh_square"
+        } 
+    ],
+    "effects":
+    [
+        {
+            "name": "fill",
+            "type": "eff_fill_ucolor",
+            "fill_color": "0xff0000ff"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "hk_fill",
+            "source": "kh_square",
+            "type": "uimage",
+            "dynamic": true,  
+            "effects": [ "fill" ]
+        }
+    ]
+}
+

@@ -1,29 +1,59 @@
 #include "scene.hpp"
 #include "scene_io.hpp"
+#include "life.hpp"
 #include "fimage.hpp"
 #include "uimage.hpp"
 #include "vector_field.hpp"
 #include <fstream>
 #include <sstream>
-//#include <emscripten.h>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+void emscripten_message( std::string msg ) {
+    msg = "console.log('" + msg + "');";
+    emscripten_run_script( msg.c_str() );
+}
+
+void emscripten_error( std::string msg ) {
+    emscripten_message( msg );
+    exit( 0 );
+}
+
+#define DEBUG( msg ) emscripten_message( msg );
+#define ERROR( msg ) emscripten_error( msg ); 
+#else
+#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+#define ERROR( msg ) throw std::runtime_error( msg );
+#endif
 
 using json = nlohmann::json;
 
 scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init ) {
     // read a JSON file
-    //emscripten_run_script("console.log('scene_reader constructor');");
+    DEBUG( "scene_reader constructor" );
+#ifdef __EMSCRIPTEN__
+    DEBUG( "emscripten defined" )
+#endif // __EMSCRIPTEN__
     std::ifstream in_stream(filename);
-    //emscripten_run_script("console.log('input stream opened');");
-    json j = json::parse(in_stream); 
-    //emscripten_run_script("console.log('scene file parsed into json object');");
+    json j;
+    DEBUG( "input stream opened" )
+    try {
+        j = json::parse(in_stream); 
+    }
+    catch( json::parse_error& ex ) {
+        ERROR( "JSON parse error at byte " + std::to_string( ex.byte ) )
+        exit( 0 );
+    }
+    DEBUG( "scene file parsed into json object" )
 
     // scene fields
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
+    DEBUG( "Name: " + s.name )
     //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
-    if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )   read_image( jimg );
-    // effects - TBI
-    //if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );
-    if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  );  
+    if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )    read_image( jimg );
+    DEBUG( "Images loaded" ) 
+    if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  ); 
+    DEBUG( "Elements loaded" ) 
 
     // add default conditions (deprecated - default conditions promoted to any_condition objects)
     /*s.bool_fns[ "initial_element"   ] = initial_element;
@@ -36,6 +66,21 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
         for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
     }
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
+    // render list - list of images, elements, clusters, and effects (each represented as an effect)
+    if( j.contains( "effects" ) )   for( auto& jeff : j[ "effects" ] )     read_effect( jeff );
+    DEBUG( "Effects loaded" )
+
+    if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
+        effect_list eff_list;
+        read_queue( q, eff_list );
+        s.queue.push_back( eff_list );              // add to render queue
+        s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
+    }
+
+    // set element buffers
+    for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ]; std::cout << "element " << e.first << " img buffer set to "  << e.second << std::endl; }
+    for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ]; std::cout << "element " << m.first << " mask buffer set to " << m.second << std::endl; }
+    DEBUG( "scene_reader constructor finished" )
 }
 
 vec2f scene_reader::read_vec2f( const json& j ) { return vec2f( { j[0], j[1] } ); }
@@ -43,9 +88,10 @@ vec2i scene_reader::read_vec2i( const json& j ) { return vec2i( { j[0], j[1] } )
 frgb  scene_reader::read_frgb(  const json& j ) { return frgb( j[0], j[1], j[2] ); }
 bb2f  scene_reader::read_bb2f(  const json& j ) { return bb2f( read_vec2f( j[0] ), read_vec2f( j[1]) ); }
 bb2i  scene_reader::read_bb2i(  const json& j ) { return bb2i( read_vec2i( j[0] ), read_vec2i( j[1]) ); }
+std::string scene_reader::read_string( const json& j ) { std::string s; j.get_to( s ); return s; }
 
 // ucolor represented as hexidecimal string
-ucolor scene_reader::read_ucolor(   const json& j ) { 
+ucolor scene_reader::read_ucolor( const json& j ) { 
     std::string color;
     ucolor u;
 
@@ -54,26 +100,86 @@ ucolor scene_reader::read_ucolor(   const json& j ) {
     return u;
 }
 
+direction4 scene_reader::read_direction4( const json& j ) { 
+    std::string s;
+    direction4 d;
+
+    j.get_to( s );
+    if(      s == "up"   ) d = direction4::D4_UP;
+    else if( s == "right") d = direction4::D4_RIGHT;
+    else if( s == "down" ) d = direction4::D4_DOWN;
+    else if( s == "left" ) d = direction4::D4_LEFT;
+    else ERROR( "Invalid direction4 string: " + s )
+    return d;
+}
+
+pixel_type scene_reader::read_pixel_type( const json& j ) { 
+    std::string s;
+    pixel_type p;
+
+    j.get_to( s );
+    if(      s == "fimage"       || s == "frgb"   ) p = pixel_type::PIXEL_FRGB;
+    else if( s == "uimage"       || s == "ucolor" ) p = pixel_type::PIXEL_UCOLOR;
+    else if( s == "vector_field" || s == "vec2f"  ) p = pixel_type::PIXEL_VEC2F;
+    else if( s == "offset_field" || s == "vec2i"  ) p = pixel_type::PIXEL_VEC2I;
+    else if( s == "warp_field"   || s == "int"    ) p = pixel_type::PIXEL_INT;
+    else ERROR( "Invalid pixel_type string: " + s )
+    return p;
+}
+
+image_extend scene_reader::read_image_extend( const json& j ) { 
+    std::string s;
+    image_extend e;
+
+    j.get_to( s );
+    if(      s == "single"   ) e = image_extend::SAMP_SINGLE;
+    else if( s == "repeat"   ) e = image_extend::SAMP_REPEAT;
+    else if( s == "reflect"  ) e = image_extend::SAMP_REFLECT;
+    else ERROR( "Invalid image_extend string: " + s )
+    return e;
+}
+
+render_mode scene_reader::read_render_mode( const json& j ) { 
+    std::string s;
+    render_mode r;
+
+    j.get_to( s );
+    if(      s == "static"    ) r = render_mode::MODE_STATIC;
+    else if( s == "iterative" ) r = render_mode::MODE_ITERATIVE;
+    else if( s == "ephemeral" ) r = render_mode::MODE_EPHEMERAL;
+    else ERROR( "Invalid render_mode string: " + s )
+    return r;
+}
+
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
-
-    if( j.contains( "type") ) j[ "type" ].get_to( type );
-    else throw std::runtime_error( "scene_reader::read_image error - image type missing\n" );
+    DEBUG( "scene_reader::read_image" )
 
     if( j.contains( "filename" ) ) j[ "filename" ].get_to( filename );
-    else throw std::runtime_error( "scene_reader::read_image error - image filename missing\n" );
+    else ERROR( "scene_reader::read_image error - image filename missing\n" )
+    DEBUG( "scene_reader::read_image - filename: " + filename )
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );
     else name = filename;
+    DEBUG( "scene_reader::read_image - name: " + name )
+
+    if( j.contains( "type") ) j[ "type" ].get_to( type );
+    else ERROR( "scene_reader::read_image error - image type missing\n" )
+    DEBUG( "scene_reader::read_image - type: " + type )
+
+    // future: add binary file format for all image types
 
     if( type == "fimage" ) {
-        std::shared_ptr< fimage > fimage_ptr( new fimage( filename ) );
-        s.images[ name ] = fimage_ptr;
+        fbuf_ptr img( new buffer_pair< frgb >( filename ) );
+        s.buffers[ name ] = img;
     }
 
     if( type == "uimage" ) {
-        std::shared_ptr< uimage > uimage_ptr( new uimage( filename ) );
-        s.images[ name ] = uimage_ptr;
+        DEBUG( "scene_reader::read_image - reading uimage" )
+        ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
+        s.buffers[ name ] = img;
+        std :: cout << "pointer " << img << std::endl;
+        //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
 }
@@ -91,9 +197,10 @@ void scene_reader::read_element( const json& j ) {
     std::string img;  // If no image, element not rendered, serves as placeholder
     std::string mask;
 
-    if( j.contains( "name" ) ) j[ "name" ].get_to( name );  else throw std::runtime_error( "Element name missing\n" );
+    if( j.contains( "name" ) ) j[ "name" ].get_to( name );  else ERROR( "Element name missing\n" )
     s.elements[ name ] = std::make_shared< element >();
     element& elem = *(s.elements[ name ]);
+
 
     if( j.contains( "position" ) ) elem.position = read_vec2f( j[ "position" ] );
     if( j.contains( "scale" ) )       j[ "scale"       ].get_to( elem.scale );
@@ -113,12 +220,12 @@ void scene_reader::read_element( const json& j ) {
     // image, mask, tint
     if( j.contains( "image" ) ) {
         j[ "image" ].get_to( img );
-        elem.img = s.images[ img ];
+        elem_img_bufs[ name ] = img;
     }
 
     if( j.contains( "mask" ) ) {
         j[ "mask" ].get_to( mask );
-        elem.mask = s.images[ mask ];
+        elem_mask_bufs[ name ] = mask;
     }
 
     if( j.contains( "tint" ) ) {
@@ -130,7 +237,7 @@ void scene_reader::read_element( const json& j ) {
 }
 
 // forward references not implemented
-template< class T > void scene_reader::read_harness( const json& j, harness< T >& h, std::map< std::string, any_fn< T > >& harness_fns ) {
+template< class T > void scene_reader::read_harness( const json& j, harness< T >& h, std::unordered_map< std::string, any_fn< T > >& harness_fns ) {
     if( j.is_object() ) {
         if( j.contains( "value" ) ) { 
             read( h.val, j[ "value" ] );
@@ -157,8 +264,8 @@ void scene_reader::add_default_conditions() {
 void scene_reader::read_function( const json& j ) {
     std::string name, type, fn_name;
 
-    if( j.contains( "name" ) ) j[ "name" ].get_to( name );  else throw std::runtime_error( "Function name missing\n" );
-    if( j.contains( "type" ) ) j[ "type" ].get_to( type );  else throw std::runtime_error( "Function type missing\n" );
+    if( j.contains( "name" ) ) j[ "name" ].get_to( name );  else ERROR( "Function name missing\n" )
+    if( j.contains( "type" ) ) j[ "type" ].get_to( type );  else ERROR( "Function type missing\n" );
 
     // special case for conditionals
     if( type == "filter" ) {
@@ -184,7 +291,6 @@ void scene_reader::read_function( const json& j ) {
     #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
     #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = s. _T_##_fns[ fn_name ]; }
-
 
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN( float )
@@ -218,11 +324,10 @@ void scene_reader::read_cluster( const json& j ) {
     bool tlc;
 
     // Required fields
-    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else throw std::runtime_error( "Cluster name missing\n" );
+    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "Cluster name missing\n" )
     // Check for unique name. Future - make sure duplicate clusters refer to the same cluster
-
-    if( s.clusters.contains( name ) )   throw std::runtime_error( "Cluster name collision\n" ); 
-    if( j.contains( "element" ) )     j[ "element" ].get_to( root_elem_name ); else throw std::runtime_error( "Cluster root_elem missing\n" );
+    if( s.clusters.contains( name ) )   ERROR( "Cluster name collision\n" )
+    if( j.contains( "element" ) )     j[ "element" ].get_to( root_elem_name ); else ERROR( "Cluster root_elem missing\n" )
 
     // create cluster object
     s.next_elements[ name ] = std::make_shared< next_element >();
@@ -240,8 +345,131 @@ void scene_reader::read_cluster( const json& j ) {
         clust.next_elem.add_function( s.gen_fns[ fname ] ); // Empty next_element is allowed - useful for single element clusters
     }
     clust.next_elem.max_index = clust.max_n;    // Set limit to the number of elements in cluster
-    if( j.contains( "tlc" ) )  { 
+    /*if( j.contains( "tlc" ) )  { 
         j[ "tlc" ].get_to( tlc );
         if( tlc ) s.tlc.push_back( name );
+    }*/
+}
+
+void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) {
+    std::string name, type;
+
+    // Required fields
+    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
+    if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
+
+    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), r->neighborhood, name ); ca->rule = rule;
+    #define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
+    #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
+    #define END_RULE()     s.CA_rules[ name ] = rule; }
+
+    RULE( rule_life_ucolor ) END_RULE()
+    RULE( rule_diffuse_ucolor)     READR( alpha_block ) END_RULE()
+    RULE( rule_gravitate_ucolor )  READR( direction ) READR( alpha_block ) END_RULE()
+    RULE( rule_snow_ucolor )       READR( direction ) READR( alpha_block ) END_RULE()
+    RULE( rule_pixel_sort_ucolor ) READR( direction ) READR( alpha_block ) HARNESSR( max_diff ) END_RULE()
+}
+
+void scene_reader::read_effect( const json& j ) {
+    std::string name, type, buf_name;
+
+    // Required fields
+    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "Effect name missing\n" )
+    if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "Effect type missing\n" )
+    // Check for unique name. Future - make sure duplicate effects refer to the same effect
+
+    if( s.effects.contains( name ) )   ERROR( "Effect name collision\n" )
+
+    #define EFF( _T_ )     if( type == #_T_ ) {  std::shared_ptr< _T_ > e( new _T_ ); any_effect_fn eff( e, std::ref( *( e.get() ) ), name );
+    #define HARNESSE( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], e-> _T_ );
+    #define READE( _T_ )    if( j.contains( #_T_ ) ) read( e-> _T_, j[ #_T_ ] );
+    #define END_EFF()      s.effects[ name ] = eff; }
+
+    // special case for element and cluster effects
+    if( type == "element" ) {
+        if( j.contains( "element_name" ) ) {
+            std::string elem_name;
+            j[ "element_name" ].get_to( elem_name );
+            if( s.elements.contains( elem_name ) ) {
+                //std::shared_ptr< element > e( new element( *s.elements[ elem_name ] ) );
+                s.effects[ name ] = any_effect_fn( s.elements[ elem_name ], std::ref( *( s.elements[ elem_name ].get() ) ), name );
+            }
+            else ERROR( "element effect not found\n" )
+        }
+        else ERROR( "element effect missing\n" )
     }
+
+    if( type == "cluster" ) {
+        if( j.contains( "cluster_name" ) ) {
+            std::string clust_name;
+            j[ "cluster_name" ].get_to( clust_name );
+            if( s.clusters.contains( clust_name ) ) {
+                //std::shared_ptr< cluster > c( new cluster( *s.clusters[ clust_name ] ) );
+                s.effects[ name ] = any_effect_fn( s.clusters[ clust_name ], std::ref( *( s.clusters[ clust_name ].get() ) ), name );
+            }
+            else ERROR( "cluster effect not found\n" )
+        }
+        else ERROR( "cluster effect missing\n" )
+    }
+
+    // special case for CA rules
+    EFF( CA_ucolor )
+    if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
+    else ERROR( "CA rule missing\n" )
+    END_EFF()
+
+    // special case for effects running effects
+    EFF( eff_n ) HARNESSE( n ) 
+    if( j.contains( "eff" ) ) {
+        std::string eff_name;
+        j[ "eff" ].get_to( eff_name );
+        if( s.effects.contains( eff_name ) ) e->eff = s.effects[ eff_name ];
+        else ERROR( "eff_n effect not found\n" )
+    }
+    // else identity effect - should be automatic
+    END_EFF()
+
+    EFF( eff_composite )
+    if( j.contains( "effects ") )
+    {
+        for( std::string eff_name : j[ "effects" ] ) {
+            if( s.effects.contains( eff_name ) ) e->add_effect( s.effects[ eff_name ] );
+            else ERROR( "eff_composite effect not found\n" )
+        }
+    }
+    // else empty effect list - should be automatic
+    END_EFF()
+
+    EFF( eff_fill_frgb )   HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_fill_ucolor ) HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_fill_vec2i )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_fill_vec2f )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_fill_int )    HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+
+    EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_noise_vec2i )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+    EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+
+    EFF( eff_vector_warp_frgb )   READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+    EFF( eff_vector_warp_ucolor ) READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+    EFF( eff_vector_warp_vec2i )  READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+    EFF( eff_vector_warp_vec2f )  READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+    EFF( eff_vector_warp_int )    READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+
+    EFF( eff_feedback_frgb )   READE( wf_name ) END_EFF()
+    EFF( eff_feedback_ucolor ) READE( wf_name ) END_EFF()
+    EFF( eff_feedback_vec2i )  READE( wf_name ) END_EFF()
+    EFF( eff_feedback_vec2f )  READE( wf_name ) END_EFF()
+    EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
+}
+
+void scene_reader::read_queue( const json& j, effect_list& elist ) {
+    if( j.contains( "name"         ) ) read( elist.name,           j[ "name"         ] );
+    if( j.contains( "source"       ) ) read( elist.source_name,    j[ "source"       ] );
+    if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  
+    if( j.contains( "relative_dim" ) ) read( elist.relative_dim,   j[ "relative_dim" ] );  
+    if( j.contains( "mode"         ) ) read( elist.rmode,          j[ "mode"         ] );
+    if( j.contains( "type"         ) ) read( elist.ptype,          j[ "type"         ] );
 }

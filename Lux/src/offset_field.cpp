@@ -1,7 +1,8 @@
 #include "offset_field.hpp"
 
 // fill warp field values based on vector field - fields should be same size
-void offset_field::fill(const image< vec2f >& vfield, const bool relative, const image_extend extend ) {
+template<> void offset_field::fill(const image< vec2f >& vfield, const bool relative, const image_extend extend ) {
+
     if( vfield.get_dim() != dim ) {
         std::cerr << "Error: vector field and warp field must be same size" << std::endl;
         return;

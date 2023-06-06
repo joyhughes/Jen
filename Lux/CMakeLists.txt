@@ -10,8 +10,17 @@ include_directories(src)
 set(CMAKE_CXX_STANDARD 20)
 
 set(COMMON_LIB_SRCS
+src/any_effect.hpp
+src/any_effect.cpp
+src/any_function.hpp
+src/any_function.cpp
 src/any_image.hpp
+src/any_rule.hpp
+src/any_rule.cpp
+src/buffer_pair.hpp
+src/buffer_pair.cpp
 src/effect.hpp
+src/effect.cpp
 src/fimage.hpp
 src/fimage.cpp
 src/frgb.cpp
@@ -29,6 +38,8 @@ src/life.cpp
 src/linalg.h
 src/next_element.hpp
 src/next_element.cpp
+src/offset_field.hpp
+src/offset_field.cpp
 src/scene.hpp
 src/scene.cpp
 src/scene_io.hpp
@@ -41,6 +52,8 @@ src/vect2.cpp
 src/vect2.hpp 
 src/vector_field.hpp
 src/vector_field.cpp
+src/warp_field.hpp
+src/warp_field.cpp
 src/warp.hpp
 )
 
@@ -52,6 +65,14 @@ add_executable(lux ${LUX_MAIN_SRCS})
 set(SPLOOT_MAIN_SRCS src/sploot.cpp)
 add_executable(sploot ${SPLOOT_MAIN_SRCS})
 
+set(IMAGE_TEST_MAIN_SRCS src/image_test.cpp)
+add_executable(image_test ${IMAGE_TEST_MAIN_SRCS})
+
+set(CIRCLE_MAIN_SRCS src/circle.cpp)
+add_executable(circle ${CIRCLE_MAIN_SRCS})
+
 target_link_libraries(lux common)
 target_link_libraries(sploot common)
+target_link_libraries(image_test common)
+target_link_libraries(circle common)
 

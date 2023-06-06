@@ -1,3 +1,6 @@
+#ifndef __PALETTE_HPP
+#define __PALETTE_HPP
+
 #include "frgb.hpp"
 #include "ucolor.hpp"
 
@@ -38,3 +41,5 @@ struct palette_LUT {
         }
     }
 };
+
+#endif __PALETTE_HPP

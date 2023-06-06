@@ -1,3 +1,6 @@
+#ifndef __WARP_HPP
+#define __WARP_HPP
+
 #include "effect.hpp"
 #include "vector_field.hpp"
 
@@ -88,3 +91,5 @@ template< class T > struct functional_melt {
     // void reset();
     functional_melt( const vector_fn& vfn_init, const float &step_init = 1.0f, vec2i dim = { 1000, 1000 } ) : vfn( vfn_init ), step( step_init ), vf( dim ), frame( 0 ) {}
 };
+
+#endif // __WARP_HPP
