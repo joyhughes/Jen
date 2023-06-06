@@ -1,12 +1,25 @@
 {
-    "name": "diffuser_scene",
+    "name": "diffuser_dot_scene",
     "images": 
     [ 
         { 
             "type": "uimage", 
             "filename": "../samples/hk_square_512.jpg", 
             "name": "hk_square"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "../samples/circle.jpg", 
+            "name": "dot"
         } 
+    ],
+    "elements":
+    [
+        {
+            "name": "red_dot",
+            "image": "dot",
+            "scale": 0.3
+        }
     ],
     "effects":
     [
@@ -18,6 +31,11 @@
                 "name": "diffuse",
                 "type": "rule_diffuse_ucolor"
             }
+        },
+        {
+            "name": "persistent_dot",
+            "type": "element",
+            "element_name": "red_dot"
         }
     ],
     "queue":
@@ -27,7 +45,7 @@
             "source": "hk_square",
             "type": "uimage",
             "mode": "iterative",  
-            "effects": [ "diffuser" ]
+            "effects": [ "diffuser", "persistent_dot" ]
         }
     ]
 }
