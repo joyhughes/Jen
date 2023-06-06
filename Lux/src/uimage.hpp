@@ -14,4 +14,6 @@ template<> void uimage::load( const std::string& filename );
 template<> void uimage::write_jpg( const std :: string& filename, int quality );
 template<> void uimage::write_png( const std :: string& filename );
 
+template<> void uimage::dump();
+
 #endif // __UIMAGE_HPP

@@ -50,11 +50,10 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
     DEBUG( "Name: " + s.name )
     //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
-    if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )   read_image( jimg );
+    if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )    read_image( jimg );
     DEBUG( "Images loaded" ) 
-    // effects - TBI
-    if( j.contains( "effects" ) ) for( auto& jeff : j[ "effects" ] ) read_effect( jeff );
-    if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  );  
+    if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  ); 
+    DEBUG( "Elements loaded" ) 
 
     // add default conditions (deprecated - default conditions promoted to any_condition objects)
     /*s.bool_fns[ "initial_element"   ] = initial_element;
@@ -62,19 +61,25 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     s.bool_fns[ "top_level"         ] = top_level;
     s.bool_fns[ "lower_level"       ] = lower_level; */
     
-    DEBUG( "Elements loaded" )
     if( j.contains( "functions" ) ) {
         add_default_conditions();
         for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
     }
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
     // render list - list of images, elements, clusters, and effects (each represented as an effect)
+    if( j.contains( "effects" ) )   for( auto& jeff : j[ "effects" ] )     read_effect( jeff );
+    DEBUG( "Effects loaded" )
+
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
         effect_list eff_list;
         read_queue( q, eff_list );
         s.queue.push_back( eff_list );              // add to render queue
         s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
     }
+
+    // set element buffers
+    for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ]; std::cout << "element " << e.first << " img buffer set to "  << e.second << std::endl; }
+    for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ]; std::cout << "element " << m.first << " mask buffer set to " << m.second << std::endl; }
     DEBUG( "scene_reader constructor finished" )
 }
 
@@ -172,8 +177,9 @@ void scene_reader::read_image( const json& j ) {
     if( type == "uimage" ) {
         DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
-        DEBUG( "scene_reader::read_image - uimage read" )
         s.buffers[ name ] = img;
+        std :: cout << "pointer " << img << std::endl;
+        //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
 }
@@ -195,6 +201,7 @@ void scene_reader::read_element( const json& j ) {
     s.elements[ name ] = std::make_shared< element >();
     element& elem = *(s.elements[ name ]);
 
+
     if( j.contains( "position" ) ) elem.position = read_vec2f( j[ "position" ] );
     if( j.contains( "scale" ) )       j[ "scale"       ].get_to( elem.scale );
     if( j.contains( "rotation" ) )    j[ "rotation"    ].get_to( elem.rotation );
@@ -213,10 +220,12 @@ void scene_reader::read_element( const json& j ) {
     // image, mask, tint
     if( j.contains( "image" ) ) {
         j[ "image" ].get_to( img );
+        elem_img_bufs[ name ] = img;
     }
 
     if( j.contains( "mask" ) ) {
         j[ "mask" ].get_to( mask );
+        elem_mask_bufs[ name ] = mask;
     }
 
     if( j.contains( "tint" ) ) {
@@ -375,6 +384,33 @@ void scene_reader::read_effect( const json& j ) {
     #define HARNESSE( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], e-> _T_ );
     #define READE( _T_ )    if( j.contains( #_T_ ) ) read( e-> _T_, j[ #_T_ ] );
     #define END_EFF()      s.effects[ name ] = eff; }
+
+    // special case for element and cluster effects
+    if( type == "element" ) {
+        if( j.contains( "element_name" ) ) {
+            std::string elem_name;
+            j[ "element_name" ].get_to( elem_name );
+            if( s.elements.contains( elem_name ) ) {
+                //std::shared_ptr< element > e( new element( *s.elements[ elem_name ] ) );
+                s.effects[ name ] = any_effect_fn( s.elements[ elem_name ], std::ref( *( s.elements[ elem_name ].get() ) ), name );
+            }
+            else ERROR( "element effect not found\n" )
+        }
+        else ERROR( "element effect missing\n" )
+    }
+
+    if( type == "cluster" ) {
+        if( j.contains( "cluster_name" ) ) {
+            std::string clust_name;
+            j[ "cluster_name" ].get_to( clust_name );
+            if( s.clusters.contains( clust_name ) ) {
+                //std::shared_ptr< cluster > c( new cluster( *s.clusters[ clust_name ] ) );
+                s.effects[ name ] = any_effect_fn( s.clusters[ clust_name ], std::ref( *( s.clusters[ clust_name ].get() ) ), name );
+            }
+            else ERROR( "cluster effect not found\n" )
+        }
+        else ERROR( "cluster effect missing\n" )
+    }
 
     // special case for CA rules
     EFF( CA_ucolor )

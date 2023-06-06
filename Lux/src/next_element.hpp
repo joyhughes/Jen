@@ -2,7 +2,7 @@
 #define __NEXT_ELEMENT_HPP
 
 #include <functional>
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include "vector_field.hpp"
 
 struct element;

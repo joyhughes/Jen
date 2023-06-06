@@ -1,7 +1,7 @@
 #ifndef __LIFE_HPP 
 #define __LIFE_HPP
 
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include "vector_field.hpp"
 #include "warp_field.hpp"
 #include "joy_rand.hpp"

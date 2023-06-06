@@ -28,6 +28,7 @@ frame_context *global_context;
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
+    //std::cout << "render_and_display" << std::endl;
     if( !running && displayed ) return;
     frame_context *context;
     context = (frame_context *)arg;
@@ -35,6 +36,7 @@ void render_and_display( void *arg )
     SDL_Surface *screen = context->screen;
     uimage& img = (uimage &)(context->buf->get_image());
     vec2i dim = img.get_dim();
+    //std::cout << " dim = " << dim.x << " " << dim.y << std::endl;
     scene &s = *(context->s);
     //float time_interval = 1.0f / (float)context->nframes;
     //float time = (float)context->frame * time_interval;
@@ -82,7 +84,7 @@ void run_pause() {
 
 void restart() {
     //global_context->frame = 0;
-    //future: global_context->s->reset();
+    global_context->s->restart();
     displayed = false;
 }
 
@@ -103,9 +105,9 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "diffuser_files/diffuser.json" );
+    scene s( "diffuser_files/diffuser_dot.json" ); 
+    //scene s( "moon_files/galaxy_moon.json" );
 
-//    scene s( "samples/diffuser.json" );
     emscripten_run_script("console.log('scene loaded');");
     s.set_output_buffer( any_buf );
     //scene s( "moon_files/galaxy_moon.json" ); 

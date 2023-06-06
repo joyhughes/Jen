@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
     std::string scene_filename(  argv[ 1 ] );
     std::string output_name( argv[ 2 ] );
     
-    if( argc == 3 ) render( scene_filename, output_name );
+    if( argc == 3 ) render( scene_filename, output_name /*, { 3648, 3648 } */);
     else {
         int nframes;
         std::stringstream ss( argv[ 3 ] );
@@ -48,4 +48,4 @@ int main( int argc, char** argv ) {
     
     //std::cout << "Done!" << std::endl;
     return 0;
-}
+} 

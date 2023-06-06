@@ -9,6 +9,8 @@ struct scene_reader {
 
     scene& s;
 
+    std::map< std::string, std::string > elem_img_bufs, elem_mask_bufs; // Handle forward references to element buffers
+
     scene_reader( scene& s_init, std::string( filename ) );
 
     void add_default_conditions();

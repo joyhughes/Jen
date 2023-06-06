@@ -1,7 +1,7 @@
 #ifndef __ANY_IMAGE_HPP
 #define __ANY_IMAGE_HPP
 
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include <variant>
 
 //template< class T > struct effect;
@@ -43,6 +43,12 @@ typedef std::shared_ptr< buffer_pair< vec2i  > > obuf_ptr;
 
 typedef std::variant< fbuf_ptr, ubuf_ptr, vbuf_ptr, wbuf_ptr, obuf_ptr > any_buffer_pair_ptr; 
 
-static const fbuf_ptr null_buffer_pair_ptr = NULL;
+static const ubuf_ptr null_buffer_pair_ptr = NULL;
+
+template< class T > void copy_buffer( T& to, const any_buffer_pair_ptr& from ) { 
+	const T& f = std::get< T >( from );
+	if( f.get() == NULL ) throw std::runtime_error( "copy_buffer(): attempt to copy null buffer" );
+	to->copy_first( *f ); 
+}
 
 #endif // __ANY_IMAGE_HPP

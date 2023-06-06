@@ -4,7 +4,7 @@
 #include <variant>
 #include <unordered_map>
 #include <optional>
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include "any_image.hpp"
 #include "effect.hpp"
 #include "next_element.hpp"
@@ -39,8 +39,8 @@ struct element {
     int index;                  // index of element within cluster
     mask_mode mmode;            // how will mask be applied to splat and backround?
 
-    std::string img;  // If no image, element not rendered, serves as placeholder (could make default element white instead)
-    std::string mask;
+    any_buffer_pair_ptr img;  // If no image, element not rendered, serves as placeholder (could make default element white instead)
+    any_buffer_pair_ptr mask;
     std::optional< any_pixel > tint;	// change the color of element
 
     // approximate absolute derivative used to calculate angle of branches
@@ -48,7 +48,7 @@ struct element {
     vec2f derivative;   // move to element_context?
     bool derivative_lock;
 
-    void render( any_buffer_pair_ptr& target, element_context& context );
+    void render( any_buffer_pair_ptr& target );
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );    // single element effect
 
     // needed?
@@ -62,8 +62,8 @@ struct element {
                 const bool   orientation_lock_init = false,
                 const vec2f& derivative_init = { 1.0f, 0.0f },
                 const bool   derivative_lock_init = false,
-                std::string  img_init  = "none",
-                std::string  mask_init = "none",
+                any_buffer_pair_ptr  img_init  = null_buffer_pair_ptr,
+                any_buffer_pair_ptr  mask_init = null_buffer_pair_ptr,
                 const std::optional< any_pixel > tint_init = std::nullopt,
                 const mask_mode mmode_init = MASK_BLEND           
             ) 
@@ -79,6 +79,22 @@ struct element {
             tint( tint_init ),
             mmode( mmode_init ),
             index( 0 ) {}
+
+    // copy constructor
+    element( const element& el ) :  
+        position( el.position ),
+        scale( el.scale ),
+        rotation( el.rotation ),
+        orientation( el.orientation ),
+        orientation_lock( el.orientation_lock ),
+        derivative( el.derivative ),
+        derivative_lock( el.derivative_lock ),
+        img( el.img ),
+        mask( el.mask ),
+        tint( el.tint ),
+        mmode( el.mmode ),
+        index( el.index ) 
+        {}
 };
 
 // A default cluster with root set to default element with a single image should produce a full frame image, e.g. for background
@@ -125,6 +141,20 @@ struct cluster {
           background_dependent( background_dependent_init ),
           bounds( bounds_init ) 
           {}
+
+    // copy constructor
+    cluster( const cluster& cl ) :  
+        root_elem( cl.root_elem ),
+        next_elem( cl.next_elem ),
+        max_n( cl.max_n ),
+        depth( cl.depth ),
+        max_depth( cl.max_depth ),
+        min_scale( cl.min_scale ),
+        background_dependent( cl.background_dependent ),
+        bounds( cl.bounds ) 
+        {}
+
+        
 };
 
 typedef enum {
@@ -146,16 +176,18 @@ struct effect_list {
     bool rendered;      // Has static buffer already been rendered? Set to false after changing any effect
 
     any_image_ptr get_initial_image();
+    template< class T > void set_buffer( T b ); // T is of the form std::shared_ptr< buffer_pair< U > > where U is a pixel type
 
     void render( scene& s );
     void resize( const vec2i& new_dim );
+    void restart( scene& s );   // return to initial condition
 
     effect_list( const std::string& name_init = "default",
                  const std::string& source_name_init = "none",
                  const vec2i& dim_init = { 0, 0 },
                  const pixel_type& ptype_init = PIXEL_UCOLOR, 
                  const render_mode& rmode_init = MODE_STATIC, 
-                 const float& relative_dim_init = 1.0f) :
+                 const float& relative_dim_init = 1.0f) : 
     name( name_init ),
     source_name( source_name_init ),
     dim( dim_init ),
@@ -208,10 +240,10 @@ struct scene {
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
-    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
-    void pause();                               // Pause animation
-    void unpause();                             // Set animation to runnning
-    void run_pause();                           // Toggle animation pause
+//    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
+//    void pause();                               // Pause animation
+//    void unpause();                             // Set animation to runnning
+//    void run_pause();                           // Toggle animation pause
     void restart();                             // Reset time to zero, reload all buffers
     void set_time_interval( const float& t );   // Set time interval for animation
  // void resize( const vec2i& dim );            // Resize all buffers in render list
@@ -247,5 +279,9 @@ struct scene {
     );
 
 };
+
+// Test only - remove later
+template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el );
+
 
 #endif // __SCENE_HPP

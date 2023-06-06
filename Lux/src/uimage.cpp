@@ -10,14 +10,17 @@ template<> void uimage::grayscale() {
 }
 
 template<> void uimage::load( const std::string& filename ) {
-    std::cout << "uimage::load(): " << filename << std::endl;
-    reset();
+    base.clear();
     image_loader loader( filename );
-    set_dim( { loader.xsiz, loader.ysiz } );
-
+    dim = { loader.xsiz, loader.ysiz };
+    refresh_bounds();
+    std::cout << "uimage::load: " << filename << " " << loader.xsiz << " " << loader.ysiz << " " << loader.channels << std::endl;
     ucolor f = 0xff000000;
 
-    for (auto it = std::begin( loader.img ); it <= std::end( loader.img ); ) {
+//    int size = loader.xsiz * loader.ysiz;
+//    auto it = std::begin( loader.img );
+    for (auto it = std::begin( loader.img ); it < std::end( loader.img ); ) {
+ //   for( int i = 0; i < size; i++ ) {
         if( loader.channels == 1 )	// monochrome image
         {
             setrc( f, *it );
@@ -57,7 +60,8 @@ template<> void uimage::load( const std::string& filename ) {
 }
 
 template<> void uimage::write_jpg( const std::string& filename, int quality ) {
-    std::cout << "uimage::write_jpg: " << filename << std::endl;
+    //std::cout << "uimage::write_jpg: " << filename << std::endl;
+    //dump();
     std::vector< unsigned char > carray;
     for( auto& f : base ) {
         carray.push_back( rc( f ) );
@@ -69,5 +73,11 @@ template<> void uimage::write_jpg( const std::string& filename, int quality ) {
 
 template<> void uimage::write_png( const std::string& filename ) {
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
+}
+
+
+template<> void uimage::dump() {
+    for( auto& v : base ) { std::cout << std::hex << v; }
+    mip_it();
 }
 

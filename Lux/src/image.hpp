@@ -110,6 +110,7 @@ public:
     void mip_it();  // mipit good
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
+    void refresh_bounds(); // calculates default bounding boxes based on pixel dimensions
     const bb2f get_bounds() const;
     const bb2i get_ipbounds() const;
     void set_bounds( const bb2f& bb );
@@ -130,7 +131,8 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void crop_circle( const float& ramp_width = 0.0f, const T& background = 0 );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const T& background, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
 
     // pixel modification functions
     void copy( const I& img );
@@ -207,6 +209,10 @@ public:
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
 
+    // Debugging functions
+    void dump() {} // dump image to console
+    unsigned int size() { return base.size(); } // return size of image
+
     // operators
     I& operator = ( const I& rhs ); // copy assignment
     I& operator = ( I&& rhs );      // move assignment
@@ -227,65 +233,4 @@ public:
     // apply function to two images
 };
 
-// Used for double-buffered rendering. Owns pointer to image - makes a duplicate when 
-// double-buffering is needed for an effect. Can be used in effect-component stacks or for 
-// persistent effects such as CA, melt, or hyperspace
-template< class T > class buffer_pair {
-    typedef std::unique_ptr< image< T > > image_ptr;
-    std::pair< image_ptr, image_ptr > image_pair;
-public:
-    buffer_pair() : image_pair( NULL, NULL ) {}
-    buffer_pair( const std::string& filename ) { load( filename ); }
-    buffer_pair( const image< T >& img ) { reset( img ); }  // copy image into buffer
-    buffer_pair( vec2i& dim ) { image_pair.first.reset( new image< T >( dim ) ); image_pair.second.reset( NULL ); }
-
-    bool has_image() { return image_pair.first.get() != NULL; }
-
-    image< T >& get_image() { 
-        std::cout << "buffer_pair::get_image()" << std::endl;
-        return *image_pair.first; 
-    }
-
-    std::unique_ptr< image< T > >& get_image_ptr() { return image_pair.first; }
-
-    image< T >& get_buffer() {
-        if( image_pair.second.get() == NULL ) image_pair.second.reset( new image< T >( *image_pair.first ) );
-        return *image_pair.second;
-    }
-
-    void swap() { image_pair.first.swap( image_pair.second ); }
-
-    void load( const std::string& filename ) { 
-        image_pair.first.reset( new image< T >( filename ) );
-        image_pair.second.reset( NULL );
-    }
-
-    void reset( const image< T >& img ) { 
-        image_pair.first.reset( new image< T >( img ) );
-        image_pair.second.reset( NULL );
-    }
-
-    void reset( vec2i& dim ) { 
-        image_pair.first.reset( new image< T >( dim ) );
-        image_pair.second.reset( NULL );
-    }
-
-    void set( const image< T >& img ) { 
-        if( image_pair.first.get() == NULL ) image_pair.first->copy( img );
-        else reset( img );
-    }
-
-    void set( const buffer_pair<T>& bp ) { 
-        if( image_pair.first.get() == NULL ) image_pair.first->copy( bp.get_image() );
-        else reset( bp.get_image() );
-    }
-
-    void set( vec2i& dim ) { 
-        if( image_pair.first.get() == NULL ) image_pair.first->clear();
-        else reset( dim );
-    }
-
-    image< T >& operator () () { return get_image(); }
-};
- 
 #endif // __IMAGE_HPP

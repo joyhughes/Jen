@@ -177,7 +177,7 @@ template< class T, int M > struct bounding_box {
 
     V center() { return ( b1 + b2 ) / 2.0f; }
 
-    void print() { std::cout << "[ [ " << b1.x << ", " << b1.y << " ], [ " << b2.x << ", " << b2.y << " ] ]" << std::endl; }
+    void print() const { std::cout << "[ [ " << b1.x << ", " << b1.y << " ], [ " << b2.x << ", " << b2.y << " ] ]" << std::endl; }
 };
 
 typedef bounding_box< int,   2 > bb2i;

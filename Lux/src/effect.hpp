@@ -3,7 +3,7 @@
 #define __EFFECT_HPP
 
 #include "any_effect.hpp"
-#include "image.hpp"
+#include "buffer_pair.hpp"
 #include "any_image.hpp"
 #include "vector_field.hpp"
 #include "warp_field.hpp"

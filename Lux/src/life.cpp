@@ -41,7 +41,7 @@
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
-    std::cout << "CA: operator()" << std::endl;
+    //std::cout << "CA: operator()" << std::endl;
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
@@ -391,7 +391,7 @@ template< class T > void rule_gravitate< T >::operator () (const std::vector<T> 
     result[1] = neighbors[ (r + 1) % 4 ];
     result[2] = neighbors[ (r + 2) % 4 ];
     result[3] = neighbors[ (r + 3) % 4 ];
-}
+} 
 
 //template class CA< frgb >;       // fimage
 template class CA< ucolor >;     // uimage
