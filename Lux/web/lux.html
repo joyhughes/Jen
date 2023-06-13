@@ -87,7 +87,7 @@
 
     <script type='text/javascript'>
 
-        var Module = {
+        /*var Module = {
             onRuntimeInitialized: function() {
                 //var e = document.getElementById('loadingDiv');
                 //e.style.visibility = 'hidden';
@@ -96,7 +96,62 @@
                 var canvas = document.getElementById('canvas');
                 return canvas;
                 })()
+        };*/
+
+        var Module = {
+            onRuntimeInitialized: function() {
+                //var e = document.getElementById('loadingDiv');
+                //e.style.visibility = 'hidden';
+            },
+            canvas: (function() {
+                var canvas = document.getElementById( 'canvas' );
+
+                canvas.addEventListener( 'mousemove', function( event ) {
+                    var pos = getMousePos( canvas, event );
+                    Module.mouse_move( pos.x, pos.y );
+                    // return boolean value if mouse down
+                    Module.mouse_down( event.buttons == 1 ? true : false );
+                });
+
+                canvas.addEventListener('mousedown', function(event) {
+                    var pos = getMousePos(canvas, event);
+                    Module.mouse_move( pos.x, pos.y );
+                    Module.mouse_down( true );
+                });
+
+                canvas.addEventListener('mouseup', function(event) {
+                    var pos = getMousePos(canvas, event);
+                    Module.mouse_move( pos.x, pos.y );
+                    Module.mouse_down( false );
+                });
+
+                canvas.addEventListener('mouseover', function(event) {
+                    var pos = getMousePos(canvas, event);
+                    Module.mouse_move( pos.x, pos.y );
+                    Module.mouse_down( event.buttons == 1 ? true : false );
+                });
+
+                canvas.addEventListener('mouseout', function(event) {
+                    var pos = getMousePos(canvas, event);
+                    Module.mouse_down( false );
+                });
+
+                return canvas;
+            })(),
+            getMousePos: function(event) {
+                var rect = Module.canvas.getBoundingClientRect();
+                var x = event.clientX - rect.left;
+                var y = event.clientY - rect.top;
+                return { x: x, y: y };
+            }
         };
+
+        function getMousePos(canvas, event) {
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+            return { x: x, y: y };
+        }
 
         var slider = document.getElementById("myRange");
         var output = document.getElementById("demo");
