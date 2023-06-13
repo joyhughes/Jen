@@ -65,7 +65,8 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_vec2f >,
     std::shared_ptr< adder_vec2f >,
-    std::shared_ptr< ratio_vec2f >
+    std::shared_ptr< ratio_vec2f >,
+    std::shared_ptr< mouse_pos_fn >
 > any_vec2f_fn_ptr;
 
 template<> struct any_fn< vec2f > {
@@ -87,7 +88,8 @@ template<> struct any_fn< vec2f > {
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_vec2i >,
-    std::shared_ptr< adder_vec2i >
+    std::shared_ptr< adder_vec2i >,
+    std::shared_ptr< mouse_pix_fn >
 > any_vec2i_fn_ptr;
 
 template<> struct any_fn< vec2i > {
@@ -152,8 +154,7 @@ template<> struct any_fn< ucolor > {
 
 typedef std::variant <
     // harness functions
-    std::shared_ptr< identity_bb2f >,
-    std::shared_ptr< adder_bb2f >
+    std::shared_ptr< identity_bb2f >
 > any_bb2f_fn_ptr;
 
 template<> struct any_fn< bb2f > {
@@ -179,22 +180,24 @@ typedef std::variant <
     std::shared_ptr< top_level_condition >,
     std::shared_ptr< lower_level_condition >,
     std::shared_ptr< random_condition >,
-    std::shared_ptr< random_sticky_condition >
+    std::shared_ptr< random_sticky_condition >,
+    std::shared_ptr< mousedown_condition >,
+    std::shared_ptr< mouseover_condition >
 > any_condition_fn_ptr;
 
 struct any_condition_fn {
     any_condition_fn_ptr my_condition_fn;
-    bool_fn fn;
+    condition_fn fn;
     std::string name;
 
-    bool operator () ( bool& val, element_context& context ) { return fn( val, context ); }
+    bool operator () ( element_context& context ) { return fn( context ); }
 
     //any_condition_fn() : my_condition_fn( std::shared_ptr< switch_condition >( &switch_static_condition ) ), fn( std::ref( switch_static_condition ) ), name( "switch_static_condition" ) {}
     any_condition_fn() : name( "switch_condition_default" ) { 
         std::shared_ptr< switch_condition > f( new switch_condition );
         fn = std::ref( *f ); 
         my_condition_fn = f; }
-    any_condition_fn( any_condition_fn_ptr my_condition_fn, bool_fn fn, std::string name ) : my_condition_fn( my_condition_fn ), fn( fn ), name( name ) {}
+    any_condition_fn( any_condition_fn_ptr my_condition_fn, condition_fn fn, std::string name ) : my_condition_fn( my_condition_fn ), fn( fn ), name( name ) {}
 };
 
 typedef std::variant < 
@@ -204,6 +207,7 @@ typedef std::variant <
     // single field modifiers
     std::shared_ptr< orientation_gen_fn >,
     std::shared_ptr< scale_gen_fn >,
+    std::shared_ptr< position_gen_fn >,
 
     // generalized conditional function 
     std::shared_ptr< filter >,
@@ -220,7 +224,7 @@ struct any_gen_fn {
     gen_fn fn;
     std::string name;
 
-    bool operator () ( element_context& context ) { return fn( context ); }
+    void operator () ( element_context& context ) { fn( context ); }
 
     any_gen_fn() : name( "identity_gen_default" ) { 
         std::shared_ptr< identity_gen_fn > f( new identity_gen_fn );

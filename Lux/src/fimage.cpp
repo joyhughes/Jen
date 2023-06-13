@@ -22,7 +22,7 @@ template<> void fimage::grayscale() {
 }
 
 template<> void fimage::load( const std::string& filename ) {
-    std::cout << "fimage::load " << filename << std::endl;
+    //std::cout << "fimage::load " << filename << std::endl;
     reset();
     image_loader loader( filename );
     dim = { loader.xsiz, loader.ysiz };
@@ -62,7 +62,7 @@ template<> void fimage::load( const std::string& filename ) {
         base.push_back( f );
     }
     mip_it();
-    std::cout << "Image load complete\n";
+    //std::cout << "Image load complete\n";
 }
 
 template<> void fimage::write_jpg( const std::string& filename, int quality ) {

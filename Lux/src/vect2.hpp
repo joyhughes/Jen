@@ -123,6 +123,9 @@ template< class T, int M > struct bounding_box {
     bounding_box()                           : 
         b1( { -1.0f, -1.0f } ), b2( { 1.0f, 1.0f } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
 
+    bounding_box( const V& v )               :
+        b1( 0 ), b2( v ), minv( linalg::min( 0, v ) ), maxv( linalg::max( 0, v ) ), minp( minv ), maxp( maxv ) { }
+
     bounding_box( const V& v1, const V& v2 ) : 
         b1( v1 ), b2( v2 ), minv( linalg::min( v1, v2 ) ), maxv( linalg::max( v1, v2 ) ), minp( minv ), maxp( maxv ) { }
 

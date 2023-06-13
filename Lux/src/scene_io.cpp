@@ -54,17 +54,9 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Images loaded" ) 
     if( j.contains( "elements" ) )  for( auto& jelem :  j[ "elements"  ] ) read_element(  jelem  ); 
     DEBUG( "Elements loaded" ) 
-
-    // add default conditions (deprecated - default conditions promoted to any_condition objects)
-    /*s.bool_fns[ "initial_element"   ] = initial_element;
-    s.bool_fns[ "following_element" ] = following_element;
-    s.bool_fns[ "top_level"         ] = top_level;
-    s.bool_fns[ "lower_level"       ] = lower_level; */
+    add_default_functions();
+    if( j.contains( "functions" ) ) for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
     
-    if( j.contains( "functions" ) ) {
-        add_default_conditions();
-        for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
-    }
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
     // render list - list of images, elements, clusters, and effects (each represented as an effect)
     if( j.contains( "effects" ) )   for( auto& jeff : j[ "effects" ] )     read_effect( jeff );
@@ -77,9 +69,10 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
         s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
     }
 
-    // set element buffers
-    for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ]; std::cout << "element " << e.first << " img buffer set to "  << e.second << std::endl; }
-    for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ]; std::cout << "element " << m.first << " mask buffer set to " << m.second << std::endl; }
+    // set element buffers, copy elements to clusters
+    for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ];  }
+    for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ];  }
+    for( auto& c : cluster_elements ) { s.clusters[ c.first ]->root_elem = *s.elements[ c.second ]; }
     DEBUG( "scene_reader constructor finished" )
 }
 
@@ -250,7 +243,20 @@ template< class T > void scene_reader::read_harness( const json& j, harness< T >
     else read( h.val, j );
 }
 
-void scene_reader::add_default_conditions() {
+void scene_reader::add_default_functions() {
+    // UI functions
+    std::shared_ptr< mouse_pos_fn > mouse_position( new mouse_pos_fn );
+    s.vec2f_fns[ "mouse_position" ] = any_fn< vec2f >( mouse_position, std::ref( *mouse_position ), "mouse_position" );
+    std::shared_ptr< mouse_pix_fn > mouse_pixel( new mouse_pix_fn );
+    s.vec2i_fns[ "mouse_pixel" ] = any_fn< vec2i >( mouse_pixel, std::ref( *mouse_pixel ), "mouse_pixel" );
+
+    // UI conditions
+    std::shared_ptr< mousedown_condition > mouse_down( new mousedown_condition );
+    s.condition_fns[ "mouse_down" ] = any_condition_fn( mouse_down, std::ref( *mouse_down ), "mouse_down" );
+    std::shared_ptr< mouseover_condition > mouse_over( new mouseover_condition );
+    s.condition_fns[ "mouse_over" ] = any_condition_fn( mouse_over, std::ref( *mouse_over ), "mouse_over" );
+
+    // Cluster conditions
     std::shared_ptr< initial_element_condition > initial_element( new initial_element_condition );
     s.condition_fns[ "initial_element" ] = any_condition_fn( initial_element, std::ref( *initial_element ), "initial_element" );
     std::shared_ptr< following_element_condition > following_element( new following_element_condition );
@@ -259,6 +265,7 @@ void scene_reader::add_default_conditions() {
     s.condition_fns[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
     std::shared_ptr< lower_level_condition > lower_level( new lower_level_condition );
     s.condition_fns[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
+
 }
 
 void scene_reader::read_function( const json& j ) {
@@ -284,10 +291,12 @@ void scene_reader::read_function( const json& j ) {
         s.functions[ name ] = func;
     } */
 
-    #define FN( _T_, _U_ ) if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ > func( fn, std::ref( *fn ), name );
+    #define FN( _T_, _U_ ) if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ >    func( fn, std::ref( *fn ), name );
     #define END_FN( _T_ )  s. _T_##_fns[ name ] = func; }
-    #define GEN_FN( _T_ )  if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_gen_fn    func( fn, std::ref( *fn ), name ); 
+    #define GEN_FN( _T_ )  if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_gen_fn       func( fn, std::ref( *fn ), name ); 
     #define END_GEN_FN()   s.gen_fns[ name ] = func; }
+    #define COND_FN( _T_ ) if( type == #_T_ ) {  std::shared_ptr< _T_ > fn( new _T_ ); any_condition_fn func( fn, std::ref( *fn ), name );
+    #define END_COND_FN()  s.condition_fns[ name ] = func; }
     #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
     #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = s. _T_##_fns[ fn_name ]; }
@@ -298,6 +307,11 @@ void scene_reader::read_function( const json& j ) {
     FN( ratio_float, float ) HARNESS( r ) END_FN( float )
     FN( wiggle, float      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
 
+    // harness vec2f functions
+    FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
+    FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
+    FN( mouse_pos_fn, vec2f ) END_FN( vec2f )
+
     // parameter functions
     FN( index_param_float, float ) PARAM( float ) END_FN( float )
     FN( scale_param_float, float ) PARAM( float ) END_FN( float )
@@ -306,12 +320,18 @@ void scene_reader::read_function( const json& j ) {
     // single field modifiers
     GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN( gen )
     GEN_FN( scale_gen_fn       ) HARNESS( scale ) END_FN( gen )
+    GEN_FN( position_gen_fn    ) HARNESS( position ) END_FN( gen )
 
     // generalized functions (alphabetical order)
     GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN( gen )
     GEN_FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN( gen )
     GEN_FN( curly ) HARNESS( curliness ) END_FN( gen )
     // position_list should go here - figure out how to work the vector of positions
+
+    // condition functions
+    COND_FN( switch_condition ) READ( val ) END_COND_FN()
+    COND_FN( random_condition ) HARNESS( p ) END_COND_FN()
+    COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_COND_FN()
 }
 
 void scene_reader::read_cluster( const json& j ) {
@@ -331,24 +351,16 @@ void scene_reader::read_cluster( const json& j ) {
 
     // create cluster object
     s.next_elements[ name ] = std::make_shared< next_element >();
-    s.clusters[ name ] = std::make_shared< cluster >( *( s.elements[ root_elem_name ] ), *( s.next_elements[ name ] ) );
+    s.clusters[ name ] = std::make_shared< cluster >( *s.elements[ root_elem_name ], *s.next_elements[ name ] );
     cluster& clust = *(s.clusters[ name ]);   // reference to cluster object
+    cluster_elements[ name ] = root_elem_name;
 
     // optional fields
-    if( j.contains( "max_n" ) )         j[ "max_n" ].get_to( clust.max_n );
-    if( j.contains( "max_depth" ) )     j[ "max_depth" ].get_to( clust.max_depth );
-    if( j.contains( "min_scale" ) )     j[ "min_scale" ].get_to( clust.min_scale );
-    if( j.contains( "bounds" ) )        clust.bounds = read_bb2f( j[ "bounds" ] );
-
-    if( j.contains( "next_element" ) )  for( std::string fname : j[ "next_element" ] ) 
-    {
-        clust.next_elem.add_function( s.gen_fns[ fname ] ); // Empty next_element is allowed - useful for single element clusters
-    }
-    clust.next_elem.max_index = clust.max_n;    // Set limit to the number of elements in cluster
-    /*if( j.contains( "tlc" ) )  { 
-        j[ "tlc" ].get_to( tlc );
-        if( tlc ) s.tlc.push_back( name );
-    }*/
+    if( j.contains( "max_depth" ) )  read_any_harness( j[ "max_depth" ], clust.max_depth );
+    if( j.contains( "min_scale" ) )  read_any_harness( j[ "min_scale" ], clust.min_scale );
+    if( j.contains( "max_n" ) )      read_any_harness( j[ "max_n"     ], clust.max_n );
+    if( j.contains( "functions" ) )  for( std::string fname : j[ "functions"  ] ) clust.next_elem.add_function( s.gen_fns[ fname ] ); 
+    if( j.contains( "conditions" ) ) for( std::string fname : j[ "conditions" ] ) clust.next_elem.add_condition( s.condition_fns[ fname ] ); 
 }
 
 void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) {

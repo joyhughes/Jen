@@ -3,11 +3,11 @@
 #include "scene.hpp"
 #include "life.hpp"
 
-void eff_identity::operator () ( any_buffer_pair_ptr &buf, element_context &context ) {} // Does nothing
+void eff_identity::operator () ( any_buffer_pair_ptr &buf, element_context& context ) {} // Does nothing
 
 // Fill image with color
 template< class T > void eff_fill< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
-    std::cout << "eff_fill: " << std::endl;
+    //std::cout << "eff_fill: " << std::endl;
     fill_color( context ); 
     bounds( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
@@ -83,7 +83,7 @@ template class eff_feedback< vec2f >;
 template class eff_feedback< int >;
 template class eff_feedback< vec2i >;
 
-void eff_n::operator () ( any_buffer_pair_ptr &buf, element_context &context )
+void eff_n::operator () ( any_buffer_pair_ptr &buf, element_context& context )
 {
     n( context );
     for( int i = 0; i < *n; i++ ) eff( buf, context );

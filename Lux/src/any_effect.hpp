@@ -58,7 +58,7 @@ typedef std::variant <
 struct element_context;
 
 struct any_effect_fn {
-    typedef std::function< void ( any_buffer_pair_ptr&, element_context& ) > effect_fn;
+    typedef std::function< void ( any_buffer_pair_ptr&, element_context& context) > effect_fn;
     any_effect_fn_ptr fn_ptr;
     effect_fn fn;
     std::string name;

@@ -13,33 +13,19 @@
 
 // splats any element onto a particular image
 template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el ) {
-    std::cout << " splat_element " << std::endl; 
     typedef std::shared_ptr< buffer_pair< T > > buf_ptr;  
 
     if( std::holds_alternative< buf_ptr >( el.img ) ) { // Check if element image is same type as target. Otherwise no effect. Future - splat image of different type.
         buf_ptr img_buf  = std::get< buf_ptr >( el.img ); 
-        std::cout << "image pointer " << img_buf << std::endl;
-        std::cout << "splat_element() - matching image buffer" << std::endl;
-        if( img_buf.get() ) {                // Check if image buffer is not null   
+        if( img_buf.get() ) {                // Check if buffer pair null   
             if( img_buf->has_image() ) {
-                //std::cout << "has image" << std::endl;
-                //image< T >& img( img_buf->get_image() ); // initialize reference to image
                 std::optional< std::reference_wrapper< image< T > > > mask = std::nullopt;
                 std::optional< T > tint = std::nullopt;
-
-                /*
-                image< T > splat( vec2i( 512, 512 ) );
-                T w;
-                white( w );
-                splat.fill( w );
-                splat.crop_circle();
-                */
 
                 if( std::holds_alternative< buf_ptr >( el.mask ) ) {
                     buf_ptr mask_buf = std::get< buf_ptr >( el.mask );
                     if( mask_buf.get() ) {
                         if( mask_buf->has_image() ) {
-                            std::cout << "has mask image" << std::endl;
                             mask = std::ref( mask_buf->get_image() );
                         }
                     }
@@ -49,22 +35,10 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
                 if( el.tint.has_value() ) if( std::holds_alternative< T >( *(el.tint) ) ) tint = std::get< T >( *(el.tint) );
                 float th = el.rotation;
                 if( el.orientation_lock ) th += el.orientation;
-                std::cout << "element - position: " << el.position.x << " " << el.position.y << " scale: " << el.scale << " rotation: " << el.rotation << " orientation: " << el.orientation << " orientation_lock: " << el.orientation_lock << std::endl;
 
-                //std::cout << " prepared to splat\n";
-                //image_ptr target( target_buf->get_image_ptr() ); // Initialize pointer to target image
-    //           if( target_buf->has_image() ) target_buf->get_image().splat( el.position, el.scale, th, img_buf->get_image(), mask, tint, el.mmode ); 
                 if( target_buf->has_image() ) {
-                    std::cout << "target bounds: ";
-                    target_buf->get_image().get_bounds().print();
-                    std::cout << "target ipbounds: ";
-                    target_buf->get_image().get_ipbounds().print();
-                    std::cout << "target size : " << target_buf->get_image().size() << std::endl;
-                    std::cout << "splat size  : " << img_buf->get_image().size() << std::endl;
                     target_buf->get_image().splat( el.position, el.scale, th, img_buf->get_image(), mask, tint, el.mmode ); 
-                    //target_buf->get_image().copy( splat );
                 }
-                //std::cout << "splat complete\n";
             }
             else std::cout << "splat_element() - no image in buffer" << std::endl;
         }
@@ -75,9 +49,9 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
 
 // splats any element onto any image
 void element::render( any_buffer_pair_ptr& target ) { 
-    std::cout << " element::render\n";
+    //std::cout << " element::render\n";
     pixel_type ptype = ( pixel_type )target.index();
-    std::cout << " pixel type " << ptype << std::endl;
+    //std::cout << " pixel type " << ptype << std::endl;
     switch( ( pixel_type )target.index() ) {     // replace with std::visit
         case( PIXEL_FRGB   ): splat_element< frgb   >( std::get< std::shared_ptr< buffer_pair< frgb > > >( target ), *this ); break;
         case( PIXEL_UCOLOR ): splat_element< ucolor >( std::get< std::shared_ptr< buffer_pair< ucolor > > >( target ), *this ); break;
@@ -88,26 +62,16 @@ void element::render( any_buffer_pair_ptr& target ) {
 }
 
 void element::operator () ( any_buffer_pair_ptr& buf, element_context& context ) {
-    std::cout << " element::operator ()" << std::endl;
     render( buf );
-    std::cout << " element::operator () complete" << std::endl;
 }
 
 // Recursively generate and render elements
 void cluster::render( scene& s, any_buffer_pair_ptr& buf ) { 
-    // The lambda function uses a generic lambda with auto as the argument type, and returns the same type as its argument. 
-    // The std::visit function will invoke this lambda function with the correct argument based on the type stored in the variant, 
-    // and will return the value returned by the lambda function. Note that the decltype(ptr) return type is used to preserve the 
-    // exact type of the stored object. (Generated by ChatGPT)
     element el = root_elem;
     element_context context( el, *this, s, buf );
-    //std::cout << " context created" << std::endl;
-    // If next_element contains no functions, simply render initial element
-    if( next_elem.functions.size() == 0 ) el.render( buf );
-    else while( next_elem( context ) ) {
-        el.render( buf ); 
-        //std::cout << "rendered element " << el.index << std::endl; 
-    }
+    max_n( context ); min_scale( context ); max_depth( context ); // set cluster harnesses
+    while( next_elem( context ) ) el.render( buf ); 
+    
     //( ( fimage & )img ).write_jpg( "hk_cluster.jpg", 100 ); // debug - save frame after each cluster                   
 }
 
@@ -136,7 +100,7 @@ void effect_list::resize( const vec2i& new_dim ) {
 }
 
 void effect_list::render( scene& s ) { 
-    std::cout << "effect_list::render() source name " << source_name << " rendered = " << rendered << std::endl;
+    //std::cout << "effect_list::render() source name " << source_name << " rendered = " << rendered << std::endl;
     if( rmode == MODE_EPHEMERAL || !rendered ) { // ephemeral buffers are re-rendered each frame
         //std::cout << "preparing to copy buffer " << source_name << std::endl;
         if( s.buffers.contains( source_name ) ) {  // load source image or result into buffer
@@ -157,19 +121,17 @@ void effect_list::render( scene& s ) {
             cluster default_cluster( default_element, default_next_element );
             element_context context( default_element, default_cluster, s, buf );
             s.effects[ e ]( buf, context );
-            std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
+            //std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
         }
         rendered = true;
     }
-    else std::cout << "static or already rendered" << std::endl;
+    //else std::cout << "static or already rendered" << std::endl;
 }
 
 void effect_list::restart( scene& s ) {
-    //std::cout << "effect_list::restart()" << std::endl;
     rendered = false;
     any_buffer_pair_ptr source_buf = s.buffers[ source_name ];
     std::visit( [ source_buf ]( auto& b ) { copy_buffer( b, source_buf ); }, buf );
-    //std::cout << "effect_list::restart() - buffer set" << std::endl;
 }
 
 scene::scene( float time_interval_init ) : time_interval( time_interval_init ), default_time_interval( time_interval_init ) {}
@@ -180,12 +142,17 @@ scene::scene( const std::string& filename, float time_interval_init )
     scene_reader reader( *this, filename );
 }
 
+vec2f scene::get_mouse_pos() const {
+    bb2f bounds = std::visit( [&]( auto& b ) { return b->get_image().get_bounds(); }, queue.back().buf );
+    bounds.print();
+    ui.canvas_bounds.print();
+    return bounds.bb_map( ui.mouse_pixel, ui.canvas_bounds );
+}
+
 void scene::restart() {
-    //std::cout << "scene::restart()" << std::endl;
     time = 0.0f;
     time_interval = default_time_interval;
     for( auto& eff_list : queue ) eff_list.restart( *this );
-    //std::cout << "scene::restart() - effects restarted" << std::endl;
 }
 
 void scene::set_time_interval( const float& t ) {
@@ -193,10 +160,8 @@ void scene::set_time_interval( const float& t ) {
 }
 
 void scene::render() {
-    //std::cout << "scene::render()" << std::endl; 
     for( auto& eff_list : queue ) eff_list.render( *this );
     time += time_interval;
-    //std::cout << "scene rendered" << std::endl;
 }
 
 void scene::save_result( 
@@ -227,7 +192,6 @@ void scene::render_and_save(
     file_type ftype, 
     int quality )
 { 
-    //std::cout << "scene::render_and_save()" << std::endl;
     any_buffer_pair_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
@@ -237,7 +201,6 @@ void scene::render_and_save(
         case( PIXEL_INT    ): any_out = std::make_shared< buffer_pair< int >    >( dim ); break;
         case( PIXEL_VEC2I  ): any_out = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
     }
-    //std::cout << "Created image pointer" << std::endl;
     set_output_buffer( any_out ); // set output buffer
     render(); // render into image
     save_result( filename, dim, ptype, ftype, quality ); // save image
@@ -259,10 +222,8 @@ void scene::animate(
         case( PIXEL_INT    ): any_out = std::make_shared< buffer_pair< int >    >( dim ); break;
         case( PIXEL_VEC2I  ): any_out = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
     }
-    //std::cout << "Created image pointer" << std::endl;
     set_output_buffer( any_out ); // set output buffer
 
-    //std::cout << "scene::animate" << std::endl;
     time_interval = 1.0f / nframes;
     time = 0.0f;
     for( int frame = 0; frame < nframes; frame++ ) {

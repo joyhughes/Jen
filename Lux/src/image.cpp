@@ -45,7 +45,6 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
 // Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
-    std::cout << "image::set_dim " << dim.x << " " << dim.y << " <== " << dims.x << " " << dims.y << std::endl;
     if( dim != dims ) base.resize( dims.x * dims.y );
     dim = dims;
     refresh_bounds();
@@ -146,23 +145,9 @@ template< class T > void image< T >::crop_circle( const float& ramp_width ) {
 
 // copy image of same size ( may need to be able to scale as well )
 template< class T > void image< T >::copy( const image< T >& img ) {
-    std::cout << "image::copy()" << std::endl;
     set_dim( img.dim );
     set_bounds( img.bounds );
-    std::cout << "image::copy() preparing to std::copy" << std::endl;
-    std::cout << "image::copy() base.size() = " << base.size() << std::endl;
-    std::cout << "image::copy() img.base.size() = " << img.base.size() << std::endl;
     std::copy( img.base.begin(), img.base.end(), base.begin() );
-    
-    /*
-    auto base_it = base.begin();
-    //auto img_it = img.begin();
-    for( auto it = img.base.begin(); it != img.base.end(); it++ ) {
-        *base_it = *it;
-        base_it++;
-    }
-    */
-    std::cout << "image::copy() std::copy done" << std::endl;
     mip_it();    
 }
 
@@ -238,16 +223,6 @@ template< class T > void image< T >::splat(
 {  
     const image< T >& g( splat_image );
 
-    std::cout << "splatting" << std::endl; 
-    std::cout << "target image dim: " << dim.x << " " << dim.y << " bounds: ";
-    bounds.print();
-    std::cout << "target image ipbounds: ";
-    ipbounds.print();
-    std::cout << "splat image dim: " << g.dim.x << " " << g.dim.y << " bounds: ";
-    g.bounds.print();
-    std::cout << "splat image ipbounds: ";
-    g.ipbounds.print();
-
     bool has_tint = tint.has_value();
     T my_tint;
     if( has_tint ) my_tint = *tint;
@@ -255,42 +230,29 @@ template< class T > void image< T >::splat(
 
     float thrad = theta / 360.0 * TAU;              // theta in radians
     vec2i p = ipbounds.bb_map( center, bounds);     // center of splat in pixel coordinates
-    //std::cout << "center of splat: " << p.x << " " << p.y << std::endl;
 	int size = scale / ( bounds.b2.x - bounds.b1.x ) * dim.x; // scale in pixel coordinates
-    //std::cout << "size of splat: " << size << std::endl;
     bb2i sbounds( p, size );    // bounding box of splat
-    std::cout << "splat bounds: ";
-    sbounds.print();
 	vec2f smin = bounds.bb_map( sbounds.minv, ipbounds );
-    std::cout << "splat min: " << smin.x << " " << smin.y << std::endl;
 	vec2f sc;
 	sc.x = (smin.x - center.x) / scale;
 	sc.y = (smin.y - center.y) / scale;
     sc = linalg::rot( -thrad, sc );
-    std::cout << "sc: " << sc.x << " " << sc.y << std::endl;
 
 	// calculate unit vectors - one pixel long
 	vec2f unx, uny;
 	unx.x = 1.0f / dim.x * ( bounds.b2.x - bounds.b1.x ) / scale;
 	unx.y = 0.0f;
 	unx = linalg::rot( -thrad, unx );
-    std::cout << "unx: " << unx.x << " " << unx.y << std::endl;
 	uny.x = 0.0f;
 	uny.y = -1.0f / dim.y * ( bounds.b2.y - bounds.b1.y ) / scale;
 	uny = linalg::rot( -thrad, uny );
-    std::cout << "uny: " << uny.x << " " << uny.y << std::endl;
 
 	// convert vectors to splat pixel space - fixed point
     vec2i scfix = ( vec2i )(( sc * g.dim / 2.0f + g.dim / 2.0f ) * 65536.0f );
-    std::cout << "scfix: " << scfix.x << " " << scfix.y << std::endl;
     vec2i unxfix = ( vec2i )( unx * g.dim / 2.0f * 65536.0f );
-    std::cout << "unxfix: " << unxfix.x << " " << unxfix.y << std::endl;
     vec2i unyfix = ( vec2i )( uny * g.dim / 2.0f * 65536.0f );
-    std::cout << "unyfix: " << unyfix.x << " " << unyfix.y << std::endl;
 	vec2i sfix;
     bb2i fixbounds( { 0, 0 }, { ( g.dim.x - 1 ) << 16, ( g.dim.y - 1 ) << 16 });
-    std::cout << "fixbounds: ";
-    fixbounds.print();
 
     // *** Critical loop below ***
     // Quick and dirty sampling, high speed but risk of aliasing. 
@@ -373,7 +335,6 @@ template< class T > void image< T >::splat(
             scfix += unxfix;
         }
     }
-    std::cout << "splat complete" << std::endl;
 }
 
 template< class T > void image< T >::warp (  const image< T >& in, 
@@ -481,7 +442,6 @@ template< class T > void image< T >::write_binary( const std::string &filename )
 }
 
 template< class T > void image< T >::write_file(const std::string &filename, file_type type, int quality ) {
-    std::cout << "uimage::write_file: " << filename << std::endl;
     switch( type ) {
         case FILE_JPG: write_jpg( filename, quality ); break;
         case FILE_PNG: write_png( filename ); break;

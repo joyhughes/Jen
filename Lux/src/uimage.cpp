@@ -14,7 +14,7 @@ template<> void uimage::load( const std::string& filename ) {
     image_loader loader( filename );
     dim = { loader.xsiz, loader.ysiz };
     refresh_bounds();
-    std::cout << "uimage::load: " << filename << " " << loader.xsiz << " " << loader.ysiz << " " << loader.channels << std::endl;
+    //std::cout << "uimage::load: " << filename << " " << loader.xsiz << " " << loader.ysiz << " " << loader.channels << std::endl;
     ucolor f = 0xff000000;
 
 //    int size = loader.xsiz * loader.ysiz;

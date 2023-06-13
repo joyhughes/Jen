@@ -10,10 +10,11 @@ struct scene_reader {
     scene& s;
 
     std::map< std::string, std::string > elem_img_bufs, elem_mask_bufs; // Handle forward references to element buffers
+    std::map< std::string, std::string > cluster_elements; // Element for each cluster. Elements copied to clusters after buffers added to elements.
 
     scene_reader( scene& s_init, std::string( filename ) );
 
-    void add_default_conditions();
+    void add_default_functions();
 
     void read( bool& b,   const json& j ) { b  = j.get<bool>();   }
     void read( int& i,    const json& j ) { i  = j.get<int>();    }

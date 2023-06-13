@@ -54,7 +54,7 @@ void constrain( frgb &c ) {
     // find maximum color
     float maxc = linalg::maxelem( c );
     if( maxc > 1.0f ) {
-        // bring negative colors to zero
+        // bring negative colors to 
         linalg::clamp( c, 0.0f, maxc );
         // if max color > 1.0 divide all colors by max
         c /= maxc;

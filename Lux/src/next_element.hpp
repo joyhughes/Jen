@@ -21,7 +21,7 @@ template<> struct any_fn< bb2f >;
 struct any_condition_fn;
 struct any_gen_fn;
 
-// change to template if possible:     typedef std::function< T ( const U&, const element_context& ) > gen_fn;
+// change to template if possible:     typedef std::function< T ( const U&, element_context& context) > gen_fn;
 typedef std::function< bool   ( bool&,   element_context& ) > bool_fn; 
 typedef std::function< float  ( float&,  element_context& ) > float_fn; 
 typedef std::function< int    ( int&,    element_context& ) > int_fn; 
@@ -31,7 +31,8 @@ typedef std::function< frgb   ( frgb&,   element_context& ) > frgb_fn;
 typedef std::function< ucolor ( ucolor&, element_context& ) > ucolor_fn; 
 typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn; 
 
-typedef std::function< bool ( element_context& ) > gen_fn;
+typedef std::function< void ( element_context& ) > gen_fn;
+typedef std::function< bool ( element_context& ) > condition_fn;
 
 template< class U > struct harness {
     std::vector< any_fn< U > > functions;
@@ -72,12 +73,16 @@ template< class U > struct adder {
     U operator () ( U& u, element_context& context ) { 
         r( context );
         U v = *r;
-        //std::cout << "adder: " << *r << " + " << u << " = " << *r + u << std::endl; 
         addc( v, u );
         return v; 
     }
 
-    adder( const U& r_init = 0 ) : r( r_init ) {}
+    adder() { // zero default value
+        U r_init;
+        black( r_init ); 
+        r = r_init;
+    } 
+    adder( const U& r_init ) : r( r_init ) {}
 };
 
 typedef adder< int    > adder_int;
@@ -86,7 +91,6 @@ typedef adder< vec2i  > adder_vec2i;
 typedef adder< vec2f  > adder_vec2f;
 typedef adder< frgb   > adder_frgb;
 typedef adder< ucolor > adder_ucolor;
-typedef adder< bb2f   > adder_bb2f;
 
 struct log_fn {
     harness< float > scale;
@@ -126,6 +130,16 @@ struct wiggle {
 
     wiggle( const float& wavelength_init = 1.0f, const float& amplitude_init = 1.0f, const float& phase_init = 0.0f, const float& wiggliness_init = 0.0f ) 
         : wavelength( wavelength_init ), amplitude( amplitude_init ), phase( phase_init ), wiggliness( wiggliness_init ) {}
+};  
+
+// Vec2f function returning mouse position in parametric space
+struct mouse_pos_fn {
+    vec2f operator () ( vec2f& val, element_context& context );
+};
+
+// Vec2i function returning mouse position in pixel coordinates
+struct mouse_pix_fn {
+    vec2i operator () ( vec2i& val, element_context& context );
 };
 
 // parameterizes the member function by float-converted index of element ( distance from beginning )
@@ -200,14 +214,14 @@ typedef time_param< vec2i > time_param_vec2i;
 
 // identity function - no effect
 struct identity_gen_fn {
-    bool operator () ( element_context& context ) { return true; }
+    void operator () ( element_context& context ) {}
 };
 
 // generalized functor to change the orientation of an element using a float_fn
 struct orientation_gen_fn {
     harness< float > orientation;
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
 
     orientation_gen_fn( const float& orientation_init = 0.0f ) : orientation( orientation_init ) {}
 };
@@ -216,9 +230,18 @@ struct orientation_gen_fn {
 struct scale_gen_fn {
     harness< float > scale;
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
 
     scale_gen_fn( const float& scale_init = 1.0f ) : scale( scale_init ) {}
+};
+
+// generalized functor to change the position of an element using a vec2f_fn
+struct position_gen_fn {
+    harness< vec2f > position;
+
+    void operator () ( element_context& context );
+
+    position_gen_fn( const vec2f& position_init = { 0.0f, 0.0f } ) : position( position_init ) {}
 };
 
 // other element parameters - position, image / mask, etc
@@ -233,7 +256,7 @@ struct advect_element {
     bool time_interval_proportional;
     bool orientation_sensitive;
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
 
     advect_element( 
         const vec2f& flow_init = { 1.0f, 0.0f }, 
@@ -262,7 +285,7 @@ struct angle_branch {
     harness< float > branch_dist;      // distance proportional to size of elements
  
     void render_branch( const float& ang, element_context& context );
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
 
     angle_branch(   const int& interval_init = 1,
                     const int& offset_init = 0, 
@@ -281,7 +304,7 @@ struct angle_branch {
 struct curly {
     harness< float > curliness;
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
    
     curly( const float& curliness_init = 1.0f ): curliness( curliness_init ) {}
 };
@@ -290,7 +313,7 @@ struct curly {
 struct position_list {
     harness< std::vector< vec2f > > positions;
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
 
     position_list( std::vector< vec2f > positions_init ) : positions( positions_init ) {}
 };
@@ -302,7 +325,7 @@ struct position_list {
     float total_rotation; 
     const std::unique_ptr< float_fn >& radial_function; // change this!
 
-    bool operator () ( element_context& context ) { 
+    void operator () ( element_context& context ) { 
         center( context ); ang_inc( context );
         // to do - replace with matrix operation
         if( context.el.index == 0 ) total_rotation = 0.0f;
@@ -320,28 +343,39 @@ struct position_list {
 };
 */
 
+// Condition functors
+
+// needed?
 struct switch_condition {
     bool val;
 
     void on()  { val = true; }
     void off() { val = false; }
     void flip() { val = !val; }
-    bool operator () ( bool& b, element_context& context ) { return val; }
+    bool operator () ( element_context& context ) { return val; }
 
     switch_condition( bool val_init = true ) : val( val_init ) {}
 };
 
 // Conditions for index_filter and depth_filter 
-struct initial_element_condition   { bool operator () ( bool& b, element_context& context ); };
-struct following_element_condition { bool operator () ( bool& b, element_context& context ); };
-struct top_level_condition         { bool operator () ( bool& b, element_context& context ); };
-struct lower_level_condition       { bool operator () ( bool& b, element_context& context ); };
+struct initial_element_condition   { bool operator () ( element_context& context ); };
+struct following_element_condition { bool operator () ( element_context& context ); };
+struct top_level_condition         { bool operator () ( element_context& context ); };
+struct lower_level_condition       { bool operator () ( element_context& context ); };
 // even, odd, etc.
+
+struct boundary_condition {
+    harness< bb2f > bounds;
+
+    bool operator () ( element_context& context );
+
+    boundary_condition( bb2f bounds_init = { { -1.0f, -1.0f }, { 1.0f, 1.0f } } ) : bounds( bounds_init ) {}
+};
 
 struct random_condition {
     harness< float > p;
 
-    bool operator () ( bool& b, element_context& context );
+    bool operator () ( element_context& context );
 
     random_condition( float p_init = 0.5f ) : p( p_init ) {}
 };
@@ -353,35 +387,41 @@ struct random_sticky_condition {
     harness< float > p_change_true; //  probability of changing true conditon
     harness< float > p_change_false; // probability of changing false condition
 
-    bool operator () ( bool& b, element_context& context );
+    bool operator () ( element_context& context );
 
     random_sticky_condition( float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
 
+struct mousedown_condition {
+    bool operator () ( element_context& context );
+};
+
+struct mouseover_condition {
+    bool operator () ( element_context& context );
+};
+
 struct filter {
-    bool c;
     std::vector< any_condition_fn > conditions;
     std::vector< any_gen_fn > functions;        // list of component functions, executed in order
 
-    bool operator () ( element_context& context );
+    void operator () ( element_context& context );
     void add_function(  const any_gen_fn& fn );
     void add_condition( const any_condition_fn& c );
 
-    filter( bool c_init = true );
+    filter();
 };
 
 // container functor to recursively generate elements in cluster
 struct next_element {
-    int max_index;                          // Maximum number of elements - prevents infinite loop
-    std::optional< bb2f > bounds;           // Optional bounding box - iteration stops when element outside the box
+    std::vector< any_condition_fn > conditions; // list of component conditions, all must be true for element to be generated
     std::vector< any_gen_fn > functions;        // list of component functions, executed in order
 
     bool operator () ( element_context& context );
     void add_function( any_gen_fn fn );
+    void add_condition( any_condition_fn c );
 
     next_element();
-    next_element( const int& max_index_init, const std::optional< bb2f > bounds_init );
 };
 
 #endif // __NEXT_ELEMENT_HPP

@@ -104,9 +104,9 @@ void copy_any_buffer(const std::string& prefix) {
     any_buffer_pair_ptr any_buf1 = buf1;
     ubuf_ptr buf2 = std::make_shared< buffer_pair< ucolor > >(/* vec2i( 512, 512 ) */);
     any_buffer_pair_ptr any_buf2 = buf2;
-    std::cout << "preparing to copy buffer" << std::endl;
+    //std::cout << "preparing to copy buffer" << std::endl;
     std::visit( [ &, buf1 ]( auto& b ) { copy_buffer( b, buf1 ); }, any_buf2 );
-    std::cout << "buffer copied" << std::endl;
+    //std::cout << "buffer copied" << std::endl;
 
     uimage img2 = buf2->get_image();
     std::string output_filename = prefix + "_copy_any_buffer.jpg";

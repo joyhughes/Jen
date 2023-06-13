@@ -102,13 +102,11 @@ struct cluster {
     element root_elem;       // initial element in cluster
     next_element& next_elem; // Functor to recursively generate elements in cluster
 
-    int max_n;          // limit to number of elements
-    int depth;          // counter to keep track of depth in tree
-    int max_depth;      // prevent infinite recursion
-    float min_scale;    // approximately one pixel
-    bool background_dependent;  // if true, cluster will double buffer on rendering
-
-    std::optional< bb2f > bounds;   // Optionally, cluster will stop generating if it goes out of bounds
+    harness< int > max_n;          // index of cluster within scene
+    int depth;                     // counter to keep track of depth in tree
+    harness< int > max_depth;      // prevent infinite recursion by limiting depth of tree
+    harness< float > min_scale;    // prevent infinite recursion by limiting scale of elements
+    bool background_dependent;     // if true, cluster will double buffer on rendering
 
     // Recursively generate branches and render elements
     void render( scene& s, any_buffer_pair_ptr& img );
@@ -128,33 +126,24 @@ struct cluster {
              const int& max_n_init = 1,
              const int& depth_init = 0,
              const int& max_depth_init = 10,
-             const float& min_scale_init = 0.01f,
-             const bool& background_dependent_init = false,
-             const std::optional< bb2f >& bounds_init = std::nullopt
+             const bool& background_dependent_init = false
             )
         : root_elem( el ),
           next_elem( next_elem_init ),
           max_n( max_n_init ),
           depth( depth_init ),
           max_depth( max_depth_init ),
-          min_scale( min_scale_init ),
-          background_dependent( background_dependent_init ),
-          bounds( bounds_init ) 
+          background_dependent( background_dependent_init )
           {}
 
     // copy constructor
     cluster( const cluster& cl ) :  
         root_elem( cl.root_elem ),
         next_elem( cl.next_elem ),
-        max_n( cl.max_n ),
         depth( cl.depth ),
         max_depth( cl.max_depth ),
-        min_scale( cl.min_scale ),
-        background_dependent( cl.background_dependent ),
-        bounds( cl.bounds ) 
-        {}
-
-        
+        background_dependent( cl.background_dependent )
+        {}        
 };
 
 typedef enum {
@@ -206,9 +195,20 @@ struct effect_list {
     }
 };
 
+// Stores state of user interface - mouse position, mouse down, slider values, etc.
+struct UI {
+    bb2i  canvas_bounds; // bounds of canvas in pixels
+    vec2i mouse_pixel;  // mouse position in pixels
+    bool  mouse_down;
+    bool  mouse_over;
+
+    UI() : mouse_down( false ), mouse_over( false ) {}
+};
+
 struct scene {
     // scene owns clusters, elements, images, effects, and functions
     std::string name;
+    UI ui;  // We gotta go now
 
     std::unordered_map< std::string, any_fn< float  > > float_fns;    
     std::unordered_map< std::string, any_fn< int    > > int_fns;    
@@ -224,7 +224,7 @@ struct scene {
     //std::unordered_map< std::string, any_image_ptr > images; // images now stored in buffers map
     std::unordered_map< std::string, std::shared_ptr< element > > elements;
     std::unordered_map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
-    std::unordered_map< std::string, std::shared_ptr< cluster > > clusters;           // scene defined as a set of clusters
+    std::unordered_map< std::string, std::shared_ptr< cluster > > clusters;           
     std::unordered_map< std::string, any_rule > CA_rules;                             // rules for cellular automata
     std::unordered_map< std::string, any_effect_fn > effects;
 
@@ -239,6 +239,9 @@ struct scene {
         
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
+
+    // Get mouse position in parametric space of output buffer
+    vec2f get_mouse_pos() const;
 
 //    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
 //    void pause();                               // Pause animation

@@ -28,7 +28,6 @@ frame_context *global_context;
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
-    //std::cout << "render_and_display" << std::endl;
     if( !running && displayed ) return;
     frame_context *context;
     context = (frame_context *)arg;
@@ -36,7 +35,6 @@ void render_and_display( void *arg )
     SDL_Surface *screen = context->screen;
     uimage& img = (uimage &)(context->buf->get_image());
     vec2i dim = img.get_dim();
-    //std::cout << " dim = " << dim.x << " " << dim.y << std::endl;
     scene &s = *(context->s);
     //float time_interval = 1.0f / (float)context->nframes;
     //float time = (float)context->frame * time_interval;
@@ -93,6 +91,19 @@ void slider_value( int value ) {
     //displayed = false;
 }
 
+void mouse_move( float x, float y ) {
+    global_context->s->ui.mouse_pixel = vec2i( { x, y } );
+} 
+
+void mouse_down( bool down ) {
+    global_context->s->ui.mouse_down = down;
+}
+
+void mouse_over( bool over ) {
+    global_context->s->ui.mouse_over = over;
+    if( !over ) global_context->s->ui.mouse_down = false;
+}
+
 /*
 void slider_value( int value ) {
     float v = ( float )value / 100.0f;
@@ -101,15 +112,16 @@ void slider_value( int value ) {
 */
 int main(int argc, char** argv) {
     vec2i dim( { 512, 512 } );
-    std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
-    any_buffer_pair_ptr any_buf = buf;
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "diffuser_files/diffuser_dot.json" ); 
+    scene s( "diffuser_files/diffuser_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
-
     emscripten_run_script("console.log('scene loaded');");
+
+    std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
+    any_buffer_pair_ptr any_buf = buf;
     s.set_output_buffer( any_buf );
+    s.ui.canvas_bounds = bb2i( dim );
     //scene s( "moon_files/galaxy_moon.json" ); 
     //scene s( "foo.json" );
     //scene s;
@@ -144,4 +156,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "run_pause",    &run_pause );
     function( "restart",      &restart );
     function( "slider_value", &slider_value );
-}
+    function( "mouse_move",   &mouse_move );
+    function( "mouse_down",   &mouse_down );
+    function( "mouse_over",   &mouse_over );
+} 
