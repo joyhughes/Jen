@@ -27,6 +27,7 @@ struct scene_reader {
     void read( ucolor& u, const json& j ) { u  = read_ucolor( j );}
     void read( std::string& s,  const json& j ) { s = read_string( j ); }
     void read( direction4& d,   const json& j ) { d = read_direction4( j ); }
+    void read( direction8& d,   const json& j ) { d = read_direction8( j ); }
     void read( pixel_type& p,   const json& j ) { p = read_pixel_type( j ); }
     void read( image_extend& e, const json& j ) { e = read_image_extend( j ); }
     void read( render_mode& r,  const json& j ) { r = read_render_mode( j ); }
@@ -42,6 +43,7 @@ struct scene_reader {
     ucolor read_ucolor( const json& j );
     std::string  read_string(       const json& j );
     direction4   read_direction4(   const json& j );
+    direction8   read_direction8(   const json& j );
     pixel_type   read_pixel_type(   const json& j );
     image_extend read_image_extend( const json& j );
     render_mode  read_render_mode(  const json& j );

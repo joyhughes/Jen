@@ -106,6 +106,23 @@ direction4 scene_reader::read_direction4( const json& j ) {
     return d;
 }
 
+direction8 scene_reader::read_direction8( const json& j ) { 
+    std::string s;
+    direction8 d;
+
+    j.get_to( s );
+    if(      s == "up"       ) d = direction8::D8_UP;
+    else if( s == "up_right" ) d = direction8::D8_UPRIGHT;
+    else if( s == "right"    ) d = direction8::D8_RIGHT;
+    else if( s == "down_right" ) d = direction8::D8_DOWNRIGHT;
+    else if( s == "down"     ) d = direction8::D8_DOWN;
+    else if( s == "down_left" ) d = direction8::D8_DOWNLEFT;
+    else if( s == "left"     ) d = direction8::D8_LEFT;
+    else if( s == "up_left"  ) d = direction8::D8_UPLEFT;
+    else ERROR( "Invalid direction8 string: " + s )
+    return d;
+}
+
 pixel_type scene_reader::read_pixel_type( const json& j ) { 
     std::string s;
     pixel_type p;

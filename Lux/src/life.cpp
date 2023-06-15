@@ -21,17 +21,21 @@
 #define VNR neighbors[3]
 #define VND neighbors[4]
 
-// Margolis neighborhood shortcuts (clockwise from upper left)
+// Margolus neighborhood shortcuts (clockwise from upper left)
 #define MUL neighbors[0]
 #define MUR neighbors[1]
 #define MLR neighbors[2]
 #define MLL neighbors[3]
 
-// Margolis neighborhood result shortcuts (clockwise from upper left)
+// Margolus neighborhood result shortcuts (clockwise from upper left)
 #define RUL result[0]
 #define RUR result[1]
 #define RLR result[2]
 #define RLL result[3]
+
+// CA starting coordinates shortcuts
+#define IN(  x, y ) in  + ( ( x ) * dim.x + ( y ) )
+#define OUT( x, y ) out + ( ( x ) * dim.x + ( y ) )
 
  template<class T> void CA<T>::set_rule( any_rule rule ) { 
     this->rule = rule; 
@@ -49,6 +53,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
         vec2i dim = img.get_dim();
+        neighborhood = rule.neighborhood;
 
         // check neighborhood type
         if( neighborhood == NEIGHBORHOOD_MOORE ) {
@@ -59,7 +64,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             auto dm_it = in;
             auto dr_it = in;
             // scan through image by column
-            for( int x = 0; x < dim.x; x++ ) {
+            for( x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
                 if( x == 0 ) {
                     UL = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
@@ -87,7 +92,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                for( int y = 0; y < dim.y - 1; y++ ) {
+                for( y = 0; y < dim.y - 1; y++ ) {
                     rule( neighbors, result );  // apply rule
                     *out_it = result[0];        // set output
                     out_it += dim.x;
@@ -113,7 +118,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             auto out_it = out;
             auto dm_it = in;
             // scan through image by column
-            for( int x = 0; x < dim.x; x++ ) {
+            for( x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
                 if( x == 0 ) {
                     VNU = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
@@ -129,7 +134,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 VND = *dm_it;
                 if( x == dim.x - 1 ) VNR = *(in + ( dim.y - 1 ) * dim.x); else VNR = *(in + ( dim.y - 1 ) * dim.x + x + 1);
                 out_it = out + x;
-                for( int y = 0; y < dim.y - 1; y++ ) {
+                for( y = 0; y < dim.y - 1; y++ ) {
                     rule( neighbors, result );  // apply rule
                     *out_it = result[0];        // set output
                     out_it += dim.x;
@@ -145,28 +150,43 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 rule( neighbors, result );  // apply rule
                 *out_it = result[0];
             }
-        } 
+        }
         
-        else if( neighborhood == NEIGHBORHOOD_MARGOLIS ) { // Works best if image dimensions are multiples of 2
+        else if( ( neighborhood == NEIGHBORHOOD_MARGOLUS ) || ( neighborhood == NEIGHBORHOOD_MARGOLUS_OFFSET ) ) { // Works best if image dimensions are multiples of 2
             neighbors.resize( 4 );
             result.resize( 4 );
             auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
             auto in_ul = in; auto in_ur = in; auto in_ll = in; auto in_lr = in;
             // initialize iterators
             int startx, starty;
-            if( frame % 2 ) { startx = 0; starty = 0; } // even frame - fits into upper left corner of image
-            else            { startx = 1; starty = -1; } // odd frame - offset by 1 (initally straddles four corners of image)
+            if( neighborhood == NEIGHBORHOOD_MARGOLUS ) { 
+                if( frame % 2 ) { startx = 0; starty = 0; } // even frame - fits into upper left corner of image
+                else            { startx = 1; starty = -1; } // odd frame - offset by 1 (initally straddles four corners of image)
+            }
+            else { // NEIGHBORHOOD_MARGOLUS_OFFSET
+                if( frame % 2 ) startx = 0; else startx = 1;  
+                if( ( frame / 2 ) % 2 ) starty = 0; else starty = -1;
+            }
             // scan through image by row
-            for( int y = starty; y < dim.y - 1; y+=2 ) {
-                if( frame % 2 ) { // even left edge
-                    out_ul = out + y * dim.x;       out_ur = out + y * dim.x + 1; 
-                    out_ll = out + (y + 1) * dim.x; out_lr = out + (y + 1) * dim.x + 1;
+            for( y = starty; y < dim.y - 1; y+=2 ) {
+                if( !startx ) { // even left edge
+                    if( y == -1 ) { // top row
+                        out_ul = out + ( dim.y - 1 ) * dim.x; out_ur = out_ul + 1; 
+                        out_ll = out;                         out_lr = out    + 1;
 
-                    in_ul = in + y * dim.x;         in_ur = in + y * dim.x + 1; 
-                    in_ll = in + (y + 1) * dim.x;   in_lr = in + (y + 1) * dim.x + 1;
+                        in_ul  = in  + ( dim.y - 1 ) * dim.x; in_ur  = in_ul  + 1; 
+                        in_ll  = in;                          in_lr  = in     + 1;
+                    }
+                    else {
+                        out_ul = out + y * dim.x;       out_ur = out_ul + 1; 
+                        out_ll = out + (y + 1) * dim.x; out_lr = out_ll + 1;
+
+                        in_ul = in + y * dim.x;         in_ur = in_ul + 1; 
+                        in_ll = in + (y + 1) * dim.x;   in_lr = in_ll + 1;
+                    }
                 }
                 else { // odd left edge
-                    if( y == -1 ) { // top row
+                    if( y == -1 ) { // top row, straddles corners
                         out_ul = out + dim.y * dim.x - 1; out_ur = out + ( dim.y - 1 ) * dim.x; 
                         out_ll = out + dim.x - 1;         out_lr = out;
 
@@ -201,7 +221,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
                     }
                 }
-                for( int x= startx; x < dim.x; x += 2 ) {
+                for( x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                     rule( neighbors, result );  // apply rule
@@ -278,21 +298,36 @@ template< class T > void rule_pixel_sort< T >::operator () (const std::vector<T>
     int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
 
     // Sort pixels by brightness
-    if( direction == direction4::D4_UP || direction == direction4::D4_DOWN ) {
-        if( ( ( wul > wll ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) 
-             { RUL = MLL; RLL = MUL; } // swap left column
-        else { RUL = MUL; RLL = MLL; }
-        if( ( ( wur > wlr ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLR, MUR ) < *max_diff ) ) 
-             { RUR = MLR; RLR = MUR; } // swap right column
-        else { RUR = MUR; RLR = MLR; }
+
+    if( diagonal_direction8( direction ) ) {
+        if( direction == direction8::D8_DOWNRIGHT || direction == direction8::D8_UPLEFT ){
+            if( ( ( wul > wlr ) == ( direction == direction8::D8_DOWNRIGHT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
+                 { RUL = MLR; RLR = MUL; RLL = MLL; RUR = MUR; } // swap diagonal
+            else { RUL = MUL; RLR = MLR; RLL = MLL; RUR = MUR; }
+        }
+        else {
+            if( ( ( wur > wll ) == ( direction == direction8::D8_DOWNLEFT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
+                 { RUL = MUL; RLR = MLR; RLL = MUR; RUR = MLL; } // swap diagonal
+            else { RUL = MUL; RLR = MLR; RLL = MLL; RUR = MUR; }
+        }
     }
     else {
-        if( ( ( wul > wur ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
-             { RUL = MUR; RUR = MUL; } // swap upper row
-        else { RUL = MUL; RUR = MUR; }
-        if( ( ( wll > wlr ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
-             { RLL = MLR; RLR = MLL; } // swap lower row
-        else { RLL = MLL; RLR = MLR; }
+        if( !horizontal_direction8( direction ) ) {
+            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) 
+                 { RUL = MLL; RLL = MUL; } // swap left column
+            else { RUL = MUL; RLL = MLL; }
+            if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN ) ) && ( manhattan( MLR, MUR ) < *max_diff ) ) 
+                 { RUR = MLR; RLR = MUR; } // swap right column
+            else { RUR = MUR; RLR = MLR; }
+        }
+        else {
+            if( ( ( wul > wur ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
+                { RUL = MUR; RUR = MUL; } // swap upper row
+            else { RUL = MUL; RUR = MUR; }
+            if( ( ( wll > wlr ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
+                { RLL = MLR; RLR = MLL; } // swap lower row
+            else { RLL = MLL; RLR = MLR; }
+        }
     }
 }
 

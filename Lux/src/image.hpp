@@ -32,7 +32,11 @@ typedef enum file_type
 } file_type;
 
 typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
+static bool horizontal_direction4( direction4 d ) { return ( d == D4_RIGHT || d == D4_LEFT ); }
+
 typedef enum direction8 { D8_UP, D8_UPRIGHT, D8_RIGHT, D8_DOWNRIGHT, D8_DOWN, D8_DOWNLEFT, D8_LEFT, D8_UPLEFT } direction8;
+static bool horizontal_direction8( direction8 d ) { return ( d == D8_RIGHT || d == D8_LEFT ); }
+static bool diagonal_direction8(   direction8 d ) { return ( (int)d % 2 ); }
 
 template< class T > class image;
 
