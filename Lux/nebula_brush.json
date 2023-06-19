@@ -1,0 +1,71 @@
+{
+    "name": "diffuser_dot_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "nebula_files/crab_nebula.jpg", 
+            "name": "nebula"
+        }
+    ],
+    "elements":
+    [
+        {
+            "name": "nebula_element",
+            "image": "nebula",
+            "scale": 0.3
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "brush_fn",
+            "type": "position_gen_fn",
+            "position": { "functions": [ "mouse_position" ] }
+        },
+        {
+            "name": "max_diff_slider",
+            "type": "int_slider_fn",
+            "min": 0,
+            "max": 765
+        }
+    ],
+    "clusters":
+    [
+        {
+            "name": "brush_cluster",
+            "element": "nebula_element",
+            "functions": [ "brush_fn" ],
+            "conditions": [ "mouse_click" ]
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "sorter",
+            "type": "CA_ucolor",
+            "rule": 
+            {
+                "name": "sort",
+                "type": "rule_pixel_sort_ucolor",
+                "direction": "down_right",
+                "max_diff": { "functions": [ "max_diff_slider" ] }
+            }
+        },
+        {
+            "name": "brush",
+            "type": "cluster",
+            "cluster_name": "brush_cluster"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "nebula_sort",
+            "source": "nebula",
+            "type": "uimage",
+            "mode": "iterative",  
+            "effects": [ "brush", "sorter" ]
+        }
+    ]
+}
