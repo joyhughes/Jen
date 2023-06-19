@@ -31,6 +31,14 @@ typedef enum file_type
     FILE_BINARY
 } file_type;
 
+// Future: To be used for applying noise to images
+typedef enum mutation_type {  MUTATE_NONE, 
+                              MUTATE_COLOR, 
+                              MUTATE_HUE,
+                              MUTATE_VALUE,
+                              MUTATE_SATURATION 
+} mutation_type;
+
 typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
 static bool horizontal_direction4( direction4 d ) { return ( d == D4_RIGHT || d == D4_LEFT ); }
 

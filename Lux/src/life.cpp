@@ -2,8 +2,8 @@
 #include "frgb.hpp"
 #include "ucolor.hpp"
 #include "vect2.hpp"
-
 // Moore neighborhood shortcuts
+
 #define UL neighbors[0]
 #define UM neighbors[1]
 #define UR neighbors[2]
@@ -13,13 +13,7 @@
 #define DL neighbors[6]
 #define DM neighbors[7]
 #define DR neighbors[8]
-
-// Von Neumann neighborhood shortcuts
-#define VNU neighbors[0]
-#define VNL neighbors[1]
-#define VNM neighbors[2]
-#define VNR neighbors[3]
-#define VND neighbors[4]
+// Margolus neighborhood shortcuts (clockwise from upper left)
 
 // Margolus neighborhood shortcuts (clockwise from upper left)
 #define MUL neighbors[0]
@@ -34,18 +28,23 @@
 #define RLL result[3]
 
 // CA starting coordinates shortcuts
-#define IN(  x, y ) in  + ( ( x ) * dim.x + ( y ) )
-#define OUT( x, y ) out + ( ( x ) * dim.x + ( y ) )
+// future - add for clarity (if you dare!)
+//#define IN(  x, y ) in  + ( ( y ) * dim.x + ( x ) )
+//#define OUT( x, y ) out + ( ( y ) * dim.x + ( x ) )
 
+/*
  template<class T> void CA<T>::set_rule( any_rule rule ) { 
     this->rule = rule; 
     this->neighborhood = rule.neighborhood;
 }
+*/
 
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
     //std::cout << "CA: operator()" << std::endl;
+    //if( p <= 0.0f ) return;
+    neighborhood = rule.init( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
@@ -53,7 +52,6 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
         vec2i dim = img.get_dim();
-        neighborhood = rule.neighborhood;
 
         // check neighborhood type
         if( neighborhood == NEIGHBORHOOD_MOORE ) {
@@ -64,7 +62,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             auto dm_it = in;
             auto dr_it = in;
             // scan through image by column
-            for( x = 0; x < dim.x; x++ ) {
+            for( int x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
                 if( x == 0 ) {
                     UL = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
@@ -92,8 +90,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                for( y = 0; y < dim.y - 1; y++ ) {
-                    rule( neighbors, result );  // apply rule
+                for( int y = 0; y < dim.y - 1; y++ ) {
+                    rule( *this );  // apply rule
                     *out_it = result[0];        // set output
                     out_it += dim.x;
                     // update neighborhood
@@ -106,52 +104,11 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( x == 0 ) DL = *(in + dim.x - 1); else DL = *(in + x - 1);
                 DM = *(in + x);
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
-                rule( neighbors, result );  // apply rule
+                rule( *this );  // apply rule
                 *out_it = result[0];
             }
         } 
-        
-        // Copilot generated code for Von Neumann neighborhood - needs review
-        else if( neighborhood == NEIGHBORHOOD_VON_NEUMANN ) {
-            neighbors.resize( 5 );
-            result.resize( 1 );
-            auto out_it = out;
-            auto dm_it = in;
-            // scan through image by column
-            for( x = 0; x < dim.x; x++ ) {
-                // set intial neighborhood
-                if( x == 0 ) {
-                    VNU = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
-                    VNL = *(in + dim.x - 1);
-                    dm_it = in + (2 * dim.x - 1); 
-                }
-                else {
-                    VNU = *(in + ( dim.y - 1 ) * dim.x + x - 1);
-                    VNL = *(in + x - 1);
-                    dm_it = in + (dim.x + x - 1);
-                }
-                VNM = *(in + ( dim.y - 1 ) * dim.x + x);
-                VND = *dm_it;
-                if( x == dim.x - 1 ) VNR = *(in + ( dim.y - 1 ) * dim.x); else VNR = *(in + ( dim.y - 1 ) * dim.x + x + 1);
-                out_it = out + x;
-                for( y = 0; y < dim.y - 1; y++ ) {
-                    rule( neighbors, result );  // apply rule
-                    *out_it = result[0];        // set output
-                    out_it += dim.x;
-                    // update neighborhood
-                    VNU = VNM; VNL = VND; VNM = VNR;
-                    dm_it += dim.x; VND = *dm_it;
-                    if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
-                }
-                // set last row
-                if( x == 0 ) VND = *(in + dim.x - 1); else VND = *(in + x - 1);
-                VNM = *(in + x);
-                if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
-                rule( neighbors, result );  // apply rule
-                *out_it = result[0];
-            }
-        }
-        
+
         else if( ( neighborhood == NEIGHBORHOOD_MARGOLUS ) || ( neighborhood == NEIGHBORHOOD_MARGOLUS_OFFSET ) ) { // Works best if image dimensions are multiples of 2
             neighbors.resize( 4 );
             result.resize( 4 );
@@ -160,15 +117,15 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             // initialize iterators
             int startx, starty;
             if( neighborhood == NEIGHBORHOOD_MARGOLUS ) { 
-                if( frame % 2 ) { startx = 0; starty = 0; } // even frame - fits into upper left corner of image
-                else            { startx = 1; starty = -1; } // odd frame - offset by 1 (initally straddles four corners of image)
+                if( ca_frame % 2 ) { startx = 0; starty = 0; } // even ca_frame - fits into upper left corner of image
+                else            { startx = 1; starty = -1; } // odd ca_frame - offset by 1 (initally straddles four corners of image)
             }
             else { // NEIGHBORHOOD_MARGOLUS_OFFSET
-                if( frame % 2 ) startx = 0; else startx = 1;  
-                if( ( frame / 2 ) % 2 ) starty = 0; else starty = -1;
+                if( ca_frame % 2 ) startx = 0; else startx = 1;  
+                if( ( ca_frame / 2 ) % 2 ) starty = 0; else starty = -1;
             }
             // scan through image by row
-            for( y = starty; y < dim.y - 1; y+=2 ) {
+            for( int y = starty; y < dim.y - 1; y+=2 ) {
                 if( !startx ) { // even left edge
                     if( y == -1 ) { // top row
                         out_ul = out + ( dim.y - 1 ) * dim.x; out_ur = out_ul + 1; 
@@ -194,7 +151,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll  = in  + dim.x - 1;         in_lr  = in;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( neighbors, result );  // apply rule
+                        rule( *this );  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
@@ -211,7 +168,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( neighbors, result );  // apply rule
+                        rule( *this );  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
@@ -221,10 +178,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
                     }
                 }
-                for( x= startx; x < dim.x; x += 2 ) {
+                for( int x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                    rule( neighbors, result );  // apply rule
+                    rule( *this );  // apply rule
                     *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                     // update neighborhood
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
@@ -236,9 +193,19 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
             }
         } 
-        frame++;
+        ca_frame++;
         buf_ptr->swap();
     }
+}
+
+template< class T > CA_neighborhood rule_identity< T >::operator () ( element_context &context )
+{ return NEIGHBORHOOD_MARGOLUS; }
+
+template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    result.assign( neighbors.begin(), neighbors.end() );
 }
 
 /*
@@ -248,20 +215,41 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) { 
+template<class T> inline rule_life<T>::rule_life() { 
+    T c;
+    black( c );
+    on = c;
+    white( c );
+    off = c;
+}
+
+template< class T > CA_neighborhood rule_life< T >::operator () ( element_context &context ) {
+    on( context ); off( context );
+    return NEIGHBORHOOD_MOORE;
+}
+
+template< class T > void rule_life< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
     int count = 0;
-    for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == on); }    
-    for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == on); } 
-    if( MM == on ) {
-        if( count == 2 || count == 3 ) result[0] = on;
-        else result[0] = off;
+    for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == *on); }    
+    for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == *on); } 
+    if( MM == *on ) {
+        if( count == 2 || count == 3 ) result[0] = *on;
+        else result[0] = *off;
     } else {
-        if( count == 3 ) result[0] = on;
-        else result[0] = off;
+        if( count == 3 ) result[0] = *on;
+        else result[0] = *off;
     }
 }
 
-template< class T > void rule_diffuse< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > CA_neighborhood rule_diffuse< T >::operator () ( element_context &context ) 
+{ return NEIGHBORHOOD_MARGOLUS; }
+
+template< class T > void rule_diffuse< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
     int r = rand_4( gen );
     
     if( alpha_block ) {
@@ -279,8 +267,125 @@ template< class T > void rule_diffuse< T >::operator () (const std::vector<T> &n
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > void rule_pixel_sort< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > CA_neighborhood rule_gravitate< T >::operator () ( element_context &context )
+{ return NEIGHBORHOOD_MARGOLUS; } 
+
+template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
     int r;
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+    
+    if( alpha_block ) {
+        bool blocked = false;
+        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] &  0xff000000 ) != 0 ; 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+*/
+
+    int wul = luminance( MUL );
+    int wur = luminance( MUR );
+    int wll = luminance( MLL );
+    int wlr = luminance( MLR );
+
+    // Sort pixels by brightness
+    int wu = wul + wur;
+    int wd = wll + wlr;
+    int wl = wul + wll;
+    int wr = wur + wlr;
+
+    int udiff = wu - wd;
+    int ldiff = wl - wr;
+
+    if( abs( udiff ) > abs( ldiff ) ) {
+        if( udiff > 0 ) r = 0;
+        else r = 2;
+    } else {
+        if( ldiff > 0 ) r = 3;
+        else r = 1;
+    }
+    r = direction - r + 4;
+
+    result[0] = neighbors[ r ];
+    result[1] = neighbors[ (r + 1) % 4 ];
+    result[2] = neighbors[ (r + 2) % 4 ];
+    result[3] = neighbors[ (r + 3) % 4 ];
+} 
+
+template< class T > CA_neighborhood rule_snow< T >::operator () ( element_context &context ) 
+{ return NEIGHBORHOOD_MARGOLUS; }
+
+// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
+template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
+    int r;
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+   
+    if( alpha_block ) {
+        bool blocked = false;
+        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
+        if( blocked ) {
+            result.assign( neighbors.begin(), neighbors.end() );
+            return;
+        }
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+*/
+
+    int wul = luminance( MUL );
+    int wur = luminance( MUR );
+    int wll = luminance( MLL );
+    int wlr = luminance( MLR );
+
+    // Sort pixels by brightness
+    int wu = wul + wur;
+    int wd = wll + wlr;
+    int wl = wul + wll;
+    int wr = wur + wlr;
+
+    int udiff = wu - wd;
+    int ldiff = wl - wr;
+
+    if( abs( udiff ) > abs( ldiff ) ) {
+        if( udiff > 0 ) r = 0;
+        else r = 2;
+    } else {
+        if( ldiff > 0 ) r = 1;
+        else r = 3;
+    }
+    r = direction - r + 4;
+
+    r = direction - r + 4;
+
+    result[0] = neighbors[ r % 4 ];
+    result[1] = neighbors[ (r + 1) % 4 ];
+    result[2] = neighbors[ (r + 2) % 4 ];
+    result[3] = neighbors[ (r + 3) % 4 ];
+}
+
+template< class T > CA_neighborhood rule_pixel_sort< T >::operator () ( element_context &context ) 
+{ 
+    max_diff( context );
+    return NEIGHBORHOOD_MARGOLUS_OFFSET; 
+}
+
+template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
     
     if( alpha_block ) {
         bool blocked = false;
@@ -330,103 +435,6 @@ template< class T > void rule_pixel_sort< T >::operator () (const std::vector<T>
         }
     }
 }
-
-// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
-template< class T > void rule_snow< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
-    int r;
-    
-    if( alpha_block ) {
-        bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
-
-    // Calculate approximate brighness of pixels (sum of color components)
-/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
-    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
-    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
-    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
-*/
-
-    int wul = luminance( MUL );
-    int wur = luminance( MUR );
-    int wll = luminance( MLL );
-    int wlr = luminance( MLR );
-
-    // Sort pixels by brightness
-    int wu = wul + wur;
-    int wd = wll + wlr;
-    int wl = wul + wll;
-    int wr = wur + wlr;
-
-    int udiff = wu - wd;
-    int ldiff = wl - wr;
-
-    if( abs( udiff ) > abs( ldiff ) ) {
-        if( udiff > 0 ) r = 0;
-        else r = 2;
-    } else {
-        if( ldiff > 0 ) r = 1;
-        else r = 3;
-    }
-    r = direction - r + 4;
-
-    result[0] = neighbors[ r % 4 ];
-    result[1] = neighbors[ (r + 1) % 4 ];
-    result[2] = neighbors[ (r + 2) % 4 ];
-    result[3] = neighbors[ (r + 3) % 4 ];
-}
-
-template< class T > void rule_gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
-    int r;
-    
-    if( alpha_block ) {
-        bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
-
-    // Calculate approximate brighness of pixels (sum of color components)
-/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
-    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
-    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
-    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
-*/
-
-    int wul = luminance( MUL );
-    int wur = luminance( MUR );
-    int wll = luminance( MLL );
-    int wlr = luminance( MLR );
-
-    // Sort pixels by brightness
-    int wu = wul + wur;
-    int wd = wll + wlr;
-    int wl = wul + wll;
-    int wr = wur + wlr;
-
-    int udiff = wu - wd;
-    int ldiff = wl - wr;
-
-    if( abs( udiff ) > abs( ldiff ) ) {
-        if( udiff > 0 ) r = 0;
-        else r = 2;
-    } else {
-        if( ldiff > 0 ) r = 3;
-        else r = 1;
-    }
-    r = direction - r + 4;
-
-    result[0] = neighbors[ r % 4 ];
-    result[1] = neighbors[ (r + 1) % 4 ];
-    result[2] = neighbors[ (r + 2) % 4 ];
-    result[3] = neighbors[ (r + 3) % 4 ];
-} 
 
 //template class CA< frgb >;       // fimage
 template class CA< ucolor >;     // uimage

@@ -111,14 +111,14 @@ direction8 scene_reader::read_direction8( const json& j ) {
     direction8 d;
 
     j.get_to( s );
-    if(      s == "up"       ) d = direction8::D8_UP;
-    else if( s == "up_right" ) d = direction8::D8_UPRIGHT;
-    else if( s == "right"    ) d = direction8::D8_RIGHT;
+    if(      s == "up"         ) d = direction8::D8_UP;
+    else if( s == "up_right"   ) d = direction8::D8_UPRIGHT;
+    else if( s == "right"      ) d = direction8::D8_RIGHT;
     else if( s == "down_right" ) d = direction8::D8_DOWNRIGHT;
-    else if( s == "down"     ) d = direction8::D8_DOWN;
-    else if( s == "down_left" ) d = direction8::D8_DOWNLEFT;
-    else if( s == "left"     ) d = direction8::D8_LEFT;
-    else if( s == "up_left"  ) d = direction8::D8_UPLEFT;
+    else if( s == "down"       ) d = direction8::D8_DOWN;
+    else if( s == "down_left"  ) d = direction8::D8_DOWNLEFT;
+    else if( s == "left"       ) d = direction8::D8_LEFT;
+    else if( s == "up_left"    ) d = direction8::D8_UPLEFT;
     else ERROR( "Invalid direction8 string: " + s )
     return d;
 }
@@ -272,6 +272,8 @@ void scene_reader::add_default_functions() {
     s.condition_fns[ "mouse_down" ] = any_condition_fn( mouse_down, std::ref( *mouse_down ), "mouse_down" );
     std::shared_ptr< mouseover_condition > mouse_over( new mouseover_condition );
     s.condition_fns[ "mouse_over" ] = any_condition_fn( mouse_over, std::ref( *mouse_over ), "mouse_over" );
+    std::shared_ptr< mouseclick_condition > mouse_click( new mouseclick_condition );
+    s.condition_fns[ "mouse_click" ] = any_condition_fn( mouse_click, std::ref( *mouse_click ), "mouse_click" );
 
     // Cluster conditions
     std::shared_ptr< initial_element_condition > initial_element( new initial_element_condition );
@@ -282,7 +284,6 @@ void scene_reader::add_default_functions() {
     s.condition_fns[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
     std::shared_ptr< lower_level_condition > lower_level( new lower_level_condition );
     s.condition_fns[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
-
 }
 
 void scene_reader::read_function( const json& j ) {
@@ -323,6 +324,11 @@ void scene_reader::read_function( const json& j ) {
     FN( log_fn, float      ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
     FN( ratio_float, float ) HARNESS( r ) END_FN( float )
     FN( wiggle, float      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
+    FN( slider_fn, float   ) HARNESS( min ) HARNESS( max ) END_FN( float )
+
+    // harness int functions
+    FN( adder_int, int ) HARNESS( r ) END_FN( int )
+    FN( int_slider_fn, int ) HARNESS( min ) HARNESS( max ) END_FN( int )
 
     // harness vec2f functions
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
@@ -387,7 +393,7 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
 
-    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), r->neighborhood, name ); ca->rule = rule;
+    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), std::ref( *r ), name ); ca->rule = rule;
     #define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }

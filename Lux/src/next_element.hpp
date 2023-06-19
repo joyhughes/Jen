@@ -132,6 +132,24 @@ struct wiggle {
         : wavelength( wavelength_init ), amplitude( amplitude_init ), phase( phase_init ), wiggliness( wiggliness_init ) {}
 };  
 
+struct slider_fn {
+    harness< float > min;
+    harness< float > max;
+
+    float operator () ( float& val, element_context& context ); 
+
+    slider_fn( const float& min_init = 0.0f, const float& max_init = 1.0f ) : min( min_init ), max( max_init ) {}
+};
+
+struct int_slider_fn {
+    harness< int > min;
+    harness< int > max;
+
+    int operator () ( int& val, element_context& context ); 
+
+    int_slider_fn( const int& min_init = 0, const int& max_init = 100 ) : min( min_init ), max( max_init ) {}
+};
+
 // Vec2f function returning mouse position in parametric space
 struct mouse_pos_fn {
     vec2f operator () ( vec2f& val, element_context& context );
@@ -398,6 +416,10 @@ struct mousedown_condition {
 };
 
 struct mouseover_condition {
+    bool operator () ( element_context& context );
+};
+
+struct mouseclick_condition {
     bool operator () ( element_context& context );
 };
 

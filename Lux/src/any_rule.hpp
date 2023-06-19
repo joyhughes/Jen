@@ -28,6 +28,10 @@ typedef enum CA_neighborhood  {  NEIGHBORHOOD_MOORE,
                                  NEIGHBORHOOD_CUSTOM_RANDOM
 } CA_neighborhood;
 
+struct element_context;
+
+template< class T > struct CA;
+
 template < class T > struct rule_identity;
 template < class T > struct rule_life;
 template < class T > struct rule_diffuse;
@@ -44,19 +48,23 @@ typedef std::variant <
     std::shared_ptr< rule_pixel_sort< ucolor > >
 > any_rule_ptr;
 
+
 // only works for ucolor at this point
 struct any_rule {
-    typedef std::function< void ( std::vector< ucolor >&, std::vector< ucolor >& ) > CA_rule;
+    typedef std::function< void ( CA< ucolor >& ) > CA_rule;
+    typedef std::function< CA_neighborhood ( element_context& ) > CA_initializer;
+
     any_rule_ptr rule_ptr;
     CA_rule rule;
-    CA_neighborhood neighborhood;
+    CA_initializer initializer;
     std::string name;
 
-    void operator () ( std::vector< ucolor >& in, std::vector< ucolor >& out );
+    void operator () ( CA< ucolor >& ca );  // call the rule
+    CA_neighborhood init( element_context& context );  // call the initializer
 
     any_rule();
-    any_rule( any_rule_ptr rule_ptr, CA_rule rule, CA_neighborhood neighborhood, std::string name ) 
-    : rule_ptr( rule_ptr ), rule( rule ), neighborhood( neighborhood ), name( name ) {}
+    any_rule( any_rule_ptr rule_ptr, CA_rule rule, CA_initializer initializer, std::string name ) 
+    : rule_ptr( rule_ptr ), rule( rule ), initializer( initializer ), name( name ) {}
 };
 
 #endif // __ANY_RULE_HPP

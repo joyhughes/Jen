@@ -259,4 +259,4 @@ effect_list& scene::get_effect_list( const std::string& name ) {
         if( eff_list.name == name )
             return eff_list;
     throw std::runtime_error( "scene::get_effect_list: effect list" + name + " not found" );
-}
+} 

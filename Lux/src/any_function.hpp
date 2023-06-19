@@ -17,7 +17,10 @@ typedef std::variant <
     // parameter functions
     std::shared_ptr< index_param< float > >,
     std::shared_ptr< scale_param< float > >,
-    std::shared_ptr< time_param<  float > >
+    std::shared_ptr< time_param<  float > >,
+
+    // ui functions
+    std::shared_ptr< slider_fn >
 
 > any_float_fn_ptr;
 
@@ -42,7 +45,10 @@ typedef any_fn< float > any_float_fn;
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_int >,
-    std::shared_ptr< adder_int >
+    std::shared_ptr< adder_int >,
+
+    // ui functions
+    std::shared_ptr< int_slider_fn >
 > any_int_fn_ptr;
 
 template<> struct any_fn< int > {
@@ -182,7 +188,8 @@ typedef std::variant <
     std::shared_ptr< random_condition >,
     std::shared_ptr< random_sticky_condition >,
     std::shared_ptr< mousedown_condition >,
-    std::shared_ptr< mouseover_condition >
+    std::shared_ptr< mouseover_condition >,
+    std::shared_ptr< mouseclick_condition >
 > any_condition_fn_ptr;
 
 struct any_condition_fn {

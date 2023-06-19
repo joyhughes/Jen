@@ -43,6 +43,16 @@ float wiggle::operator () ( float& val, element_context& context  )
     else return 0.0f; 
 }
 
+float slider_fn::operator () ( float& val, element_context& context  )
+{
+    return std::lerp( *min, *max, context.s.ui.slider_value );
+}
+
+int int_slider_fn::operator () ( int& val, element_context& context  )
+{
+    return (int)std::lerp( (float)*min, (float)*max, context.s.ui.slider_value );
+}
+
 vec2f mouse_pos_fn::operator () ( vec2f& val, element_context& context  )
 {
     return context.s.get_mouse_pos();
@@ -222,6 +232,10 @@ bool mousedown_condition::operator () ( element_context& context ) {
 
 bool mouseover_condition::operator () ( element_context& context ) { 
     return context.s.ui.mouse_over; 
+}
+
+bool mouseclick_condition::operator () ( element_context& context ) { 
+    return context.s.ui.mouse_click; 
 }
 
 void filter::operator () ( element_context& context ) { 
