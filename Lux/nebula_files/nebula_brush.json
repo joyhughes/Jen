@@ -13,6 +13,7 @@
         {
             "name": "nebula_element",
             "image": "nebula",
+            "mask": "nebula_mask",
             "scale": 0.3
         }
     ],
@@ -42,13 +43,31 @@
     "effects":
     [
         {
+            "name": "gray",
+            "type": "eff_grayscale_ucolor"
+        },
+        {
+            "name": "mirror",
+            "type": "eff_mirror_ucolor",
+            "reflect_x": true,
+            "reflect_y": true
+        },
+        {
+            "name": "turn_right",
+            "type": "eff_turn_ucolor",
+            "direction": "up"
+        },
+        {
             "name": "sorter",
             "type": "CA_ucolor",
-            "rule": 
+            "rule":
             {
                 "name": "sort",
-                "type": "rule_pixel_sort_ucolor",
+                "type": "rule_funky_sort_ucolor",
                 "direction": "down_right",
+                "dafunk_d": "0xffffffffaa00aa00",
+                "dafunk_l": "0x5fc1850e6d728137",
+                "dafunk_r": "0xfa6c916dae77c405",
                 "max_diff": { "functions": [ "max_diff_slider" ] }
             }
         },
@@ -61,8 +80,22 @@
     "queue":
     [
         {
-            "name": "nebula_sort",
+            "name": "nebula_mask",
             "source": "nebula",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "gray" ]
+        },
+        {
+            "name": "nebula_mirror",
+            "source": "nebula",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "turn_right" ]
+        },
+        {
+            "name": "nebula_sort",
+            "source": "nebula_mirror",
             "type": "uimage",
             "mode": "iterative",  
             "effects": [ "brush", "sorter" ]
