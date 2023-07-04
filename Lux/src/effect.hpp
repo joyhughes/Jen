@@ -62,6 +62,87 @@ typedef eff_noise< vec2f > eff_noise_vec2f;
 typedef eff_noise< int > eff_noise_int;
 typedef eff_noise< vec2i > eff_noise_vec2i;
 
+template< class T > struct eff_grayscale {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_grayscale< frgb > eff_grayscale_frgb;
+typedef eff_grayscale< ucolor > eff_grayscale_ucolor;
+
+template< class T > struct eff_crop_circle {
+    harness< T > background;
+    harness< float > ramp_width;
+    
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_crop_circle< frgb > eff_crop_circle_frgb;
+typedef eff_crop_circle< ucolor > eff_crop_circle_ucolor;
+typedef eff_crop_circle< vec2f > eff_crop_circle_vec2f;
+typedef eff_crop_circle< int > eff_crop_circle_int;
+typedef eff_crop_circle< vec2i > eff_crop_circle_vec2i;
+
+template< class T > struct eff_mirror {
+    bool reflect_x;
+    bool reflect_y;
+    bool top_to_bottom;    // reflect from top to bottom if true, otherwise bottom to top
+    bool left_to_right;   // reflect from left to right if true, otherwise right to left
+
+    harness< vec2f > center;
+
+    image_extend extend;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_mirror( bool reflect_x_init = false, 
+                bool reflect_y_init = true,
+                bool top_to_bottom_init = true,
+                bool left_to_right_init = true,
+                vec2f center_init = vec2f( 0.0f, 0.0f ),
+                image_extend extend_init = SAMP_SINGLE ) : 
+        reflect_x( reflect_x_init ), 
+        reflect_y( reflect_y_init ),
+        top_to_bottom( top_to_bottom_init ),
+        left_to_right( left_to_right_init ),
+        center( center_init ),
+        extend( extend_init )
+        {}
+};
+
+typedef eff_mirror< frgb > eff_mirror_frgb;
+typedef eff_mirror< ucolor > eff_mirror_ucolor;
+typedef eff_mirror< vec2f > eff_mirror_vec2f;
+typedef eff_mirror< int > eff_mirror_int;
+typedef eff_mirror< vec2i > eff_mirror_vec2i;
+
+template< class T > struct eff_turn {
+    direction4 direction;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_turn( direction4 direction_init = D4_RIGHT ) : direction( direction_init ) {}
+};
+
+typedef eff_turn< frgb > eff_turn_frgb;
+typedef eff_turn< ucolor > eff_turn_ucolor;
+typedef eff_turn< vec2f > eff_turn_vec2f;
+typedef eff_turn< int > eff_turn_int;
+typedef eff_turn< vec2i > eff_turn_vec2i;
+
+template< class T > struct eff_flip {
+    bool flip_x, flip_y;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_flip( bool flip_x_init = true, bool flip_y_init = false ) : flip_x( flip_x_init ), flip_y( flip_y_init ) {}
+};
+
+typedef eff_flip< frgb > eff_flip_frgb;
+typedef eff_flip< ucolor > eff_flip_ucolor;
+typedef eff_flip< vec2f > eff_flip_vec2f;
+typedef eff_flip< int > eff_flip_int;
+typedef eff_flip< vec2i > eff_flip_vec2i;
+
 // Component effect - wrapper for warp with vector field
 template< class T > struct eff_vector_warp {
     std::string vf_name;    // used to reference vector field from queue

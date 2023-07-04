@@ -46,6 +46,82 @@ template class eff_noise< vec2f >;
 template class eff_noise< int >;
 template class eff_noise< vec2i >;
 
+template< class T > void eff_grayscale< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
+        buf_ptr->get_image().grayscale();
+    }
+}
+
+template class eff_grayscale< frgb >;
+template class eff_grayscale< ucolor >;
+
+template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_crop_circle: no image in buffer" );
+        background( context ); ramp_width( context );
+        buf_ptr->get_image().crop_circle( *background, *ramp_width );
+    }
+}
+
+template class eff_crop_circle< frgb >;
+template class eff_crop_circle< ucolor >;
+template class eff_crop_circle< vec2f >;
+template class eff_crop_circle< int >;
+template class eff_crop_circle< vec2i >;
+
+template< class T > void eff_mirror< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_mirror: no image in buffer" );
+        buf_ptr->get_buffer().mirror( buf_ptr->get_image(), reflect_x, reflect_y, top_to_bottom, left_to_right, *center, extend );
+        buf_ptr->swap();
+    }
+}
+
+template class eff_mirror< frgb >;
+template class eff_mirror< ucolor >;
+template class eff_mirror< vec2f >;
+template class eff_mirror< int >;
+template class eff_mirror< vec2i >;
+
+template< class T > void eff_turn< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_turn: no image in buffer" );
+        buf_ptr->get_buffer().turn( buf_ptr->get_image(), direction );
+        buf_ptr->swap();
+    }
+}
+
+template class eff_turn< frgb >;
+template class eff_turn< ucolor >;
+template class eff_turn< vec2f >;
+template class eff_turn< int >;
+template class eff_turn< vec2i >;
+
+template< class T > void eff_flip< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_flip: no image in buffer" );
+        buf_ptr->get_buffer().flip( buf_ptr->get_image(), flip_x, flip_y );
+        buf_ptr->swap();
+    }
+} 
+
+template class eff_flip< frgb >;
+template class eff_flip< ucolor >;
+template class eff_flip< vec2f >;
+template class eff_flip< int >;
+template class eff_flip< vec2i >;
+
 template< class T > void eff_vector_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {

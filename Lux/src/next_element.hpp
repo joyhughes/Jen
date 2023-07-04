@@ -147,7 +147,7 @@ struct int_slider_fn {
 
     int operator () ( int& val, element_context& context ); 
 
-    int_slider_fn( const int& min_init = 0, const int& max_init = 100 ) : min( min_init ), max( max_init ) {}
+    int_slider_fn( const int& min_init = 0, const int& max_init = 100 ) : min( min_init ), max( max_init ) { std::cout << "int_slider_fn constructor" << std::endl; }
 };
 
 // Vec2f function returning mouse position in parametric space

@@ -40,11 +40,13 @@ typedef enum mutation_type {  MUTATE_NONE,
 } mutation_type;
 
 typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
-static bool horizontal_direction4( direction4 d ) { return ( d == D4_RIGHT || d == D4_LEFT ); }
+static bool horizontal( direction4 d ) { return ( d == D4_RIGHT || d == D4_LEFT ); }
+static bool vertical(   direction4 d ) { return ( d == D4_UP || d == D4_DOWN ); }
 
 typedef enum direction8 { D8_UP, D8_UPRIGHT, D8_RIGHT, D8_DOWNRIGHT, D8_DOWN, D8_DOWNLEFT, D8_LEFT, D8_UPLEFT } direction8;
-static bool horizontal_direction8( direction8 d ) { return ( d == D8_RIGHT || d == D8_LEFT ); }
-static bool diagonal_direction8(   direction8 d ) { return ( (int)d % 2 ); }
+static bool horizontal( direction8 d ) { return ( d == D8_RIGHT || d == D8_LEFT ); }
+static bool vertical(   direction8 d ) { return ( d == D8_UP || d == D8_DOWN ); }
+static bool diagonal(   direction8 d ) { return ( (int)d % 2 ); }
 
 template< class T > class image;
 
@@ -145,6 +147,15 @@ public:
     void crop( const bb2i& bb );
     void crop_circle( const T& background, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
     void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void mirror(    const image< T >& in,
+                    const bool& reflect_x = false, 
+                    const bool& reflect_y = true, 
+                    const bool& top_to_bottom = true, 
+                    const bool& left_to_right = true, 
+                    const vec2f& center = vec2f( 0.0f, 0.0f ), 
+                    const image_extend& extend = SAMP_SINGLE );
+    void turn( const image< T >& in, const direction4& direction );
+    void flip( const image< T >& in, const bool& flip_x, const bool& flip_y );
 
     // pixel modification functions
     void copy( const I& img );

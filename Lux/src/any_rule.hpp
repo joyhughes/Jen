@@ -7,25 +7,30 @@
 #include <memory>
 #include "ucolor.hpp"
 
-typedef enum CA_neighborhood  {  NEIGHBORHOOD_MOORE, 
-                                 NEIGHBORHOOD_VON_NEUMANN,
-                                 NEIGHBORHOOD_VON_NEUMANN_DIAGONAL, 
-                                 NEIGHBORHOOD_MARGOLUS,
-                                 NEIGHBORHOOD_MARGOLUS_OFFSET,
-                                 NEIGHBORHOOD_HEXAGONAL,
-                                 NEIGHBORHOOD_HEXAGONAL_RANDOM,
-                                 NEIGHBORHOOD_TRIANGULAR,
-                                 NEIGHBORHOOD_TRIANGULAR_RANDOM,
-                                 NEIGHBORHOOD_PENTAGONAL,
-                                 NEIGHBORHOOD_PENTAGONAL_RANDOM,
-                                 NEIGHBORHOOD_HEXADECAGONAL,
-                                 NEIGHBORHOOD_HEXADECAGONAL_RANDOM,
-                                 NEIGHBORHOOD_OCTAGONAL,
-                                 NEIGHBORHOOD_OCTAGONAL_RANDOM,
-                                 NEIGHBORHOOD_STAR,
-                                 NEIGHBORHOOD_STAR_RANDOM,
-                                 NEIGHBORHOOD_CUSTOM,
-                                 NEIGHBORHOOD_CUSTOM_RANDOM
+typedef enum CA_neighborhood  {  HOOD_MOORE, 
+                                 HOOD_VON_NEUMANN,
+                                 HOOD_VON_NEUMANN_DIAGONAL, 
+                                 HOOD_MARGOLUS,
+                                 HOOD_HOUR, // forward hourglass
+                                 HOOD_HOUR_REV, // backward hourglass
+                                 HOOD_BOW, // bowtie
+                                 HOOD_BOW_REV, // backward bowtie
+                                 HOOD_SQUARE, // square
+                                 HOOD_SQUARE_REV, // backward square
+                                 HOOD_HEXAGONAL,
+                                 HOOD_HEXAGONAL_RANDOM,
+                                 HOOD_TRIANGULAR,
+                                 HOOD_TRIANGULAR_RANDOM,
+                                 HOOD_PENTAGONAL,
+                                 HOOD_PENTAGONAL_RANDOM,
+                                 HOOD_HEXADECAGONAL,
+                                 HOOD_HEXADECAGONAL_RANDOM,
+                                 HOOD_OCTAGONAL,
+                                 HOOD_OCTAGONAL_RANDOM,
+                                 HOOD_STAR,
+                                 HOOD_STAR_RANDOM,
+                                 HOOD_CUSTOM,
+                                 HOOD_CUSTOM_RANDOM
 } CA_neighborhood;
 
 struct element_context;
@@ -38,6 +43,7 @@ template < class T > struct rule_diffuse;
 template < class T > struct rule_gravitate;
 template < class T > struct rule_snow;
 template < class T > struct rule_pixel_sort;
+template < class T > struct rule_funky_sort;
 
 typedef std::variant <
     std::shared_ptr< rule_identity< ucolor > >,
@@ -45,9 +51,9 @@ typedef std::variant <
     std::shared_ptr< rule_diffuse< ucolor > >,
     std::shared_ptr< rule_gravitate< ucolor > >,
     std::shared_ptr< rule_snow< ucolor > >,
-    std::shared_ptr< rule_pixel_sort< ucolor > >
+    std::shared_ptr< rule_pixel_sort< ucolor > >,
+    std::shared_ptr< rule_funky_sort< ucolor > >
 > any_rule_ptr;
-
 
 // only works for ucolor at this point
 struct any_rule {

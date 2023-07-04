@@ -19,8 +19,6 @@ struct frame_context {
   SDL_Surface *screen;
   scene *s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
-  //int frame, nframes;
-  //int curliness;
 };
 
 frame_context *global_context;
@@ -89,7 +87,7 @@ void mouse_click( bool click ) {
 
 // slider value set to range [0.0, 1.0]
 void slider_value( std::string value ) {
-    std::cout << "slider value: " << value << std::endl;
+    //std::cout << "slider value: " << value << std::endl;
     global_context->s->ui.slider_value = ( float )std::stoi( value ) / 1000.0f;
 }
 
@@ -97,6 +95,7 @@ int main(int argc, char** argv) {
     vec2i dim( { 512, 512 } );
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
+    //scene s( "diffuser_files/diffuser_brush.json" ); 
     scene s( "nebula_files/nebula_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
     emscripten_run_script("console.log('scene loaded');");
@@ -105,14 +104,6 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     s.set_output_buffer( any_buf );
     s.ui.canvas_bounds = bb2i( dim );
-    //scene s( "moon_files/galaxy_moon.json" ); 
-    //scene s( "foo.json" );
-    //scene s;
-    /*any_gen_fn_ptr& fn = s.gen_fns[ "curler" ].my_gen_fn;
-    std::visit (overloaded {
-        []( std::shared_ptr< curly >& c ) { c->curliness = 0.0f; },
-        []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
-    }, fn ); */
     SDL_Init(SDL_INIT_VIDEO); 
     SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
@@ -121,8 +112,6 @@ int main(int argc, char** argv) {
     context.screen = screen;
     context.s = &s;
     context.buf = buf;
-    //context.nframes = 100;
-    //context.frame = 0;
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS

@@ -143,6 +143,81 @@ template< class T > void image< T >::crop_circle( const float& ramp_width ) {
     crop_circle( b, ramp_width );
 }
 
+template< class T > void image< T >::mirror(    const image< T >& in,
+                                                const bool& reflect_x, 
+                                                const bool& reflect_y, 
+                                                const bool& top_to_bottom, 
+                                                const bool& left_to_right, 
+                                                const vec2f& center, 
+                                                const image_extend& extend ) {
+    if( in.dim != dim ) throw std::runtime_error( "mirror: input image must have same dimensions" );                                               
+    vec2i icenter = ipbounds.bb_map( center, bounds );
+
+    auto it = base.begin();
+    for( int y = 0; y < dim.y; y++ ) {
+        vec2i ip = { 0, y };
+        if( reflect_y ) {
+            if( !top_to_bottom ) 
+                 { if( y < icenter.y ) ip.y = icenter.y + ( y - icenter.y ); }   
+            else { if( y > icenter.y ) ip.y = icenter.y - ( y - icenter.y ); }
+        }
+        for( int x = 0; x < dim.x; x ++ ) {
+            ip.x = x;
+            if( reflect_x ) {
+                if( left_to_right ) 
+                     { if( x > icenter.x ) ip.x = icenter.x - ( x - icenter.x ); }
+                else { if( x < icenter.x ) ip.x = icenter.x + ( x - icenter.x ); }
+            }
+            *it = in.index( ip, extend );
+            it++;
+        }
+    }
+}
+
+template< class T > void image< T >::turn( const image< T >& in, const direction4& direction ) {
+    if( direction == D4_UP || direction == D4_DOWN ) {
+        if( in.dim != dim ) throw std::runtime_error( "turn: image size mismatch\n" ); 
+        if( direction == D4_UP ) { std::copy( in.begin(), in.end(), begin() ); }
+        else             { std::reverse_copy( in.begin(), in.end(), begin() ); }
+    }
+    else { // left or right
+        if( in.dim.x != dim.y || in.dim.y != dim.x ) throw std::runtime_error( "turn: input image must have same dimensions, rotated 90 degrees\n" );
+        auto it = begin();
+        for( int y = 0; y < dim.y; y++ ) {
+            for( int x = 0; x < dim.x; x++ ) {
+                if( direction == D4_RIGHT ) *it = in.index( { dim.x - 1 - y, x } );
+                else                        *it = in.index( { y, dim.y - 1 - x } );
+                *it++;
+            }
+        }
+    }
+}
+
+template< class T > void image< T >::flip( const image< T >& in, const bool& flip_x, const bool& flip_y ) {
+    if( in.dim != dim ) throw std::runtime_error( "flip: image size mismatch" ); 
+    auto it = base.begin();
+    if( flip_x ) {
+        if( flip_y ) { std::reverse_copy( in.begin(), in.end(), begin() ); }
+        else {    
+            auto in_it = in.begin(); auto it = begin();
+            for( int y = 0; y < dim.y; y++ ) {
+                std::reverse_copy( in_it, in_it + dim.x - 1, it );
+                in_it += dim.x; it += dim.x;
+            }
+        }
+    }
+    else {
+        if( flip_y ) {
+            auto in_it = in.begin() + (dim.y - 1 ) * dim.x; auto it = begin();
+            for( int y = 0; y < dim.y; y++ ) {
+                std::copy( in_it, in_it + dim.x - 1, it );
+                in_it -= dim.x; it += dim.x;
+            }
+        }
+        else { std::copy( in.begin(), in.end(), begin() ); } // no change
+    }
+}
+
 // copy image of same size ( may need to be able to scale as well )
 template< class T > void image< T >::copy( const image< T >& img ) {
     set_dim( img.dim );

@@ -93,6 +93,14 @@ ucolor scene_reader::read_ucolor( const json& j ) {
     return u;
 }
 
+unsigned long long scene_reader::read_ull( const json& j ) { 
+    std::string s;
+    unsigned long long ull;
+    j.get_to( s );
+    std::istringstream( s ) >> std::hex >> ull;
+    return ull;
+}
+
 direction4 scene_reader::read_direction4( const json& j ) { 
     std::string s;
     direction4 d;
@@ -398,11 +406,12 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }
 
-    RULE( rule_life_ucolor ) END_RULE()
-    RULE( rule_diffuse_ucolor)     READR( alpha_block ) END_RULE()
-    RULE( rule_gravitate_ucolor )  READR( direction ) READR( alpha_block ) END_RULE()
-    RULE( rule_snow_ucolor )       READR( direction ) READR( alpha_block ) END_RULE()
-    RULE( rule_pixel_sort_ucolor ) READR( direction ) READR( alpha_block ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_life_ucolor )   END_RULE()
+    RULE( rule_diffuse_ucolor) END_RULE()
+    RULE( rule_gravitate_ucolor )  READR( direction ) END_RULE()
+    RULE( rule_snow_ucolor )       READR( direction ) END_RULE()
+    RULE( rule_pixel_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) END_RULE()
 }
 
 void scene_reader::read_effect( const json& j ) {
@@ -480,6 +489,33 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_fill_vec2i )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_vec2f )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_int )    HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+
+    EFF( eff_grayscale_frgb )   END_EFF()
+    EFF( eff_grayscale_ucolor ) END_EFF()
+
+    EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_vec2i )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_vec2f )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_int )    HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+
+    EFF( eff_mirror_frgb)   READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_ucolor) READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_vec2i)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_vec2f)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_int)    READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+
+    EFF( eff_turn_frgb )   READE( direction ) END_EFF()
+    EFF( eff_turn_ucolor ) READE( direction ) END_EFF()
+    EFF( eff_turn_vec2i )  READE( direction ) END_EFF()
+    EFF( eff_turn_vec2f )  READE( direction ) END_EFF()
+    EFF( eff_turn_int )    READE( direction ) END_EFF()
+
+    EFF( eff_flip_frgb )   READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_ucolor ) READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2i )  READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2f )  READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_int )    READE( flip_x ) READE( flip_y ) END_EFF()
 
     EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
