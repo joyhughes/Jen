@@ -49,26 +49,53 @@
 /*
  template<class T> void CA<T>::set_rule( any_rule rule ) { 
     this->rule = rule; 
-    this->neighborhood = rule.neighborhood;
+    this->hood = rule.hood;
 }
 */
+
+// evaluates conditions then executes rule
+template< class T > void CA< T >::run_rule() {
+    bool block = false;
+    if( *p < 1.0f ) if( rand1( gen ) > *p ) block = true;
+    if( edge_block ) if( x <= 0 || x >= dim.x - 1 || y <= 0 || y >= dim.y - 1 ) block = true;
+    //if( alpha_block ) 
+    //if(image_block)
+    if( bright_block ) {
+        if( hood == HOOD_MOORE) {
+            unsigned int bright = ( ( MM >> 16 ) & 0xff ) + ( ( MM >> 8 ) & 0xff ) + ( MM & 0xff );
+            if( bright < *bright_min || bright > *bright_max ) block = true;
+        }
+        else {  // Margolus family assumed
+            for( int i = 0; i < 4; i++ ) {
+                unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff );
+                if( bright < *bright_min || bright > *bright_max ) block = true;
+            }
+        }
+    }
+    if( block ) {
+        if( hood == HOOD_MOORE) result[ 0 ] = MM;
+        else result = neighbors; // Margolus family assumed
+    }
+    else rule( *this );
+} 
 
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
     //std::cout << "CA: operator()" << std::endl;
     //if( p <= 0.0f ) return;
-    neighborhood = rule.init( context );
+    p( context ); bright_min( context ); bright_max( context ); 
+    hood = rule.init( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
         auto img = buf_ptr->get_image();
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
-        vec2i dim = img.get_dim();
+        dim = img.get_dim();
 
         // check neighborhood type
-        if( neighborhood == HOOD_MOORE ) {
+        if( hood == HOOD_MOORE ) {
             neighbors.resize( 9 );
             result.resize( 1 );
             auto out_it = out;
@@ -76,7 +103,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             auto dm_it = in;
             auto dr_it = in;
             // scan through image by column
-            for( int x = 0; x < dim.x; x++ ) {
+            for( x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
                 if( x == 0 ) {
                     UL = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
@@ -104,8 +131,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                for( int y = 0; y < dim.y - 1; y++ ) {
-                    rule( *this );  // apply rule
+                for( y = 0; y < dim.y - 1; y++ ) {
+                    run_rule();  // apply rule
                     *out_it = result[0];        // set output
                     out_it += dim.x;
                     // update neighborhood
@@ -118,49 +145,54 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( x == 0 ) DL = *(in + dim.x - 1); else DL = *(in + x - 1);
                 DM = *(in + x);
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
-                rule( *this );  // apply rule
+                run_rule();  // apply rule
                 *out_it = result[0];
             }
         } 
-
-        else if( ( (int)neighborhood >= (int)HOOD_MARGOLUS ) && ( (int)neighborhood <= (int)HOOD_SQUARE_REV ) ){ // Works best if image dimensions are multiples of 2
+        // Margolus neighborhood family
+        // Works best if image dimensions are multiples of 2
+        else if((int)hood >= (int)HOOD_MARGOLUS ){ 
             neighbors.resize( 4 );
             result.resize( 4 );
             auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
             auto in_ul = in; auto in_ur = in; auto in_ll = in; auto in_lr = in;
             // initialize iterators
             int startx, starty;
-            if( neighborhood == HOOD_MARGOLUS ) { 
+            if( hood == HOOD_MARGOLUS ) { 
                 if( ca_frame % 2 ) { startx = 0; starty = 0; } // even ca_frame - fits into upper left corner of image
                 else               { startx = 1; starty = -1; } // odd ca_frame - offset by 1 (initally straddles four corners of image)
             }
             // 4-cycle Margolus offset neighborhood and variants
-            else if( neighborhood == HOOD_HOUR ) { 
+            else if( hood == HOOD_HOUR ) { 
                 if( ca_frame % 2 )         startx = 0; else startx =  1;  // hourglass
                 if( ( ca_frame / 2 ) % 2 ) starty = 0; else starty = -1;
             }
-            else if( neighborhood == HOOD_HOUR_REV ) { 
+            else if( hood == HOOD_HOUR_REV ) { 
                 if( ca_frame % 2 )         startx = 1; else startx =  0;  // reverse hourglass
                 if( ( ca_frame / 2 ) % 2 ) starty = 0; else starty = -1;
             }
-            else if( neighborhood == HOOD_BOW ) { 
+            else if( hood == HOOD_BOW ) { 
                 if( ( ca_frame / 2 ) % 2 ) startx = 0; else startx = 1;  // bowtie
                 if( ca_frame % 2 )         starty = 0; else starty = -1; 
             }
-            else if( neighborhood == HOOD_BOW_REV ) {  
+            else if( hood == HOOD_BOW_REV ) {  
                 if( ( ca_frame / 2 ) % 2 ) startx =  0; else startx = 1;  // reverse bowtie
                 if( ca_frame % 2 )         starty = -1; else starty = 0; 
             }
-            else if( neighborhood == HOOD_SQUARE ) { 
+            else if( hood == HOOD_SQUARE ) { 
                 if( ( ( 1 + ca_frame ) / 2 ) % 2 ) startx = 0; else startx = 1;  // square
                 if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
             } 
-            else if( neighborhood == HOOD_SQUARE_REV ) { 
+            else if( hood == HOOD_SQUARE_REV ) { 
                 if( ( ( 5 - ( ca_frame % 4 ) ) / 2 ) % 2 ) startx = 0; else startx = 1;  // square
                 if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
             } 
+            else if( hood == HOOD_RANDOM ) {
+                if( fair_coin( gen ) ) startx = 0; else startx = 1;  // random
+                if( fair_coin( gen ) ) starty = 0; else starty = -1;
+            }
             // scan through image by row
-            for( int y = starty; y < dim.y - 1; y+=2 ) {
+            for( y = starty; y < dim.y - 1; y+=2 ) {
                 if( !startx ) { // even left edge
                     if( y == -1 ) { // top row
                         out_ul = out + ( dim.y - 1 ) * dim.x; out_ur = out_ul + 1; 
@@ -186,7 +218,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll  = in  + dim.x - 1;         in_lr  = in;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( *this );  // apply rule
+                        run_rule();  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
@@ -203,7 +235,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( *this );  // apply rule
+                        run_rule();  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
@@ -213,10 +245,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
                     }
                 }
-                for( int x= startx; x < dim.x; x += 2 ) {
+                for( x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                    rule( *this );  // apply rule
+                    run_rule();  // apply rule
                     *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                     // update neighborhood
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
@@ -231,9 +263,9 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         ca_frame++;
         buf_ptr->swap();
     }
-}
+} 
 
-template< class T > CA_neighborhood rule_identity< T >::operator () ( element_context &context )
+template< class T > CA_hood rule_identity< T >::operator () ( element_context &context )
 { return HOOD_MARGOLUS; }
 
 template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) { 
@@ -258,7 +290,7 @@ template<class T> inline rule_life<T>::rule_life() {
     off = c;
 }
 
-template< class T > CA_neighborhood rule_life< T >::operator () ( element_context &context ) {
+template< class T > CA_hood rule_life< T >::operator () ( element_context &context ) {
     on( context ); off( context );
     return HOOD_MOORE;
 }
@@ -279,7 +311,7 @@ template< class T > void rule_life< T >::operator () ( CA< T >& ca ) {
     }
 }
 
-template< class T > CA_neighborhood rule_diffuse< T >::operator () ( element_context &context ) 
+template< class T > CA_hood rule_diffuse< T >::operator () ( element_context &context ) 
 { return HOOD_MARGOLUS; }
 
 template< class T > void rule_diffuse< T >::operator () ( CA< T >& ca ) {
@@ -293,7 +325,7 @@ template< class T > void rule_diffuse< T >::operator () ( CA< T >& ca ) {
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > CA_neighborhood rule_gravitate< T >::operator () ( element_context &context )
+template< class T > CA_hood rule_gravitate< T >::operator () ( element_context &context )
 { return HOOD_MARGOLUS; } 
 
 template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
@@ -332,7 +364,7 @@ template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
     result[3] = neighbors[ (r + 3) % 4 ];
 } 
 
-template< class T > CA_neighborhood rule_snow< T >::operator () ( element_context &context ) 
+template< class T > CA_hood rule_snow< T >::operator () ( element_context &context ) 
 { return HOOD_MARGOLUS; }
 
 // Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
@@ -373,7 +405,7 @@ template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > CA_neighborhood rule_pixel_sort< T >::operator () ( element_context &context ) 
+template< class T > CA_hood rule_pixel_sort< T >::operator () ( element_context &context ) 
 { 
     max_diff( context );
     if( diagonal( direction ) ) return HOOD_HOUR; 
@@ -413,7 +445,7 @@ template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
     } 
 }
 
-template< class T > CA_neighborhood rule_funky_sort< T >::operator () ( element_context &context ) 
+template< class T > CA_hood rule_funky_sort< T >::operator () ( element_context &context ) 
 { 
     max_diff( context );
     return hood;

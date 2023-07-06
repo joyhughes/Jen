@@ -12,6 +12,6 @@ void any_rule::operator () ( CA< ucolor >& ca ) {
     rule( ca );
 }
 
-CA_neighborhood any_rule::init( element_context& context ) {
+CA_hood any_rule::init( element_context& context ) {
     return initializer( context );
 }

@@ -51,7 +51,6 @@ float slider_fn::operator () ( float& val, element_context& context  )
 
 int int_slider_fn::operator () ( int& val, element_context& context  )
 {
-    std::cout << "int_slider_fn" << std::endl;
     return (int)std::lerp( (float)*min, (float)*max, context.s.ui.slider_value );
 }
 

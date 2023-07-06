@@ -7,9 +7,9 @@
 #include <memory>
 #include "ucolor.hpp"
 
-typedef enum CA_neighborhood  {  HOOD_MOORE, 
-                                 HOOD_VON_NEUMANN,
-                                 HOOD_VON_NEUMANN_DIAGONAL, 
+typedef enum CA_hood  {  HOOD_MOORE, 
+                                 // HOOD_VON_NEUMANN,
+                                 // HOOD_VON_NEUMANN_DIAGONAL, 
                                  HOOD_MARGOLUS,
                                  HOOD_HOUR, // forward hourglass
                                  HOOD_HOUR_REV, // backward hourglass
@@ -17,7 +17,8 @@ typedef enum CA_neighborhood  {  HOOD_MOORE,
                                  HOOD_BOW_REV, // backward bowtie
                                  HOOD_SQUARE, // square
                                  HOOD_SQUARE_REV, // backward square
-                                 HOOD_HEXAGONAL,
+                                 HOOD_RANDOM // ,   // random offset Margolus
+                                 /* HOOD_HEXAGONAL,
                                  HOOD_HEXAGONAL_RANDOM,
                                  HOOD_TRIANGULAR,
                                  HOOD_TRIANGULAR_RANDOM,
@@ -30,8 +31,8 @@ typedef enum CA_neighborhood  {  HOOD_MOORE,
                                  HOOD_STAR,
                                  HOOD_STAR_RANDOM,
                                  HOOD_CUSTOM,
-                                 HOOD_CUSTOM_RANDOM
-} CA_neighborhood;
+                                 HOOD_CUSTOM_RANDOM */
+} CA_hood;
 
 struct element_context;
 
@@ -58,7 +59,7 @@ typedef std::variant <
 // only works for ucolor at this point
 struct any_rule {
     typedef std::function< void ( CA< ucolor >& ) > CA_rule;
-    typedef std::function< CA_neighborhood ( element_context& ) > CA_initializer;
+    typedef std::function< CA_hood ( element_context& ) > CA_initializer;
 
     any_rule_ptr rule_ptr;
     CA_rule rule;
@@ -66,7 +67,7 @@ struct any_rule {
     std::string name;
 
     void operator () ( CA< ucolor >& ca );  // call the rule
-    CA_neighborhood init( element_context& context );  // call the initializer
+    CA_hood init( element_context& context );  // call the initializer
 
     any_rule();
     any_rule( any_rule_ptr rule_ptr, CA_rule rule, CA_initializer initializer, std::string name ) 

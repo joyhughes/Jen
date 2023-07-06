@@ -56,8 +56,10 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Elements loaded" ) 
     add_default_functions();
     if( j.contains( "functions" ) ) for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
+    DEBUG( "Functions loaded" )
     
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
+    DEBUG( "Clusters loaded" )
     // render list - list of images, elements, clusters, and effects (each represented as an effect)
     if( j.contains( "effects" ) )   for( auto& jeff : j[ "effects" ] )     read_effect( jeff );
     DEBUG( "Effects loaded" )
@@ -167,6 +169,25 @@ render_mode scene_reader::read_render_mode( const json& j ) {
     else if( s == "ephemeral" ) r = render_mode::MODE_EPHEMERAL;
     else ERROR( "Invalid render_mode string: " + s )
     return r;
+}
+
+CA_hood scene_reader::read_hood( const json& j ) { 
+    std::string s;
+    CA_hood h;
+
+    j.get_to( s );
+    if(      s == "Moore" )             h = HOOD_MOORE;
+    else if( s == "Margolus" )          h = HOOD_MARGOLUS;
+    else if( s == "hourglass" )         h = HOOD_HOUR;
+    else if( s == "hourglass_reverse" ) h = HOOD_HOUR_REV;
+    else if( s == "bowtie" )            h = HOOD_BOW;
+    else if( s == "bowtie_reverse" )    h = HOOD_BOW_REV;
+    else if( s == "square" )            h = HOOD_SQUARE;
+    else if( s == "square_reverse" )    h = HOOD_SQUARE_REV;
+    else if( s == "random" )            h = HOOD_RANDOM;
+
+    else ERROR( "Invalid CA_hood string: " + s )
+    return h;
 }
 
 void scene_reader::read_image( const json& j ) {
@@ -411,7 +432,7 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_gravitate_ucolor )  READR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       READR( direction ) END_RULE()
     RULE( rule_pixel_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) END_RULE()
-    RULE( rule_funky_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
 }
 
 void scene_reader::read_effect( const json& j ) {
@@ -419,6 +440,7 @@ void scene_reader::read_effect( const json& j ) {
 
     // Required fields
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "Effect name missing\n" )
+    DEBUG( "Reading effect " + name )
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "Effect type missing\n" )
     // Check for unique name. Future - make sure duplicate effects refer to the same effect
 
@@ -459,7 +481,8 @@ void scene_reader::read_effect( const json& j ) {
     // special case for CA rules
     EFF( CA_ucolor )
     if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
-    else ERROR( "CA rule missing\n" )
+    HARNESSE( p ) READE( edge_block ) READE( alpha_block ) 
+    READE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
     END_EFF()
 
     // special case for effects running effects
@@ -534,6 +557,8 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_feedback_vec2i )  READE( wf_name ) END_EFF()
     EFF( eff_feedback_vec2f )  READE( wf_name ) END_EFF()
     EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
+
+    DEBUG( "Finished reading effect " + name )
 }
 
 void scene_reader::read_queue( const json& j, effect_list& elist ) {
