@@ -19,8 +19,6 @@ struct frame_context {
   SDL_Surface *screen;
   scene *s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
-  //int frame, nframes;
-  //int curliness;
 };
 
 frame_context *global_context;
@@ -28,16 +26,17 @@ frame_context *global_context;
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
-    if( !running && displayed ) return;
     frame_context *context;
     context = (frame_context *)arg;
+    if( !running && displayed ) {
+        global_context->s->ui.mouse_click = false;
+        return;
+    }
     // unpack context
     SDL_Surface *screen = context->screen;
     uimage& img = (uimage &)(context->buf->get_image());
     vec2i dim = img.get_dim();
     scene &s = *(context->s);
-    //float time_interval = 1.0f / (float)context->nframes;
-    //float time = (float)context->frame * time_interval;
     
     if (SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
 
@@ -53,26 +52,9 @@ void render_and_display( void *arg )
     if (SDL_MUSTLOCK(screen)) SDL_UnlockSurface(screen);
 
     if( running || !displayed ) {
-        // set curliness based on slider value
-        /*
-        float v = (float)context->curliness / 100.0f;
-        any_gen_fn_ptr& fn = global_context->s->gen_fns[ "curler" ].my_gen_fn;
-        std::visit (overloaded {
-            [ v ]( std::shared_ptr< curly >& c ) { c->curliness = v; },
-            []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
-        }, fn );        img.fill(0x0);
-        */
-        // clear image and render scene
-        //any_image_ptr any_out = context->img;
         s.render();
-        //displayed = false;
     }
-
-    /*if( displayed ) context->frame++;
-    if( context->frame >= context->nframes ) {
-        context->frame = 0;
-        // reset scene functors
-    }*/
+    global_context->s->ui.mouse_click = false;
     displayed = true;
 }
 
@@ -84,11 +66,6 @@ void restart() {
     //global_context->frame = 0;
     global_context->s->restart();
     displayed = false;
-}
-
-void slider_value( int value ) {
-    //global_context->curliness = value;
-    //displayed = false;
 }
 
 void mouse_move( float x, float y ) {
@@ -104,17 +81,22 @@ void mouse_over( bool over ) {
     if( !over ) global_context->s->ui.mouse_down = false;
 }
 
-/*
-void slider_value( int value ) {
-    float v = ( float )value / 100.0f;
-    global_context->s->elements[ "moon_element" ]->position.x = v;
+void mouse_click( bool click ) {
+    global_context->s->ui.mouse_click = click;
 }
-*/
+
+// slider value set to range [0.0, 1.0]
+void slider_value( std::string value ) {
+    //std::cout << "slider value: " << value << std::endl;
+    global_context->s->ui.slider_value = ( float )std::stoi( value ) / 1000.0f;
+}
+
 int main(int argc, char** argv) {
     vec2i dim( { 512, 512 } );
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "diffuser_files/diffuser_brush.json" ); 
+    //scene s( "diffuser_files/diffuser_brush.json" ); 
+    scene s( "nebula_files/nebula_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
     emscripten_run_script("console.log('scene loaded');");
 
@@ -122,14 +104,6 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     s.set_output_buffer( any_buf );
     s.ui.canvas_bounds = bb2i( dim );
-    //scene s( "moon_files/galaxy_moon.json" ); 
-    //scene s( "foo.json" );
-    //scene s;
-    /*any_gen_fn_ptr& fn = s.gen_fns[ "curler" ].my_gen_fn;
-    std::visit (overloaded {
-        []( std::shared_ptr< curly >& c ) { c->curliness = 0.0f; },
-        []( auto& ) { emscripten_run_script("console.log('not a curly');"); }
-    }, fn ); */
     SDL_Init(SDL_INIT_VIDEO); 
     SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
@@ -138,8 +112,6 @@ int main(int argc, char** argv) {
     context.screen = screen;
     context.s = &s;
     context.buf = buf;
-    //context.nframes = 100;
-    //context.frame = 0;
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
@@ -159,4 +131,5 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_move",   &mouse_move );
     function( "mouse_down",   &mouse_down );
     function( "mouse_over",   &mouse_over );
-} 
+    function( "mouse_click",  &mouse_click );
+}

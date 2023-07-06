@@ -56,8 +56,10 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Elements loaded" ) 
     add_default_functions();
     if( j.contains( "functions" ) ) for( auto& jfunc :  j[ "functions" ] ) read_function( jfunc  );
+    DEBUG( "Functions loaded" )
     
     if( j.contains( "clusters" ) )  for( auto& jclust : j[ "clusters"  ] ) read_cluster(  jclust ); // if no clusters, blank scene
+    DEBUG( "Clusters loaded" )
     // render list - list of images, elements, clusters, and effects (each represented as an effect)
     if( j.contains( "effects" ) )   for( auto& jeff : j[ "effects" ] )     read_effect( jeff );
     DEBUG( "Effects loaded" )
@@ -93,6 +95,14 @@ ucolor scene_reader::read_ucolor( const json& j ) {
     return u;
 }
 
+unsigned long long scene_reader::read_ull( const json& j ) { 
+    std::string s;
+    unsigned long long ull;
+    j.get_to( s );
+    std::istringstream( s ) >> std::hex >> ull;
+    return ull;
+}
+
 direction4 scene_reader::read_direction4( const json& j ) { 
     std::string s;
     direction4 d;
@@ -103,6 +113,23 @@ direction4 scene_reader::read_direction4( const json& j ) {
     else if( s == "down" ) d = direction4::D4_DOWN;
     else if( s == "left" ) d = direction4::D4_LEFT;
     else ERROR( "Invalid direction4 string: " + s )
+    return d;
+}
+
+direction8 scene_reader::read_direction8( const json& j ) { 
+    std::string s;
+    direction8 d;
+
+    j.get_to( s );
+    if(      s == "up"         ) d = direction8::D8_UP;
+    else if( s == "up_right"   ) d = direction8::D8_UPRIGHT;
+    else if( s == "right"      ) d = direction8::D8_RIGHT;
+    else if( s == "down_right" ) d = direction8::D8_DOWNRIGHT;
+    else if( s == "down"       ) d = direction8::D8_DOWN;
+    else if( s == "down_left"  ) d = direction8::D8_DOWNLEFT;
+    else if( s == "left"       ) d = direction8::D8_LEFT;
+    else if( s == "up_left"    ) d = direction8::D8_UPLEFT;
+    else ERROR( "Invalid direction8 string: " + s )
     return d;
 }
 
@@ -142,6 +169,25 @@ render_mode scene_reader::read_render_mode( const json& j ) {
     else if( s == "ephemeral" ) r = render_mode::MODE_EPHEMERAL;
     else ERROR( "Invalid render_mode string: " + s )
     return r;
+}
+
+CA_hood scene_reader::read_hood( const json& j ) { 
+    std::string s;
+    CA_hood h;
+
+    j.get_to( s );
+    if(      s == "Moore" )             h = HOOD_MOORE;
+    else if( s == "Margolus" )          h = HOOD_MARGOLUS;
+    else if( s == "hourglass" )         h = HOOD_HOUR;
+    else if( s == "hourglass_reverse" ) h = HOOD_HOUR_REV;
+    else if( s == "bowtie" )            h = HOOD_BOW;
+    else if( s == "bowtie_reverse" )    h = HOOD_BOW_REV;
+    else if( s == "square" )            h = HOOD_SQUARE;
+    else if( s == "square_reverse" )    h = HOOD_SQUARE_REV;
+    else if( s == "random" )            h = HOOD_RANDOM;
+
+    else ERROR( "Invalid CA_hood string: " + s )
+    return h;
 }
 
 void scene_reader::read_image( const json& j ) {
@@ -255,6 +301,8 @@ void scene_reader::add_default_functions() {
     s.condition_fns[ "mouse_down" ] = any_condition_fn( mouse_down, std::ref( *mouse_down ), "mouse_down" );
     std::shared_ptr< mouseover_condition > mouse_over( new mouseover_condition );
     s.condition_fns[ "mouse_over" ] = any_condition_fn( mouse_over, std::ref( *mouse_over ), "mouse_over" );
+    std::shared_ptr< mouseclick_condition > mouse_click( new mouseclick_condition );
+    s.condition_fns[ "mouse_click" ] = any_condition_fn( mouse_click, std::ref( *mouse_click ), "mouse_click" );
 
     // Cluster conditions
     std::shared_ptr< initial_element_condition > initial_element( new initial_element_condition );
@@ -265,7 +313,6 @@ void scene_reader::add_default_functions() {
     s.condition_fns[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
     std::shared_ptr< lower_level_condition > lower_level( new lower_level_condition );
     s.condition_fns[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
-
 }
 
 void scene_reader::read_function( const json& j ) {
@@ -306,6 +353,11 @@ void scene_reader::read_function( const json& j ) {
     FN( log_fn, float      ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
     FN( ratio_float, float ) HARNESS( r ) END_FN( float )
     FN( wiggle, float      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
+    FN( slider_fn, float   ) HARNESS( min ) HARNESS( max ) END_FN( float )
+
+    // harness int functions
+    FN( adder_int, int ) HARNESS( r ) END_FN( int )
+    FN( int_slider_fn, int ) HARNESS( min ) HARNESS( max ) END_FN( int )
 
     // harness vec2f functions
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
@@ -370,16 +422,17 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
 
-    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), r->neighborhood, name ); ca->rule = rule;
+    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), std::ref( *r ), name ); ca->rule = rule;
     #define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }
 
-    RULE( rule_life_ucolor ) END_RULE()
-    RULE( rule_diffuse_ucolor)     READR( alpha_block ) END_RULE()
-    RULE( rule_gravitate_ucolor )  READR( direction ) READR( alpha_block ) END_RULE()
-    RULE( rule_snow_ucolor )       READR( direction ) READR( alpha_block ) END_RULE()
-    RULE( rule_pixel_sort_ucolor ) READR( direction ) READR( alpha_block ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_life_ucolor )   END_RULE()
+    RULE( rule_diffuse_ucolor) END_RULE()
+    RULE( rule_gravitate_ucolor )  READR( direction ) END_RULE()
+    RULE( rule_snow_ucolor )       READR( direction ) END_RULE()
+    RULE( rule_pixel_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
 }
 
 void scene_reader::read_effect( const json& j ) {
@@ -387,6 +440,7 @@ void scene_reader::read_effect( const json& j ) {
 
     // Required fields
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "Effect name missing\n" )
+    DEBUG( "Reading effect " + name )
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "Effect type missing\n" )
     // Check for unique name. Future - make sure duplicate effects refer to the same effect
 
@@ -427,7 +481,8 @@ void scene_reader::read_effect( const json& j ) {
     // special case for CA rules
     EFF( CA_ucolor )
     if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
-    else ERROR( "CA rule missing\n" )
+    HARNESSE( p ) READE( edge_block ) READE( alpha_block ) 
+    READE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
     END_EFF()
 
     // special case for effects running effects
@@ -458,6 +513,33 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_fill_vec2f )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_int )    HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
+    EFF( eff_grayscale_frgb )   END_EFF()
+    EFF( eff_grayscale_ucolor ) END_EFF()
+
+    EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_vec2i )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_vec2f )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+    EFF( eff_crop_circle_int )    HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+
+    EFF( eff_mirror_frgb)   READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_ucolor) READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_vec2i)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_vec2f)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+    EFF( eff_mirror_int)    READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+
+    EFF( eff_turn_frgb )   READE( direction ) END_EFF()
+    EFF( eff_turn_ucolor ) READE( direction ) END_EFF()
+    EFF( eff_turn_vec2i )  READE( direction ) END_EFF()
+    EFF( eff_turn_vec2f )  READE( direction ) END_EFF()
+    EFF( eff_turn_int )    READE( direction ) END_EFF()
+
+    EFF( eff_flip_frgb )   READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_ucolor ) READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2i )  READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2f )  READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_int )    READE( flip_x ) READE( flip_y ) END_EFF()
+
     EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_vec2i )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
@@ -475,6 +557,8 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_feedback_vec2i )  READE( wf_name ) END_EFF()
     EFF( eff_feedback_vec2f )  READE( wf_name ) END_EFF()
     EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
+
+    DEBUG( "Finished reading effect " + name )
 }
 
 void scene_reader::read_queue( const json& j, effect_list& elist ) {

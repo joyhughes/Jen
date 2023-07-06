@@ -28,4 +28,5 @@ static float rmodf( const float f, const float m ) {
     else return remf( rat ) * m;
 }
 
+
 #endif // __JOY_RAND_HPP

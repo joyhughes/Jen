@@ -15,6 +15,11 @@ struct cluster;
 template< class T > struct CA;
 template< class T > struct eff_fill;
 template< class T > struct eff_noise;
+template< class T > struct eff_grayscale;
+template< class T > struct eff_crop_circle;
+template< class T > struct eff_mirror;
+template< class T > struct eff_turn;
+template< class T > struct eff_flip;
 template< class T > struct eff_feedback;
 template< class T > struct eff_vector_warp;
 
@@ -42,6 +47,33 @@ typedef std::variant <
     std::shared_ptr< eff_noise< int > >,
     std::shared_ptr< eff_noise< vec2i > >,
 
+    std::shared_ptr< eff_grayscale< frgb > >,
+    std::shared_ptr< eff_grayscale< ucolor > >,
+
+    std::shared_ptr< eff_crop_circle< frgb > >,
+    std::shared_ptr< eff_crop_circle< ucolor > >,
+    std::shared_ptr< eff_crop_circle< vec2f > >,
+    std::shared_ptr< eff_crop_circle< int > >,
+    std::shared_ptr< eff_crop_circle< vec2i > >,
+
+    std::shared_ptr< eff_mirror< frgb > >,
+    std::shared_ptr< eff_mirror< ucolor > >,
+    std::shared_ptr< eff_mirror< vec2f > >,
+    std::shared_ptr< eff_mirror< int > >,
+    std::shared_ptr< eff_mirror< vec2i > >,
+
+    std::shared_ptr< eff_turn< frgb > >,
+    std::shared_ptr< eff_turn< ucolor > >,
+    std::shared_ptr< eff_turn< vec2f > >,
+    std::shared_ptr< eff_turn< int > >,
+    std::shared_ptr< eff_turn< vec2i > >,
+
+    std::shared_ptr< eff_flip< frgb > >,
+    std::shared_ptr< eff_flip< ucolor > >,
+    std::shared_ptr< eff_flip< vec2f > >,
+    std::shared_ptr< eff_flip< int > >,
+    std::shared_ptr< eff_flip< vec2i > >,
+    
     std::shared_ptr< eff_feedback< frgb > >,
     std::shared_ptr< eff_feedback< ucolor > >,
     std::shared_ptr< eff_feedback< vec2f > >,

@@ -9,19 +9,78 @@
 #include "any_image.hpp"
 #include "next_element.hpp"
  
-typedef enum mutation_type {  MUTATE_NONE, 
-                              MUTATE_COLOR, 
-                              MUTATE_HUE,
-                              MUTATE_VALUE,
-                              MUTATE_SATURATION 
-} mutation_type;
+// collected funky codes for funky_sort
+#define FUNK_BORG   0xffffffffaa00aa00
+#define FUNK_WEB_L  0xffff0000ffff0000
+#define FUNK_WEB_R  0xffffffff00000000
+#define FUNK_TEST_L 0xffffffffcccccccc
+#define FUNK_TEST_R 0xffaaffaaffaaffaa
+
+// future - move alpha block to CA
+template< class T > struct CA {
+   std::vector< T > neighbors, result; // vector of neighbors - size depends on neighborhood
+   // Future - use for image targeting
+   // std::optional< std::reference_wrapper< image< T >& > > target;
+
+   // Rule can have both warp field and vector field
+   // For choice between fast and smooth
+   // std::optional< std::reference_wrapper< warp_field& > > wf; 
+   // std::optional< std::reference_wrapper< vector_field& > > vf; 
+   // std::optional< std::reference_wrapper< warp_field& > > rule_map; 
+
+   any_rule rule;   
+   // std::vector< any_rule > rules; // table of rules for rule map
+
+   CA_hood hood;
+
+   // relevant information
+   int ca_frame;  // ca_frame counter
+   int x, y;    // position of cell in image
+   vec2i dim;   // dimensions of image
+
+   // Built in conditions
+   harness< float > p;  // probability of cell running
+   bool edge_block; // if true, cells on the edge of the image will not run
+   bool alpha_block; // if true, cells will run with probability ( 1 - alpha ) / 255
+   bool bright_block;
+   harness< int > bright_min, bright_max; // cells with brightness within range will run
+   // future: image block
+
+   //void set_rule( any_rule rule );
+   void run_rule();
+   void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+   CA() :  
+      hood( HOOD_MOORE ), 
+      p( 1.0f ),
+      edge_block( false ),
+      alpha_block( false ),
+      bright_block( false ),
+      bright_min( 0 ),
+      bright_max( 768 ),
+      ca_frame(0) {}
+   CA( const any_rule& rule ) : rule( rule ), 
+      hood( HOOD_MOORE ), 
+      p( 1.0f ),
+      edge_block( false ),
+      alpha_block( false ),
+      bright_block( false ),
+      bright_min( 0 ),
+      bright_max( 768 ),
+      ca_frame(0) {}
+};
+
+//typedef CA< frgb > CA_frgb;
+typedef CA< ucolor > CA_ucolor;
+//typedef CA< vec2f > CA_vec2f;
+//typedef CA< int > CA_int;
+//typedef CA< vec2i > CA_vec2i;
 
 template< class T > struct rule_identity {
-   const CA_neighborhood neighborhood;
-
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result ) { result = neighbors; }
-
-   rule_identity() : neighborhood( NEIGHBORHOOD_MARGOLIS ){}
+   CA_hood operator () ( element_context& context );   
+   void operator () ( CA< T >& ca );
+   
+   rule_identity() {}
 };
 
 #define rule_identity_frgb rule_identity< frgb >
@@ -32,13 +91,14 @@ template< class T > struct rule_identity {
 
 // Rule functor for Conway's Game of Life
 template< class T > struct rule_life {
-   const CA_neighborhood neighborhood;
-   T on, off;  // colors to represent on and off states
+   harness< T > on, off;  // colors to represent on and off states
 
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
 
-   rule_life( const T& on_init, const T& off_init ) : on( on_init ), off( off_init ), neighborhood( NEIGHBORHOOD_MOORE ) {}
-   rule_life() : neighborhood( NEIGHBORHOOD_MOORE ) { white( on ); black( off ); }
+   rule_life( const T& on_init, const T& off_init ) : on( on_init ), off( off_init ) {}
+   rule_life();
 };
 
 #define rule_life_frgb rule_life< frgb >
@@ -49,16 +109,14 @@ template< class T > struct rule_life {
 
 // Rule functor for diffusion
 template< class T > struct rule_diffuse {
-   const CA_neighborhood neighborhood;
    std::uniform_int_distribution< int > rand_4;
-   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
 
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
 
    rule_diffuse( bool alpha_block_init = false ) :
-      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
-      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
-      alpha_block( alpha_block_init) {}
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ) { }
 };
 
 #define rule_diffuse_frgb rule_diffuse< frgb >
@@ -69,41 +127,35 @@ template< class T > struct rule_diffuse {
 
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_gravitate {
-   const CA_neighborhood neighborhood;
    std::uniform_int_distribution< int > rand_4;
    direction4 direction;
-   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
 
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
 
    rule_gravitate( direction4 direction_init = direction4::D4_DOWN, bool alpha_block_init = false ) :
       direction( direction_init ),
-      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
-      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
-      alpha_block( alpha_block_init) {}
+      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ) { }
 };
 
-#define rule_gravitate_frgb rule_gravitate< frgb >
+#define rule_gravitate_frgb   rule_gravitate< frgb >
 #define rule_gravitate_ucolor rule_gravitate< ucolor >
-#define rule_gravitate_vec2f rule_gravitate< vec2f >
-#define rule_gravitate_int rule_gravitate< int >
-#define rule_gravitate_vec2i rule_gravitate< vec2i >
+#define rule_gravitate_vec2f  rule_gravitate< vec2f >
+#define rule_gravitate_int    rule_gravitate< int >
+#define rule_gravitate_vec2i  rule_gravitate< vec2i >
 
 // Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_snow {
-   const CA_neighborhood neighborhood;
-   std::uniform_int_distribution< int > rand_4;
    direction4 direction;
-   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
 
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
 
    rule_snow( direction4 direction_init = direction4::D4_DOWN, bool alpha_block_init = false ) :
-      direction( direction_init ),
-      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
-      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
-      alpha_block( alpha_block_init) {}
+      direction( direction_init ) { }
 };
 
 #define rule_snow_frgb rule_snow< frgb >
@@ -114,21 +166,17 @@ template< class T > struct rule_snow {
 
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_pixel_sort {
-   const CA_neighborhood neighborhood;
-   std::uniform_int_distribution< int > rand_4;
-   direction4 direction;
-   bool alpha_block; // any neighborhood containing a pixel with alpha != 0 will not diffuse 
+   direction8 direction;
    harness< int > max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 
-   void operator () ( const std::vector< T >& neighbors, std::vector< T >& result );
-
-   rule_pixel_sort( direction4 direction_init = direction4::D4_DOWN, bool alpha_block_init = false, int max_diff_init = 300 ) :
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
+   rule_pixel_sort( direction8 direction_init = direction8::D8_DOWN, bool alpha_block_init = false, int max_diff_init = 300 ) :
       direction( direction_init ),
-      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
-      rand_4( std::uniform_int_distribution< int >( 0, 3 ) ),
-      alpha_block( alpha_block_init),
       max_diff( max_diff_init ) {}
 };
+
 
 #define rule_pixel_sort_frgb rule_pixel_sort< frgb >
 #define rule_pixel_sort_ucolor rule_pixel_sort< ucolor >
@@ -136,49 +184,39 @@ template< class T > struct rule_pixel_sort {
 #define rule_pixel_sort_int rule_pixel_sort< int >
 #define rule_pixel_sort_vec2i rule_pixel_sort< vec2i >
 
-// future - move alpha block to CA
-template< class T > struct CA {
-   std::vector< T > neighbors, result; // vector of neighbors - size depends on neighborhood
-   // Future - use for image targeting
-   // std::optional< std::reference_wrapper< image< T >& > > target;
-   // std::optional< std::reference_wrapper< warp_field& > > warper;  
-   any_rule rule;   
-   CA_neighborhood neighborhood;
-   mutation_type mutate_type;
-   harness< int > mutate_amount;
-   harness< float > mutate_probability;
-   harness< float > temperature; // probability rule will run even if result diverges from target
-   int frame;  // frame counter
+template< class T > struct rule_funky_sort {
+   direction8 direction;
+   CA_hood hood; // Variant of Margolus offset neighborhood
+   harness< int > max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 
-   void set_rule( any_rule rule );
-   void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+   // How funky to make it (64 bit truth table comparing pairs in the Margolus neighborhood)
+   // future: make harness< unsigned long long > 
+   unsigned long long dafunk_l;  // Funky lookup table for first pair, rotated by direction  
+   unsigned long long dafunk_r;  // Funky lookup table for second pair, rotated by direction
+   unsigned long long dafunk_d;  // Funky lookup table for diagonal pair, rotated by direction
 
-   CA() :  
-      neighborhood( NEIGHBORHOOD_MARGOLIS ), 
-      mutate_type( MUTATE_NONE ),
-      mutate_amount( 0 ), 
-      mutate_probability( 0.0f ), 
-      temperature( 0.0f ), 
-      frame(0) {}
-   CA( const any_rule& rule, 
-   const CA_neighborhood& neighborhood, 
-   const mutation_type& mutate_type = MUTATE_NONE, 
-   const float& mutate_amount = 0.0f, 
-   const float& mutate_probability = 0.0f, 
-   const float& temperature = 0.0f ) : 
-      rule( rule ), 
-      neighborhood( neighborhood ), 
-      mutate_type( mutate_type ), 
-      mutate_amount( mutate_amount ), 
-      mutate_probability( mutate_probability ), 
-      temperature( temperature ),
-      frame(0) {}
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+            
+   rule_funky_sort(  unsigned long long dafunk_l_init = 0, 
+                     unsigned long long dafunk_r_init = 0, 
+                     unsigned long long dafunk_d_init = FUNK_BORG, 
+                     int max_diff_init = 300,
+                     direction8 direction_init = D8_DOWN, 
+                     CA_hood hood_init = HOOD_HOUR
+                     ) :
+      dafunk_l( dafunk_l_init ),
+      dafunk_r( dafunk_r_init ),
+      dafunk_d( dafunk_d_init ),
+      direction( direction_init ),
+      hood( hood_init ),
+      max_diff( max_diff_init ) {}
 };
 
-//typedef CA< frgb > CA_frgb;
-typedef CA< ucolor > CA_ucolor;
-//typedef CA< vec2f > CA_vec2f;
-//typedef CA< int > CA_int;
-//typedef CA< vec2i > CA_vec2i;
+#define rule_funky_sort_frgb rule_funky_sort< frgb >
+#define rule_funky_sort_ucolor rule_funky_sort< ucolor >
+#define rule_funky_sort_vec2f rule_funky_sort< vec2f >
+#define rule_funky_sort_int rule_funky_sort< int >
+#define rule_funky_sort_vec2i rule_funky_sort< vec2i >
 
-#endif // __LIFE_HPP
+#endif // __LIFE_HPP 

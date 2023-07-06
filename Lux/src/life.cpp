@@ -2,8 +2,9 @@
 #include "frgb.hpp"
 #include "ucolor.hpp"
 #include "vect2.hpp"
-
+#include "scene.hpp"
 // Moore neighborhood shortcuts
+
 #define UL neighbors[0]
 #define UM neighbors[1]
 #define UR neighbors[2]
@@ -13,45 +14,88 @@
 #define DL neighbors[6]
 #define DM neighbors[7]
 #define DR neighbors[8]
+// Margolus neighborhood shortcuts (clockwise from upper left)
 
-// Von Neumann neighborhood shortcuts
-#define VNU neighbors[0]
-#define VNL neighbors[1]
-#define VNM neighbors[2]
-#define VNR neighbors[3]
-#define VND neighbors[4]
-
-// Margolis neighborhood shortcuts (clockwise from upper left)
+// Margolus neighborhood shortcuts (clockwise from upper left)
 #define MUL neighbors[0]
 #define MUR neighbors[1]
 #define MLR neighbors[2]
 #define MLL neighbors[3]
 
-// Margolis neighborhood result shortcuts (clockwise from upper left)
+// Margolus neighborhood result shortcuts (clockwise from upper left)
 #define RUL result[0]
 #define RUR result[1]
 #define RLR result[2]
 #define RLL result[3]
 
+// Margolus Neighborhood pixel swaps
+#define SWAP_LEFT  { RUL = MLL; RLL = MUL; }
+#define SAME_LEFT  { RUL = MUL; RLL = MLL; }
+#define SWAP_RIGHT { RUR = MLR; RLR = MUR; }
+#define SAME_RIGHT { RUR = MUR; RLR = MLR; }
+#define SWAP_UPPER { RUL = MUR; RUR = MUL; }
+#define SAME_UPPER { RUL = MUL; RUR = MUR; }
+#define SWAP_LOWER { RLL = MLR; RLR = MLL; }
+#define SAME_LOWER { RLL = MLL; RLR = MLR; }
+#define SWAP_DOWN_DIAG { RUL = MLR; RLR = MUL; RLL = MLL; RUR = MUR; }
+#define SWAP_UP_DIAG   { RUL = MUL; RLR = MLR; RLL = MUR; RUR = MLL; }
+#define SAME_ALL { RUL = MUL; RUR = MUR; RLL = MLL; RLR = MLR; }
+
+// CA starting coordinates shortcuts
+// future - add for clarity (if you dare!)
+//#define IN(  x, y ) in  + ( ( y ) * dim.x + ( x ) )
+//#define OUT( x, y ) out + ( ( y ) * dim.x + ( x ) )
+
+/*
  template<class T> void CA<T>::set_rule( any_rule rule ) { 
     this->rule = rule; 
-    this->neighborhood = rule.neighborhood;
+    this->hood = rule.hood;
 }
+*/
+
+// evaluates conditions then executes rule
+template< class T > void CA< T >::run_rule() {
+    bool block = false;
+    if( *p < 1.0f ) if( rand1( gen ) > *p ) block = true;
+    if( edge_block ) if( x <= 0 || x >= dim.x - 1 || y <= 0 || y >= dim.y - 1 ) block = true;
+    //if( alpha_block ) 
+    //if(image_block)
+    if( bright_block ) {
+        if( hood == HOOD_MOORE) {
+            unsigned int bright = ( ( MM >> 16 ) & 0xff ) + ( ( MM >> 8 ) & 0xff ) + ( MM & 0xff );
+            if( bright < *bright_min || bright > *bright_max ) block = true;
+        }
+        else {  // Margolus family assumed
+            for( int i = 0; i < 4; i++ ) {
+                unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff );
+                if( bright < *bright_min || bright > *bright_max ) block = true;
+            }
+        }
+    }
+    if( block ) {
+        if( hood == HOOD_MOORE) result[ 0 ] = MM;
+        else result = neighbors; // Margolus family assumed
+    }
+    else rule( *this );
+} 
 
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
     //std::cout << "CA: operator()" << std::endl;
+    //if( p <= 0.0f ) return;
+    p( context ); bright_min( context ); bright_max( context ); 
+    hood = rule.init( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
         auto img = buf_ptr->get_image();
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
-        vec2i dim = img.get_dim();
+        dim = img.get_dim();
 
         // check neighborhood type
-        if( neighborhood == NEIGHBORHOOD_MOORE ) {
+        if( hood == HOOD_MOORE ) {
             neighbors.resize( 9 );
             result.resize( 1 );
             auto out_it = out;
@@ -59,7 +103,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
             auto dm_it = in;
             auto dr_it = in;
             // scan through image by column
-            for( int x = 0; x < dim.x; x++ ) {
+            for( x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
                 if( x == 0 ) {
                     UL = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
@@ -87,8 +131,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                for( int y = 0; y < dim.y - 1; y++ ) {
-                    rule( neighbors, result );  // apply rule
+                for( y = 0; y < dim.y - 1; y++ ) {
+                    run_rule();  // apply rule
                     *out_it = result[0];        // set output
                     out_it += dim.x;
                     // update neighborhood
@@ -101,72 +145,72 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( x == 0 ) DL = *(in + dim.x - 1); else DL = *(in + x - 1);
                 DM = *(in + x);
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
-                rule( neighbors, result );  // apply rule
+                run_rule();  // apply rule
                 *out_it = result[0];
             }
         } 
-        
-        // Copilot generated code for Von Neumann neighborhood - needs review
-        else if( neighborhood == NEIGHBORHOOD_VON_NEUMANN ) {
-            neighbors.resize( 5 );
-            result.resize( 1 );
-            auto out_it = out;
-            auto dm_it = in;
-            // scan through image by column
-            for( int x = 0; x < dim.x; x++ ) {
-                // set intial neighborhood
-                if( x == 0 ) {
-                    VNU = *(in + ( dim.y - 1 ) * dim.x + dim.x - 1);
-                    VNL = *(in + dim.x - 1);
-                    dm_it = in + (2 * dim.x - 1); 
-                }
-                else {
-                    VNU = *(in + ( dim.y - 1 ) * dim.x + x - 1);
-                    VNL = *(in + x - 1);
-                    dm_it = in + (dim.x + x - 1);
-                }
-                VNM = *(in + ( dim.y - 1 ) * dim.x + x);
-                VND = *dm_it;
-                if( x == dim.x - 1 ) VNR = *(in + ( dim.y - 1 ) * dim.x); else VNR = *(in + ( dim.y - 1 ) * dim.x + x + 1);
-                out_it = out + x;
-                for( int y = 0; y < dim.y - 1; y++ ) {
-                    rule( neighbors, result );  // apply rule
-                    *out_it = result[0];        // set output
-                    out_it += dim.x;
-                    // update neighborhood
-                    VNU = VNM; VNL = VND; VNM = VNR;
-                    dm_it += dim.x; VND = *dm_it;
-                    if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
-                }
-                // set last row
-                if( x == 0 ) VND = *(in + dim.x - 1); else VND = *(in + x - 1);
-                VNM = *(in + x);
-                if( x == dim.x - 1 ) VNR = *in; else VNR = *(in + x + 1);
-                rule( neighbors, result );  // apply rule
-                *out_it = result[0];
-            }
-        } 
-        
-        else if( neighborhood == NEIGHBORHOOD_MARGOLIS ) { // Works best if image dimensions are multiples of 2
+        // Margolus neighborhood family
+        // Works best if image dimensions are multiples of 2
+        else if((int)hood >= (int)HOOD_MARGOLUS ){ 
             neighbors.resize( 4 );
             result.resize( 4 );
             auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
             auto in_ul = in; auto in_ur = in; auto in_ll = in; auto in_lr = in;
             // initialize iterators
             int startx, starty;
-            if( frame % 2 ) { startx = 0; starty = 0; } // even frame - fits into upper left corner of image
-            else            { startx = 1; starty = -1; } // odd frame - offset by 1 (initally straddles four corners of image)
+            if( hood == HOOD_MARGOLUS ) { 
+                if( ca_frame % 2 ) { startx = 0; starty = 0; } // even ca_frame - fits into upper left corner of image
+                else               { startx = 1; starty = -1; } // odd ca_frame - offset by 1 (initally straddles four corners of image)
+            }
+            // 4-cycle Margolus offset neighborhood and variants
+            else if( hood == HOOD_HOUR ) { 
+                if( ca_frame % 2 )         startx = 0; else startx =  1;  // hourglass
+                if( ( ca_frame / 2 ) % 2 ) starty = 0; else starty = -1;
+            }
+            else if( hood == HOOD_HOUR_REV ) { 
+                if( ca_frame % 2 )         startx = 1; else startx =  0;  // reverse hourglass
+                if( ( ca_frame / 2 ) % 2 ) starty = 0; else starty = -1;
+            }
+            else if( hood == HOOD_BOW ) { 
+                if( ( ca_frame / 2 ) % 2 ) startx = 0; else startx = 1;  // bowtie
+                if( ca_frame % 2 )         starty = 0; else starty = -1; 
+            }
+            else if( hood == HOOD_BOW_REV ) {  
+                if( ( ca_frame / 2 ) % 2 ) startx =  0; else startx = 1;  // reverse bowtie
+                if( ca_frame % 2 )         starty = -1; else starty = 0; 
+            }
+            else if( hood == HOOD_SQUARE ) { 
+                if( ( ( 1 + ca_frame ) / 2 ) % 2 ) startx = 0; else startx = 1;  // square
+                if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
+            } 
+            else if( hood == HOOD_SQUARE_REV ) { 
+                if( ( ( 5 - ( ca_frame % 4 ) ) / 2 ) % 2 ) startx = 0; else startx = 1;  // square
+                if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
+            } 
+            else if( hood == HOOD_RANDOM ) {
+                if( fair_coin( gen ) ) startx = 0; else startx = 1;  // random
+                if( fair_coin( gen ) ) starty = 0; else starty = -1;
+            }
             // scan through image by row
-            for( int y = starty; y < dim.y - 1; y+=2 ) {
-                if( frame % 2 ) { // even left edge
-                    out_ul = out + y * dim.x;       out_ur = out + y * dim.x + 1; 
-                    out_ll = out + (y + 1) * dim.x; out_lr = out + (y + 1) * dim.x + 1;
+            for( y = starty; y < dim.y - 1; y+=2 ) {
+                if( !startx ) { // even left edge
+                    if( y == -1 ) { // top row
+                        out_ul = out + ( dim.y - 1 ) * dim.x; out_ur = out_ul + 1; 
+                        out_ll = out;                         out_lr = out    + 1;
 
-                    in_ul = in + y * dim.x;         in_ur = in + y * dim.x + 1; 
-                    in_ll = in + (y + 1) * dim.x;   in_lr = in + (y + 1) * dim.x + 1;
+                        in_ul  = in  + ( dim.y - 1 ) * dim.x; in_ur  = in_ul  + 1; 
+                        in_ll  = in;                          in_lr  = in     + 1;
+                    }
+                    else {
+                        out_ul = out + y * dim.x;       out_ur = out_ul + 1; 
+                        out_ll = out + (y + 1) * dim.x; out_lr = out_ll + 1;
+
+                        in_ul = in + y * dim.x;         in_ur = in_ul + 1; 
+                        in_ll = in + (y + 1) * dim.x;   in_lr = in_ll + 1;
+                    }
                 }
                 else { // odd left edge
-                    if( y == -1 ) { // top row
+                    if( y == -1 ) { // top row, straddles corners
                         out_ul = out + dim.y * dim.x - 1; out_ur = out + ( dim.y - 1 ) * dim.x; 
                         out_ll = out + dim.x - 1;         out_lr = out;
 
@@ -174,7 +218,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll  = in  + dim.x - 1;         in_lr  = in;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( neighbors, result );  // apply rule
+                        run_rule();  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
@@ -191,7 +235,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        rule( neighbors, result );  // apply rule
+                        run_rule();  // apply rule
                         *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
@@ -201,10 +245,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
                     }
                 }
-                for( int x= startx; x < dim.x; x += 2 ) {
+                for( x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                    rule( neighbors, result );  // apply rule
+                    run_rule();  // apply rule
                     *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                     // update neighborhood
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
@@ -216,9 +260,19 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
             }
         } 
-        frame++;
+        ca_frame++;
         buf_ptr->swap();
     }
+} 
+
+template< class T > CA_hood rule_identity< T >::operator () ( element_context &context )
+{ return HOOD_MARGOLUS; }
+
+template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    result.assign( neighbors.begin(), neighbors.end() );
 }
 
 /*
@@ -228,146 +282,63 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template< class T > void rule_life< T >::operator () (const std::vector<T>& neighbors, std::vector<T>& result) { 
+template<class T> inline rule_life<T>::rule_life() { 
+    T c;
+    black( c );
+    on = c;
+    white( c );
+    off = c;
+}
+
+template< class T > CA_hood rule_life< T >::operator () ( element_context &context ) {
+    on( context ); off( context );
+    return HOOD_MOORE;
+}
+
+template< class T > void rule_life< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
     int count = 0;
-    for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == on); }    
-    for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == on); } 
-    if( MM == on ) {
-        if( count == 2 || count == 3 ) result[0] = on;
-        else result[0] = off;
+    for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == *on); }    
+    for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == *on); } 
+    if( MM == *on ) {
+        if( count == 2 || count == 3 ) result[0] = *on;
+        else result[0] = *off;
     } else {
-        if( count == 3 ) result[0] = on;
-        else result[0] = off;
+        if( count == 3 ) result[0] = *on;
+        else result[0] = *off;
     }
 }
 
-template< class T > void rule_diffuse< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > CA_hood rule_diffuse< T >::operator () ( element_context &context ) 
+{ return HOOD_MARGOLUS; }
+
+template< class T > void rule_diffuse< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
     int r = rand_4( gen );
     
-    if( alpha_block ) {
-        bool blocked = false;
-        // how to make this work with other types? e.g frgb
-        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] & 0xff000000 ) != 0 ; 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
     result[0] = neighbors[ r ];
     result[1] = neighbors[ (r + 1) % 4 ];
     result[2] = neighbors[ (r + 2) % 4 ];
     result[3] = neighbors[ (r + 3) % 4 ];
 }
 
-template< class T > void rule_pixel_sort< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
+template< class T > CA_hood rule_gravitate< T >::operator () ( element_context &context )
+{ return HOOD_MARGOLUS; } 
+
+template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
     int r;
-    
-    if( alpha_block ) {
-        bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( neighbors[ i ] &  0xff000000 ) != 0 ; 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
 
     // Calculate approximate brighness of pixels (sum of color components)
     int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
     int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
     int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
     int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
-
-    // Sort pixels by brightness
-    if( direction == direction4::D4_UP || direction == direction4::D4_DOWN ) {
-        if( ( ( wul > wll ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) 
-             { RUL = MLL; RLL = MUL; } // swap left column
-        else { RUL = MUL; RLL = MLL; }
-        if( ( ( wur > wlr ) == ( direction == direction4::D4_DOWN ) ) && ( manhattan( MLR, MUR ) < *max_diff ) ) 
-             { RUR = MLR; RLR = MUR; } // swap right column
-        else { RUR = MUR; RLR = MLR; }
-    }
-    else {
-        if( ( ( wul > wur ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
-             { RUL = MUR; RUR = MUL; } // swap upper row
-        else { RUL = MUL; RUR = MUR; }
-        if( ( ( wll > wlr ) == ( direction == direction4::D4_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
-             { RLL = MLR; RLR = MLL; } // swap lower row
-        else { RLL = MLL; RLR = MLR; }
-    }
-}
-
-// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
-template< class T > void rule_snow< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
-    int r;
-    
-    if( alpha_block ) {
-        bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
-
-    // Calculate approximate brighness of pixels (sum of color components)
-/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
-    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
-    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
-    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
-*/
-
-    int wul = luminance( MUL );
-    int wur = luminance( MUR );
-    int wll = luminance( MLL );
-    int wlr = luminance( MLR );
-
-    // Sort pixels by brightness
-    int wu = wul + wur;
-    int wd = wll + wlr;
-    int wl = wul + wll;
-    int wr = wur + wlr;
-
-    int udiff = wu - wd;
-    int ldiff = wl - wr;
-
-    if( abs( udiff ) > abs( ldiff ) ) {
-        if( udiff > 0 ) r = 0;
-        else r = 2;
-    } else {
-        if( ldiff > 0 ) r = 1;
-        else r = 3;
-    }
-    r = direction - r + 4;
-
-    result[0] = neighbors[ r % 4 ];
-    result[1] = neighbors[ (r + 1) % 4 ];
-    result[2] = neighbors[ (r + 2) % 4 ];
-    result[3] = neighbors[ (r + 3) % 4 ];
-}
-
-template< class T > void rule_gravitate< T >::operator () (const std::vector<T> &neighbors, std::vector<T> &result) {
-    int r;
-    
-    if( alpha_block ) {
-        bool blocked = false;
-        for( int i = 0; i < 4; i++ ) blocked |= ( ( neighbors[ i ] &  0xff000000 ) != 0 ); 
-        if( blocked ) {
-            result.assign( neighbors.begin(), neighbors.end() );
-            return;
-        }
-    }
-
-    // Calculate approximate brighness of pixels (sum of color components)
-/*   int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
-    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
-    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
-    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
-*/
-
-    int wul = luminance( MUL );
-    int wur = luminance( MUR );
-    int wll = luminance( MLL );
-    int wlr = luminance( MLR );
 
     // Sort pixels by brightness
     int wu = wul + wur;
@@ -387,11 +358,333 @@ template< class T > void rule_gravitate< T >::operator () (const std::vector<T> 
     }
     r = direction - r + 4;
 
-    result[0] = neighbors[ r % 4 ];
+    result[0] = neighbors[ r ];
     result[1] = neighbors[ (r + 1) % 4 ];
     result[2] = neighbors[ (r + 2) % 4 ];
     result[3] = neighbors[ (r + 3) % 4 ];
 } 
+
+template< class T > CA_hood rule_snow< T >::operator () ( element_context &context ) 
+{ return HOOD_MARGOLUS; }
+
+// Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
+template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
+    int r;
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    // Sort pixels by brightness
+    int wu = wul + wur;
+    int wd = wll + wlr;
+    int wl = wul + wll;
+    int wr = wur + wlr;
+
+    int udiff = wu - wd;
+    int ldiff = wl - wr;
+
+    if( abs( udiff ) > abs( ldiff ) ) {
+        if( udiff > 0 ) r = 0;
+        else r = 2;
+    } else {
+        if( ldiff > 0 ) r = 1;
+        else r = 3;
+    }
+    r = direction - r + 4;
+
+    r = direction - r + 4;
+
+    result[0] = neighbors[ r % 4 ];
+    result[1] = neighbors[ (r + 1) % 4 ];
+    result[2] = neighbors[ (r + 2) % 4 ];
+    result[3] = neighbors[ (r + 3) % 4 ];
+}
+
+template< class T > CA_hood rule_pixel_sort< T >::operator () ( element_context &context ) 
+{ 
+    max_diff( context );
+    if( diagonal( direction ) ) return HOOD_HOUR; 
+    else                        return HOOD_MARGOLUS;
+}
+
+template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    if( diagonal( direction ) ) {
+        if( direction == direction8::D8_DOWNRIGHT || direction == direction8::D8_UPLEFT ){
+            if( ( ( wul > wlr ) == ( direction == direction8::D8_DOWNRIGHT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
+                SWAP_DOWN_DIAG else SAME_ALL
+        } else {
+            if( ( ( wur > wll ) == ( direction == direction8::D8_UPRIGHT  ) ) && ( manhattan( MUR, MLL ) < *max_diff ) )
+                SWAP_UP_DIAG   else SAME_ALL
+        }
+    } else {
+        if( vertical( direction ) ) {
+            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLL, MUL ) < *max_diff ) ) 
+                SWAP_LEFT else SAME_LEFT
+            if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLR, MUR ) < *max_diff ) )
+                SWAP_RIGHT else SAME_RIGHT
+        } else {
+            if( ( ( wul > wur ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
+                SWAP_UPPER else SAME_UPPER
+            if( ( ( wll > wlr ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
+                SWAP_LOWER else SAME_LOWER
+        }
+    } 
+}
+
+template< class T > CA_hood rule_funky_sort< T >::operator () ( element_context &context ) 
+{ 
+    max_diff( context );
+    return hood;
+    //return HOOD_HOUR; 
+    //if( diagonal( direction ) ) return HOOD_HOUR; 
+    //else                        return HOOD_MARGOLUS;
+} 
+
+template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    // Rotate neighbors opposite direction
+    if( direction == D8_RIGHT || direction == D8_DOWNRIGHT ) {
+        T tmp = MUL;
+        MUL = MUR;
+        MUR = MLR;
+        MLR = MLL;
+        MLL = tmp;
+    }
+    else if( direction == D8_DOWN || direction == D8_DOWNLEFT ) {
+        std::swap( MUL, MLR );
+        std::swap( MUR, MLL );
+    }
+    else if( direction == D8_LEFT || direction == D8_UPLEFT ) {
+        T tmp = MUL;
+        MUL = MLL;
+        MLL = MLR;
+        MLR = MUR;
+        MUR = tmp;
+    }
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    unsigned int funk =   
+        ( (unsigned int)( manhattan( MUR, MLR ) < *max_diff ) ) | 
+        ( (unsigned int)( manhattan( MLR, MLL ) < *max_diff ) << 1 ) | 
+        ( (unsigned int)( manhattan( MLL, MUL ) < *max_diff ) << 2 ) | 
+        ( (unsigned int)( manhattan( MUL, MUR ) < *max_diff ) << 3 ) | 
+        ( (unsigned int)( manhattan( MUL, MLR ) < *max_diff ) << 4 ) | 
+        ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
+
+    if( !diagonal( direction ) ) {
+        if( ( ( dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
+        if( ( ( dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
+    }
+    else { 
+        if( ( ( dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
+    }
+
+    // Rotate result same direction
+    if( direction == D8_RIGHT || direction == D8_DOWNRIGHT ) {
+        T tmp = RUL;
+        RUL = RLL;
+        RLL = RLR;
+        RLR = RUR;
+        RUR = tmp;
+    }
+    else if( direction == D8_DOWN || direction == D8_DOWNLEFT ) {
+        std::swap( RUL, RLR );
+        std::swap( RUR, RLL );
+    }
+    else if( direction == D8_LEFT || direction == D8_UPLEFT ) {
+        T tmp = RUL;
+        RUL = RUR;
+        RUR = RLR;
+        RLR = RLL;
+        RLL = tmp;
+    }
+} 
+
+/* Older, more complex implementation
+#define FUNK( B5, B4, B3, B2, B1, B0 ) \
+    funk =  ( (unsigned int)( manhattan( MUR, MLR ) < *max_diff ) << (B0) ) | \
+            ( (unsigned int)( manhattan( MLR, MLL ) < *max_diff ) << (B1) ) | \
+            ( (unsigned int)( manhattan( MLL, MUL ) < *max_diff ) << (B2) ) | \
+            ( (unsigned int)( manhattan( MUL, MUR ) < *max_diff ) << (B3) ) | \
+            ( (unsigned int)( manhattan( MUL, MLR ) < *max_diff ) << (B4) ) | \
+            ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << (B5) );
+
+// Pixel sorting with dafunk
+template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    // Sort pixels by brightness if funky condition satisfied
+    unsigned int funk;
+    if( !((unsigned int)direction / 4) ) { // First four directions UP, UP_RIGHT, RIGHT, DOWN_RIGHT
+        if( direction == D8_UP || direction == D8_UPRIGHT ) { // Directions UP, UP_RIGHT
+            FUNK( 5, 4, 3, 2, 1, 0 ) 
+            //std::cout << "funk " << funk << " dafunk_d " << dafunk_d << " direction " << direction << std::endl;
+            if( direction == D8_UP ) {
+                if( ( ( dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
+                if( ( ( dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
+            }
+            else { // Direction UP_RIGHT
+                if( ( ( dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
+            }
+        }
+        else { // Directions RIGHT, DOWN_RIGHT
+            FUNK( 4, 5, 2, 1, 0, 3 )
+            //FUNK( 4, 5, 0, 3, 2, 1 )
+
+            if( direction == D8_RIGHT ) {
+                if( ( ( dafunk_l >> funk ) & 1 ) && ( wul > wur ) ) SWAP_UPPER else SAME_UPPER
+                if( ( ( dafunk_r >> funk ) & 1 ) && ( wll > wlr ) ) SWAP_LOWER else SAME_LOWER
+            }
+            else { // Direction DOWN_RIGHT
+                if( ( ( dafunk_d >> funk ) & 1 ) && ( wul > wlr ) ) SWAP_DOWN_DIAG else SAME_ALL
+            }
+        }
+    }
+    else { // Last four directions DOWN, DOWN_LEFT, LEFT, UP_LEFT
+        if( direction == D8_DOWN || direction == D8_DOWNLEFT ) { // Directions DOWN, DOWN_LEFT
+            FUNK( 5, 4, 1, 0, 3, 2 )
+            if( direction == D8_DOWN ) {
+                if( ( ( dafunk_r >> funk ) & 1 ) && ( wul > wll ) ) SWAP_LEFT  else SAME_LEFT
+                if( ( ( dafunk_l >> funk ) & 1 ) && ( wur > wlr ) ) SWAP_RIGHT else SAME_RIGHT
+            }
+            else { // Direction DOWN_LEFT
+                if( ( ( dafunk_d >> funk ) & 1 ) && ( wur > wll ) ) SWAP_UP_DIAG else SAME_ALL
+            }
+        }
+        else { // Directions LEFT, UP_LEFT
+            FUNK( 4, 5, 0, 3, 2, 1 )
+            //FUNK( 4, 5, 2, 1, 0, 3 )
+
+            if( direction == D8_LEFT ) {
+                if( ( ( dafunk_r >> funk ) & 1 ) && ( wur > wul ) ) SWAP_UPPER else SAME_UPPER
+                if( ( ( dafunk_l >> funk ) & 1 ) && ( wlr > wll ) ) SWAP_LOWER else SAME_LOWER
+            }
+            else { // Direction UP_LEFT
+                if( ( ( dafunk_d >> funk ) & 1 ) && ( wlr > wul ) ) SWAP_DOWN_DIAG else SAME_ALL
+            }
+        }
+    }
+}
+*/
+
+/* webs
+                if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLL, MUR ) < *max_diff ) ) 
+                     { RUL = MLL; RLL = MUL; } // swap left colum
+                else { RUL = MUL; RLL = MLL; }
+                if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLR, MUL ) < *max_diff ) )
+                     { RUR = MLR; RLR = MUR; } // swap right column
+                else { RUR = MUR; RLR = MLR; }*/
+
+/*  Cheese grater, flow, trees
+          if( ( ( wur > wll ) == ( direction == direction8::D8_DOWNLEFT ) ) && ( ( manhattan( MUR, MLL ) < *max_diff ) || ( manhattan( MLL, MLR ) < *max_diff )  == ( manhattan( MLL, MUL ) < *max_diff ) ) )
+                         { RUL = MUL; RLR = MLR; RLL = MUR; RUR = MLL; } // swap diagonal
+                    else { RUL = MUL; RLR = MLR; RLL = MLL; RUR = MUR; }
+            }*/
+/* column percolation
+        if( vertical( direction ) ) {
+            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN ) ) && ( ( manhattan( MLL, MUL ) < *max_diff ) || ( manhattan( MLR, MUR ) < *max_diff ) ) )
+                 { RUL = MLL; RLL = MUL; } // swap left column
+            else { RUL = MUL; RLL = MLL; }
+            if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN ) ) && ( ( manhattan( MLL, MUL ) < *max_diff ) || ( manhattan( MLR, MUR ) < *max_diff ) ) ) 
+                 { RUR = MLR; RLR = MUR; } // swap right column
+            else { RUR = MUR; RLR = MLR; }
+        } else { */
+        
+/* Closest thing to orthogonal borg
+ if( vertical( direction ) ) {
+                if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN  ) ) && ( ( manhattan( MLL, MUL ) < *max_diff ) || ( ( manhattan( MLL, MUR ) < *max_diff ) && ( manhattan( MLR, MLL ) < *max_diff ) ) ) ) 
+                     { RUL = MLL; RLL = MUL; } // swap left colum
+                else { RUL = MUL; RLL = MLL; }
+                if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN  ) ) && ( ( manhattan( MLR, MUR ) < *max_diff ) || ( ( manhattan( MLR, MUL ) < *max_diff ) && ( manhattan( MUL, MUR ) < *max_diff ) ) ) )
+                     { RUR = MLR; RLR = MUR; } // swap right column
+                else { RUR = MUR; RLR = MLR; }
+            } else {
+                */
+// crosstalk
+//             if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN ) ) && ( ( manhattan( MLL, MUL ) < *max_diff ) || ( manhattan( MLR, MUR ) < *max_diff ) ) )
+
+/* Gorgeous! (city in the stars)
+        if( !horizontal_direction8( direction ) ) {
+            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN ) ) && ( ( manhattan( MLL, MUL ) < *max_diff ) || ( manhattan( MUL, MLR ) < *max_diff ) || ( manhattan( MUR, MLL ) < *max_diff )) ) 
+*/
+
+/*
+
+template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+    if( luminance( MUL ) < 10 || luminance( MUR ) < 10 || luminance( MLL ) < 10 || luminance( MLR ) < 10) {
+        result.assign( neighbors.begin(), neighbors.end() );
+        return;
+    }
+    // Calculate approximate brighness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    // Sort pixels by brightness
+
+    if( diagonal( direction ) ) {
+        if( direction == D8_DOWNRIGHT || direction == D8_UPLEFT ){
+            if( ( ( wul > wlr ) == ( direction == direction8::D8_DOWNRIGHT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
+                 { RUL = MLR; RLR = MUL; RLL = MLL; RUR = MUR; } // swap diagonal
+            else { RUL = MUL; RLR = MLR; RLL = MLL; RUR = MUR; }
+        }
+        else {
+            if( ( ( wur > wll ) == ( direction == direction8::D8_DOWNLEFT ) ) && ( ( manhattan( MUR, MLL ) < *max_diff ) || ( ( manhattan( MLL, MLR ) < *max_diff ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) )
+                 { RUL = MUL; RLR = MLR; RLL = MUR; RUR = MLL; } // swap diagonal
+            else { RUL = MUL; RLR = MLR; RLL = MLL; RUR = MUR; }
+        }
+    }
+    else {
+        if( !horizontal( direction ) ) {
+            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN ) ) && ( manhattan( MLL, MUL ) < *max_diff ) ) 
+                 { RUL = MLL; RLL = MUL; } // swap left column
+            else { RUL = MUL; RLL = MLL; }
+            if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN ) ) && ( manhattan( MLR, MUR ) < *max_diff ) ) 
+                 { RUR = MLR; RLR = MUR; } // swap right column
+            else { RUR = MUR; RLR = MLR; }
+        }
+        else {
+            if( ( ( wul > wur ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
+                { RUL = MUR; RUR = MUL; } // swap upper row
+            else { RUL = MUL; RUR = MUR; }
+            if( ( ( wll > wlr ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
+                { RLL = MLR; RLR = MLL; } // swap lower row
+            else { RLL = MLL; RLR = MLR; }
+        }
+    }
+}
+*/
 
 //template class CA< frgb >;       // fimage
 template class CA< ucolor >;     // uimage
@@ -411,4 +704,6 @@ template class rule_gravitate< ucolor >;       // uimage
 
 template class rule_snow< ucolor >;       // uimage
 
-template class rule_pixel_sort< ucolor >;       // uimage
+template class rule_pixel_sort< ucolor >;       // uimage  
+
+template class rule_funky_sort< ucolor >;       // uimage 

@@ -25,11 +25,14 @@ struct scene_reader {
     void read( bb2i& bb,  const json& j ) { bb = read_bb2i( j );  }
     void read( frgb& f,   const json& j ) { f  = read_frgb( j );  }
     void read( ucolor& u, const json& j ) { u  = read_ucolor( j );}
+    void read( unsigned long long& ull, const json& j ) { ull = read_ull( j ); }
     void read( std::string& s,  const json& j ) { s = read_string( j ); }
     void read( direction4& d,   const json& j ) { d = read_direction4( j ); }
+    void read( direction8& d,   const json& j ) { d = read_direction8( j ); }
     void read( pixel_type& p,   const json& j ) { p = read_pixel_type( j ); }
     void read( image_extend& e, const json& j ) { e = read_image_extend( j ); }
     void read( render_mode& r,  const json& j ) { r = read_render_mode( j ); }
+    void read( CA_hood& h,      const json& j ) { h = read_hood( j ); }
     void read( std::optional< int   >& i, const json& j ) { i = j.get<int>();  }    
     void read( std::optional< float >& f, const json& j ) { f = j.get<float>();  }  
     void read( std::vector< vec2f >& v,   const json& j ) { for( auto& k : j ) { v.push_back( read_vec2f( k ) ); } }
@@ -39,12 +42,15 @@ struct scene_reader {
     frgb   read_frgb(   const json& j );
     bb2f   read_bb2f(   const json& j );
     bb2i   read_bb2i(   const json& j );
-    ucolor read_ucolor( const json& j );
+    ucolor read_ucolor( const json& j );  // hexadecimal color
+    unsigned long long read_ull(    const json& j ); // hexadecimal
     std::string  read_string(       const json& j );
     direction4   read_direction4(   const json& j );
+    direction8   read_direction8(   const json& j );
     pixel_type   read_pixel_type(   const json& j );
     image_extend read_image_extend( const json& j );
     render_mode  read_render_mode(  const json& j );
+    CA_hood      read_hood(         const json& j );
 
     void read_image(    const json& j );
     void read_rule(     const json& j, std::shared_ptr< CA_ucolor >& ca );   // Cellular automata rule
@@ -52,7 +58,7 @@ struct scene_reader {
     void read_element(  const json& j );
     void read_function( const json& j );
     void read_cluster(  const json& j );
-    void read_queue( const json& j, effect_list& elist );
+    void read_queue(    const json& j, effect_list& elist );
 
     template< class T > void read_harness( const json& j, harness< T >& h, std::unordered_map< std::string, any_fn< T > >& harness_fns );
     #define READ_ANY_HARNESS( _T_, _U_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h, _U_ ); }

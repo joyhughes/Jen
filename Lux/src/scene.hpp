@@ -201,8 +201,10 @@ struct UI {
     vec2i mouse_pixel;  // mouse position in pixels
     bool  mouse_down;
     bool  mouse_over;
+    bool  mouse_click;  // true for one frame when mouse clicked over canvas
+    float slider_value;
 
-    UI() : mouse_down( false ), mouse_over( false ) {}
+    UI() : canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), mouse_pixel( { 0, 0 } ), mouse_down( false ), mouse_over( false ), mouse_click( false ), slider_value( 0.3 ) {}
 };
 
 struct scene {
