@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useEmscripten from './useEmscripten';
 import { ButtonGroup, Button, Tooltip } from '@mui/material';
 import RestartIcon from '@mui/icons-material/Replay'; // This is just an example icon for "restart"
 import FrameIcon from '@mui/icons-material/SkipNext'; // This is an example icon for "advance one frame"
@@ -7,6 +8,7 @@ import PauseIcon from '@mui/icons-material/Pause'; // This is an example icon fo
 
 const MediaController = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+//  module = useEmscripten();
 
   return (
     <ButtonGroup 
