@@ -36,11 +36,12 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
 #endif // __EMSCRIPTEN__
     std::ifstream in_stream(filename);
     json j;
-    DEBUG( "input stream opened" )
+    DEBUG( "input stream opened " + filename )
     try {
         j = json::parse(in_stream); 
     }
     catch( json::parse_error& ex ) {
+        DEBUG( "JSON parse error at byte " + std::to_string( ex.byte ) )
         ERROR( "JSON parse error at byte " + std::to_string( ex.byte ) )
         exit( 0 );
     }
@@ -49,6 +50,9 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     // scene fields
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
     DEBUG( "Name: " + s.name )
+    if( j.contains( "time_interval" ) ) j[ "time_interval" ].get_to( s.time_interval );
+
+    // TODO: Allow size different from image size
     //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };
     if( j.contains( "images" ) )    for( auto& jimg :   j[ "images" ] )    read_image( jimg );
     DEBUG( "Images loaded" ) 
@@ -75,6 +79,14 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ];  }
     for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ];  }
     for( auto& c : cluster_elements ) { s.clusters[ c.first ]->root_elem = *s.elements[ c.second ]; }
+    for( auto& t : CA_targets ) { 
+        std::cout << "adding target buffer " << t.second << " to CA " << t.first << std::endl;
+        std::get< std::shared_ptr< CA< ucolor > > >( s.effects[ t.first ].fn_ptr )->target = s.buffers[ t.second ]; 
+    }
+    for( auto& v : fill_warp_vfs ) { 
+        std::cout << "adding vector field " << v.second << " to fill_warp " << v.first << std::endl;
+        std::get< std::shared_ptr< eff_fill_warp< int > > >( s.effects[ v.first ].fn_ptr )->vf_buf = s.buffers[ v.second ]; 
+    }
     DEBUG( "scene_reader constructor finished" )
 }
 
@@ -101,6 +113,19 @@ unsigned long long scene_reader::read_ull( const json& j ) {
     j.get_to( s );
     std::istringstream( s ) >> std::hex >> ull;
     return ull;
+}
+
+rotation_direction scene_reader::read_rotation_direction( const json& j ) { 
+    std::string s;
+    rotation_direction r;
+
+    j.get_to( s );
+    if(      s == "counterclockwise" ) r = COUNTERCLOCKWISE;
+    else if( s == "clockwise"        ) r = CLOCKWISE;
+    else if( s == "random"           ) r = RANDOM;
+    else if( s == "lava lamp"        ) r = LAVA_LAMP;
+    else ERROR( "Invalid rotation_direction string: " + s )
+    return r;
 }
 
 direction4 scene_reader::read_direction4( const json& j ) { 
@@ -217,7 +242,7 @@ void scene_reader::read_image( const json& j ) {
         DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
         s.buffers[ name ] = img;
-        std :: cout << "pointer " << img << std::endl;
+        //std :: cout << "uimage pointer " << img << std::endl;
         //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
@@ -290,6 +315,10 @@ template< class T > void scene_reader::read_harness( const json& j, harness< T >
 }
 
 void scene_reader::add_default_functions() {
+    // time function
+    std::shared_ptr< time_fn > timer( new time_fn );
+    s.float_fns[ "timer" ] = any_fn< float >( timer, std::ref( *timer ), "timer" );
+
     // UI functions
     std::shared_ptr< mouse_pos_fn > mouse_position( new mouse_pos_fn );
     s.vec2f_fns[ "mouse_position" ] = any_fn< vec2f >( mouse_position, std::ref( *mouse_position ), "mouse_position" );
@@ -350,10 +379,11 @@ void scene_reader::read_function( const json& j ) {
 
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN( float )
-    FN( log_fn, float      ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
+    FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
+    FN( time_fn,     float ) END_FN( float )
     FN( ratio_float, float ) HARNESS( r ) END_FN( float )
-    FN( wiggle, float      ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
-    FN( slider_fn, float   ) HARNESS( min ) HARNESS( max ) END_FN( float )
+    FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
+    FN( slider_fn,   float ) HARNESS( min ) HARNESS( max ) END_FN( float )
 
     // harness int functions
     FN( adder_int, int ) HARNESS( r ) END_FN( int )
@@ -371,8 +401,9 @@ void scene_reader::read_function( const json& j ) {
 
     // single field modifiers
     GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN( gen )
-    GEN_FN( scale_gen_fn       ) HARNESS( scale ) END_FN( gen )
-    GEN_FN( position_gen_fn    ) HARNESS( position ) END_FN( gen )
+    GEN_FN( scale_gen_fn       ) HARNESS( scale )       END_FN( gen )
+    GEN_FN( rotation_gen_fn    ) HARNESS( r )           END_FN( gen )
+    GEN_FN( position_gen_fn    ) HARNESS( position )    END_FN( gen )
 
     // generalized functions (alphabetical order)
     GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN( gen )
@@ -427,8 +458,10 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }
 
-    RULE( rule_life_ucolor )   END_RULE()
-    RULE( rule_diffuse_ucolor) END_RULE()
+    RULE( rule_life_ucolor )        END_RULE()
+    RULE( rule_random_copy_ucolor ) END_RULE()
+    RULE( rule_random_mix_ucolor )  END_RULE()
+    RULE( rule_diffuse_ucolor)      END_RULE()
     RULE( rule_gravitate_ucolor )  READR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       READR( direction ) END_RULE()
     RULE( rule_pixel_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) END_RULE()
@@ -480,9 +513,14 @@ void scene_reader::read_effect( const json& j ) {
 
     // special case for CA rules
     EFF( CA_ucolor )
-    if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
-    HARNESSE( p ) READE( edge_block ) READE( alpha_block ) 
-    READE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
+        if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
+        if( j.contains( "target") ) {
+            j[ "target" ].get_to( buf_name );
+            CA_targets[ name ] = buf_name;
+        }
+        READE( targeted )
+        HARNESSE( p ) READE( edge_block ) READE( alpha_block ) 
+        READE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
     END_EFF()
 
     // special case for effects running effects
@@ -515,6 +553,12 @@ void scene_reader::read_effect( const json& j ) {
 
     EFF( eff_grayscale_frgb )   END_EFF()
     EFF( eff_grayscale_ucolor ) END_EFF()
+
+    EFF( eff_invert_ucolor )  END_EFF()
+    EFF( eff_invert_frgb )    END_EFF()
+
+    EFF( eff_rotate_colors_frgb ) HARNESSE( r ) END_EFF()
+    EFF( eff_rotate_colors_ucolor ) HARNESSE( r ) END_EFF()
 
     EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
     EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
@@ -558,11 +602,44 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_feedback_vec2f )  READE( wf_name ) END_EFF()
     EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
 
+    // vector field effects
+    EFF( eff_complement_vec2f ) END_EFF()
+    EFF( eff_radial_vec2f ) END_EFF()
+    EFF( eff_cartesian_vec2f ) END_EFF()
+    EFF( eff_rotate_vectors_vec2f ) HARNESSE( angle ) END_EFF()
+    EFF( eff_scale_vectors_vec2f ) HARNESSE( scale ) END_EFF()
+    EFF( eff_normalize_vec2f ) END_EFF()
+    EFF( eff_inverse_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) END_EFF()
+    EFF( eff_inverse_square_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) END_EFF()
+    EFF( eff_concentric_vec2f ) HARNESSE( center ) END_EFF()
+    EFF( eff_rotational_vec2f ) HARNESSE( center ) END_EFF()
+    EFF( eff_spiral_vec2f ) HARNESSE( center ) HARNESSE( angle ) END_EFF()
+    EFF( eff_vortex_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) HARNESSE( intensity ) HARNESSE( center_orig ) 
+                            READE( revolving ) HARNESSE( velocity ) HARNESSE( center_of_revolution ) END_EFF()
+    EFF( eff_turbulent_vec2f ) HARNESSE( n ) HARNESSE( bounds ) HARNESSE( scale_factor ) 
+                               HARNESSE( min_diameter ) HARNESSE( max_diameter ) 
+                               HARNESSE( min_soften ) HARNESSE( max_soften )
+                               HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
+                               READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
+                               READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
+    EFF( eff_position_fill_vec2f ) END_EFF()
+
+    // warp field effects
+    EFF( eff_fill_warp_int ) 
+        if( j.contains( "vector_field" ) ) {
+            std::string vf_name;
+            j[ "vector_field" ].get_to( vf_name );
+            fill_warp_vfs[ name ] = vf_name;
+        }
+        else ERROR( "reading eff_fill_warp: vector field missing\n" )
+    END_EFF()
+
     DEBUG( "Finished reading effect " + name )
 }
 
 void scene_reader::read_queue( const json& j, effect_list& elist ) {
     if( j.contains( "name"         ) ) read( elist.name,           j[ "name"         ] );
+    if( j.contains( "dim"          ) ) read( elist.dim,            j[ "dim"          ] );
     if( j.contains( "source"       ) ) read( elist.source_name,    j[ "source"       ] );
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  
     if( j.contains( "relative_dim" ) ) read( elist.relative_dim,   j[ "relative_dim" ] );  

@@ -4,6 +4,14 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+
+var factory = require('./lux.js');
+
+factory().then((instance) => {
+  window.Module = instance; // Assign to global variable
+  window.Module.canvas = document.getElementById('imagePortCanvas');
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

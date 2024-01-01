@@ -10,6 +10,9 @@ import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Box from '@mui/material/Box';
 
+//import Module from './useEmscripten';
+
+
 function ControlPanel( { ratio, panelSize } ) {
   const [sliderValue, setSliderValue] = useState(30);
   const [radioValue, setRadioValue] = useState('option1');
@@ -41,9 +44,11 @@ function ControlPanel( { ratio, panelSize } ) {
     return () => window.removeEventListener("resize", resizeBox);
   }, [ ratio, panelSize ]);
 
-
   const handleSliderChange = (event, newValue) => {
     setSliderValue(newValue);
+    if (window.Module) {
+      window.Module.slider_value(newValue);
+    }
   };
 
   const handleRadioChange = (event) => {
