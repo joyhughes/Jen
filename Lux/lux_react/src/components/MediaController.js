@@ -7,8 +7,28 @@ import PlayPauseIcon from '@mui/icons-material/PlayArrow'; // This is an example
 import PauseIcon from '@mui/icons-material/Pause'; // This is an example icon for "pause"
 
 const MediaController = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isRunning, setIsRunning] = useState(true);
 //  module = useEmscripten();
+
+  const handleRestart = () => {
+    if ( window.Module ) {
+      window.Module.restart();
+    }
+  }
+
+  const handleAdvance = () => {
+    if ( window.Module ) {
+      setIsRunning(false);
+      window.Module.advance_frame();
+    }
+  }
+
+  const handleRunPause = () => {
+    setIsRunning(!isRunning);
+    if ( window.Module ) {
+      window.Module.run_pause();
+    }
+  }
 
   return (
     <ButtonGroup 
@@ -22,20 +42,20 @@ const MediaController = () => {
       }}
     >
       <Tooltip title="Restart">
-        <Button onClick={() => { /* Restart logic here */ }}>
+        <Button onClick={handleRestart}>
           <RestartIcon />
         </Button>
       </Tooltip>
 
       <Tooltip title="Advance One Frame">
-        <Button onClick={() => { /* Advance one frame logic here */ }}>
+        <Button onClick={handleAdvance}>
           <FrameIcon />
         </Button>
       </Tooltip>
 
-      <Tooltip title={isPlaying ? "Pause" : "Play"}>
-        <Button onClick={() => setIsPlaying(!isPlaying)}>
-          {isPlaying ? <PauseIcon /> : <PlayPauseIcon />}
+      <Tooltip title={isRunning ? "Pause" : "Run"}>
+      <Button onClick={handleRunPause}>
+          {isRunning ? <PauseIcon /> : <PlayPauseIcon />}
         </Button>
       </Tooltip>
     </ButtonGroup>

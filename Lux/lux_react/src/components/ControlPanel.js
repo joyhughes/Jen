@@ -12,7 +12,6 @@ import Box from '@mui/material/Box';
 
 //import Module from './useEmscripten';
 
-
 function ControlPanel( { ratio, panelSize } ) {
   const [sliderValue, setSliderValue] = useState(30);
   const [radioValue, setRadioValue] = useState('option1');
@@ -37,7 +36,6 @@ function ControlPanel( { ratio, panelSize } ) {
     setDimensions({ width, height, isRowDirection });
   };
 
-   
   useEffect(() => {
     window.addEventListener("resize", resizeBox);
     resizeBox();
@@ -102,47 +100,7 @@ function ControlPanel( { ratio, panelSize } ) {
         /> 
       </Paper>
     </Paper>
-
   );
 }
 
 export default ControlPanel;
-
-/*
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Slider 
-        style={{ width: 200 }}
-        value={sliderValue} 
-        onChange={handleSliderChange}
-        aria-labelledby="input-slider" 
-      />
-      <RadioGroup 
-        value={radioValue} 
-        onChange={handleRadioChange}
-        row
-      >
-        <Grid container spacing={1}>
-          <Grid item xs={6}>
-            <FormControlLabel value="option1" control={<Radio />} label="Option 1" />
-          </Grid>
-          <Grid item xs={6}>
-            <FormControlLabel value="option2" control={<Radio />} label="Option 2" />
-          </Grid>
-          <Grid item xs={6}>
-            <FormControlLabel value="option3" control={<Radio />} label="Option 3" />
-          </Grid>
-          <Grid item xs={6}>
-            <FormControlLabel value="option4" control={<Radio />} label="Option 4" />
-          </Grid>
-        </Grid>
-      </RadioGroup>
-
-      
-      <TextField 
-        label="Input"
-        variant="outlined"
-        value={textValue}
-        onChange={handleTextChange}
-      />
-    </Box>
-      */
