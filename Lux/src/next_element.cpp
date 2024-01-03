@@ -33,7 +33,11 @@ template struct harness< ucolor >;
 template struct harness< bb2f >;
 // template struct harness< bool >;
 
-float wiggle::operator () ( float& val, element_context& context  )
+float time_fn::operator () ( float& val, element_context& context  ) { 
+    return context.s.time; 
+}
+
+float wiggle::operator ()  ( float& val, element_context& context  )
 {
     wavelength( context ); amplitude( context ); phase( context ); wiggliness( context );
     //std::cout << "wiggle: val " << val  << " wavelength " << *wavelength << " amplitude " << *amplitude << " phase " << *phase << " wiggliness " << *wiggliness << std::endl;
@@ -110,6 +114,12 @@ void scale_gen_fn::operator () ( element_context& context ) {
     scale.val = context.el.scale;
     scale( context );
     context.el.scale = *scale; 
+}
+
+void rotation_gen_fn::operator () ( element_context& context ) { 
+    r.val = context.el.rotation;
+    r( context );
+    context.el.rotation = *r; 
 }
 
 void position_gen_fn::operator () ( element_context& context ) { 

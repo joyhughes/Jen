@@ -173,7 +173,7 @@ struct effect_list {
 
     effect_list( const std::string& name_init = "default",
                  const std::string& source_name_init = "none",
-                 const vec2i& dim_init = { 0, 0 },
+                 const vec2i& dim_init = { 512, 512 },
                  const pixel_type& ptype_init = PIXEL_UCOLOR, 
                  const render_mode& rmode_init = MODE_STATIC, 
                  const float& relative_dim_init = 1.0f) : 

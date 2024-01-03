@@ -12,20 +12,33 @@ using namespace emscripten;
 
 static bool running = true;
 static bool displayed = false;
+static bool advance = false;
 
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
   //SDL_Surface *screen;
-  std::function<void()> frame_callback;
-  bool callback_ready;
+  std::function<void()> frame_callback, update_callback;
+  bool frame_callback_ready, update_callback_ready, js_bitmaps_ready;
   scene *s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
 };
 
 frame_context *global_context;
 
-val get_img_data() {
+val get_buf1() {
     uimage& img = (uimage &)(global_context->buf->get_image());
+    unsigned char* buffer = (unsigned char* )img.get_base();
+    size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
+
+    //std::cout << "get_img_data() buffer length: " << buffer_length << std::endl;
+    // Create a typed memory view at the specified memory location.
+    return val(typed_memory_view(buffer_length, buffer));
+}
+
+val get_img_data() { return get_buf1(); } 
+
+val get_buf2() {
+    uimage& img = (uimage &)(global_context->buf->get_buffer());
     unsigned char* buffer = (unsigned char* )img.get_base();
     size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
 
@@ -44,36 +57,53 @@ int get_buf_height() {
     return img.get_dim().y;
 }
 
+bool is_swapped() {
+    return global_context->buf->is_swapped();
+}
+
 void set_frame_callback(val callback) {
     global_context->frame_callback = [callback]() mutable {
         callback();
     };
-    global_context->callback_ready = true;
+    global_context->frame_callback_ready = true;
+}
+
+void set_update_callback(val callback) {
+    global_context->update_callback = [callback]() mutable {
+        callback();
+    };
+    global_context->update_callback_ready = true;
+}
+
+void bitmaps_ready() {
+    global_context->js_bitmaps_ready = true;
 }
 
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
     //emscripten_run_script("console.log('render and display');");
-    if( global_context->callback_ready ) {
-        //emscripten_run_script("console.log('callback ready');");
+    if( global_context->frame_callback_ready ) {
+        emscripten_run_script("console.log('callback and bitmaps ready');");
 
-        if( !running && displayed ) {
+        if( !running && !advance && displayed ) {
             global_context->s->ui.mouse_click = false;
             return;
         }
         
         global_context->frame_callback();
         
-        if( running || !displayed ) {
+        if( running || advance || !displayed ) {
             global_context->s->render();
         }
 
         global_context->s->ui.mouse_click = false;
         displayed = true;
+        advance = false;
     }
     else {
-        emscripten_run_script("console.log('callback not ready');");
+        if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
+        else emscripten_run_script("console.log('bitmaps not ready');");
     }
 }
 
@@ -85,6 +115,11 @@ void restart() {
     //global_context->frame = 0;
     global_context->s->restart();
     displayed = false;
+}
+
+void advance_frame() {
+    advance = true;
+    running = false;
 }
 
 void mouse_move( float x, float y ) {
@@ -135,7 +170,10 @@ int main(int argc, char** argv) {
     context.s = &s;
     context.buf = buf;
     context.frame_callback = nullptr;
-    context.callback_ready = false;
+    context.frame_callback_ready = false;
+    context.update_callback = nullptr;
+    context.update_callback_ready = false;
+    context.js_bitmaps_ready = false;
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
@@ -150,14 +188,20 @@ int main(int argc, char** argv) {
 
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback", &set_frame_callback );
-    function( "get_img_data",       &get_img_data);
+    function( "set_update_callback",&set_update_callback );
+    function( "bitmaps_ready",      &bitmaps_ready );
+    function( "get_buf1",           &get_buf1 );
+    function( "get_buf2",           &get_buf2 );
+    function( "get_img_data",       &get_img_data );
     function( "get_buf_width",      &get_buf_width );
     function( "get_buf_height",     &get_buf_height );
-    function( "run_pause",    &run_pause );
-    function( "restart",      &restart );
-    function( "slider_value", &slider_value );
-    function( "mouse_move",   &mouse_move );
-    function( "mouse_down",   &mouse_down );
-    function( "mouse_over",   &mouse_over );
-    function( "mouse_click",  &mouse_click );
+    function( "is_swapped",         &is_swapped );
+    function( "run_pause",          &run_pause );
+    function( "restart",            &restart );
+    function( "advance_frame",      &advance_frame );
+    function( "slider_value",       &slider_value );
+    function( "mouse_move",         &mouse_move );
+    function( "mouse_down",         &mouse_down );
+    function( "mouse_over",         &mouse_over );
+    function( "mouse_click",        &mouse_click );
 }

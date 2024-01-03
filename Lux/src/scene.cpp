@@ -109,7 +109,7 @@ void effect_list::render( scene& s ) {
             std::visit( [ &, source_buf ]( auto& b ) { copy_buffer( b, source_buf ); }, buf );
         }
         else {  // blank buffer
-            throw std::runtime_error( "effect_list::render() - source buffer not found" );
+            //throw std::runtime_error( "effect_list::render() - source buffer not found" );
             resize( dim );
         }
     }
@@ -192,6 +192,7 @@ void scene::render_and_save(
     file_type ftype, 
     int quality )
 { 
+    std::cout << "scene::render_and_save() dim = " << dim.x << " " << dim.y << std::endl;
     any_buffer_pair_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
@@ -214,6 +215,8 @@ void scene::animate(
     file_type ftype, 
     int quality )
 {
+    std::cout << "scene::animate() dim = " << dim.x << " " << dim.y << std::endl;
+
     any_buffer_pair_ptr any_out;
     switch( ptype ) {
         case( PIXEL_FRGB   ): any_out = std::make_shared< buffer_pair< frgb >   >( dim ); break;
@@ -224,7 +227,6 @@ void scene::animate(
     }
     set_output_buffer( any_out ); // set output buffer
 
-    time_interval = 1.0f / nframes;
     time = 0.0f;
     for( int frame = 0; frame < nframes; frame++ ) {
         std::ostringstream s;
@@ -232,20 +234,20 @@ void scene::animate(
         std::string filename = s.str();
         render();
         save_result( filename, dim, ptype, ftype, quality );
-        time += time_interval;
-        std::cout << "frame " << frame << std::endl;
+        std::cout << "frame " << frame << " time " << time << std::endl;
     }
 
     // future: make the video file here 
 }
 
 void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
-    //std::cout << "scene::set_output_buffer()" << std::endl;
     auto& output_list = queue.back();
     output_list.buf = buf;
     output_list.ptype = ( pixel_type )buf.index();
     vec2i dim_out;
     std::visit( [&]( auto& b ) { dim_out = b->get_image().get_dim(); }, buf );
+    std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
+
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];
         eff_list.rendered = false;
