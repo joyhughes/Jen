@@ -84,7 +84,7 @@ void render_and_display( void *arg )
 {
     //emscripten_run_script("console.log('render and display');");
     if( global_context->frame_callback_ready ) {
-        emscripten_run_script("console.log('callback and bitmaps ready');");
+        //emscripten_run_script("console.log('callback and bitmaps ready');");
 
         if( !running && !advance && displayed ) {
             global_context->s->ui.mouse_click = false;
@@ -102,8 +102,8 @@ void render_and_display( void *arg )
         advance = false;
     }
     else {
-        if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
-        else emscripten_run_script("console.log('bitmaps not ready');");
+        //if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
+        //else emscripten_run_script("console.log('bitmaps not ready');");
     }
 }
 
@@ -122,8 +122,9 @@ void advance_frame() {
     running = false;
 }
 
-void mouse_move( float x, float y ) {
-    global_context->s->ui.mouse_pixel = vec2i( { x, y } );
+void mouse_move( int x, int y, int width, int height ) {
+    UI& ui = global_context->s->ui;
+    ui.mouse_pixel = vec2i( { x * ui.canvas_bounds.width() / width, y * ui.canvas_bounds.height() / height } );
 } 
 
 void mouse_down( bool down ) {
