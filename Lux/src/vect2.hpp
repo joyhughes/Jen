@@ -179,7 +179,8 @@ template< class T, int M > struct bounding_box {
     { return bounding_box< U, M > ( max( minv, in.minv ), min( maxv, in.maxv ) ); }
 
     V center() { return ( b1 + b2 ) / 2.0f; }
-
+    T width()  { return maxv.x - minv.x; }
+    T height() { return maxv.y - minv.y; }
     void print() const { std::cout << "[ [ " << b1.x << ", " << b1.y << " ], [ " << b2.x << ", " << b2.y << " ] ]" << std::endl; }
 };
 
