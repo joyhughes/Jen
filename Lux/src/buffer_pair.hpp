@@ -10,6 +10,7 @@
 template< class T > class buffer_pair {
     typedef std::unique_ptr< image< T > > image_ptr;
     std::pair< image_ptr, image_ptr > image_pair;
+    bool swapped = false;
 public:
     buffer_pair();
     buffer_pair( const std::string& filename );
@@ -18,10 +19,12 @@ public:
 //  buffer_pair( const buffer_pair< T >& bp );  // copy constructor
 
     bool has_image();
+    bool is_swapped();
     image< T >& get_image();
     const image< T >& get_image() const;
     std::unique_ptr< image< T > >& get_image_ptr();
     image< T >& get_buffer();                   // get buffer, create if necessary
+    std::unique_ptr< image< T > >& get_buffer_ptr();
     void swap();                                // swap image and buffer
 
     /*

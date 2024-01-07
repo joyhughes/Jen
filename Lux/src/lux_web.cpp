@@ -140,12 +140,31 @@ void mouse_click( bool click ) {
     global_context->s->ui.mouse_click = click;
 }
 
-// slider value set to range [0.0, 1.0]
-void slider_value( int value ) {
-    emscripten_run_script("console.log('slider_value called');");
-    std::cout << "slider value: " << value << std::endl;
-    //global_context->s->ui.slider_value = ( float )std::stoi( value ) / 100.0f;
-    global_context->s->ui.slider_value = value / 100.0f;
+void slider_value( float value ) {
+    std::cout << "slider_value: " << value << std::endl;
+    global_context->s->ui.main_slider.value = value;
+}
+
+float get_slider_min() {
+    std::cout << "get_slider_min: " << global_context->s->ui.main_slider.min << std::endl;
+    return global_context->s->ui.main_slider.min;
+}
+
+float get_slider_max() {
+    std::cout << "get_slider_max: " << global_context->s->ui.main_slider.max << std::endl;
+    return global_context->s->ui.main_slider.max;
+}
+
+float get_slider_value() {
+    return global_context->s->ui.main_slider.value;
+}
+
+float get_slider_step() {
+    return global_context->s->ui.main_slider.step;
+}
+
+std::string get_slider_label() {
+    return global_context->s->ui.main_slider.label;
 }
 
 int main(int argc, char** argv) {
@@ -175,6 +194,7 @@ int main(int argc, char** argv) {
     context.update_callback = nullptr;
     context.update_callback_ready = false;
     context.js_bitmaps_ready = false;
+    context.s->ui.main_slider = slider( "Sort Threshold", 200.0f, 0.0f, 766.0f, 1.0f );
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
@@ -190,6 +210,7 @@ int main(int argc, char** argv) {
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback", &set_frame_callback );
     function( "set_update_callback",&set_update_callback );
+
     function( "bitmaps_ready",      &bitmaps_ready );
     function( "get_buf1",           &get_buf1 );
     function( "get_buf2",           &get_buf2 );
@@ -197,10 +218,18 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "get_buf_width",      &get_buf_width );
     function( "get_buf_height",     &get_buf_height );
     function( "is_swapped",         &is_swapped );
+
     function( "run_pause",          &run_pause );
     function( "restart",            &restart );
     function( "advance_frame",      &advance_frame );
+
     function( "slider_value",       &slider_value );
+    function( "get_slider_min",     &get_slider_min);
+    function( "get_slider_max",     &get_slider_max);
+    function( "get_slider_value",   &get_slider_value);
+    function( "get_slider_step",    &get_slider_step);
+    function( "get_slider_label",   &get_slider_label);
+    
     function( "mouse_move",         &mouse_move );
     function( "mouse_down",         &mouse_down );
     function( "mouse_over",         &mouse_over );

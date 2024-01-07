@@ -50,12 +50,12 @@ float wiggle::operator ()  ( float& val, element_context& context  )
 
 float slider_fn::operator () ( float& val, element_context& context  )
 {
-    return std::lerp( *min, *max, context.s.ui.slider_value );
+    return context.s.ui.main_slider.value;
 }
 
 int int_slider_fn::operator () ( int& val, element_context& context  )
 {
-    return (int)std::lerp( (float)*min, (float)*max, context.s.ui.slider_value );
+    return (int)context.s.ui.main_slider.value;
 }
 
 vec2f mouse_pos_fn::operator () ( vec2f& val, element_context& context  )
