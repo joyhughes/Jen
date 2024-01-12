@@ -33,6 +33,10 @@ template< class T > bool buffer_pair< T >::has_image() {
     return image_pair.first.get() != NULL;
 }
 
+template< class T > bool buffer_pair< T >::is_swapped() {
+    return swapped;
+}
+
 template< class T > image< T >& buffer_pair< T >::get_image() {
     return *image_pair.first;
 }
@@ -50,18 +54,26 @@ template< class T > image< T >& buffer_pair< T >::get_buffer() {
     return *image_pair.second;
 }
 
+template< class T > std::unique_ptr< image< T > >& buffer_pair< T >::get_buffer_ptr() { 
+    if( image_pair.second.get() == NULL ) image_pair.second.reset( new image< T >( *image_pair.first ) );
+    return image_pair.second; 
+}
+
 template< class T > void buffer_pair< T >::swap() { 
     image_pair.first.swap( image_pair.second ); 
+    swapped = !swapped;
 }
 
 template< class T > void buffer_pair< T >::reset( const image< T >& img ) { 
     image_pair.first.reset( new image< T >( img ) );
     image_pair.second.reset( NULL );
+    swapped = false;
 }
 
 template< class T > void buffer_pair< T >::reset( vec2i& dim ) { 
     image_pair.first.reset( new image< T >( dim ) );
     image_pair.second.reset( NULL );
+    swapped = false;
 }
 
 template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp ) { 

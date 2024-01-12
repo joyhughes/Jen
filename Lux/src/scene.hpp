@@ -195,6 +195,17 @@ struct effect_list {
     }
 };
 
+struct slider {
+    std::string label;
+    float value;
+    float min;
+    float max;
+    float step;
+
+    slider( const std::string& label_init = "", const float& value_init = 0.3f, const float& min_init = 0.0f, const float& max_init = 1.0f, const float& step_init = 0.01f ) :
+        label( label_init ), value( value_init ), min( min_init ), max( max_init ), step( step_init ) {}
+};
+
 // Stores state of user interface - mouse position, mouse down, slider values, etc.
 struct UI {
     bb2i  canvas_bounds; // bounds of canvas in pixels
@@ -202,9 +213,9 @@ struct UI {
     bool  mouse_down;
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
-    float slider_value;
+    slider main_slider;
 
-    UI() : canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), mouse_pixel( { 0, 0 } ), mouse_down( false ), mouse_over( false ), mouse_click( false ), slider_value( 0.3 ) {}
+    UI() : canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), mouse_pixel( { 0, 0 } ), mouse_down( false ), mouse_over( false ), mouse_click( false ), main_slider( "Sort Threshold", 230.0f, 0.0f, 765.0f, 1.0f ) {}
 };
 
 struct scene {
