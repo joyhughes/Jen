@@ -545,6 +545,22 @@ void scene_reader::read_effect( const json& j ) {
     // else empty effect list - should be automatic
     END_EFF()
 
+    EFF( eff_chooser )
+    if( j.contains( "effects") )
+    {
+        for( std::string eff_name : j[ "effects" ] ) {
+            if( s.effects.contains( eff_name ) ) {
+                e->add_effect( s.effects[ eff_name ] );
+                DEBUG( "chooser effect " + name + " adding effect " + eff_name )
+            }
+            else ERROR( "eff_chooser effect not found\n" )
+        }
+    }
+    DEBUG( "chooser effect " + name + " has " + std::to_string( e->effects.size() ) + " effects" )
+    // else empty effect list - should be automatic
+    HARNESSE( choice )
+    END_EFF()
+
     EFF( eff_fill_frgb )   HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_ucolor ) HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_vec2i )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
