@@ -69,6 +69,24 @@ template< class T > struct eff_grayscale {
 typedef eff_grayscale< frgb > eff_grayscale_frgb;
 typedef eff_grayscale< ucolor > eff_grayscale_ucolor;
 
+template< class T > struct eff_invert {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_invert< frgb > eff_invert_frgb;
+typedef eff_invert< ucolor > eff_invert_ucolor;
+
+template< class T > struct eff_rotate_colors {
+    harness< int > r;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_rotate_colors( int r_init = 0 ) : r( r_init ) {}
+};
+
+typedef eff_rotate_colors< frgb > eff_rotate_colors_frgb;
+typedef eff_rotate_colors< ucolor > eff_rotate_colors_ucolor;
+
 template< class T > struct eff_crop_circle {
     harness< T > background;
     harness< float > ramp_width;
@@ -182,7 +200,213 @@ typedef eff_feedback< vec2f > eff_feedback_vec2f;
 typedef eff_feedback< int > eff_feedback_int;
 typedef eff_feedback< vec2i > eff_feedback_vec2i;
 
-// Component effect - runs the same component effect n times
+
+// Vector field effects
+
+template< class T > struct eff_complement {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_complement() {}
+};
+
+typedef eff_complement< vec2f > eff_complement_vec2f;
+
+template< class T > struct eff_radial {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_radial() {}
+};
+
+typedef eff_radial< vec2f > eff_radial_vec2f;
+
+template< class T > struct eff_cartesian {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_cartesian() {}
+};
+
+typedef eff_cartesian< vec2f > eff_cartesian_vec2f;
+
+template< class T > struct eff_rotate_vectors {
+    harness< float > angle;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_rotate_vectors( float angle_init = 0.0f ) : angle( angle_init ) {}
+};
+
+typedef eff_rotate_vectors< vec2f > eff_rotate_vectors_vec2f;
+
+template< class T > struct eff_scale_vectors {
+    harness< float > scale;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_scale_vectors( float scale_init = 1.0f ) : scale( scale_init ) {}
+};
+
+typedef eff_scale_vectors< vec2f > eff_scale_vectors_vec2f;
+
+template< class T > struct eff_normalize {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_normalize() {}
+};
+
+typedef eff_normalize< vec2f > eff_normalize_vec2f;
+
+template< class T > struct eff_inverse {
+    harness< float > diameter;
+    harness< float > soften;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_inverse( float diameter_init = 1.0f, float soften_init = 0.0f ) : diameter( diameter_init ), soften( soften_init ) {}
+};
+
+typedef eff_inverse< vec2f > eff_inverse_vec2f;
+
+template< class T > struct eff_inverse_square {
+    harness< float > diameter;
+    harness< float > soften;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_inverse_square( float diameter_init = 1.0f, float soften_init = 0.0f ) : diameter( diameter_init ), soften( soften_init ) {}
+};
+
+typedef eff_inverse_square< vec2f > eff_inverse_square_vec2f;
+
+template< class T > struct eff_concentric {
+    harness< vec2f > center;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_concentric( vec2f center_init = vec2f( 0.0f, 0.0f ) ) : center( center_init ) {}
+};
+
+typedef eff_concentric< vec2f > eff_concentric_vec2f;
+
+template< class T > struct eff_rotational {
+    harness< vec2f > center;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_rotational( vec2f center_init = vec2f( 0.0f, 0.0f ) ) : center( center_init ) {}
+};
+
+typedef eff_rotational< vec2f > eff_rotational_vec2f;
+
+template< class T > struct eff_spiral {
+    harness< vec2f > center;
+    harness< float > angle;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_spiral( vec2f center_init = vec2f( 0.0f, 0.0f ), float angle_init = 0.0f ) : center( center_init ), angle( angle_init ) {}
+};
+
+typedef eff_spiral< vec2f > eff_spiral_vec2f;
+
+template< class T > struct eff_vortex {
+    harness< float > diameter;   // float - Overall size of vortex
+    harness< float > soften;     // float - Avoids a singularity in the center of vortex
+    harness< float > intensity;  // float - Strength of vortex. How vortexy is it? Negative value swirls the opposite direction.
+    harness< vec2f > center_orig; // vect2 - Initial position of vortex
+    // other mathematical properties here ... vortex type?  ( inverse, inverse_square, donut, etc )
+
+    // Animation parameters
+    bool revolving;  // bool - does the vortex revolve around a center?
+    harness< int   > velocity;   // float - Speed of revolution. Must be integer for animation to loop
+    harness< vec2f > center_of_revolution;   // vect2 - vortex revolves around this point
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_vortex( float diameter_init = 1.0f, 
+                float soften_init = 0.0f, 
+                float intensity_init = 1.0f, 
+                vec2f center_orig_init = vec2f( 0.0f, 0.0f ), 
+                bool revolving_init = false, 
+                int velocity_init = 0, 
+                vec2f center_of_revolution_init = vec2f( 0.0f, 0.0f ) ) : 
+        diameter( diameter_init ), 
+        soften( soften_init ), 
+        intensity( intensity_init ), 
+        center_orig( center_orig_init ), 
+        revolving( revolving_init ), 
+        velocity( velocity_init ), 
+        center_of_revolution( center_of_revolution_init ) {}
+};
+
+typedef eff_vortex< vec2f > eff_vortex_vec2f;
+
+template< class T > struct eff_turbulent {
+    harness< int > n;                              // number of vortices in field    
+    harness< bb2f > bounds;
+    harness< float > scale_factor;                 // overall scaling factor
+
+    harness< float > min_diameter, max_diameter;   // float - size of vortex
+    harness< float > min_soften, max_soften;       // float - singularity avoidance
+    harness< float > min_intensity, max_intensity; // float
+    rotation_direction intensity_direction;  // object of RotationDirection
+        // vortex type?  ( inverse, inverse_square, donut, etc )
+
+    bool revolving;                     // do vortices revolve?
+    harness< int > min_velocity, max_velocity;           // must be integer values for animation to loop
+    rotation_direction velocity_direction;   // object of RotationDirection
+    harness< float > min_orbital_radius, max_orbital_radius; // float
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_turbulent( int n_init = 10, bool revolving_init = true ) : 
+        n( n_init ), 
+        scale_factor( 0.5f ),
+        min_diameter( 0.33f ), 
+        max_diameter( 0.33f ), 
+        min_soften( 0.25f ), 
+        max_soften( 0.25f ),
+        min_intensity( 1.0f ), 
+        max_intensity( 1.0f ), 
+        intensity_direction( RANDOM ),
+        revolving( revolving_init ), 
+        min_velocity( 1 ), 
+        max_velocity( 1 ), 
+        velocity_direction( RANDOM ),
+        min_orbital_radius( 0.0f ), 
+        max_orbital_radius( 0.5f )  {}
+};
+
+typedef eff_turbulent< vec2f > eff_turbulent_vec2f;
+
+template< class T > struct eff_position_fill {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_position_fill< vec2f > eff_position_fill_vec2f;
+
+// Warp field effects
+template< class T > struct eff_fill_warp {
+    any_buffer_pair_ptr vf_buf;
+    bool relative;
+    image_extend extend;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_fill_warp() :  
+        relative( true ), 
+        extend( SAMP_REPEAT ) {}
+
+    /*eff_fill_warp( any_buffer_pair_ptr& vf_buf_init = null_buffer_pair_ptr, 
+                   bool relative_init = true, 
+                   image_extend extend_init = SAMP_REPEAT ) : 
+        vf_buf( vf_buf_init ), 
+        relative( relative_init ), 
+        extend( extend_init ) {}*/
+};
+
+typedef eff_fill_warp< int > eff_fill_warp_int;
+    
+    // Component effect - runs the same component effect n times
 // eff_n cool!
 struct eff_n {
     harness< int > n;
@@ -205,6 +429,21 @@ struct eff_composite {
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
     void add_effect( const any_effect_fn& eff );
+};
+
+// Chooser effect. Runs one of a set of possible effects.
+struct eff_chooser {
+    std::vector< any_effect_fn > effects; // component functions for effect
+    harness< int > choice;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    any_effect_fn& get_effect();
+    void choose( int choice );
+    void choose( const std::string& name );
+    void add_effect( const any_effect_fn& eff );
+
+    eff_chooser() : choice( 0 ) {}
 };
 
 #endif // __EFFECT_HPP

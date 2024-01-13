@@ -1,7 +1,13 @@
+
 //#include <SDL.h>
 #include "scene.hpp"
 #include "scene_io.hpp"
 #include "uimage.hpp"
+#include "effect.hpp"
+#include "any_effect.hpp"
+#include "life.hpp"
+#include "any_rule.hpp"
+#include <sstream>
 #include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -167,11 +173,49 @@ std::string get_slider_label() {
     return global_context->s->ui.main_slider.label;
 }
 
+std::string get_menu_choices() {
+    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
+        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
+        std::ostringstream oss;
+        for (const auto &choice : eff->effects) {
+            if (&choice.name != &eff->effects[0].name) {
+                oss << ",";
+            }
+            oss << choice.name;
+        }
+        std::cout << "get_menu_choices: " << oss.str() << std::endl;
+        return oss.str();
+    }
+    else {
+        std::cout << "get_menu_choices: Rule chooser not found" << std::endl;
+        return "Choice 1,Choice 2,Choice 3";
+    }
+}
+
+int get_initial_menu_choice() {
+
+    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
+        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
+        std::cout << "get_initial_menu_choice: " << *(eff->choice) << std::endl;
+        return *(eff->choice);
+    }
+    else {
+        std::cout << "get_initial_menu_choice: Rule chooser not found" << std::endl;
+        return 2;
+    }
+}
+
+void handle_menu_choice( int choice ) {
+    std::cout << "handle_menu_choice: " << choice << std::endl;
+    auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
+    eff->choose( choice );
+}
+
 int main(int argc, char** argv) {
-    vec2i dim( { 512, 512 } );
+    vec2i dim( { 512, 512 } );  // original sin
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "nebula_files/nebula_brush.json" ); 
+    scene s( "nebula_files/CA_choices.json" ); 
     //scene s( "nebula_files/nebula_brush.json" ); 
     //scene s(    //scene s( "diffuser_files/diffuser_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
@@ -206,7 +250,7 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-
+ 
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback", &set_frame_callback );
     function( "set_update_callback",&set_update_callback );
@@ -229,6 +273,10 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "get_slider_value",   &get_slider_value);
     function( "get_slider_step",    &get_slider_step);
     function( "get_slider_label",   &get_slider_label);
+
+    function( "get_menu_choices",   &get_menu_choices);
+    function( "get_initial_menu_choice",   &get_initial_menu_choice);
+    function( "handle_menu_choice", &handle_menu_choice);
     
     function( "mouse_move",         &mouse_move );
     function( "mouse_down",         &mouse_down );

@@ -58,6 +58,30 @@ template< class T > void eff_grayscale< T >::operator () ( any_buffer_pair_ptr& 
 template class eff_grayscale< frgb >;
 template class eff_grayscale< ucolor >;
 
+template< class T > void eff_invert< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
+        buf_ptr->get_image().invert();
+    }
+}
+
+template class eff_invert< frgb >;
+template class eff_invert< ucolor >;
+
+template< class T > void eff_rotate_colors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
+        buf_ptr->get_image().rotate_colors( *r );
+    }
+}
+
+template class eff_rotate_colors< frgb >;
+template class eff_rotate_colors< ucolor >;
+
 template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
@@ -159,6 +183,195 @@ template class eff_feedback< vec2f >;
 template class eff_feedback< int >;
 template class eff_feedback< vec2i >;
 
+// Vector field effects
+
+template< class T > void eff_complement< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.complement();
+    }
+}
+
+template class eff_complement< vec2f >;
+
+template< class T > void eff_radial< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.radial();
+    }
+}
+
+template class eff_radial< vec2f >;
+
+template< class T > void eff_cartesian< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.cartesian();
+    }
+}
+
+template class eff_cartesian< vec2f >;
+
+template< class T > void eff_rotate_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        //std::cout << "eff_rotate_vectors: " << std::endl;
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.rotate_vectors( *angle );
+    }
+}
+
+template class eff_rotate_vectors< vec2f >;
+
+template< class T > void eff_scale_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        buf_ptr->get_image() *= *scale;
+    }
+}
+
+template class eff_scale_vectors< vec2f >;
+
+template< class T > void eff_normalize< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.normalize();
+    }
+}
+
+template class eff_normalize< vec2f >;
+
+template< class T > void eff_inverse< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.inverse( *diameter, *soften );
+    }
+}
+
+template class eff_inverse< vec2f >;
+
+template< class T > void eff_inverse_square< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.inverse_square( *diameter, *soften );
+    }
+}
+
+template class eff_inverse_square< vec2f >;
+
+template< class T > void eff_concentric< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.concentric( *center );
+    }
+}
+
+template class eff_concentric< vec2f >;
+
+template< class T > void eff_rotational< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.rotation( *center );
+    }
+}
+
+template class eff_rotational< vec2f >;
+
+template< class T > void eff_spiral< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.concentric( *center );
+        tools.rotate_vectors( *angle );
+    }
+}
+
+template class eff_spiral< vec2f >;
+
+template< class T > void eff_vortex< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        vortex v( *diameter, *soften, *intensity, *center_orig, revolving, *velocity, *center_of_revolution );
+        tools.vortex( v );
+    }
+}
+
+template class eff_vortex< vec2f >;
+
+template< class T > void eff_turbulent< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        vortex_field v( *n, revolving, *scale_factor, *min_diameter, *max_diameter, *min_soften, *max_soften, *min_intensity, *max_intensity, intensity_direction, *min_velocity, *max_velocity, velocity_direction, *min_orbital_radius, *max_orbital_radius );
+        tools.turbulent( v );
+    }
+}
+
+template class eff_turbulent< vec2f >;
+
+template< class T > void eff_position_fill< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_position_fill: no image in buffer" );
+        vf_tools tools( buf_ptr->get_image() );
+        tools.position_fill();
+    }
+}
+
+template class eff_position_fill< vec2f >;
+
+template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) 
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf );
+        if( std::holds_alternative< vbuf_ptr >( vf_buf ) )
+        {
+            auto& vf = std::get< vbuf_ptr >( vf_buf )->get_image();   // extract vector field from buffer variant
+            buf_ptr->get_image().fill( vf, relative, extend );
+        }
+    }
+}
+
+template class eff_fill_warp< int >;
+
 void eff_n::operator () ( any_buffer_pair_ptr &buf, element_context& context )
 {
     n( context );
@@ -176,6 +389,20 @@ void eff_composite::operator () ( any_buffer_pair_ptr& buf, element_context& con
 
 void eff_composite::add_effect( const any_effect_fn& eff ) { effects.push_back( eff ); }
 
+void eff_chooser::operator () ( any_buffer_pair_ptr& buf, element_context& context )  {
+    if( *choice < effects.size() ) effects[ *choice ]( buf, context );
+}
 
+void eff_chooser::choose( int choice_init ) { 
+    if( choice_init < effects.size() ) choice = choice_init; 
+}
+
+void eff_chooser::choose( const std::string& name ) { 
+    for( int i = 0; i < effects.size(); i++ ) {
+        if( effects[ i ].name == name ) choice = i;
+    }
+}
+
+void eff_chooser::add_effect( const any_effect_fn& eff ) { effects.push_back( eff ); }
 
 

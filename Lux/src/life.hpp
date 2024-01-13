@@ -18,10 +18,11 @@
 
 // future - move alpha block to CA
 template< class T > struct CA {
-   std::vector< T > neighbors, result; // vector of neighbors - size depends on neighborhood
+   std::vector< T > neighbors, result, targ; // vector of neighbors - size depends on neighborhood
    // Future - use for image targeting
-   // std::optional< std::reference_wrapper< image< T >& > > target;
-
+   bool targeted; // if true, rule will run if it gets closer to target image
+   any_buffer_pair_ptr target; // target image
+   // 
    // Rule can have both warp field and vector field
    // For choice between fast and smooth
    // std::optional< std::reference_wrapper< warp_field& > > wf; 
@@ -50,16 +51,10 @@ template< class T > struct CA {
    void run_rule();
    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-   CA() :  
-      hood( HOOD_MOORE ), 
-      p( 1.0f ),
-      edge_block( false ),
-      alpha_block( false ),
-      bright_block( false ),
-      bright_min( 0 ),
-      bright_max( 768 ),
-      ca_frame(0) {}
-   CA( const any_rule& rule ) : rule( rule ), 
+   CA() :  // default constructor for rule returns identity rule pointer
+      rule(),
+      targeted( false ),
+      target( null_buffer_pair_ptr ),
       hood( HOOD_MOORE ), 
       p( 1.0f ),
       edge_block( false ),
@@ -107,6 +102,64 @@ template< class T > struct rule_life {
 #define rule_life_int rule_life< int >
 #define rule_life_vec2i rule_life< vec2i >
 
+// Randomly copies color from a random neighbor (self included)
+template< class T > struct rule_random_copy {
+   std::uniform_int_distribution< int > rand_9;
+
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+
+   rule_random_copy() : rand_9( std::uniform_int_distribution< int >( 0, 8 ) ) {}
+};
+
+#define rule_random_copy_frgb rule_random_copy< frgb >
+#define rule_random_copy_ucolor rule_random_copy< ucolor >
+#define rule_random_copy_vec2f rule_random_copy< vec2f >
+#define rule_random_copy_int rule_random_copy< int >
+#define rule_random_copy_vec2i rule_random_copy< vec2i >
+
+// Randomly mixes color components of neighbors, including self
+template< class T > struct rule_random_mix {
+   std::uniform_int_distribution< int > rand_9;
+
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+
+   rule_random_mix() : rand_9( std::uniform_int_distribution< int >( 0, 8 ) ) {}
+};
+
+#define rule_random_mix_frgb rule_random_mix< frgb >
+#define rule_random_mix_ucolor rule_random_mix< ucolor >
+#define rule_random_mix_vec2f rule_random_mix< vec2f >
+#define rule_random_mix_int rule_random_mix< int >
+#define rule_random_mix_vec2i rule_random_mix< vec2i >
+
+// Colors drift separately in given directions
+// Alternative - continuous direction function, use monte carlo interpolation
+/*
+template< class T > struct rule_color_drift {
+   std::uniform_int_distribution< int > rand_9;
+   harness< int > drift_r, drift_g, drift_b; // integer 0 to 9
+
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+
+   rule_random_mix( int drift_r_init, int drift_g_init, int drift_b_init ) : 
+      rand_9( std::uniform_int_distribution< int >( 0, 8 ) ),
+      drift_r( drift_r_init % 9 ),
+      drift_g( drift_g_init % 9 ),
+      drift_b( drift_b_init % 9 ) {}
+};
+
+#define rule_color_drift_frgb rule_color_drift< frgb >
+#define rule_color_drift_ucolor rule_color_drift< ucolor >
+#define rule_color_drift_vec2f rule_color_drift< vec2f >
+#define rule_color_drift_int rule_color_drift< int >
+#define rule_color_drift_vec2i rule_color_drift< vec2i >
+*/
+
+// Margolus neighborhood
+
 // Rule functor for diffusion
 template< class T > struct rule_diffuse {
    std::uniform_int_distribution< int > rand_4;
@@ -133,7 +186,6 @@ template< class T > struct rule_gravitate {
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
             
-
    rule_gravitate( direction4 direction_init = direction4::D4_DOWN, bool alpha_block_init = false ) :
       direction( direction_init ),
       rand_4( std::uniform_int_distribution< int >( 0, 3 ) ) { }
