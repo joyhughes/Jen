@@ -283,3 +283,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_over",         &mouse_over );
     function( "mouse_click",        &mouse_click );
 }
+ 

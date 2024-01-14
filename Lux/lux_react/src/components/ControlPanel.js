@@ -7,6 +7,9 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 
 import Slider from '@mui/material/Slider';
+import MuiInput from '@mui/material/Input';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -18,6 +21,10 @@ import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
 
 //import Module from './useEmscripten';
+
+const Input = styled(MuiInput)`
+  width: 50px;
+`;
 
 function ControlPanel( { ratio, panelSize } ) {
   const theme = useTheme();
@@ -33,6 +40,8 @@ function ControlPanel( { ratio, panelSize } ) {
 
   const [radioValue, setRadioValue] = useState('option1');
   const [textValue, setTextValue] = useState('');
+  const [menuChoices, setMenuChoices] = useState([]);
+  const [selectedMenuChoice, setSelectedMenuChoice] = useState( '' );
   const [dimensions, setDimensions] = useState({ width: 0, height: 0, isRowDirection: true });
 
   const resizeBox = () => {
@@ -71,6 +80,11 @@ function ControlPanel( { ratio, panelSize } ) {
       });
       console.log( "ControlPanel useEffect mainSlider=" + JSON.stringify( sliderProps ) );
 
+      const choices = window.Module.get_menu_choices(); 
+      console.log( "Menu choices=" + choices );
+      const choicesArray = choices.split(','); // Splitting the string into an array
+      setMenuChoices(choicesArray);
+      setSelectedMenuChoice(window.Module.get_initial_menu_choice());
     } else {
       // Poll for the Module to be ready
       const intervalId = setInterval(() => {
@@ -84,6 +98,12 @@ function ControlPanel( { ratio, panelSize } ) {
             ready: true
           });
           console.log( "ControlPanel useEffect mainSlider=" + JSON.stringify( sliderProps ) );
+
+          const choices = window.Module.get_menu_choices(); 
+          const choicesArray = choices.split(','); // Splitting the string into an array
+          setMenuChoices(choicesArray);
+          setSelectedMenuChoice(window.Module.get_initial_menu_choice());
+
           clearInterval(intervalId);
         }
       }, 100); // Check every 100ms
@@ -101,6 +121,42 @@ function ControlPanel( { ratio, panelSize } ) {
   
     if (window.Module) {
       window.Module.slider_value(newValue);
+    }
+  };
+
+  const handleInputChange = (event) => {
+    let newValue = (event.target.value === '' ? 0 : Number(event.target.value));
+    if( newValue < sliderProps.min ) newValue = sliderProps.min;
+    if( newValue > sliderProps.max ) newValue = sliderProps.max;
+    console.log( "ControlPanel handleInputChange value=" + newValue );
+    setSliderProps(prevProps => ({
+      ...prevProps,
+      value: newValue
+    }));
+    if (window.Module) {
+      window.Module.slider_value(newValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (sliderProps.value < sliderProps.min) {
+      setSliderProps(prevProps => ({
+        ...prevProps,
+        value: sliderProps.min
+      }));
+    } else if (sliderProps.value > sliderProps.max) {
+      setSliderProps(prevProps => ({
+        ...prevProps,
+        value: sliderProps.max
+      }));
+    }
+  };
+
+  const handleMenuChange = (event) => {
+    setSelectedMenuChoice(event.target.value);
+    console.log( "ControlPanel handleMenuChange event.target.value=" + event.target.value );
+    if (window.Module) {
+      window.Module.handle_menu_choice(event.target.value); 
     }
   };
 
@@ -144,32 +200,69 @@ function ControlPanel( { ratio, panelSize } ) {
           justifyContent: 'center',
           alignItems: 'center',
           width: panelSize,
-          height: 60,  // Or any desired height for the enclosing container
+          height: 60
         }}
       >
         <Stack spacing={0} direction="column" alignItems="center">
-          <Slider 
-            size="small"
-            style={{ width: panelSize - 40 }}
-            min={sliderProps.min}
-            max={sliderProps.max}
-            step={sliderProps.step}
-            value={sliderProps.value}
-            onChange={handleSliderChange}
-            aria-labelledby='input-slider'
-            aria-label={sliderProps.label}
-            valueLabelDisplay="auto" // Shows the value label on hover or focus
-            />
           {sliderProps.label && (
             <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
               {sliderProps.label}
             </Typography>
           )}
+          <Stack spacing={1} direction="row" alignItems="center">
+            <Slider 
+              size="small"
+              style={{ width: panelSize - 80 }}
+              min={sliderProps.min}
+              max={sliderProps.max}
+              step={sliderProps.step}
+              value={sliderProps.value}
+              onChange={handleSliderChange}
+              aria-labelledby='input-slider'
+              aria-label={sliderProps.label}
+              valueLabelDisplay="off" // Shows the value label on hover or focus
+            />
+            <Input
+              size="small"
+              type="number"
+              min={sliderProps.min}
+              max={sliderProps.max}
+              step={sliderProps.step}
+              value={sliderProps.value}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              aria-labelledby="input-slider"
+              aria-label="{sliderProps.label} input field"
+            />
+          </Stack>
         </Stack>
+      </Paper>
+      <Paper 
+        elevation={3}
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: panelSize,
+          height: 60,
+        }}
+      >
+        <Select
+          value={selectedMenuChoice}
+          onChange={handleMenuChange}
+          displayEmpty
+          inputProps={{ 'aria-label': 'Without label' }}
+        >
+          {menuChoices.map((choice, index) => (
+            <MenuItem key={index} value={index}>
+              {choice}
+            </MenuItem>
+          ))}
+        </Select>
       </Paper>
     </Paper>
   );
   
 }
 
-export default ControlPanel;
+export default ControlPanel; 
