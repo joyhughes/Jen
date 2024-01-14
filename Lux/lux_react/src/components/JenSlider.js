@@ -5,6 +5,7 @@ import Slider from '@mui/material/Slider';
 import MuiInput from '@mui/material/Input';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 
 import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
@@ -20,6 +21,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
 
     const [sliderProps, setSliderProps] = useState({
       label: '',
+      description: '',
       value: 0,
       min: 0,
       max: 100,
@@ -31,6 +33,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
         if (window.Module) {
           setSliderProps({
             label: window.Module.get_slider_label(sliderName),
+            description: window.Module.get_slider_description(sliderName),
             value: window.Module.get_slider_value(sliderName),
             min:   window.Module.get_slider_min(sliderName),
             max:   window.Module.get_slider_max(sliderName),
@@ -44,6 +47,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
             if (window.Module) {
               setSliderProps({
                 label: window.Module.get_slider_label(sliderName),
+                description: window.Module.get_slider_description(sliderName),
                 value: window.Module.get_slider_value(sliderName),
                 min:   window.Module.get_slider_min(sliderName),
                 max:   window.Module.get_slider_max(sliderName),
@@ -115,9 +119,11 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
       >
         <Stack spacing={0} direction="column" alignItems="center">
           {sliderProps.label && (
-            <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
-              {sliderProps.label}
-            </Typography>
+            <Tooltip title={sliderProps.description}>
+              <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
+                {sliderProps.label}
+              </Typography>
+            </Tooltip>
           )}
           <Stack spacing={1} direction="row" alignItems="center">
             <Slider 

@@ -5,7 +5,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-
+import Tooltip from '@mui/material/Tooltip';
 import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
 
@@ -13,6 +13,7 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
     const [menuChoices, setMenuChoices] = useState([]);
     const [selectedMenuChoice, setSelectedMenuChoice] = useState( '' );
     const [menuLabel, setMenuLabel] = useState( '' );
+    const [description, setDescription] = useState( '' );
 
     const theme = useTheme();
 
@@ -24,6 +25,7 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
             setMenuChoices(choicesArray);
             setSelectedMenuChoice(window.Module.get_initial_menu_choice(menuName));
             setMenuLabel(window.Module.get_menu_label(menuName));
+            setDescription(window.Module.get_menu_description(menuName));
         } else {
             // Poll for the Module to be ready
             const intervalId = setInterval(() => {
@@ -33,6 +35,7 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
                 setMenuChoices(choicesArray);
                 setSelectedMenuChoice(window.Module.get_initial_menu_choice(menuName));
                 setMenuLabel(window.Module.get_menu_label(menuName));
+                setDescription(window.Module.get_menu_description(menuName));
                 clearInterval(intervalId);
             }
           }, 100); // Check every 100ms
@@ -92,9 +95,11 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
         <Paper elevation={3} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: panelSize, height: 60 }}>
             <Stack sx={stackStyles}>
                 {menuLabel && (
-                    <Typography sx={typographyStyles}>
-                        {menuLabel}
-                    </Typography>
+                    <Tooltip title={description}>
+                        <Typography sx={typographyStyles}>
+                            {menuLabel}
+                        </Typography>
+                    </Tooltip>
                 )}
                 <Select
                     value={selectedMenuChoice}
