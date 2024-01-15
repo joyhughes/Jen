@@ -6,6 +6,9 @@ import MuiInput from '@mui/material/Input';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import InfoIcon from '@mui/icons-material/Info';
+
 
 import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
@@ -105,7 +108,58 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
             }));
         }
     };
-    
+
+  return (
+    <Paper 
+      elevation={3}
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: panelSize,
+        height: 60,
+        position: 'relative' // Add this line
+      }}
+    >
+      <Tooltip title={sliderProps.description} placement="top" disableInteractive>
+        <IconButton sx={{ position: 'absolute', top: 0, right: 0 }}>
+          <InfoIcon sx={{ fontSize: '1rem', color: theme.palette.primary.main }} />
+        </IconButton>
+      </Tooltip>
+      <Stack spacing={-0.5} direction="column" alignItems="center">
+        <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
+          {sliderProps.label}
+        </Typography>
+        <Stack spacing={1} direction="row" alignItems="center">
+          <Slider 
+            size="small"
+            style={{ width: panelSize - 80 }}
+            min={sliderProps.min}
+            max={sliderProps.max}
+            step={sliderProps.step}
+            value={sliderProps.value}
+            onChange={handleSliderChange}
+            aria-labelledby='input-slider'
+            aria-label={sliderProps.label}
+            valueLabelDisplay="off" // Shows the value label on hover or focus
+          />
+          <Input
+            size="small"
+            type="number"
+            min={sliderProps.min}
+            max={sliderProps.max}
+            step={sliderProps.step}
+            value={sliderProps.value}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            aria-labelledby="input-slider"
+            aria-label="{sliderProps.label} input field"
+          />
+        </Stack>
+      </Stack>
+    </Paper>
+  );
+    /*
     return (
         <Paper 
         elevation={3}
@@ -117,14 +171,15 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
           height: 60
         }}
       >
-        <Stack spacing={0} direction="column" alignItems="center">
-          {sliderProps.label && (
-            <Tooltip title={sliderProps.description}>
-              <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
-                {sliderProps.label}
-              </Typography>
+        <Stack spacing={-0.5} direction="column" alignItems="center">
+          <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
+            {sliderProps.label}
+            <Tooltip title={sliderProps.description} placement="top" disableInteractive>
+              <IconButton>
+                <InfoIcon  sx={{ fontSize: '1rem', color: theme.palette.primary.main, ml: -0.5 }} />
+              </IconButton>
             </Tooltip>
-          )}
+          </Typography>
           <Stack spacing={1} direction="row" alignItems="center">
             <Slider 
               size="small"
@@ -154,6 +209,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
         </Stack>
       </Paper>
     );
+    */
 }
 
 export default JenSlider;
