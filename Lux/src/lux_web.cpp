@@ -151,29 +151,34 @@ void slider_value( float value ) {
     global_context->s->ui.main_slider.value = value;
 }
 
-float get_slider_min() {
+float get_slider_min( std::string name ) {
     std::cout << "get_slider_min: " << global_context->s->ui.main_slider.min << std::endl;
     return global_context->s->ui.main_slider.min;
 }
 
-float get_slider_max() {
+float get_slider_max( std::string name ) {
     std::cout << "get_slider_max: " << global_context->s->ui.main_slider.max << std::endl;
     return global_context->s->ui.main_slider.max;
 }
 
-float get_slider_value() {
+float get_slider_value( std::string name ) {
     return global_context->s->ui.main_slider.value;
 }
 
-float get_slider_step() {
+float get_slider_step( std::string name ) {
     return global_context->s->ui.main_slider.step;
 }
 
-std::string get_slider_label() {
+std::string get_slider_label( std::string name ) {
     return global_context->s->ui.main_slider.label;
 }
 
-std::string get_menu_choices() {
+std::string get_slider_description( std::string name ) {
+    return "Sort Threshold is the maximum brightness difference between two pixels that will be sorted.";
+    //return global_context->s->ui.main_slider.description;
+}
+
+std::string get_menu_choices( std::string name ) {
     if( global_context->s->effects.contains( "Rule Chooser" ) ) {
         auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
         std::ostringstream oss;
@@ -192,7 +197,7 @@ std::string get_menu_choices() {
     }
 }
 
-int get_initial_menu_choice() {
+int get_initial_menu_choice( std::string name ) {
 
     if( global_context->s->effects.contains( "Rule Chooser" ) ) {
         auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
@@ -205,7 +210,35 @@ int get_initial_menu_choice() {
     }
 }
 
-void handle_menu_choice( int choice ) {
+std::string get_menu_label( std::string name ) {
+    return "Transition Rule";
+    /*
+    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
+        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
+        std::cout << "get_menu_label: " << eff->label << std::endl;
+        return eff->label;
+    }
+    else {
+        std::cout << "get_menu_label: Rule chooser not found" << std::endl;
+        return "Rule Chooser";
+    }
+    */
+}
+
+std::string get_menu_description( std::string name ) {
+    return "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.";
+    /*
+    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
+        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
+        std::cout << "get_menu_description: " << eff->description << std::endl;
+        return eff->description;
+    }
+    else {
+        std::cout << "get_menu_description: Rule chooser not found" << std::endl;
+        return "Choose a transition rule";
+    }*/
+}
+void handle_menu_choice( std::string name, int choice ) {
     std::cout << "handle_menu_choice: " << choice << std::endl;
     auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
     eff->choose( choice );
@@ -273,9 +306,12 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "get_slider_value",   &get_slider_value);
     function( "get_slider_step",    &get_slider_step);
     function( "get_slider_label",   &get_slider_label);
+    function( "get_slider_description", &get_slider_description);
 
     function( "get_menu_choices",   &get_menu_choices);
     function( "get_initial_menu_choice",   &get_initial_menu_choice);
+    function( "get_menu_label",     &get_menu_label);
+    function( "get_menu_description", &get_menu_description);
     function( "handle_menu_choice", &handle_menu_choice);
     
     function( "mouse_move",         &mouse_move );
