@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from "react";
-import Paper from '@mui/material/Paper';
-
 import Slider from '@mui/material/Slider';
 import MuiInput from '@mui/material/Input';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
-import InfoIcon from '@mui/icons-material/Info';
-
 
 import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
+
+import WidgetContainer from "./WidgetContainer";
 
 const Input = styled(MuiInput)`
   width: 50px;
@@ -110,22 +106,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
     };
 
   return (
-    <Paper 
-      elevation={3}
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: panelSize,
-        height: 60,
-        position: 'relative' // Add this line
-      }}
-    >
-      <Tooltip title={sliderProps.description} placement="top" disableInteractive>
-        <IconButton sx={{ position: 'absolute', top: 0, right: 0 }}>
-          <InfoIcon sx={{ fontSize: '1rem', color: theme.palette.primary.main }} />
-        </IconButton>
-      </Tooltip>
+    <WidgetContainer description={sliderProps.description} panelSize={panelSize}>
       <Stack spacing={-0.5} direction="column" alignItems="center">
         <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
           {sliderProps.label}
@@ -157,7 +138,7 @@ function JenSlider( { sliderName, panelSize } ) {  // sliderName is name of slid
           />
         </Stack>
       </Stack>
-    </Paper>
+    </WidgetContainer>
   );
     /*
     return (
