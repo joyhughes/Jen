@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import Paper from '@mui/material/Paper';
 //import useEmscripten from './useEmscripten';
 import { ButtonGroup, Button, Tooltip } from '@mui/material';
 import RestartIcon from '@mui/icons-material/Replay'; // This is just an example icon for "restart"
 import FrameIcon from '@mui/icons-material/SkipNext'; // This is an example icon for "advance one frame"
 import PlayPauseIcon from '@mui/icons-material/PlayArrow'; // This is an example icon for "play"
 import PauseIcon from '@mui/icons-material/Pause'; // This is an example icon for "pause"
+import WidgetContainer from './WidgetContainer';
 
 function MediaController( { panelSize } ) { 
   const [isRunning, setIsRunning] = useState(true);
@@ -32,16 +32,7 @@ function MediaController( { panelSize } ) {
   }
 
   return (
-    <Paper 
-    elevation={3}
-    sx={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: panelSize,
-      height: 60,  
-    }}
-    >
+    <WidgetContainer panelSize={panelSize}>
       <ButtonGroup 
         variant="contained"
         sx={{
@@ -70,7 +61,7 @@ function MediaController( { panelSize } ) {
           </Button>
         </Tooltip>
       </ButtonGroup>
-    </Paper>
+    </WidgetContainer>
   );
 };
 
