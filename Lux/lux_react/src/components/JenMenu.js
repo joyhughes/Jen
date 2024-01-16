@@ -3,11 +3,13 @@ import Paper from '@mui/material/Paper';
 
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
+import InfoIcon from '@mui/icons-material/Info';
+
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
 import { useTheme } from '@mui/material/styles';
-import { styled } from '@mui/system';
 
 function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in scene file
     const [menuChoices, setMenuChoices] = useState([]);
@@ -92,14 +94,27 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
     };
   
     return (
-        <Paper elevation={3} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: panelSize, height: 60 }}>
+        <Paper 
+            elevation={3} 
+            sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                width: panelSize, 
+                height: 60,
+                position: 'relative' // Add this line
+            }}
+        >
+            <Tooltip title={description} placement="top" disableInteractive>
+                <IconButton sx={{ position: 'absolute', top: 0, right: 0 }}>
+                    <InfoIcon sx={{ fontSize: '1rem', color: theme.palette.primary.main }} />
+                </IconButton>
+            </Tooltip>
             <Stack sx={stackStyles}>
                 {menuLabel && (
-                    <Tooltip title={description}>
-                        <Typography sx={typographyStyles}>
-                            {menuLabel}
-                        </Typography>
-                    </Tooltip>
+                    <Typography sx={typographyStyles}>
+                        {menuLabel}
+                    </Typography>
                 )}
                 <Select
                     value={selectedMenuChoice}
