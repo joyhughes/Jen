@@ -28,6 +28,12 @@
 #define RLR result[2]
 #define RLL result[3]
 
+// Margolus neighborhood target shortcuts (clockwise from upper left)
+#define TUL targ[0]
+#define TUR targ[1]
+#define TLR targ[2]
+#define TLL targ[3]
+
 // Margolus Neighborhood pixel swaps
 #define SWAP_LEFT  { RUL = MLL; RLL = MUL; }
 #define SAME_LEFT  { RUL = MUL; RLL = MLL; }
@@ -57,10 +63,10 @@
 template< class T > void CA< T >::run_rule() {
     bool block = false;
     if( *p < 1.0f ) if( rand1( gen ) > *p ) block = true;
-    if( edge_block ) if( x <= 0 || x >= dim.x - 1 || y <= 0 || y >= dim.y - 1 ) block = true;
+    if( *edge_block ) if( x <= 0 || x >= dim.x - 1 || y <= 0 || y >= dim.y - 1 ) block = true;
     //if( alpha_block ) 
     //if(image_block)
-    if( bright_block ) {
+    if( *bright_block ) {
         if( hood == HOOD_MOORE) {
             unsigned int bright = ( ( MM >> 16 ) & 0xff ) + ( ( MM >> 8 ) & 0xff ) + ( MM & 0xff );
             if( bright < *bright_min || bright > *bright_max ) block = true;
@@ -82,26 +88,55 @@ template< class T > void CA< T >::run_rule() {
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
-    //std::cout << "CA: operator()" << std::endl;
-    //if( p <= 0.0f ) return;
+    if( ca_frame == 0 ) {
+        ca_frame++;
+        return;
+    } 
     p( context ); bright_min( context ); bright_max( context ); 
     hood = rule.init( context );
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) {
-        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf); 
+    if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
+        auto buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf ); 
+        auto tar_ptr = buf_ptr;
         if( !buf_ptr->has_image() ) throw std::runtime_error( "CA: no image buffer" );
         auto img = buf_ptr->get_image();
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
+        auto tar = in;
+        if( targeted ) { 
+            if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
+                tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
+                // future: handle different target dimensions
+                if( tar_ptr.get() ) {   // check for null pointer
+                    if( tar_ptr->has_image() ) {
+                        if( tar_ptr->get_image().get_dim() == img.get_dim() ) tar = tar_ptr->get_image().begin();
+                        else {
+                            std::cout << "CA: target buffer dimensions do not match" << std::endl;
+                            throw std::runtime_error( "CA: target buffer dimensions do not match" );
+                        }
+                    }
+                    else {
+                        std::cout << "CA: target buffer has no image" << std::endl;
+                        throw std::runtime_error( "CA: target buffer has no image" );
+                    }
+                }
+                else {
+                    std::cout << "CA: target buffer is null" << std::endl;
+                    throw std::runtime_error( "CA: target buffer is null" );
+                }
+             }
+        }
         dim = img.get_dim();
 
         // check neighborhood type
         if( hood == HOOD_MOORE ) {
             neighbors.resize( 9 );
             result.resize( 1 );
+            if( targeted ) targ.resize( 1 );
             auto out_it = out;
             auto dl_it = in;
             auto dm_it = in;
             auto dr_it = in;
+            auto tar_it = tar;
             // scan through image by column
             for( x = 0; x < dim.x; x++ ) {
                 // set intial neighborhood
@@ -131,10 +166,16 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
+                if( targeted ) tar_it = tar + x;
                 for( y = 0; y < dim.y - 1; y++ ) {
                     run_rule();  // apply rule
-                    *out_it = result[0];        // set output
+                    if( targeted ) {    // if targeted, compare with target
+                        if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
+                        else *out_it = MM;
+                    }
+                    else *out_it = result[0];        // set output
                     out_it += dim.x;
+                    if( targeted ) tar_it += dim.x;
                     // update neighborhood
                     UL = ML; UM = MM; UR = MR;
                     ML = DL; MM = DM; MR = DR;
@@ -146,7 +187,11 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 DM = *(in + x);
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
                 run_rule();  // apply rule
-                *out_it = result[0];
+                if( targeted ) {    // if targeted, compare with target
+                    if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
+                    else *out_it = MM;
+                }
+                else *out_it = result[0];
             }
         } 
         // Margolus neighborhood family
@@ -154,8 +199,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         else if((int)hood >= (int)HOOD_MARGOLUS ){ 
             neighbors.resize( 4 );
             result.resize( 4 );
+            if( targeted ) targ.resize( 4 );
             auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
-            auto in_ul = in; auto in_ur = in; auto in_ll = in; auto in_lr = in;
+            auto in_ul  = in;  auto in_ur  = in;  auto in_ll  = in;  auto in_lr  = in;
+            auto tar_ul = tar; auto tar_ur = tar; auto tar_ll = tar; auto tar_lr = tar;
             // initialize iterators
             int startx, starty;
             if( hood == HOOD_MARGOLUS ) { 
@@ -200,6 +247,11 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
 
                         in_ul  = in  + ( dim.y - 1 ) * dim.x; in_ur  = in_ul  + 1; 
                         in_ll  = in;                          in_lr  = in     + 1;
+
+                        if( targeted ) {
+                            tar_ul = tar + ( dim.y - 1 ) * dim.x; tar_ur = tar_ul + 1; 
+                            tar_ll = tar;                         tar_lr = tar    + 1;
+                        }
                     }
                     else {
                         out_ul = out + y * dim.x;       out_ur = out_ul + 1; 
@@ -207,6 +259,11 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
 
                         in_ul = in + y * dim.x;         in_ur = in_ul + 1; 
                         in_ll = in + (y + 1) * dim.x;   in_lr = in_ll + 1;
+
+                        if( targeted ) {
+                            tar_ul = tar + y * dim.x;       tar_ur = tar_ul + 1; 
+                            tar_ll = tar + (y + 1) * dim.x; tar_lr = tar_ll + 1;
+                        }
                     }
                 }
                 else { // odd left edge
@@ -217,15 +274,36 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul  = in  + dim.y * dim.x - 1; in_ur  = in  + ( dim.y - 1 ) * dim.x; 
                         in_ll  = in  + dim.x - 1;         in_lr  = in;
 
+                        if( targeted ) {
+                            tar_ul = tar + dim.y * dim.x - 1; tar_ur = tar + ( dim.y - 1 ) * dim.x; 
+                            tar_ll = tar + dim.x - 1;         tar_lr = tar;
+
+                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
+                        }
+
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
+
                         run_rule();  // apply rule
-                        *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
+                        if( targeted ) {
+                            if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
+                                manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
+                                 { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
+                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
+                        }
+                        else *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
 
                         out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
                         out_ll = out + 1;                         out_lr = out + 2;
 
                         in_ul  = in +  ( dim.y - 1 ) * dim.x + 1; in_ur  = in  + ( dim.y - 1 ) * dim.x + 2;
                         in_ll  = in  + 1;                         in_lr  = in  + 2;
+
+                        if( targeted ) {
+                            tar_ul = tar +  ( dim.y - 1 ) * dim.x + 1; tar_ur = tar + ( dim.y - 1 ) * dim.x + 2;
+                            tar_ll = tar + 1;                         tar_lr = tar + 2;
+
+                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
+                        }
                     }
                     else {
                         out_ul = out + (y + 1) * dim.x - 1; out_ur = out + y * dim.x; 
@@ -234,28 +312,50 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul = in + (y + 1) * dim.x - 1;   in_ur = in + y * dim.x;
                         in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
 
+                        if( targeted ) {
+                            tar_ul = tar + (y + 1) * dim.x - 1; tar_ur = tar + y * dim.x; 
+                            tar_ll = tar + (y + 2) * dim.x - 1; tar_lr = tar + (y + 1) * dim.x;
+
+                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
+                        }
+
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                         run_rule();  // apply rule
-                        *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
-
+                        if( targeted ) {
+                            if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
+                                manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
+                                 { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
+                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
+                        }
+                        else *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                         out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
                         out_ll = out + (y + 1) * dim.x + 1; out_lr = out + (y + 1) * dim.x + 2;
 
                         in_ul = in + y * dim.x + 1;         in_ur = in + y * dim.x + 2;
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
+
+                        if( targeted ) {
+                            tar_ul = tar + y * dim.x + 1;         tar_ur = tar + y * dim.x + 2;
+                            tar_ll = tar + (y + 1) * dim.x + 1;   tar_lr = tar + (y + 1) * dim.x + 2;
+
+                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
+                        }
                     }
                 }
                 for( x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
+                    if( targeted ) { TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr; }
                     run_rule();  // apply rule
                     *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
                     // update neighborhood
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
                     out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
+                    if( targeted ) { tar_ul += 2; tar_ur +=2 ; tar_ll +=2 ; tar_lr += 2; }
                     if( x == dim.x - 3 ) { // right edge
                         in_ur  -= dim.x; in_lr  -= dim.x;
                         out_ur -= dim.x; out_lr -= dim.x;
+                        if( targeted ) { tar_ur -= dim.x; tar_lr -= dim.x; }
                     }
                 }
             }
@@ -311,6 +411,35 @@ template< class T > void rule_life< T >::operator () ( CA< T >& ca ) {
     }
 }
 
+template< class T > CA_hood rule_random_copy< T >::operator () ( element_context &context ) 
+{ 
+    return HOOD_MOORE; 
+}
+
+template< class T > void rule_random_copy< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+    int r = rand_9( gen );
+    result[0] = neighbors[ r ]; // copy any neighbor, including possibly itself
+}
+
+template< class T > CA_hood rule_random_mix< T >::operator () ( element_context &context ) 
+{ 
+    return HOOD_MOORE; 
+}
+
+template< class T > void rule_random_mix< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+    result[ 0 ] = 0;
+    int r = rand_9( gen );
+    result[0] |= neighbors[ r ] & 0x00ff0000; // copy any neighbor, including possibly itself
+    r = rand_9( gen );
+    result[0] |= neighbors[ r ] & 0x0000ff00; // copy any neighbor, including possibly itself
+    r = rand_9( gen );
+    result[0] |= neighbors[ r ] & 0x000000ff; // copy any neighbor, including possibly itself
+}
+
 template< class T > CA_hood rule_diffuse< T >::operator () ( element_context &context ) 
 { return HOOD_MARGOLUS; }
 
@@ -356,7 +485,7 @@ template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
         if( ldiff > 0 ) r = 3;
         else r = 1;
     }
-    r = direction - r + 4;
+    r = *direction - r + 4;
 
     result[0] = neighbors[ r ];
     result[1] = neighbors[ (r + 1) % 4 ];
@@ -395,9 +524,9 @@ template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
         if( ldiff > 0 ) r = 1;
         else r = 3;
     }
-    r = direction - r + 4;
+    r = *direction - r + 4;
 
-    r = direction - r + 4;
+    r = *direction - r + 4;
 
     result[0] = neighbors[ r % 4 ];
     result[1] = neighbors[ (r + 1) % 4 ];
@@ -408,7 +537,7 @@ template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
 template< class T > CA_hood rule_pixel_sort< T >::operator () ( element_context &context ) 
 { 
     max_diff( context );
-    if( diagonal( direction ) ) return HOOD_HOUR; 
+    if( diagonal( *direction ) ) return HOOD_HOUR; 
     else                        return HOOD_MARGOLUS;
 }
 
@@ -422,24 +551,24 @@ template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
     int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
     int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
 
-    if( diagonal( direction ) ) {
-        if( direction == direction8::D8_DOWNRIGHT || direction == direction8::D8_UPLEFT ){
-            if( ( ( wul > wlr ) == ( direction == direction8::D8_DOWNRIGHT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
+    if( diagonal( *direction ) ) {
+        if( *direction == direction8::D8_DOWNRIGHT || *direction == direction8::D8_UPLEFT ){
+            if( ( ( wul > wlr ) == ( *direction == direction8::D8_DOWNRIGHT ) ) && ( manhattan( MUL, MLR ) < *max_diff ) ) 
                 SWAP_DOWN_DIAG else SAME_ALL
         } else {
-            if( ( ( wur > wll ) == ( direction == direction8::D8_UPRIGHT  ) ) && ( manhattan( MUR, MLL ) < *max_diff ) )
+            if( ( ( wur > wll ) == ( *direction == direction8::D8_UPRIGHT  ) ) && ( manhattan( MUR, MLL ) < *max_diff ) )
                 SWAP_UP_DIAG   else SAME_ALL
         }
     } else {
-        if( vertical( direction ) ) {
-            if( ( ( wul > wll ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLL, MUL ) < *max_diff ) ) 
+        if( vertical( *direction ) ) {
+            if( ( ( wul > wll ) == ( *direction == direction8::D8_DOWN  ) ) && (  manhattan( MLL, MUL ) < *max_diff ) ) 
                 SWAP_LEFT else SAME_LEFT
-            if( ( ( wur > wlr ) == ( direction == direction8::D8_DOWN  ) ) && (  manhattan( MLR, MUR ) < *max_diff ) )
+            if( ( ( wur > wlr ) == ( *direction == direction8::D8_DOWN  ) ) && (  manhattan( MLR, MUR ) < *max_diff ) )
                 SWAP_RIGHT else SAME_RIGHT
         } else {
-            if( ( ( wul > wur ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
+            if( ( ( wul > wur ) == ( *direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
                 SWAP_UPPER else SAME_UPPER
-            if( ( ( wll > wlr ) == ( direction == direction8::D8_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
+            if( ( ( wll > wlr ) == ( *direction == direction8::D8_RIGHT ) ) && ( manhattan( MLR, MLL ) < *max_diff ) ) 
                 SWAP_LOWER else SAME_LOWER
         }
     } 
@@ -459,18 +588,18 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
     auto& result = ca.result;
 
     // Rotate neighbors opposite direction
-    if( direction == D8_RIGHT || direction == D8_DOWNRIGHT ) {
+    if( *direction == D8_RIGHT || *direction == D8_DOWNRIGHT ) {
         T tmp = MUL;
         MUL = MUR;
         MUR = MLR;
         MLR = MLL;
         MLL = tmp;
     }
-    else if( direction == D8_DOWN || direction == D8_DOWNLEFT ) {
+    else if( *direction == D8_DOWN || *direction == D8_DOWNLEFT ) {
         std::swap( MUL, MLR );
         std::swap( MUR, MLL );
     }
-    else if( direction == D8_LEFT || direction == D8_UPLEFT ) {
+    else if( *direction == D8_LEFT || *direction == D8_UPLEFT ) {
         T tmp = MUL;
         MUL = MLL;
         MLL = MLR;
@@ -492,7 +621,7 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
         ( (unsigned int)( manhattan( MUL, MLR ) < *max_diff ) << 4 ) | 
         ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
 
-    if( !diagonal( direction ) ) {
+    if( !diagonal( *direction ) ) {
         if( ( ( dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
         if( ( ( dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
     }
@@ -501,18 +630,18 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
     }
 
     // Rotate result same direction
-    if( direction == D8_RIGHT || direction == D8_DOWNRIGHT ) {
+    if( *direction == D8_RIGHT || *direction == D8_DOWNRIGHT ) {
         T tmp = RUL;
         RUL = RLL;
         RLL = RLR;
         RLR = RUR;
         RUR = tmp;
     }
-    else if( direction == D8_DOWN || direction == D8_DOWNLEFT ) {
+    else if( *direction == D8_DOWN || *direction == D8_DOWNLEFT ) {
         std::swap( RUL, RLR );
         std::swap( RUR, RLL );
     }
-    else if( direction == D8_LEFT || direction == D8_UPLEFT ) {
+    else if( *direction == D8_LEFT || *direction == D8_UPLEFT ) {
         T tmp = RUL;
         RUL = RUR;
         RUR = RLR;
@@ -686,24 +815,14 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
 }
 */
 
-//template class CA< frgb >;       // fimage
 template class CA< ucolor >;     // uimage
-//template class CA< vec2f >;      // vector_field
 
 template class rule_identity< ucolor >;       // uimage
-
-//template class rule_life< frgb >;       // fimage
 template class rule_life< ucolor >;     // uimage
-//template class rule_life< vec2f >;      // vector_field
-
-//template class diffuse< frgb >;       // fimage
+template class rule_random_copy< ucolor >;     // uimage
+template class rule_random_mix< ucolor >;     // uimage
 template class rule_diffuse< ucolor >;     // uimage
-//template class diffuse< vec2f >;      // vector_field
-
 template class rule_gravitate< ucolor >;       // uimage
-
 template class rule_snow< ucolor >;       // uimage
-
 template class rule_pixel_sort< ucolor >;       // uimage  
-
 template class rule_funky_sort< ucolor >;       // uimage 

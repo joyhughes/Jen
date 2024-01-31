@@ -7,6 +7,7 @@
 #include "any_effect.hpp"
 #include "life.hpp"
 #include "any_rule.hpp"
+#include <fstream>
 #include <sstream>
 #include <emscripten.h>
 #include <emscripten/bind.h>
@@ -71,7 +72,7 @@ void set_frame_callback(val callback) {
     global_context->frame_callback = [callback]() mutable {
         callback();
     };
-    global_context->frame_callback_ready = true;
+    global_context->frame_callback_ready = true; 
 }
 
 void set_update_callback(val callback) {
@@ -146,105 +147,225 @@ void mouse_click( bool click ) {
     global_context->s->ui.mouse_click = click;
 }
 
-void slider_value( float value ) {
-    std::cout << "slider_value: " << value << std::endl;
-    global_context->s->ui.main_slider.value = value;
+void set_slider_value( std::string name, float value ) {
+    if( global_context->s->float_fns.contains( name ) ) {
+        std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->value = value;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->value = (int)std::roundf( value );
+    }
 }
 
+void set_range_slider_value( std::string name, float value_min, float value_max ) {
+    if( global_context->s->interval_float_fns.contains( name ) ) {
+        std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value = interval_float( value_min, value_max );
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+    }
+}
+/*
+// instead of all these calls, just return a piece of JSON that contains all the information needed to build the UI
 float get_slider_min( std::string name ) {
-    std::cout << "get_slider_min: " << global_context->s->ui.main_slider.min << std::endl;
-    return global_context->s->ui.main_slider.min;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->min;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->min;
+    }
+    else if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value.min;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value.min;
+    }
+    else return 0.0f;
 }
 
 float get_slider_max( std::string name ) {
-    std::cout << "get_slider_max: " << global_context->s->ui.main_slider.max << std::endl;
-    return global_context->s->ui.main_slider.max;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->max;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->max;
+    }
+    else if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value.max;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value.max;
+    }
+    else return 0.0f;
 }
 
 float get_slider_value( std::string name ) {
-    return global_context->s->ui.main_slider.value;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->value;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->value;
+    }
+    else return 0.0f;
+}
+
+interval_float get_range_slider_value( std::string name ) {
+    if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        interval_int i = std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value;
+        return interval_float( (float)i.min, (float)i.max );
+    }
+    else return interval_float( 0.0f, 0.0f );
 }
 
 float get_slider_step( std::string name ) {
-    return global_context->s->ui.main_slider.step;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->step;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->step;
+    }
+    else if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->step;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->step;
+    }
+    else return 0.0f;
 }
 
 std::string get_slider_label( std::string name ) {
-    return global_context->s->ui.main_slider.label;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->label;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->label;
+    }
+    else if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->label;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->label;
+    }
+    else return "Slider";
 }
 
 std::string get_slider_description( std::string name ) {
-    return "Sort Threshold is the maximum brightness difference between two pixels that will be sorted.";
-    //return global_context->s->ui.main_slider.description;
+    if( global_context->s->float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->description;
+    }
+    else if( global_context->s->int_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->description;
+    }
+    else if( global_context->s->interval_float_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->description;
+    }
+    else if( global_context->s->interval_int_fns.contains( name ) ) {
+        return std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->description;
+    }
+    else return "Slider description";
 }
 
 std::string get_menu_choices( std::string name ) {
-    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
-        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
-        std::ostringstream oss;
-        for (const auto &choice : eff->effects) {
-            if (&choice.name != &eff->effects[0].name) {
-                oss << ",";
-            }
-            oss << choice.name;
-        }
-        std::cout << "get_menu_choices: " << oss.str() << std::endl;
-        return oss.str();
+    std::vector< std::string > items;
+    if( global_context->s->int_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
+        items = menu->items;
+    }
+    else if( global_context->s->string_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
+        items = menu->items;
     }
     else {
         std::cout << "get_menu_choices: Rule chooser not found" << std::endl;
         return "Choice 1,Choice 2,Choice 3";
     }
+    std::ostringstream oss;
+    for (const auto &item : items) {
+        if (item != items[0]) {
+            oss << ",";
+        }
+        oss << item;
+    }
+    std::cout << "get_menu_choices: " << oss.str() << std::endl;
+    return oss.str();
 }
 
-int get_initial_menu_choice( std::string name ) {
-
-    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
-        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
-        std::cout << "get_initial_menu_choice: " << *(eff->choice) << std::endl;
-        return *(eff->choice);
+int get_default_menu_choice( std::string name ) {
+    if( global_context->s->int_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
+        return menu->choice;
+    }
+    else if( global_context->s->string_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
+        return menu->choice;
     }
     else {
-        std::cout << "get_initial_menu_choice: Rule chooser not found" << std::endl;
-        return 2;
+        return 0;
     }
 }
 
 std::string get_menu_label( std::string name ) {
-    return "Transition Rule";
-    /*
-    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
-        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
-        std::cout << "get_menu_label: " << eff->label << std::endl;
-        return eff->label;
+    if( global_context->s->int_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
+        return menu->label;
+    }
+    else if( global_context->s->string_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
+        return menu->label;
     }
     else {
-        std::cout << "get_menu_label: Rule chooser not found" << std::endl;
-        return "Rule Chooser";
+        return "Menu";
     }
-    */
 }
 
 std::string get_menu_description( std::string name ) {
-    return "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.";
-    /*
-    if( global_context->s->effects.contains( "Rule Chooser" ) ) {
-        auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
-        std::cout << "get_menu_description: " << eff->description << std::endl;
-        return eff->description;
+    if( global_context->s->int_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
+        return menu->description;
+    }
+    else if( global_context->s->string_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
+        return menu->description;
     }
     else {
-        std::cout << "get_menu_description: Rule chooser not found" << std::endl;
-        return "Choose a transition rule";
-    }*/
-}
+        return "Menu description";
+    }
+} */
+
 void handle_menu_choice( std::string name, int choice ) {
-    std::cout << "handle_menu_choice: " << choice << std::endl;
-    auto& eff = std::get< std::shared_ptr< eff_chooser > >(global_context->s->effects[ "Rule Chooser" ].fn_ptr);
-    eff->choose( choice );
+    if( global_context->s->int_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
+        menu->choice = choice;
+    }
+    else if( global_context->s->string_fns.contains( name ) ) {
+        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
+        menu->choice = choice;
+    }
 }
 
-int main(int argc, char** argv) {
+std::string load_file_as_string(const std::string& filePath) {
+    std::ifstream fileStream(filePath);
+    if (!fileStream) {
+        // Handle the error, e.g., by throwing an exception or returning an error message
+        throw std::runtime_error("Unable to open file: " + filePath);
+    }
+
+    std::stringstream buffer;
+    buffer << fileStream.rdbuf();
+    return buffer.str();
+}
+
+std::string get_panel_JSON() {
+    std::string fileContents;
+
+    fileContents = load_file_as_string("nebula_files/test_widgets.json");
+    return fileContents;
+}
+
+
+int main(int argc, char** argv) { 
     vec2i dim( { 512, 512 } );  // original sin
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
@@ -271,7 +392,6 @@ int main(int argc, char** argv) {
     context.update_callback = nullptr;
     context.update_callback_ready = false;
     context.js_bitmaps_ready = false;
-    context.s->ui.main_slider = slider( "Sort Threshold", 200.0f, 0.0f, 766.0f, 1.0f );
     global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
@@ -300,7 +420,13 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "restart",            &restart );
     function( "advance_frame",      &advance_frame );
 
-    function( "slider_value",       &slider_value );
+    function( "get_panel_JSON",     &get_panel_JSON);
+
+    function( "set_slider_value",       &set_slider_value );
+    function( "set_range_slider_value", &set_range_slider_value );
+    function( "handle_menu_choice",     &handle_menu_choice );
+
+    /*
     function( "get_slider_min",     &get_slider_min);
     function( "get_slider_max",     &get_slider_max);
     function( "get_slider_value",   &get_slider_value);
@@ -309,10 +435,10 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "get_slider_description", &get_slider_description);
 
     function( "get_menu_choices",   &get_menu_choices);
-    function( "get_initial_menu_choice",   &get_initial_menu_choice);
+    function( "get_default_menu_choice", &get_default_menu_choice);
     function( "get_menu_label",     &get_menu_label);
-    function( "get_menu_description", &get_menu_description);
-    function( "handle_menu_choice", &handle_menu_choice);
+    function( "get_menu_description", &get_menu_description); 
+    */
     
     function( "mouse_move",         &mouse_move );
     function( "mouse_down",         &mouse_down );
