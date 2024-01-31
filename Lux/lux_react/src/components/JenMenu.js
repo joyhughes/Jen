@@ -1,3 +1,76 @@
+import React, { useState } from "react";
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
+
+function JenMenu({ json }) {
+    const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.default_choice || '');
+
+    const theme = useTheme();
+
+    console.log( "JenMenu json=" + JSON.stringify(json) );
+
+    const handleMenuChange = (event) => {
+        setSelectedMenuChoice(event.target.value);
+        // Additional logic if needed to handle menu choice change
+    };
+
+    const renderMenu = () => {
+        if (json.tool === 'pull_down') {
+            return (
+                <Select
+                    value={selectedMenuChoice}
+                    onChange={handleMenuChange}
+                    displayEmpty
+                    inputProps={{ 'aria-label': 'Without label' }}
+                >
+                    {json.choices.map((choice, index) => (
+                        <MenuItem key={index} value={index}>
+                            {choice}
+                        </MenuItem>
+                    ))}
+                </Select>
+            );
+        } else if (json.tool === 'radio') {
+            return (
+                <RadioGroup
+                    value={selectedMenuChoice}
+                    onChange={handleMenuChange}
+                >
+                    {json.choices.map((choice, index) => (
+                        <FormControlLabel 
+                            key={index} 
+                            value={index} 
+                            control={<Radio />} 
+                            label={choice} 
+                        />
+                    ))}
+                </RadioGroup>
+            );
+        } else {
+            return <div>Unknown menu type: {json.tool}</div>;
+        }
+    };
+
+    return (
+        <Stack direction="column" alignItems="center">
+            <Typography style={{ color: theme.palette.primary.main }}>
+                {json.label}
+            </Typography>
+            {renderMenu()}
+        </Stack>
+    );
+}
+
+export default JenMenu;
+
+
+/*
 import React, { useState, useEffect } from "react";
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -5,9 +78,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 
-import WidgetContainer from "./WidgetContainer";
-
-function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in scene file
+function JenMenu( { menuName } ) {  // menuName is name of menu in scene file
     const [menuChoices, setMenuChoices] = useState([]);
     const [selectedMenuChoice, setSelectedMenuChoice] = useState( '' );
     const [menuLabel, setMenuLabel] = useState( '' );
@@ -15,25 +86,23 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
 
     const theme = useTheme();
 
+    function setupMenu() {
+        const choices = window.Module.get_menu_choices(menuName); 
+        const choicesArray = choices.split(','); // Splitting the string into an array
+        setMenuChoices(choicesArray);
+        setSelectedMenuChoice(window.Module.get_default_menu_choice(menuName));
+        setMenuLabel(window.Module.get_menu_label(menuName));
+        setDescription(window.Module.get_menu_description(menuName));
+    };
+
     useEffect(() => {
         if (window.Module) {
-            const choices = window.Module.get_menu_choices(menuName); 
-            console.log( "Menu choices=" + choices );
-            const choicesArray = choices.split(','); // Splitting the string into an array
-            setMenuChoices(choicesArray);
-            setSelectedMenuChoice(window.Module.get_initial_menu_choice(menuName));
-            setMenuLabel(window.Module.get_menu_label(menuName));
-            setDescription(window.Module.get_menu_description(menuName));
+            setupMenu();
         } else {
             // Poll for the Module to be ready
             const intervalId = setInterval(() => {
             if (window.Module) {
-                const choices = window.Module.get_menu_choices(menuName); 
-                const choicesArray = choices.split(','); // Splitting the string into an array
-                setMenuChoices(choicesArray);
-                setSelectedMenuChoice(window.Module.get_initial_menu_choice(menuName));
-                setMenuLabel(window.Module.get_menu_label(menuName));
-                setDescription(window.Module.get_menu_description(menuName));
+                setupMenu();
                 clearInterval(intervalId);
             }
           }, 100); // Check every 100ms
@@ -90,30 +159,29 @@ function JenMenu( { menuName, panelSize } ) {  // menuName is name of menu in sc
     };
   
     return (
-        <WidgetContainer description={description} panelSize={panelSize}>
-            <Stack sx={stackStyles}>
-                {menuLabel && (
-                    <Typography sx={typographyStyles}>
-                        {menuLabel}
-                    </Typography>
-                )}
-                <Select
-                    value={selectedMenuChoice}
-                    onChange={handleMenuChange}
-                    displayEmpty
-                    inputProps={{ 'aria-label': 'Without label' }}
-                    sx={selectStyles}
-                >
-                    {menuChoices.map((choice, index) => (
-                        <MenuItem key={index} value={index} sx={menuItemStyles}>
-                        {choice}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </Stack>
-        </WidgetContainer>
+        <Stack sx={stackStyles}>
+            {menuLabel && (
+                <Typography sx={typographyStyles}>
+                    {menuLabel}
+                </Typography>
+            )}
+            <Select
+                value={selectedMenuChoice}
+                onChange={handleMenuChange}
+                displayEmpty
+                inputProps={{ 'aria-label': 'Without label' }}
+                sx={selectStyles}
+            >
+                {menuChoices.map((choice, index) => (
+                    <MenuItem key={index} value={index} sx={menuItemStyles}>
+                    {choice}
+                    </MenuItem>
+                ))}
+            </Select>
+        </Stack>
     );
 }
 
 export default JenMenu;
+*/
 

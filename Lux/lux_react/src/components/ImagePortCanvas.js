@@ -73,9 +73,9 @@ function ImagePortCanvas( { width, height } ) {
       // Poll for the Module to be ready
       const intervalId = setInterval(() => {
         if (window.Module) {
+          clearInterval(intervalId);
           window.Module.set_frame_callback(updateCanvas);
           setModuleReady(true);
-          clearInterval(intervalId);
         }
       }, 100); // Check every 100ms
 
