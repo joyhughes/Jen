@@ -336,12 +336,14 @@ std::string get_menu_description( std::string name ) {
 
 void handle_menu_choice( std::string name, int choice ) {
     if( global_context->s->int_fns.contains( name ) ) {
+        std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
         auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        menu->choice = choice;
+        menu->choose( choice );
     }
     else if( global_context->s->string_fns.contains( name ) ) {
+        std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
         auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        menu->choice = choice;
+        menu->choose( choice );
     }
 }
 

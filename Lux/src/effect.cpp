@@ -390,11 +390,12 @@ void eff_composite::operator () ( any_buffer_pair_ptr& buf, element_context& con
 void eff_composite::add_effect( const any_effect_fn& eff ) { effects.push_back( eff ); }
 
 void eff_chooser::operator () ( any_buffer_pair_ptr& buf, element_context& context )  {
-    if( *choice < effects.size() ) effects[ *choice ]( buf, context );
+    choice( context );
+    if( ( *choice < effects.size() ) && ( *choice >= 0 ) ) effects[ *choice ]( buf, context );
 }
 
-void eff_chooser::choose( int choice_init ) { 
-    if( choice_init < effects.size() ) choice = choice_init; 
+void eff_chooser::choose( int my_choice ) { 
+    if( ( my_choice < effects.size() ) && ( my_choice >= 0 ) ) choice = my_choice; 
 }
 
 void eff_chooser::choose( const std::string& name ) { 

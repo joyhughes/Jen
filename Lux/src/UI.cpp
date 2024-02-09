@@ -54,10 +54,12 @@ template struct range_slider< float >;
 template struct range_slider< int >;
 
 int menu::operator () ( int& val, element_context& context ) {
+    //std::cout << "Menu operator () (int): nitems=" << items.size() << " choice=" << choice << "\n";
     return choice;
 }
 
 std::string menu::operator () ( std::string& val, element_context& context ) {
+    //std::cout << "Menu operator () (int): nitems=" << items.size() << " val=" << val << "\n";
     return get_chosen_item();
 }
 
@@ -65,14 +67,17 @@ std::string menu::get_chosen_item() {
     return items[ choice ];
 }
 
-void menu::choose( int choice ) {
-    this->choice = choice;
+void menu::choose( int c ) {
+    //std::cout << "Menu choose(int): nitems=" << items.size() << " choice=" << choice << "\n";
+    choice = c;
 }
 
 void menu::choose( const std::string& name ) {
+    //std::cout << "Menu choose(string): nitems=" << items.size() << " name=" << name << "\n";
     for( int i = 0; i < items.size(); i++ ) {
         if( items[ i ] == name ) {
             choice = i;
+            //std::cout << "Menu choose(string): found name=" << name << " choice=" << choice << "\n";
             return;
         }
     }

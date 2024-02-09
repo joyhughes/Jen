@@ -82,7 +82,9 @@ template< class T > void CA< T >::run_rule() {
         if( hood == HOOD_MOORE) result[ 0 ] = MM;
         else result = neighbors; // Margolus family assumed
     }
-    else rule( *this );
+    else {
+        rule( *this );
+    }
 } 
 
 // future - implement multiresolution rule on mip-map
@@ -494,7 +496,10 @@ template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
 } 
 
 template< class T > CA_hood rule_snow< T >::operator () ( element_context &context ) 
-{ return HOOD_MARGOLUS; }
+{   
+    direction( context );
+    return HOOD_MARGOLUS; 
+}
 
 // Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
 template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
@@ -536,6 +541,7 @@ template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
 
 template< class T > CA_hood rule_pixel_sort< T >::operator () ( element_context &context ) 
 { 
+    direction( context );
     max_diff( context );
     if( diagonal( *direction ) ) return HOOD_HOUR; 
     else                        return HOOD_MARGOLUS;
@@ -576,6 +582,7 @@ template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
 
 template< class T > CA_hood rule_funky_sort< T >::operator () ( element_context &context ) 
 { 
+    direction( context );
     max_diff( context );
     return hood;
     //return HOOD_HOUR; 
