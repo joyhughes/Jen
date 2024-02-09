@@ -3,19 +3,23 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 
-function JenMenu({ json }) {
+function JenMenu({ json, width }) {
     const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.default_choice || '');
 
     const theme = useTheme();
 
-    console.log( "JenMenu json=" + JSON.stringify(json) );
+    //console.log( "JenMenu json=" + JSON.stringify(json) );
 
     const handleMenuChange = (event) => {
+        //console.log( "JenMenu handleMenuChange event.target.value=" + event.target.value + " json.name=" + json.name);
+        window.Module.handle_menu_choice(json.name, event.target.value);
         setSelectedMenuChoice(event.target.value);
         // Additional logic if needed to handle menu choice change
     };
@@ -23,18 +27,23 @@ function JenMenu({ json }) {
     const renderMenu = () => {
         if (json.tool === 'pull_down') {
             return (
-                <Select
-                    value={selectedMenuChoice}
-                    onChange={handleMenuChange}
-                    displayEmpty
-                    inputProps={{ 'aria-label': 'Without label' }}
-                >
-                    {json.choices.map((choice, index) => (
-                        <MenuItem key={index} value={index}>
-                            {choice}
-                        </MenuItem>
-                    ))}
-                </Select>
+                <FormControl sx={{ m: 1, minWidth: width }} size="small">
+                    <InputLabel size="normal" >{json.label}</InputLabel>
+                    <Select
+                        style={{ width: width }}
+                        value = { selectedMenuChoice }
+                        label = { json.label }
+                        onChange = { handleMenuChange }
+                        displayEmpty
+                        inputProps = { { 'aria-label': 'Without label' } }
+                    >
+                        { json.choices.map((choice, index) => (
+                            <MenuItem key={index} value={index}>
+                                {choice}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             );
         } else if (json.tool === 'radio') {
             return (
@@ -58,12 +67,7 @@ function JenMenu({ json }) {
     };
 
     return (
-        <Stack direction="column" alignItems="center">
-            <Typography style={{ color: theme.palette.primary.main }}>
-                {json.label}
-            </Typography>
-            {renderMenu()}
-        </Stack>
+            renderMenu()
     );
 }
 

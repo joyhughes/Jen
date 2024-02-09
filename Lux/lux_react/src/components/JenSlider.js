@@ -19,13 +19,13 @@ function JenSlider({ json, width }) {
 
     const handleSliderChange = (event, newValue) => {
         setValue(newValue);
-        // Additional logic if needed to handle slider value change
+        window.Module.set_slider_value(json.name, newValue);
     };
 
     const handleInputChange = (event) => {
         let newValue = event.target.value === '' ? 0 : Number(event.target.value);
         setValue(newValue);
-        // Additional logic if needed to handle input value change
+        window.Module.set_slider_value(json.name, newValue);
     };
 
     const handleInputBlur = () => {
@@ -37,39 +37,37 @@ function JenSlider({ json, width }) {
     };
 
     return (
-        <WidgetContainer panelSize={width}>
-            <Stack spacing={-0.5} direction="column" alignItems="center">
-                <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
-                    {json.label}
-                </Typography>
-                <Stack spacing={1} direction="row" alignItems="center">
-                    <Slider
-                        size="small"
-                        style={{ width: width }}
-                        min={json.min}
-                        max={json.max}
-                        step={json.step}
-                        value={value}
-                        onChange={handleSliderChange}
-                        aria-labelledby='input-slider'
-                        aria-label={json.label}
-                        valueLabelDisplay="off"
-                    />
-                    <Input
-                        size="small"
-                        type="number"
-                        min={json.min}
-                        max={json.max}
-                        step={json.step}
-                        value={value}
-                        onChange={handleInputChange}
-                        onBlur={handleInputBlur}
-                        aria-labelledby="input-slider"
-                        aria-label={`${json.label} input field`}
-                    />
-                </Stack>
-            </Stack>
-        </WidgetContainer>
+      <Stack spacing={-0.5} direction="column" alignItems="center">
+          <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
+              {json.label}
+          </Typography>
+          <Stack spacing={1} direction="row" alignItems="center">
+              <Slider
+                  size="small"
+                  style={{ width: width }}
+                  min={json.min}
+                  max={json.max}
+                  step={json.step}
+                  value={value}
+                  onChange={handleSliderChange}
+                  aria-labelledby='input-slider'
+                  aria-label={json.label}
+                  valueLabelDisplay="off"
+              />
+              <Input
+                  size="small"
+                  type="number"
+                  min={json.min}
+                  max={json.max}
+                  step={json.step}
+                  value={value}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  aria-labelledby="input-slider"
+                  aria-label={`${json.label} input field`}
+              />
+          </Stack>
+      </Stack>
     );
 }
 
