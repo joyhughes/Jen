@@ -33,7 +33,7 @@
         {
             "name": "direction_4",
             "type": "direction_picker_4",
-            "default_value": "down",
+            "default_value": "up",
             "label": "Direction",
             "description": "Direction of gravity"
         },
@@ -94,7 +94,7 @@
             "tool": "pull_down",
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "choices": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
+            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
             "default_choice": 5
         },
         {
