@@ -29,7 +29,7 @@ template< class T > struct CA {
    // std::optional< std::reference_wrapper< vector_field& > > vf; 
    // std::optional< std::reference_wrapper< warp_field& > > rule_map; 
 
-   any_rule rule;   
+   any_rule rule;   // Multiple rules?
    // std::vector< any_rule > rules; // table of rules for rule map
 
    CA_hood hood;
@@ -41,9 +41,9 @@ template< class T > struct CA {
 
    // Built in conditions
    harness< float > p;  // probability of cell running
-   bool edge_block; // if true, cells on the edge of the image will not run
-   bool alpha_block; // if true, cells will run with probability ( 1 - alpha ) / 255
-   bool bright_block;
+   harness< bool > edge_block; // if true, cells on the edge of the image will not run
+   harness< bool > alpha_block; // if true, cells will run with probability ( 1 - alpha ) / 255
+   harness< bool > bright_block;
    harness< int > bright_min, bright_max; // cells with brightness within range will run
    // future: image block
 
@@ -181,7 +181,7 @@ template< class T > struct rule_diffuse {
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_gravitate {
    std::uniform_int_distribution< int > rand_4;
-   direction4 direction;
+   harness< direction4 > direction;
 
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
@@ -200,7 +200,7 @@ template< class T > struct rule_gravitate {
 // Bug preserved in amber. A version of gravitate with a bug that causes it to rotate in the opposite direction.
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_snow {
-   direction4 direction;
+   harness< direction4 > direction;
 
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
@@ -218,7 +218,7 @@ template< class T > struct rule_snow {
 
 // Rule functor for color sorting - rotate so that the brightest pixels are in a given direction
 template< class T > struct rule_pixel_sort {
-   direction8 direction;
+   harness< direction8 > direction;
    harness< int > max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 
    CA_hood operator () ( element_context& context );
@@ -237,7 +237,7 @@ template< class T > struct rule_pixel_sort {
 #define rule_pixel_sort_vec2i rule_pixel_sort< vec2i >
 
 template< class T > struct rule_funky_sort {
-   direction8 direction;
+   harness< direction8 > direction;
    CA_hood hood; // Variant of Margolus offset neighborhood
    harness< int > max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 

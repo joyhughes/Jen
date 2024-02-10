@@ -160,6 +160,7 @@ void scene::set_time_interval( const float& t ) {
 }
 
 void scene::render() {
+    //std::cout << "scene::render() " << std::endl;
     for( auto& eff_list : queue ) eff_list.render( *this );
     time += time_interval;
 }
@@ -192,7 +193,7 @@ void scene::render_and_save(
     file_type ftype, 
     int quality )
 { 
-    std::cout << "scene::render_and_save() dim = " << dim.x << " " << dim.y << std::endl;
+    //std::cout << "scene::render_and_save() dim = " << dim.x << " " << dim.y << std::endl;
     any_buffer_pair_ptr any_out;
     // bounds set automatically by image constructor
     switch( ptype ) {
@@ -215,7 +216,7 @@ void scene::animate(
     file_type ftype, 
     int quality )
 {
-    std::cout << "scene::animate() dim = " << dim.x << " " << dim.y << std::endl;
+    //std::cout << "scene::animate() dim = " << dim.x << " " << dim.y << std::endl;
 
     any_buffer_pair_ptr any_out;
     switch( ptype ) {
@@ -246,7 +247,7 @@ void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     output_list.ptype = ( pixel_type )buf.index();
     vec2i dim_out;
     std::visit( [&]( auto& b ) { dim_out = b->get_image().get_dim(); }, buf );
-    std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
+    //std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
 
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];

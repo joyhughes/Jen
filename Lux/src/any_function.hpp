@@ -3,6 +3,7 @@
 
 #include <variant>
 #include "next_element.hpp"
+#include "UI.hpp"
 
 template < class T > struct any_fn {};
 
@@ -11,6 +12,7 @@ typedef std::variant <
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
     std::shared_ptr< log_fn >,
+    std::shared_ptr< time_fn >,
     std::shared_ptr< ratio_float >,
     std::shared_ptr< wiggle >,
 
@@ -20,7 +22,8 @@ typedef std::variant <
     std::shared_ptr< time_param<  float > >,
 
     // ui functions
-    std::shared_ptr< slider_fn >
+    std::shared_ptr< slider_float >,
+    std::shared_ptr< range_slider_float >
 
 > any_float_fn_ptr;
 
@@ -48,7 +51,9 @@ typedef std::variant <
     std::shared_ptr< adder_int >,
 
     // ui functions
-    std::shared_ptr< int_slider_fn >
+    std::shared_ptr< slider_int >,
+    std::shared_ptr< range_slider_int >,
+    std::shared_ptr< menu_int >
 > any_int_fn_ptr;
 
 template<> struct any_fn< int > {
@@ -65,6 +70,50 @@ template<> struct any_fn< int > {
     }
 
     any_fn< int >( any_int_fn_ptr any_int_fn, int_fn fn, std::string name ) : any_int_fn( any_int_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_interval_float >,
+    std::shared_ptr< range_slider_float >
+> any_interval_float_fn_ptr;
+
+template<> struct any_fn< interval_float > {
+    any_interval_float_fn_ptr any_interval_float_fn;
+    interval_float_fn fn;
+    std::string name;
+
+    interval_float operator () ( interval_float& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< interval_float >() : name( "identity_interval_float_default" ) { 
+        std::shared_ptr< identity_interval_float > f( new identity_interval_float );
+        fn = std::ref( *f ); 
+        any_interval_float_fn = f; 
+    }
+
+    any_fn< interval_float >( any_interval_float_fn_ptr any_interval_float_fn, interval_float_fn fn, std::string name ) : any_interval_float_fn( any_interval_float_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_interval_int >,
+    std::shared_ptr< range_slider_int >
+> any_interval_int_fn_ptr;
+
+template<> struct any_fn< interval_int > {
+    any_interval_int_fn_ptr any_interval_int_fn;
+    interval_int_fn fn;
+    std::string name;
+
+    interval_int operator () ( interval_int& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< interval_int >() : name( "identity_interval_int_default" ) { 
+        std::shared_ptr< identity_interval_int > f( new identity_interval_int );
+        fn = std::ref( *f ); 
+        any_interval_int_fn = f; 
+    }
+
+    any_fn< interval_int >( any_interval_int_fn_ptr any_interval_int_fn, interval_int_fn fn, std::string name ) : any_interval_int_fn( any_interval_int_fn ), fn( fn ), name( name ) {}
 };
 
 typedef std::variant <
@@ -179,8 +228,112 @@ template<> struct any_fn< bb2f > {
     any_fn< bb2f >( any_bb2f_fn_ptr any_bb2f_fn, bb2f_fn fn, std::string name ) : any_bb2f_fn( any_bb2f_fn ), fn( fn ), name( name ) {}
 };
 
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_string >,
+
+    // ui functions
+    std::shared_ptr< menu_string >
+> any_string_fn_ptr;
+
+template<> struct any_fn< std::string > {
+    any_string_fn_ptr any_string_fn;
+    string_fn fn;
+    std::string name;
+
+    std::string operator () ( std::string& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< std::string >() : name( "identity_string_default" ) { 
+        std::shared_ptr< identity_string > f( new identity_string );
+        fn = std::ref( *f ); 
+        any_string_fn = f; 
+    }
+
+    any_fn< std::string >( any_string_fn_ptr any_string_fn, string_fn fn, std::string name ) : any_string_fn( any_string_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_direction4 >,
+
+    // ui functions
+    std::shared_ptr< direction_picker_4 >
+> any_direction4_fn_ptr;
+
+template<> struct any_fn< direction4 > {
+    any_direction4_fn_ptr any_direction4_fn;
+    direction4_fn fn;
+    std::string name;
+
+    direction4 operator () ( direction4& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< direction4 >() : name( "identity_direction4_default" ) { 
+        std::shared_ptr< identity_direction4 > f( new identity_direction4 );
+        fn = std::ref( *f ); 
+        any_direction4_fn = f; 
+    }
+
+    any_fn< direction4 >( any_direction4_fn_ptr any_direction4_fn, direction4_fn fn, std::string name ) : any_direction4_fn( any_direction4_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_direction8 >,
+
+    // ui functions
+    std::shared_ptr< direction_picker_8 >
+> any_direction8_fn_ptr;
+
+template<> struct any_fn< direction8 > {
+    any_direction8_fn_ptr any_direction8_fn;
+    direction8_fn fn;
+    std::string name;
+
+    direction8 operator () ( direction8& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< direction8 >() : name( "identity_direction8_default" ) { 
+        std::shared_ptr< identity_direction8 > f( new identity_direction8 );
+        fn = std::ref( *f ); 
+        any_direction8_fn = f; 
+    }
+
+    any_fn< direction8 >( any_direction8_fn_ptr any_direction8_fn, direction8_fn fn, std::string name ) : any_direction8_fn( any_direction8_fn ), fn( fn ), name( name ) {}
+};
+
 typedef std::variant < 
-    std::shared_ptr< switch_condition >,
+    // bool harness functions
+    std::shared_ptr< initial_element_fn >,
+    std::shared_ptr< following_element_fn >,
+    std::shared_ptr< top_level_fn >,
+    std::shared_ptr< lower_level_fn >,
+    std::shared_ptr< random_fn >,
+    std::shared_ptr< random_sticky_fn >,
+    std::shared_ptr< mousedown_fn >,
+    std::shared_ptr< mouseover_fn >,
+    std::shared_ptr< mouseclick_fn >,
+
+    // ui functions
+    std::shared_ptr< switch_fn >,
+    std::shared_ptr< widget_switch_fn >
+> any_bool_fn_ptr;
+
+template<> struct any_fn< bool > {
+    any_bool_fn_ptr any_bool_fn;
+    bool_fn fn;
+    std::string name;
+
+    bool operator () ( bool& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< bool >() : name( "identity_bool_default" ) { 
+        std::shared_ptr< initial_element_fn > f( new initial_element_fn );
+        fn = std::ref( *f ); 
+        any_bool_fn = f; 
+    }
+
+    any_fn< bool >( any_bool_fn_ptr any_bool_fn, bool_fn fn, std::string name ) : any_bool_fn( any_bool_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant < 
     std::shared_ptr< initial_element_condition >,
     std::shared_ptr< following_element_condition >,
     std::shared_ptr< top_level_condition >,
@@ -189,7 +342,11 @@ typedef std::variant <
     std::shared_ptr< random_sticky_condition >,
     std::shared_ptr< mousedown_condition >,
     std::shared_ptr< mouseover_condition >,
-    std::shared_ptr< mouseclick_condition >
+    std::shared_ptr< mouseclick_condition >,
+
+    // ui conditions
+    std::shared_ptr< switch_condition >,
+    std::shared_ptr< widget_switch_condition >
 > any_condition_fn_ptr;
 
 struct any_condition_fn {
@@ -214,6 +371,7 @@ typedef std::variant <
     // single field modifiers
     std::shared_ptr< orientation_gen_fn >,
     std::shared_ptr< scale_gen_fn >,
+    std::shared_ptr< rotation_gen_fn >,
     std::shared_ptr< position_gen_fn >,
 
     // generalized conditional function 

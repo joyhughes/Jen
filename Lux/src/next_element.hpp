@@ -4,6 +4,8 @@
 #include <functional>
 #include "buffer_pair.hpp"
 #include "vector_field.hpp"
+#include "joy_concepts.hpp"
+#include "joy_rand.hpp"
 
 struct element;
 struct cluster;
@@ -11,13 +13,17 @@ struct scene;
 struct element_context;
 
 template< class T > struct any_fn;
+template<> struct any_fn< bool >;
 template<> struct any_fn< float >;
 template<> struct any_fn< int >;
+template<> struct any_fn< interval_float >;
+template<> struct any_fn< interval_int >;
 template<> struct any_fn< vec2f >;
 template<> struct any_fn< vec2i >;
 template<> struct any_fn< frgb >;
 template<> struct any_fn< ucolor >;
 template<> struct any_fn< bb2f >;
+template<> struct any_fn< std::string >;
 struct any_condition_fn;
 struct any_gen_fn;
 
@@ -25,11 +31,16 @@ struct any_gen_fn;
 typedef std::function< bool   ( bool&,   element_context& ) > bool_fn; 
 typedef std::function< float  ( float&,  element_context& ) > float_fn; 
 typedef std::function< int    ( int&,    element_context& ) > int_fn; 
+typedef std::function< interval_float ( interval_float&,  element_context& ) > interval_float_fn;
+typedef std::function< interval_int   ( interval_int&,    element_context& ) > interval_int_fn;
 typedef std::function< vec2f  ( vec2f&,  element_context& ) > vec2f_fn; 
 typedef std::function< vec2i  ( vec2i&,  element_context& ) > vec2i_fn; 
 typedef std::function< frgb   ( frgb&,   element_context& ) > frgb_fn; 
 typedef std::function< ucolor ( ucolor&, element_context& ) > ucolor_fn; 
 typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn; 
+typedef std::function< std::string ( std::string&, element_context& ) > string_fn;
+typedef std::function< direction4 ( direction4&, element_context& ) > direction4_fn;
+typedef std::function< direction8 ( direction8&, element_context& ) > direction8_fn;
 
 typedef std::function< void ( element_context& ) > gen_fn;
 typedef std::function< bool ( element_context& ) > condition_fn;
@@ -59,15 +70,21 @@ template< class U > struct identity_fn {
     U operator () ( U& in, element_context& context ) { return in; }
 };
 
+typedef identity_fn< bool   > identity_bool;
 typedef identity_fn< int    > identity_int;
 typedef identity_fn< float  > identity_float;
+typedef identity_fn< interval_float  > identity_interval_float;
+typedef identity_fn< interval_int    > identity_interval_int;
 typedef identity_fn< vec2i  > identity_vec2i;
 typedef identity_fn< vec2f  > identity_vec2f;
 typedef identity_fn< frgb   > identity_frgb;
 typedef identity_fn< ucolor > identity_ucolor;
 typedef identity_fn< bb2f   > identity_bb2f;
+typedef identity_fn< std::string > identity_string;
+typedef identity_fn< direction4 > identity_direction4;
+typedef identity_fn< direction8 > identity_direction8;
 
-template< class U > struct adder {
+template< Additive U > struct adder {
     harness< U > r;
     
     U operator () ( U& u, element_context& context ) { 
@@ -104,8 +121,11 @@ struct log_fn {
     log_fn( const float& scale_init = 1.0f, const float& shift_init = 0.0f ) : scale( scale_init ), shift( shift_init ) {}
 };
 
-// use concept here - need to be able to *= class U by float
-template< class U > struct ratio {
+struct time_fn {
+    float operator () ( float& val, element_context& context );
+};
+
+template< MultipliableByFloat U > struct ratio {
     harness< float > r;
     
     U operator () ( U& u, element_context& context ) { 
@@ -130,24 +150,6 @@ struct wiggle {
 
     wiggle( const float& wavelength_init = 1.0f, const float& amplitude_init = 1.0f, const float& phase_init = 0.0f, const float& wiggliness_init = 0.0f ) 
         : wavelength( wavelength_init ), amplitude( amplitude_init ), phase( phase_init ), wiggliness( wiggliness_init ) {}
-};  
-
-struct slider_fn {
-    harness< float > min;
-    harness< float > max;
-
-    float operator () ( float& val, element_context& context ); 
-
-    slider_fn( const float& min_init = 0.0f, const float& max_init = 1.0f ) : min( min_init ), max( max_init ) {}
-};
-
-struct int_slider_fn {
-    harness< int > min;
-    harness< int > max;
-
-    int operator () ( int& val, element_context& context ); 
-
-    int_slider_fn( const int& min_init = 0, const int& max_init = 100 ) : min( min_init ), max( max_init ) {}
 };
 
 // Vec2f function returning mouse position in parametric space
@@ -251,6 +253,15 @@ struct scale_gen_fn {
     void operator () ( element_context& context );
 
     scale_gen_fn( const float& scale_init = 1.0f ) : scale( scale_init ) {}
+};
+
+// generalized functor to change the rotation of an element using a float_fn
+struct rotation_gen_fn {
+    harness< float > r;
+
+    void operator () ( element_context& context );
+
+    rotation_gen_fn( const float& r_init = 1.0f ) : r( r_init ) {}
 };
 
 // generalized functor to change the position of an element using a vec2f_fn
@@ -363,40 +374,52 @@ struct position_list {
 
 // Condition functors
 
-// needed?
-struct switch_condition {
-    bool val;
-
-    void on()  { val = true; }
-    void off() { val = false; }
-    void flip() { val = !val; }
-    bool operator () ( element_context& context ) { return val; }
-
-    switch_condition( bool val_init = true ) : val( val_init ) {}
-};
-
 // Conditions for index_filter and depth_filter 
-struct initial_element_condition   { bool operator () ( element_context& context ); };
-struct following_element_condition { bool operator () ( element_context& context ); };
-struct top_level_condition         { bool operator () ( element_context& context ); };
-struct lower_level_condition       { bool operator () ( element_context& context ); };
+struct initial_element_condition   { 
+    bool operator () ( element_context& context ); 
+    bool operator () ( bool& val, element_context& context );
+    };
+typedef initial_element_condition initial_element_fn;  
+
+struct following_element_condition { 
+    bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
+    };
+typedef following_element_condition following_element_fn;    
+
+struct top_level_condition         { 
+    bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
+    };
+typedef top_level_condition top_level_fn;
+
+struct lower_level_condition       { 
+    bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
+    };
+typedef lower_level_condition lower_level_fn;
+
 // even, odd, etc.
 
 struct boundary_condition {
     harness< bb2f > bounds;
 
     bool operator () ( element_context& context );
-
+    bool operator () ( bool& val, element_context& context );
+    
     boundary_condition( bb2f bounds_init = { { -1.0f, -1.0f }, { 1.0f, 1.0f } } ) : bounds( bounds_init ) {}
 };
+typedef boundary_condition boundary_fn;
 
 struct random_condition {
     harness< float > p;
 
     bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
 
     random_condition( float p_init = 0.5f ) : p( p_init ) {}
 };
+typedef random_condition random_fn;
 
 struct random_sticky_condition {
     bool initialized;
@@ -406,22 +429,12 @@ struct random_sticky_condition {
     harness< float > p_change_false; // probability of changing false condition
 
     bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
 
     random_sticky_condition( float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
-
-struct mousedown_condition {
-    bool operator () ( element_context& context );
-};
-
-struct mouseover_condition {
-    bool operator () ( element_context& context );
-};
-
-struct mouseclick_condition {
-    bool operator () ( element_context& context );
-};
+typedef random_sticky_condition random_sticky_fn;
 
 struct filter {
     std::vector< any_condition_fn > conditions;
@@ -433,6 +446,17 @@ struct filter {
 
     filter();
 };
+/*
+struct chooser_gen_fn {
+    std::vector< any_gen_fn > functions;        // list of component functions, executed in order
+    int choice;
+
+    void operator () ( element_context& context );
+    void add_function(  const any_gen_fn& fn );
+
+    chooser_gen_fn() : choice( 0 ) {};
+};
+*/
 
 // container functor to recursively generate elements in cluster
 struct next_element {

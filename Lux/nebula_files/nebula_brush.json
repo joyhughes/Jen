@@ -60,6 +60,8 @@
         {
             "name": "sorter",
             "type": "CA_ucolor",
+            "bright_block": true,
+            "bright_min": 10,
             "rule":
             {
                 "name": "sort",

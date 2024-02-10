@@ -33,16 +33,9 @@
         {
             "name": "direction_4",
             "type": "direction_picker_4",
-            "default_value": "up",
-            "label": "Direction",
-            "description": "Direction of gravity"
-        },
-        {
-            "name": "direction_8",
-            "type": "direction_picker_8",
             "default_value": "down",
             "label": "Direction",
-            "description": "Direction of sort"
+            "description": "Direction of gravity"
         },
         {
             "name": "bright_block_slider",
@@ -67,17 +60,7 @@
             "description": "Freeze pixels with brighness outside the range",
             "switcher": "bright_block_switch",
             "widget": "bright_block_slider"
-        },
-        {
-            "name": "max_diff_slider",
-            "type": "slider_int",
-            "label": "Sort Threshold",
-            "description": "Sort Threshold is the maximum brightness difference between adjacent pixels that will be sorted.",
-            "min": 0,
-            "max": 768,
-            "default_value": 230,
-            "step": 1
-        },        
+        },       
         {
             "name": "life_slider",
             "type": "slider_int",
@@ -94,16 +77,7 @@
             "tool": "pull_down",
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
-            "default_choice": 5
-        },
-        {
-            "name": "funky_menu",
-            "type": "menu_string",
-            "tool": "pull_down",
-            "label": "Transition Rule",
-            "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "choices": [ "Borg", "Funky Town", "Web" ],
+            "choices": [ "Diffuse", "Life", "Gravitate", "Snow" ],
             "default_choice": 0
         }
     ],
@@ -174,38 +148,9 @@
             }
         },
         {
-            "name": "Pixel sort",
-            "type": "CA_ucolor",
-            "bright_block": { "functions": [ "bright_block_switch" ] },
-            "bright_range": { "functions": [ "bright_block_slider" ] },
-            "rule":
-            {
-                "name": "pixel_sort",
-                "type": "rule_pixel_sort_ucolor",
-                "direction": { "functions": [ "direction_8" ] },
-                "max_diff": { "functions": [ "max_diff_slider" ] }
-            }
-        },
-        {
-            "name": "Funky sort",
-            "type": "CA_ucolor",
-            "bright_block": { "functions": [ "bright_block_switch" ] },
-            "bright_range": { "functions": [ "bright_block_slider" ] },
-            "rule":
-            {
-                "name": "funky_sort",
-                "type": "rule_funky_sort_ucolor",
-                "direction": { "functions": [ "direction_8" ] },
-                "dafunk_d": "0xffffffffaa00aa00",
-                "dafunk_l": "0x5fc1850e6d728137",
-                "dafunk_r": "0xfa6c916dae77c405",
-                "max_diff": { "functions": [ "max_diff_slider" ] }
-            }
-        },
-        {
             "name": "Rule Chooser",
             "type": "eff_chooser",
-            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
+            "effects": [ "Diffuse", "Life", "Gravitate", "Snow" ],
             "choice": { "functions": [ "rule_menu" ] }
         },
         {
@@ -263,16 +208,6 @@
             "name": "snow_group",
             "conditions": [ { "rule_menu": 3 } ],
             "widgets": [ "direction_4" ]
-        },
-        {
-            "name": "pixel_sort_group",
-            "conditions": [ { "rule_menu": 4 } ],
-            "widgets": [ "max_diff_slider", "bright_block_widget_switch" ]
-        },
-        {
-            "name": "funky_sort_group",
-            "conditions": [ { "rule_menu": 5 } ],
-            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
         }
     ]
 }

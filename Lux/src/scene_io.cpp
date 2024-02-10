@@ -4,6 +4,7 @@
 #include "fimage.hpp"
 #include "uimage.hpp"
 #include "vector_field.hpp"
+#include "UI.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -27,6 +28,7 @@ void emscripten_error( std::string msg ) {
 #endif
 
 using json = nlohmann::json;
+using string = std::string;
 
 scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init ) {
     // read a JSON file
@@ -92,6 +94,8 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
 
 vec2f scene_reader::read_vec2f( const json& j ) { return vec2f( { j[0], j[1] } ); }
 vec2i scene_reader::read_vec2i( const json& j ) { return vec2i( { j[0], j[1] } ); }
+interval_float scene_reader::read_interval_float( const json& j ) { return interval_float( j[0], j[1] ); }
+interval_int   scene_reader::read_interval_int(   const json& j ) { return interval_int(   j[0], j[1] ); }
 frgb  scene_reader::read_frgb(  const json& j ) { return frgb( j[0], j[1], j[2] ); }
 bb2f  scene_reader::read_bb2f(  const json& j ) { return bb2f( read_vec2f( j[0] ), read_vec2f( j[1]) ); }
 bb2i  scene_reader::read_bb2i(  const json& j ) { return bb2i( read_vec2i( j[0] ), read_vec2i( j[1]) ); }
@@ -215,6 +219,29 @@ CA_hood scene_reader::read_hood( const json& j ) {
     return h;
 }
 
+menu_type scene_reader::read_menu_type( const json& j ) { 
+    std::string s;
+    menu_type t;
+
+    j.get_to( s );
+    if(      s == "pull_down" ) t = MENU_PULL_DOWN;
+    else if( s == "radio"    ) t = MENU_RADIO;
+    else ERROR( "Invalid menu_type string: " + s )
+    return t;
+}
+
+switch_type scene_reader::read_switch_type( const json& j ) { 
+    std::string s;
+    switch_type t;
+
+    j.get_to( s );
+    if(      s == "switch" ) t = SWITCH_SWITCH;
+    else if( s == "toggle_button" ) t = SWITCH_TOGGLE_BUTTON;
+    else if( s == "checkbox" ) t = SWITCH_CHECKBOX;
+    else ERROR( "Invalid switch_type string: " + s )
+    return t;
+}
+
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
     DEBUG( "scene_reader::read_image" )
@@ -246,6 +273,7 @@ void scene_reader::read_image( const json& j ) {
         //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
+    DEBUG( "scene_reader::read_image - finished" )
 }
 
 void scene_reader::read_element( const json& j ) {
@@ -377,22 +405,50 @@ void scene_reader::read_function( const json& j ) {
     #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = s. _T_##_fns[ fn_name ]; }
 
+    // harness bool functions
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN( bool )
+
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN( float )
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
     FN( time_fn,     float ) END_FN( float )
     FN( ratio_float, float ) HARNESS( r ) END_FN( float )
     FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
-    FN( slider_fn,   float ) HARNESS( min ) HARNESS( max ) END_FN( float )
+    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN( float )
+    FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN( interval_float )
 
     // harness int functions
-    FN( adder_int, int ) HARNESS( r ) END_FN( int )
-    FN( int_slider_fn, int ) HARNESS( min ) HARNESS( max ) END_FN( int )
+    FN( adder_int,  int ) HARNESS( r ) END_FN( int )
+    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN( int )
+    FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN( interval_int )
+
+    // special case for menu
+    FN( menu_int, int ) 
+        READ( label ) 
+        READ( description ) 
+        READ( default_choice )
+        READ( tool ) 
+        fn->choice = fn->default_choice;
+        if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
+    END_FN( int )
+
+    FN( menu_string, string ) 
+        READ( label ) 
+        READ( description ) 
+        READ( default_choice ) 
+        READ( tool ) 
+        fn->choice = fn->default_choice;
+        if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
+    END_FN( string )
 
     // harness vec2f functions
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
     FN( mouse_pos_fn, vec2f ) END_FN( vec2f )
+
+    // direction pickers
+    FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN( direction4 )
+    FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN( direction8 )
 
     // parameter functions
     FN( index_param_float, float ) PARAM( float ) END_FN( float )
@@ -412,7 +468,7 @@ void scene_reader::read_function( const json& j ) {
     // position_list should go here - figure out how to work the vector of positions
 
     // condition functions
-    COND_FN( switch_condition ) READ( val ) END_COND_FN()
+    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_COND_FN()
     COND_FN( random_condition ) HARNESS( p ) END_COND_FN()
     COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_COND_FN()
 }
@@ -451,6 +507,7 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
 
     // Required fields
     if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
+    DEBUG( "Reading CA rule " + name );
     if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
 
     #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), std::ref( *r ), name ); ca->rule = rule;
@@ -462,10 +519,11 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_random_copy_ucolor ) END_RULE()
     RULE( rule_random_mix_ucolor )  END_RULE()
     RULE( rule_diffuse_ucolor)      END_RULE()
-    RULE( rule_gravitate_ucolor )  READR( direction ) END_RULE()
-    RULE( rule_snow_ucolor )       READR( direction ) END_RULE()
-    RULE( rule_pixel_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) END_RULE()
-    RULE( rule_funky_sort_ucolor ) READR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
+    RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
+    RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
+    RULE( rule_pixel_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
+    DEBUG( "CA rule " + name + " complete" )
 }
 
 void scene_reader::read_effect( const json& j ) {
@@ -519,8 +577,8 @@ void scene_reader::read_effect( const json& j ) {
             CA_targets[ name ] = buf_name;
         }
         READE( targeted )
-        HARNESSE( p ) READE( edge_block ) READE( alpha_block ) 
-        READE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
+        HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block ) 
+        HARNESSE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
     END_EFF()
 
     // special case for effects running effects

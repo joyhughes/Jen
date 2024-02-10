@@ -31,7 +31,10 @@ template struct harness< vec2i >;
 template struct harness< frgb >;
 template struct harness< ucolor >;
 template struct harness< bb2f >;
-// template struct harness< bool >;
+template struct harness< std::string >;
+template struct harness< bool >;
+template struct harness< direction4 >;
+template struct harness< direction8 >;
 
 float time_fn::operator () ( float& val, element_context& context  ) { 
     return context.s.time; 
@@ -46,16 +49,6 @@ float wiggle::operator ()  ( float& val, element_context& context  )
         return *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.s.time ) * TAU );
     }
     else return 0.0f; 
-}
-
-float slider_fn::operator () ( float& val, element_context& context  )
-{
-    return context.s.ui.main_slider.value;
-}
-
-int int_slider_fn::operator () ( int& val, element_context& context  )
-{
-    return (int)context.s.ui.main_slider.value;
 }
 
 vec2f mouse_pos_fn::operator () ( vec2f& val, element_context& context  )
@@ -193,8 +186,18 @@ bool initial_element_condition  ::operator () ( element_context& context ) {
     return  ( context.el.index == 0 ); 
 }
 
+bool initial_element_fn        ::operator () ( bool& val, element_context& context ) { 
+    //std::cout << "initial_element_fn" << std::endl;
+    return  ( context.el.index == 0 ); 
+}
+
 bool following_element_condition::operator () ( element_context& context ) { 
     //std::cout << "following_element_condition" << std::endl;
+    return !( context.el.index == 0 ); 
+}
+
+bool following_element_fn       ::operator () ( bool& val, element_context& context ) { 
+    //std::cout << "following_element_fn" << std::endl;
     return !( context.el.index == 0 ); 
 }
 
@@ -203,9 +206,19 @@ bool top_level_condition        ::operator () ( element_context& context ) {
     return  ( context.cl.depth == 0 ); 
 }
 
+bool top_level_fn               ::operator () ( bool& val, element_context& context ) { 
+    //std::cout << "top_level_fn" << std::endl;
+    return  ( context.cl.depth == 0 ); 
+}
+
 bool lower_level_condition      ::operator () ( element_context& context ) { 
     //std::cout << "lower_level_condition" << std::endl;
     return !( context.cl.depth == 0 ); 
+}
+
+bool lower_level_fn             ::operator () ( bool& val, element_context& context ) { 
+    //std::cout << "lower_level_fn" << std::endl;
+    return  ( context.cl.depth == 0 ); 
 }
 
 bool boundary_condition         ::operator () ( element_context& context ) { 
@@ -214,9 +227,17 @@ bool boundary_condition         ::operator () ( element_context& context ) {
     return bounds->in_bounds_pad( context.el.position ); 
 }
 
+bool boundary_fn                ::operator () ( bool& val, element_context& context ) { 
+    return this->operator()( context );
+}
+
 bool random_condition::operator () ( element_context& context ) { 
     p( context );
     return rand1( gen ) < *p; 
+}
+
+bool random_fn::operator () ( bool& val, element_context& context ) { 
+    return this->operator()( context );
 }
 
 bool random_sticky_condition::operator () ( element_context& context ) { 
@@ -237,16 +258,8 @@ bool random_sticky_condition::operator () ( element_context& context ) {
     return on; 
 }
 
-bool mousedown_condition::operator () ( element_context& context ) { 
-    return context.s.ui.mouse_down; 
-}
-
-bool mouseover_condition::operator () ( element_context& context ) { 
-    return context.s.ui.mouse_over; 
-}
-
-bool mouseclick_condition::operator () ( element_context& context ) { 
-    return context.s.ui.mouse_click; 
+bool random_sticky_fn::operator () ( bool& val, element_context& context ) { 
+    return this->operator()( context ); 
 }
 
 void filter::operator () ( element_context& context ) { 

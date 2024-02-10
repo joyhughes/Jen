@@ -1,9 +1,10 @@
-// Provides a random number generator and selected math functions to be used by linalg.h
+// Provides a random number generator and selected math functions to be used by linalg.h and elsewhere
 
 #ifndef __JOY_RAND_HPP
 #define __JOY_RAND_HPP
 
 #include <random>
+#include "joy_concepts.hpp"
 
 static std::random_device rd;    // non-deterministic generator
 static std::mt19937 gen( rd() ); // start random engine
@@ -28,5 +29,25 @@ static float rmodf( const float f, const float m ) {
     else return remf( rat ) * m;
 }
 
+// Need to determine if interval is open or closed, and handle empty intervals
+template< Scalar T > struct interval {
+    T min, max;
+
+    interval& operator = ( const interval& rhs ) {
+        if ( this != &rhs ) {
+            min = rhs.min;
+            max = rhs.max;
+            if ( min > max ) std::swap( min, max );
+        }
+        return *this;
+    }
+
+    interval( const T& min_init, const T& max_init ) : min( min_init ), max( max_init ) { 
+        if ( min > max ) std::swap( min, max ); 
+    }
+};
+
+typedef interval< float > interval_float;
+typedef interval< int >   interval_int;
 
 #endif // __JOY_RAND_HPP

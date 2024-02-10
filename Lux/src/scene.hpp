@@ -10,6 +10,7 @@
 #include "next_element.hpp"
 #include "any_function.hpp"
 #include "any_rule.hpp"
+#include "UI.hpp"
 
 //template< class T > struct effect;
 struct element;
@@ -195,42 +196,26 @@ struct effect_list {
     }
 };
 
-struct slider {
-    std::string label;
-    float value;
-    float min;
-    float max;
-    float step;
-
-    slider( const std::string& label_init = "", const float& value_init = 0.3f, const float& min_init = 0.0f, const float& max_init = 1.0f, const float& step_init = 0.01f ) :
-        label( label_init ), value( value_init ), min( min_init ), max( max_init ), step( step_init ) {}
-};
-
-// Stores state of user interface - mouse position, mouse down, slider values, etc.
-struct UI {
-    bb2i  canvas_bounds; // bounds of canvas in pixels
-    vec2i mouse_pixel;  // mouse position in pixels
-    bool  mouse_down;
-    bool  mouse_over;
-    bool  mouse_click;  // true for one frame when mouse clicked over canvas
-    slider main_slider;
-
-    UI() : canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), mouse_pixel( { 0, 0 } ), mouse_down( false ), mouse_over( false ), mouse_click( false ), main_slider( "Sort Threshold", 230.0f, 0.0f, 765.0f, 1.0f ) {}
-};
-
 struct scene {
     // scene owns clusters, elements, images, effects, and functions
     std::string name;
     UI ui;  // We gotta go now
 
+    // future - replace with single map of any_fn
     std::unordered_map< std::string, any_fn< float  > > float_fns;    
-    std::unordered_map< std::string, any_fn< int    > > int_fns;    
+    std::unordered_map< std::string, any_fn< int    > > int_fns; 
+    std::unordered_map< std::string, any_fn< interval_float > > interval_float_fns;
+    std::unordered_map< std::string, any_fn< interval_int   > > interval_int_fns;   
     std::unordered_map< std::string, any_fn< vec2f  > > vec2f_fns;    
     std::unordered_map< std::string, any_fn< vec2i  > > vec2i_fns;
     std::unordered_map< std::string, any_fn< frgb   > > frgb_fns;
     std::unordered_map< std::string, any_fn< ucolor > > ucolor_fns;
     std::unordered_map< std::string, any_fn< bb2i   > > bb2i_fns;
     std::unordered_map< std::string, any_fn< bb2f   > > bb2f_fns;
+    std::unordered_map< std::string, any_fn< std::string > > string_fns;
+    std::unordered_map< std::string, any_fn< bool   > > bool_fns;
+    std::unordered_map< std::string, any_fn< direction4 > > direction4_fns;
+    std::unordered_map< std::string, any_fn< direction8 > > direction8_fns;
     std::unordered_map< std::string, any_gen_fn       > gen_fns;
     std::unordered_map< std::string, any_condition_fn > condition_fns;
 
