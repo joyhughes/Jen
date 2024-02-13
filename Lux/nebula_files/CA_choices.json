@@ -98,11 +98,47 @@
             "default_choice": 5
         },
         {
-            "name": "funky_menu",
+            "name": "rule_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 0
+        },
+        {
+            "name": "rule_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 1
+        },
+        {
+            "name": "rule_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 2
+        },
+        {
+            "name": "rule_menu_3",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 3
+        },
+        {
+            "name": "rule_menu_4",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 4
+        },
+        {
+            "name": "rule_menu_5",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 5
+        },
+        {
+            "name": "funk_factor_menu",
             "type": "menu_string",
             "tool": "pull_down",
-            "label": "Transition Rule",
-            "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
+            "label": "Funk Factor",
+            "description": "Funk factor is a parameter of the Funky sort rule.",
             "choices": [ "Borg", "Funky Town", "Web" ],
             "default_choice": 0
         }
@@ -246,33 +282,33 @@
         },
         {
             "name": "diffuse_group",
-            "conditions": [ { "rule_menu": 0 } ],
+            "conditions": [ "rule_menu_0" ],
             "widgets": [ "max_diff_slider" ]
         },
         {
             "name": "life_group",
-            "conditions": [ { "rule_menu": 1 } ],
+            "conditions": [ "rule_menu_1" ],
             "widgets": [ "life_slider" ]
         },
         {
             "name": "gravitate_group",
-            "conditions": [ { "rule_menu": 2 } ],
+            "conditions": [ "rule_menu_2" ],
             "widgets": [ "direction_4" ]
         },
         {
             "name": "snow_group",
-            "conditions": [ { "rule_menu": 3 } ],
+            "conditions": [ "rule_menu_3" ],
             "widgets": [ "direction_4" ]
         },
         {
             "name": "pixel_sort_group",
-            "conditions": [ { "rule_menu": 4 } ],
-            "widgets": [ "max_diff_slider", "bright_block_widget_switch" ]
+            "conditions": [ "rule_menu_4" ],
+            "widgets": [ "direction_8", "max_diff_slider", "bright_block_widget_switch" ]
         },
         {
             "name": "funky_sort_group",
-            "conditions": [ { "rule_menu": 5 } ],
-            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
+            "conditions": [ "rule_menu_5" ],
+            "widgets": [ "direction_8", "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
         }
     ]
 }
