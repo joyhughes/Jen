@@ -262,6 +262,27 @@ bool random_sticky_fn::operator () ( bool& val, element_context& context ) {
     return this->operator()( context ); 
 }
 
+template< class T > bool equal_condition< T >::operator () ( element_context& context ) { 
+    a( context );
+    b( context );
+    return *a == *b;
+}
+
+template< class T > bool equal_condition< T >::operator () ( bool& val, element_context& context ) { 
+    return this->operator()( context );
+}
+
+template struct equal_condition< float >;
+template struct equal_condition< vec2f >;
+template struct equal_condition< int >;
+template struct equal_condition< vec2i >;
+template struct equal_condition< frgb >;
+template struct equal_condition< ucolor >;
+template struct equal_condition< std::string >;
+template struct equal_condition< bool >;
+template struct equal_condition< direction4 >;
+template struct equal_condition< direction8 >;
+
 void filter::operator () ( element_context& context ) { 
     //std::cout << "filter operator ()" << std::endl;
     for( auto& condition : conditions ) {

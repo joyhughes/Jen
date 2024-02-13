@@ -1,13 +1,13 @@
 #include "UI.hpp"
 #include "image.hpp"
-#include "next_element.hpp"
+//#include "next_element.hpp"
 #include "scene.hpp"
 
 bool mousedown_condition::operator () ( element_context& context ) { 
     return context.s.ui.mouse_down; 
 }
 
-bool mousedown_fn::operator () ( bool& val, element_context& context ) { 
+bool mousedown_condition::operator () ( bool& val, element_context& context ) { 
     return context.s.ui.mouse_down; 
 }
 
@@ -15,7 +15,7 @@ bool mouseover_condition::operator () ( element_context& context ) {
     return context.s.ui.mouse_over; 
 }
 
-bool mouseover_fn::operator () ( bool& val, element_context& context ) { 
+bool mouseover_condition::operator () ( bool& val, element_context& context ) { 
     return context.s.ui.mouse_over; 
 }
 
@@ -23,7 +23,7 @@ bool mouseclick_condition::operator () ( element_context& context ) {
     return context.s.ui.mouse_click; 
 }
 
-bool mouseclick_fn::operator () ( bool& val, element_context& context ) { 
+bool mouseclick_condition::operator () ( bool& val, element_context& context ) { 
     return context.s.ui.mouse_click; 
 }
 
@@ -31,9 +31,11 @@ bool switch_condition::operator () ( element_context& context ) {
     return value; 
 }
 
-bool switch_fn::operator () ( bool& val, element_context& context ) { 
+bool switch_condition::operator () ( bool& val, element_context& context ) { 
     return value; 
 }
+
+void switch_condition::reset() { value = default_value; }
 
 template< Scalar T > void slider< T >::reset() { value = default_value; }
 
@@ -141,6 +143,9 @@ void widget_group::clear() {
     widgets.clear();
 }
 
+widget_group::widget_group( const std::string& name_init, const std::string& label_init, const std::string& description_init ) : name( name_init ), label( label_init ), description( description_init ) {}
+
 void UI::add_widget_group( const std::string& name, const widget_group& wg ) {
     widget_groups[ name ] = wg;
 }
+
