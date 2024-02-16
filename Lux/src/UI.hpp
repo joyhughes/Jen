@@ -8,6 +8,7 @@
 #include "joy_rand.hpp"
 #include "vect2.hpp"
 #include "image.hpp"
+#include "next_element.hpp"
 
 typedef enum menu_type
 {
@@ -207,14 +208,15 @@ struct widget_switch {
 
     void reset(); // reset switcher and widget to default
 
-    widget_switch( const std::shared_ptr< switch_fn >& switcher_init, const any_widget_ptr& widget_init, const std::string& label_init = "", const std::string& description_init = "" ) : switcher( switcher_init ), widget( widget_init ), label( label_init ), description( description_init ) {}
+    widget_switch( const std::shared_ptr< switch_fn >& switcher_init = nullptr, const any_widget_ptr& widget_init = std::shared_ptr< switch_fn >( nullptr ), const std::string& label_init = "", const std::string& description_init = "" ) : switcher( switcher_init ), widget( widget_init ), label( label_init ), description( description_init ) {}
 };
 
 typedef widget_switch widget_switch_condition;
 typedef widget_switch widget_switch_fn;
 
 struct widget_group {
-    std::string label, description;
+    std::string name, label, description;
+    std::vector< any_condition_fn > conditions;
     std::vector< any_widget_ptr > widgets;
     // bool open;      // is this widget group open? (Needed?)
     // bool active;    // is this widget group within active part of scene graph? (Needed?)
@@ -223,7 +225,7 @@ struct widget_group {
     void reset(); // reset all widgets to default
     void clear(); // clear all widgets
 
-    widget_group( const std::string& label_init = "", const std::string& description_init = "" ) : label( label_init ), description( description_init ) {}
+    widget_group( const std::string& name_init = "", const std::string& label_init = "", const std::string& description_init = "" );
 };
 
 // Stores state of user interface - mouse position, mouse down, slider values, etc.
@@ -233,6 +235,7 @@ struct UI {
     bool  mouse_down;
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
+    std::unordered_map< std::string, any_widget_ptr > widgets;
     std::unordered_map< std::string, widget_group > widget_groups;  // should this be a tree?
 
     void add_widget_group( const std::string& name, const widget_group& wg );

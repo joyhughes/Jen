@@ -308,11 +308,23 @@ typedef std::variant <
     std::shared_ptr< lower_level_fn >,
     std::shared_ptr< random_fn >,
     std::shared_ptr< random_sticky_fn >,
+
+    // equality functions
+    std::shared_ptr< equal_float_fn >,
+    std::shared_ptr< equal_vec2f_fn >,
+    std::shared_ptr< equal_int_fn >,
+    std::shared_ptr< equal_vec2i_fn >,
+    std::shared_ptr< equal_frgb_fn >,
+    std::shared_ptr< equal_ucolor_fn >,
+    std::shared_ptr< equal_string_fn >,
+    std::shared_ptr< equal_bool_fn >,
+    std::shared_ptr< equal_direction4_fn >,
+    std::shared_ptr< equal_direction8_fn >,
+
+    // ui functions
     std::shared_ptr< mousedown_fn >,
     std::shared_ptr< mouseover_fn >,
     std::shared_ptr< mouseclick_fn >,
-
-    // ui functions
     std::shared_ptr< switch_fn >,
     std::shared_ptr< widget_switch_fn >
 > any_bool_fn_ptr;
@@ -340,11 +352,23 @@ typedef std::variant <
     std::shared_ptr< lower_level_condition >,
     std::shared_ptr< random_condition >,
     std::shared_ptr< random_sticky_condition >,
+
+    // equality conditions
+    std::shared_ptr< equal_float_condition >,
+    std::shared_ptr< equal_vec2f_condition >,
+    std::shared_ptr< equal_int_condition >,
+    std::shared_ptr< equal_vec2i_condition >,
+    std::shared_ptr< equal_frgb_condition >,
+    std::shared_ptr< equal_ucolor_condition >,
+    std::shared_ptr< equal_string_condition >,
+    std::shared_ptr< equal_bool_condition >,
+    std::shared_ptr< equal_direction4_condition >,
+    std::shared_ptr< equal_direction8_condition >,
+
+    // ui conditions
     std::shared_ptr< mousedown_condition >,
     std::shared_ptr< mouseover_condition >,
     std::shared_ptr< mouseclick_condition >,
-
-    // ui conditions
     std::shared_ptr< switch_condition >,
     std::shared_ptr< widget_switch_condition >
 > any_condition_fn_ptr;
@@ -357,7 +381,7 @@ struct any_condition_fn {
     bool operator () ( element_context& context ) { return fn( context ); }
 
     //any_condition_fn() : my_condition_fn( std::shared_ptr< switch_condition >( &switch_static_condition ) ), fn( std::ref( switch_static_condition ) ), name( "switch_static_condition" ) {}
-    any_condition_fn() : name( "switch_condition_default" ) { 
+    any_condition_fn() : name( "switch_condition_default" ) {
         std::shared_ptr< switch_condition > f( new switch_condition );
         fn = std::ref( *f ); 
         my_condition_fn = f; }

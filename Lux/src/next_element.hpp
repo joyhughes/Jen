@@ -2,6 +2,7 @@
 #define __NEXT_ELEMENT_HPP
 
 #include <functional>
+#include <concepts>
 #include "buffer_pair.hpp"
 #include "vector_field.hpp"
 #include "joy_concepts.hpp"
@@ -435,6 +436,36 @@ struct random_sticky_condition {
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
 typedef random_sticky_condition random_sticky_fn;
+
+template< class T > struct equal_condition {
+    harness< T > a, b;
+
+    bool operator () ( element_context& context );
+    bool operator () ( bool& val, element_context& context );
+
+    equal_condition( T a_init = T(), T b_init = T() ) : a( a_init ), b( b_init ) {}
+};
+
+typedef equal_condition< float > equal_float_condition;
+typedef equal_condition< float > equal_float_fn;
+typedef equal_condition< vec2f > equal_vec2f_condition;
+typedef equal_condition< vec2f > equal_vec2f_fn;
+typedef equal_condition< int > equal_int_condition;
+typedef equal_condition< int > equal_int_fn;
+typedef equal_condition< vec2i > equal_vec2i_condition;
+typedef equal_condition< vec2i > equal_vec2i_fn;
+typedef equal_condition< frgb > equal_frgb_condition;
+typedef equal_condition< frgb > equal_frgb_fn;
+typedef equal_condition< ucolor > equal_ucolor_condition;
+typedef equal_condition< ucolor > equal_ucolor_fn;
+typedef equal_condition< std::string > equal_string_condition;
+typedef equal_condition< std::string > equal_string_fn;
+typedef equal_condition< bool > equal_bool_condition;
+typedef equal_condition< bool > equal_bool_fn;
+typedef equal_condition< direction4 > equal_direction4_condition;
+typedef equal_condition< direction4 > equal_direction4_fn;
+typedef equal_condition< direction8 > equal_direction8_condition;
+typedef equal_condition< direction8 > equal_direction8_fn;
 
 struct filter {
     std::vector< any_condition_fn > conditions;
