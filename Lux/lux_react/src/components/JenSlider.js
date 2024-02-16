@@ -38,7 +38,7 @@ function JenSlider({ json, width }) {
 
     return (
       <Stack spacing={-0.5} direction="column" alignItems="center">
-          <Typography style={{ textAlign: 'center', color: theme.palette.primary.main }}>
+          <Typography style={{ textAlign: 'center' }}>
               {json.label}
           </Typography>
           <Stack spacing={1} direction="row" alignItems="center">

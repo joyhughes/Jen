@@ -21,6 +21,14 @@
                 "max": 768,
                 "default_value": 230,
                 "step": 1
+            },
+            {
+                "name": "edge_block_switch",
+                "type": "switch_fn",
+                "label": "Edge block",
+                "description": "Freezes pixels on the edge of the image",
+                "tool": "switch",
+                "default_value": true
             }
         ]
     }

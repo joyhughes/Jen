@@ -9,7 +9,7 @@ function JenSwitch({ json }) {
 
     const handleSwitchChange = (event) => {
         setSwitchValue(event.target.checked);
-        // Additional logic if needed to handle switch value change
+        window.Module.handle_switch_value(json.name, event.target.checked);
     };
 
     const renderSwitch = () => {
@@ -24,7 +24,7 @@ function JenSwitch({ json }) {
             case 'switch':
                 return (
                     <FormControlLabel
-                        control={<Switch checked={switchValue} onChange={handleSwitchChange} />}
+                        control={<Switch checked={switchValue} onChange={handleSwitchChange} size={"small"}/>}
                         label={json.label}
                     />
                 );

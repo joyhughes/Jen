@@ -90,11 +90,14 @@ template< class T > void CA< T >::run_rule() {
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
+
     if( ca_frame == 0 ) {
         ca_frame++;
         return;
     } 
-    p( context ); bright_min( context ); bright_max( context ); 
+    p( context ); 
+    bright_block( context ); bright_min( context ); bright_max( context ); 
+    edge_block( context ); alpha_block( context );
     hood = rule.init( context );
     if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
         auto buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf ); 

@@ -45,6 +45,14 @@
             "description": "Direction of sort"
         },
         {
+            "name": "edge_block_switch",
+            "type": "switch_fn",
+            "label": "Edge block",
+            "description": "Freezes pixels on the edge of the image",
+            "tool": "switch",
+            "default_value": true
+        },
+        {
             "name": "bright_block_slider",
             "type": "range_slider_int",
             "label": "Brightness freeze",
@@ -172,6 +180,7 @@
         {
             "name": "Diffuse",
             "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
                 "name": "diffuse",
@@ -181,6 +190,7 @@
         {
             "name": "Life",
             "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
                 "name": "life",
@@ -190,7 +200,7 @@
         {
             "name": "Gravitate",
             "type": "CA_ucolor",
-            "edge_block": true,
+            "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
                 "name": "gravitate",
@@ -201,7 +211,7 @@
         {
             "name": "Snow",
             "type": "CA_ucolor",
-            "edge_block": true,
+            "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
                 "name": "snow",
@@ -212,6 +222,7 @@
         {
             "name": "Pixel sort",
             "type": "CA_ucolor",
+            "edge_block": {"functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "rule":
@@ -225,6 +236,7 @@
         {
             "name": "Funky sort",
             "type": "CA_ucolor",
+            "edge_block": {"functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "rule":
@@ -278,7 +290,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "rule_menu" ]
+            "widgets": [ "rule_menu", "edge_block_switch" ]
         },
         {
             "name": "diffuse_group",

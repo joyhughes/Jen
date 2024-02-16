@@ -7,6 +7,7 @@ import JenSwitch from './JenSwitch';
 function WidgetGroup({ panelSize, json }) {
     const renderWidget = ( widget ) => {
       let widgetComponent;
+      let height = 60;
   
       switch ( widget. type ) {
         case 'menu_int':
@@ -19,6 +20,7 @@ function WidgetGroup({ panelSize, json }) {
           break;
         case 'switch_fn':
         case 'switch_condition':
+          height = 30;
           widgetComponent = <JenSwitch key = { widget.name } json = { widget } />;
           break;
         default:
@@ -27,7 +29,7 @@ function WidgetGroup({ panelSize, json }) {
       }
   
       return (
-        <WidgetContainer key={ widget.name } panelSize = { panelSize }>
+        <WidgetContainer key={ widget.name } panelSize = { panelSize } height = { height } >
           { widgetComponent }
         </WidgetContainer>
       );
