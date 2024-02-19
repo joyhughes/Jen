@@ -23,20 +23,7 @@ function JenSwitch({ json }) {
                 );
             case 'switch':
                 return (
-                    <FormControlLabel
-                        control={<Switch checked={switchValue} onChange={handleSwitchChange} size={"small"}/>}
-                        label={json.label}
-                    />
-                );
-            case 'toggle_button':
-                return (
-                    <ToggleButton
-                        value="check"
-                        selected={switchValue}
-                        onChange={handleSwitchChange}
-                    >
-                        {json.label}
-                    </ToggleButton>
+                    <Switch checked={switchValue} onChange={handleSwitchChange} size={"small"}/>
                 );
             default:
                 return <div>Unknown switch type: {json.tool}</div>;
