@@ -42,7 +42,7 @@ template< Scalar T > struct interval {
         return *this;
     }
 
-    interval( const T& min_init, const T& max_init ) : min( min_init ), max( max_init ) { 
+    interval( const T& min_init = 0, const T& max_init = 0 ) : min( min_init ), max( max_init ) { 
         if ( min > max ) std::swap( min, max ); 
     }
 };

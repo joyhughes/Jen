@@ -35,6 +35,8 @@ template struct harness< std::string >;
 template struct harness< bool >;
 template struct harness< direction4 >;
 template struct harness< direction8 >;
+template struct harness< interval_int >;
+template struct harness< interval_float >;
 
 float time_fn::operator () ( float& val, element_context& context  ) { 
     return context.s.time; 

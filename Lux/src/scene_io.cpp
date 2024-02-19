@@ -240,7 +240,6 @@ switch_type scene_reader::read_switch_type( const json& j ) {
 
     j.get_to( s );
     if(      s == "switch" ) t = SWITCH_SWITCH;
-    else if( s == "toggle_button" ) t = SWITCH_TOGGLE_BUTTON;
     else if( s == "checkbox" ) t = SWITCH_CHECKBOX;
     else ERROR( "Invalid switch_type string: " + s )
     return t;
@@ -381,6 +380,8 @@ void scene_reader::read_function( const json& j ) {
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );  else ERROR( "Function name missing\n" )
     if( j.contains( "type" ) ) j[ "type" ].get_to( type );  else ERROR( "Function type missing\n" );
+
+    DEBUG( "scene_reader::read_function - name: " + name + " type: " + type )
 
     // special case for conditionals
     if( type == "filter" ) {
@@ -640,7 +641,7 @@ void scene_reader::read_effect( const json& j ) {
         }
         READE( targeted )
         HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block ) 
-        HARNESSE( bright_block ) HARNESSE( bright_min ) HARNESSE( bright_max )
+        HARNESSE( bright_block ) HARNESSE( bright_range )
     END_EFF()
 
     // special case for effects running effects

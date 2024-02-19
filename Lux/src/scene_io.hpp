@@ -87,6 +87,8 @@ struct scene_reader {
     READ_ANY_HARNESS( bool,   s.bool_fns )
     READ_ANY_HARNESS( direction4, s.direction4_fns )
     READ_ANY_HARNESS( direction8, s.direction8_fns )
+    READ_ANY_HARNESS( interval_float, s.interval_float_fns )
+    READ_ANY_HARNESS( interval_int, s.interval_int_fns )
 
     //READ_ANY_HARNESS( std::optional< int > )
     //READ_ANY_HARNESS( std::optional< float > )
