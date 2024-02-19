@@ -59,14 +59,16 @@
             "description": "Freezes pixels with brighness outside the range",
             "min": 0,
             "max": 768,
-            "default_range": [ 10, 768 ],
+            "default_value": [ 10, 768 ],
             "step": 1
         },
         {
             "name": "bright_block_switch",
             "type": "switch_fn",
+            "label": "Brightness block",
+            "description": "Freezes pixels with brighness outside the range",
             "tool": "switch",
-            "default_state": "on"
+            "default_value": false
         },
         {
             "name": "bright_block_widget_switch",
