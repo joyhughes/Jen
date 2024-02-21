@@ -29,6 +29,24 @@
                 "description": "Freezes pixels on the edge of the image",
                 "tool": "switch",
                 "default_value": true
+            },
+            {
+                "name": "bright_block_switch",
+                "type": "switch_fn",
+                "label": "Brightness block",
+                "description": "Freezes pixels with brightness outide the range",
+                "tool": "switch",
+                "default_value": false
+            },
+            {
+                "name": "bright_block_slider",
+                "type": "range_slider_int",
+                "label": "Brightness block range",
+                "min": 0,
+                "max": 768,
+                "description": "Freezes pixels with brightness outide the range",
+                "tool": "range_slider",
+                "default_value": [ 10, 768 ]
             }
         ]
     }

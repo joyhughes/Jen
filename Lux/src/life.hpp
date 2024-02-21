@@ -44,7 +44,7 @@ template< class T > struct CA {
    harness< bool > edge_block; // if true, cells on the edge of the image will not run
    harness< bool > alpha_block; // if true, cells will run with probability ( 1 - alpha ) / 255
    harness< bool > bright_block;
-   harness< int > bright_min, bright_max; // cells with brightness within range will run
+   harness< interval_int > bright_range; // cells with brightness within range will run
    // future: image block
 
    //void set_rule( any_rule rule );
@@ -60,8 +60,7 @@ template< class T > struct CA {
       edge_block( false ),
       alpha_block( false ),
       bright_block( false ),
-      bright_min( 0 ),
-      bright_max( 768 ),
+      bright_range( { 0, 768 } ),
       ca_frame(0) {}
 };
 

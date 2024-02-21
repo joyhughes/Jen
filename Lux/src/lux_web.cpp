@@ -157,182 +157,15 @@ void set_slider_value( std::string name, float value ) {
 }
 
 void set_range_slider_value( std::string name, float value_min, float value_max ) {
+    std::cout << "set_range_slider_value: " << name << " " << value_min << " " << value_max << std::endl;
     if( global_context->s->interval_float_fns.contains( name ) ) {
         std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value = interval_float( value_min, value_max );
     }
     else if( global_context->s->interval_int_fns.contains( name ) ) {
+        std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
         std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
     }
 }
-/*
-// instead of all these calls, just return a piece of JSON that contains all the information needed to build the UI
-float get_slider_min( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->min;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->min;
-    }
-    else if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value.min;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value.min;
-    }
-    else return 0.0f;
-}
-
-float get_slider_max( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->max;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->max;
-    }
-    else if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value.max;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value.max;
-    }
-    else return 0.0f;
-}
-
-float get_slider_value( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->value;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->value;
-    }
-    else return 0.0f;
-}
-
-interval_float get_range_slider_value( std::string name ) {
-    if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        interval_int i = std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value;
-        return interval_float( (float)i.min, (float)i.max );
-    }
-    else return interval_float( 0.0f, 0.0f );
-}
-
-float get_slider_step( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->step;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->step;
-    }
-    else if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->step;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        return (float)std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->step;
-    }
-    else return 0.0f;
-}
-
-std::string get_slider_label( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->label;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->label;
-    }
-    else if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->label;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->label;
-    }
-    else return "Slider";
-}
-
-std::string get_slider_description( std::string name ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->description;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->description;
-    }
-    else if( global_context->s->interval_float_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->description;
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        return std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->description;
-    }
-    else return "Slider description";
-}
-
-std::string get_menu_choices( std::string name ) {
-    std::vector< std::string > items;
-    if( global_context->s->int_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        items = menu->items;
-    }
-    else if( global_context->s->string_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        items = menu->items;
-    }
-    else {
-        std::cout << "get_menu_choices: Rule chooser not found" << std::endl;
-        return "Choice 1,Choice 2,Choice 3";
-    }
-    std::ostringstream oss;
-    for (const auto &item : items) {
-        if (item != items[0]) {
-            oss << ",";
-        }
-        oss << item;
-    }
-    std::cout << "get_menu_choices: " << oss.str() << std::endl;
-    return oss.str();
-}
-
-int get_default_menu_choice( std::string name ) {
-    if( global_context->s->int_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        return menu->choice;
-    }
-    else if( global_context->s->string_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        return menu->choice;
-    }
-    else {
-        return 0;
-    }
-}
-
-std::string get_menu_label( std::string name ) {
-    if( global_context->s->int_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        return menu->label;
-    }
-    else if( global_context->s->string_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        return menu->label;
-    }
-    else {
-        return "Menu";
-    }
-}
-
-std::string get_menu_description( std::string name ) {
-    if( global_context->s->int_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        return menu->description;
-    }
-    else if( global_context->s->string_fns.contains( name ) ) {
-        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        return menu->description;
-    }
-    else {
-        return "Menu description";
-    }
-} */
 
 void handle_menu_choice( std::string name, int choice ) {
     if( global_context->s->int_fns.contains( name ) ) {
@@ -461,4 +294,3 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_over",         &mouse_over );
     function( "mouse_click",        &mouse_click );
 } 
- 

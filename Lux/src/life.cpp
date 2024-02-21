@@ -69,12 +69,12 @@ template< class T > void CA< T >::run_rule() {
     if( *bright_block ) {
         if( hood == HOOD_MOORE) {
             unsigned int bright = ( ( MM >> 16 ) & 0xff ) + ( ( MM >> 8 ) & 0xff ) + ( MM & 0xff );
-            if( bright < *bright_min || bright > *bright_max ) block = true;
+            if( bright < (*bright_range).min || bright > (*bright_range).max ) block = true;
         }
         else {  // Margolus family assumed
             for( int i = 0; i < 4; i++ ) {
                 unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff );
-                if( bright < *bright_min || bright > *bright_max ) block = true;
+                if( bright < (*bright_range).min || bright > (*bright_range).max ) block = true;
             }
         }
     }
@@ -96,8 +96,9 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         return;
     } 
     p( context ); 
-    bright_block( context ); bright_min( context ); bright_max( context ); 
+    bright_block( context ); bright_range( context ); 
     edge_block( context ); alpha_block( context );
+    std::cout << "CA: bright_block " << *bright_block << " bright_min " << (*bright_range).min << " bright_max " << (*bright_range).max << std::endl;
     hood = rule.init( context );
     if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
         auto buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf ); 

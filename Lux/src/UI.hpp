@@ -19,7 +19,6 @@ typedef enum menu_type
 typedef enum switch_type
 {
     SWITCH_SWITCH,
-    SWITCH_TOGGLE_BUTTON,
     SWITCH_CHECKBOX
 } switch_type;
 

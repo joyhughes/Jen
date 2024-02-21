@@ -1,5 +1,7 @@
 import React from 'react';
 import WidgetContainer from './WidgetContainer';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
@@ -16,13 +18,39 @@ function WidgetGroup({ panelSize, json }) {
           break;
         case 'slider_int':
         case 'slider_float':
-          widgetComponent = <JenSlider key = { widget.name } json = { widget } width = { panelSize - 80 } />;
+        case 'range_slider_int':
+        case 'range_slider_float':
+          widgetComponent =       
+            <Stack spacing={-0.5} direction="column" alignItems="center">
+              <Typography style={{ textAlign: 'center' }}>
+                  {widget.label}
+              </Typography>
+              <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
+            </Stack>;
           break;
         case 'switch_fn':
         case 'switch_condition':
           height = 30;
-          widgetComponent = <JenSwitch key = { widget.name } json = { widget } />;
+          widgetComponent =           
+            <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+              <JenSwitch key={widget.name} json={widget} size = { "small" } />
+              <Typography variant="subtitle1" component="div">
+                  {widget.label}
+              </Typography>
+            </Stack>;
           break;
+          /*
+          case 'widget_switch':
+            // make height depend on switch state?
+            widgetComponent =       
+            <Stack spacing={-0.5} direction="column" alignItems="center">
+              <Typography style={{ textAlign: 'center' }}>
+                  {widget.label}
+              </Typography>
+              <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
+            </Stack>;
+          break;
+          */
         default:
           widgetComponent = <div key={ widget.name }>Unknown widget type: { widget.type }</div>;
           break;
