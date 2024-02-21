@@ -193,6 +193,18 @@ void handle_switch_value( std::string name, bool value ) {
     }
 }
 
+bool get_switch_state( std::string name ) {
+    if( global_context->s->bool_fns.contains( name ) ) {
+        auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
+        return sw->value;
+    }
+    else if( global_context->s->condition_fns.contains( name ) ) {
+        auto& sw = std::get< std::shared_ptr< switch_condition > >(global_context->s->condition_fns[ name ].my_condition_fn);
+        return sw->value;
+    }
+    return false;
+}
+
 std::string load_file_as_string(const std::string& filePath) {
     std::ifstream fileStream(filePath);
     if (!fileStream) {
@@ -274,6 +286,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_range_slider_value", &set_range_slider_value );
     function( "handle_menu_choice",     &handle_menu_choice );
     function( "handle_switch_value",    &handle_switch_value );
+    function( "get_switch_state",       &get_switch_state);
 
     /*
     function( "get_slider_min",     &get_slider_min);
