@@ -98,7 +98,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
     p( context ); 
     bright_block( context ); bright_range( context ); 
     edge_block( context ); alpha_block( context );
-    std::cout << "CA: bright_block " << *bright_block << " bright_min " << (*bright_range).min << " bright_max " << (*bright_range).max << std::endl;
+    //std::cout << "CA: bright_block " << *bright_block << " bright_min " << (*bright_range).min << " bright_max " << (*bright_range).max << std::endl;
     hood = rule.init( context );
     if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
         auto buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf ); 
@@ -461,7 +461,9 @@ template< class T > void rule_diffuse< T >::operator () ( CA< T >& ca ) {
 }
 
 template< class T > CA_hood rule_gravitate< T >::operator () ( element_context &context )
-{ return HOOD_MARGOLUS; } 
+{ 
+    direction( context );
+    return HOOD_MARGOLUS; } 
 
 template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
     int r;
@@ -491,9 +493,10 @@ template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
         if( ldiff > 0 ) r = 3;
         else r = 1;
     }
-    r = *direction - r + 4;
+    //r = (int)(*direction) - r + 4;
+    r += 4 - (int)(*direction);
 
-    result[0] = neighbors[ r ];
+    result[0] = neighbors[ r % 4 ];
     result[1] = neighbors[ (r + 1) % 4 ];
     result[2] = neighbors[ (r + 2) % 4 ];
     result[3] = neighbors[ (r + 3) % 4 ];
@@ -502,6 +505,7 @@ template< class T > void rule_gravitate< T >::operator () ( CA< T >& ca ) {
 template< class T > CA_hood rule_snow< T >::operator () ( element_context &context ) 
 {   
     direction( context );
+    //std::cout << "rule_snow: direction " << (int)(*direction) << std::endl;
     return HOOD_MARGOLUS; 
 }
 
@@ -533,9 +537,12 @@ template< class T > void rule_snow< T >::operator () ( CA< T >& ca ) {
         if( ldiff > 0 ) r = 1;
         else r = 3;
     }
-    r = *direction - r + 4;
+    //r = (int)(*direction) - r + 4;
 
-    r = *direction - r + 4;
+    //r = (int)(*direction) - r + 4;
+
+    r += (int)(*direction);
+
 
     result[0] = neighbors[ r % 4 ];
     result[1] = neighbors[ (r + 1) % 4 ];
