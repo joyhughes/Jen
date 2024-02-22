@@ -5,6 +5,8 @@ import Typography from '@mui/material/Typography';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
+import JenDirection8 from './JenDirection8';
+import JenDirection4 from './JenDirection4';
 
 function WidgetGroup({ panelSize, json }) {
     const renderWidget = ( widget ) => {
@@ -34,6 +36,24 @@ function WidgetGroup({ panelSize, json }) {
           widgetComponent =           
             <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
               <JenSwitch key={widget.name} json={widget} size = { "small" } />
+              <Typography variant="subtitle1" component="div">
+                {widget.label}
+              </Typography>
+            </Stack>;
+        break;
+        case 'direction_picker_8':
+          widgetComponent =           
+            <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+              <JenDirection8 key={widget.name} json={widget} />
+              <Typography variant="subtitle1" component="div">
+                {widget.label}
+              </Typography>
+            </Stack>;
+        break;
+        case 'direction_picker_4':
+          widgetComponent =           
+            <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+              <JenDirection4 key={widget.name} json={widget} />
               <Typography variant="subtitle1" component="div">
                 {widget.label}
               </Typography>
