@@ -33,7 +33,7 @@
         {
             "name": "direction_4",
             "type": "direction_picker_4",
-            "default_value": "up",
+            "default_value": "down",
             "label": "Direction",
             "description": "Direction of gravity"
         },
