@@ -193,6 +193,22 @@ void handle_switch_value( std::string name, bool value ) {
     }
 }
 
+void pick_direction8( std::string name, int value ) {
+    if( global_context->s->direction8_fns.contains( name ) ) {
+        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
+        auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(global_context->s->direction8_fns[ name ].any_direction8_fn);
+        picker->value = (direction8)value;
+    }
+}
+
+void pick_direction4( std::string name, int value ) {
+    if( global_context->s->direction4_fns.contains( name ) ) {
+        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
+        auto& picker = std::get< std::shared_ptr< direction_picker_4 > >(global_context->s->direction4_fns[ name ].any_direction4_fn);
+        picker->value = (direction4)value;
+    }
+}
+
 bool get_switch_state( std::string name ) {
     if( global_context->s->bool_fns.contains( name ) ) {
         auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
@@ -287,6 +303,8 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "handle_menu_choice",     &handle_menu_choice );
     function( "handle_switch_value",    &handle_switch_value );
     function( "get_switch_state",       &get_switch_state);
+    function( "pick_direction8",         &pick_direction8);
+    function( "pick_direction4",         &pick_direction4);
 
     /*
     function( "get_slider_min",     &get_slider_min);
