@@ -11,11 +11,11 @@ function WidgetGroup({ panelSize, json }) {
       let widgetComponent;
       let height = 60;
   
-      switch ( widget. type ) {
+      switch ( widget.type ) {
         case 'menu_int':
         case 'menu_string':
           widgetComponent = <JenMenu key = { widget.name } json = { widget } />;
-          break;
+        break;
         case 'slider_int':
         case 'slider_float':
         case 'range_slider_int':
@@ -27,7 +27,7 @@ function WidgetGroup({ panelSize, json }) {
               </Typography>
               <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
             </Stack>;
-          break;
+        break;
         case 'switch_fn':
         case 'switch_condition':
           height = 30;
@@ -35,22 +35,32 @@ function WidgetGroup({ panelSize, json }) {
             <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
               <JenSwitch key={widget.name} json={widget} size = { "small" } />
               <Typography variant="subtitle1" component="div">
-                  {widget.label}
+                {widget.label}
               </Typography>
             </Stack>;
-          break;
-          /*
-          case 'widget_switch':
-            // make height depend on switch state?
-            widgetComponent =       
-            <Stack spacing={-0.5} direction="column" alignItems="center">
-              <Typography style={{ textAlign: 'center' }}>
-                  {widget.label}
-              </Typography>
-              <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
-            </Stack>;
-          break;
-          */
+        break;
+        case 'widget_switch':
+          switch( widget.widget.type ) {
+            case 'slider_int':
+            case 'slider_float':
+            case 'range_slider_int':
+            case 'range_slider_float':   
+              widgetComponent =       
+                <Stack spacing={-0.5} direction="column" alignItems="center">
+                  <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+                    <JenSwitch key={widget.switcher.name} json={widget.switcher} size = { "small" } />
+                    <Typography variant="subtitle1" component="div">
+                      {widget.label}
+                    </Typography>
+                  </Stack>
+                  <JenSlider key = { widget.widget.name } json = { widget.widget } width = { panelSize - 75 } />
+                </Stack>;
+            break;
+            default:
+              widgetComponent = <div key={ widget.widget.name }>Unknown widget type: { widget.widget.type }</div>;
+            break;
+          }
+        break;
         default:
           widgetComponent = <div key={ widget.name }>Unknown widget type: { widget.type }</div>;
           break;

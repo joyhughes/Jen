@@ -31,23 +31,32 @@
                 "default_value": true
             },
             {
-                "name": "bright_block_switch",
-                "type": "switch_fn",
-                "label": "Brightness block",
-                "description": "Freezes pixels with brightness outide the range",
-                "tool": "switch",
-                "default_value": false
-            },
-            {
-                "name": "bright_block_slider",
-                "type": "range_slider_int",
-                "label": "Brightness block range",
-                "min": 0,
-                "max": 768,
-                "description": "Freezes pixels with brightness outide the range",
-                "tool": "range_slider",
-                "default_value": [ 10, 768 ]
+                "name": "bright_block_widget_switch",
+                "type": "widget_switch",
+                "label": "Brightness freeze",
+                "description": "Freeze pixels with brighness outside the range",
+                "switcher": 
+                {
+                    "name": "bright_block_switch",
+                    "type": "switch_fn",
+                    "label": "Brightness block",
+                    "description": "Freezes pixels with brightness outide the range",
+                    "tool": "switch",
+                    "default_value": false
+                },
+                "widget": 
+                {
+                    "name": "bright_block_slider",
+                    "type": "range_slider_int",
+                    "label": "Brightness block range",
+                    "min": 0,
+                    "max": 768,
+                    "description": "Freezes pixels with brightness outide the range",
+                    "tool": "range_slider",
+                    "default_value": [ 10, 768 ]
+                }
             }
+            
         ]
     }
 ]
