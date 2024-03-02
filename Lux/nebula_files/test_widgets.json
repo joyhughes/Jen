@@ -55,8 +55,21 @@
                     "tool": "range_slider",
                     "default_value": [ 10, 768 ]
                 }
+            },
+            {
+                "name": "direction_4",
+                "type": "direction_picker_4",
+                "default_value": 2,
+                "label": "Direction",
+                "description": "Direction of gravity"
+            },
+            {
+                "name": "direction_8",
+                "type": "direction_picker_8",
+                "default_value": 4,
+                "label": "Direction",
+                "description": "Direction of sort"
             }
-            
         ]
     }
 ]
