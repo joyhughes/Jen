@@ -148,78 +148,94 @@ void mouse_click( bool click ) {
 }
 
 void set_slider_value( std::string name, float value ) {
-    if( global_context->s->float_fns.contains( name ) ) {
-        std::get< std::shared_ptr< slider_float > >(global_context->s->float_fns[ name ].any_float_fn)->value = value;
-    }
-    else if( global_context->s->int_fns.contains( name ) ) {
-        std::get< std::shared_ptr< slider_int > >(global_context->s->int_fns[ name ].any_int_fn)->value = (int)std::roundf( value );
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< float > >( fn ) ) {
+            std::get< std::shared_ptr< slider_float > >( std::get< any_fn< float > >( fn ).any_float_fn)->value = value;
+        }
+        else if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            std::get< std::shared_ptr< slider_int > >( std::get< any_fn< int > >( global_context->s->functions[ name ] ).any_int_fn)->value = (int)std::roundf( value );
+        }
     }
 }
 
 void set_range_slider_value( std::string name, float value_min, float value_max ) {
-    std::cout << "set_range_slider_value: " << name << " " << value_min << " " << value_max << std::endl;
-    if( global_context->s->interval_float_fns.contains( name ) ) {
-        std::get< std::shared_ptr< range_slider_float > >(global_context->s->interval_float_fns[ name ].any_interval_float_fn)->value = interval_float( value_min, value_max );
-    }
-    else if( global_context->s->interval_int_fns.contains( name ) ) {
-        std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
-        std::get< std::shared_ptr< range_slider_int > >(global_context->s->interval_int_fns[ name ].any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+    // std::cout << "set_range_slider_value: " << name << " " << value_min << " " << value_max << std::endl;
+    if( global_context->s->functions.contains( name ) ) { 
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
+            std::get< std::shared_ptr< range_slider_float > >( std::get< any_fn< interval_float > >( global_context->s->functions[ name ] ).any_interval_float_fn)->value = interval_float( value_min, value_max );
+        }
+        else if( std::holds_alternative< any_fn< interval_int > >( fn ) ) {
+            std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
+            std::get< std::shared_ptr< range_slider_int > >( std::get< any_fn< interval_int > >( global_context->s->functions[ name ] ).any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+        }
     }
 }
 
 void handle_menu_choice( std::string name, int choice ) {
-    if( global_context->s->int_fns.contains( name ) ) {
-        std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
-        auto& menu = std::get< std::shared_ptr< menu_int > >(global_context->s->int_fns[ name ].any_int_fn);
-        menu->choose( choice );
-    }
-    else if( global_context->s->string_fns.contains( name ) ) {
-        std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
-        auto& menu = std::get< std::shared_ptr< menu_string > >(global_context->s->string_fns[ name ].any_string_fn);
-        menu->choose( choice );
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            //std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
+            auto& menu = std::get< std::shared_ptr< menu_int > >( std::get< any_fn< int > >( global_context->s->functions[ name ] ).any_int_fn );
+            menu->choose( choice );
+        }
+        else if( std::holds_alternative< any_fn< std::string > >( fn ) ) {
+            //std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
+            auto& menu = std::get< std::shared_ptr< menu_string > >( std::get< any_fn< std::string > >( global_context->s->functions[ name ] ).any_string_fn );
+            menu->choose( choice );
+        }
     }
 }
 
 void handle_switch_value( std::string name, bool value ) {
-    if( global_context->s->bool_fns.contains( name ) ) {
-        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
-        auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
-        sw->value = value;
-    }
-    else if( global_context->s->condition_fns.contains( name ) ) {
-        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
-        auto& sw = std::get< std::shared_ptr< switch_condition > >(global_context->s->condition_fns[ name ].my_condition_fn);
-        sw->value = value;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< bool > >( fn ) ) {
+            auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( global_context->s->functions[ name ] ).any_bool_fn );
+            sw->value = value;
+        } 
+        else if( std::holds_alternative< any_condition_fn >( fn ) ) {
+            auto& sw = std::get< std::shared_ptr< switch_condition > >( std::get< any_condition_fn >( global_context->s->functions[ name ] ).my_condition_fn );
+            sw->value = value;
+        }
     }
 }
 
 void pick_direction8( std::string name, int value ) {
-    if( global_context->s->direction8_fns.contains( name ) ) {
-        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
-        auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(global_context->s->direction8_fns[ name ].any_direction8_fn);
-        picker->value = (direction8)value;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< direction8 > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(std::get< any_fn< direction8 > >( global_context->s->functions[ name ] ).any_direction8_fn);
+            picker->value = (direction8)value;
+        }
     }
 }
 
 void pick_direction4( std::string name, int value ) {
-    if( global_context->s->direction4_fns.contains( name ) ) {
-        std::cout << "handle_switch_value: " << name << " " << value << std::endl;
-        auto& picker = std::get< std::shared_ptr< direction_picker_4 > >(global_context->s->direction4_fns[ name ].any_direction4_fn);
-        picker->value = (direction4)value;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< direction4 > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< direction_picker_4 > >( std::get< any_fn< direction4 > >( global_context->s->functions[ name ] ).any_direction4_fn);
+            picker->value = (direction4)value;
+        }
     }
 }
 
+/*
 bool get_switch_state( std::string name ) {
-    if( global_context->s->bool_fns.contains( name ) ) {
-        auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
+    if( global_context->s->functions.contains( name ) ) {
+        auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( global_context->s->functions[ name ] ).any_bool_fn);
         return sw->value;
     }
-    else if( global_context->s->condition_fns.contains( name ) ) {
+    else if( global_context->s->functions.contains( name ) ) {
         auto& sw = std::get< std::shared_ptr< switch_condition > >(global_context->s->condition_fns[ name ].my_condition_fn);
         return sw->value;
     }
     return false;
 }
+*/
 
 std::string load_file_as_string(const std::string& filePath) {
     std::ifstream fileStream(filePath);
@@ -240,6 +256,16 @@ std::string get_panel_JSON() {
     return fileContents;
 }
 
+std::string get_widget_JSON( std::string name ) {
+    nlohmann::json j;
+
+    if( global_context->s->functions.contains( name ) ) {
+    //    auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
+        auto& sw = global_context->s->functions[ name ];
+        to_json( j, sw );
+    }
+    return j.dump();
+}
 
 int main(int argc, char** argv) { 
     vec2i dim( { 512, 512 } );  // original sin
@@ -297,14 +323,15 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "advance_frame",      &advance_frame );
 
     function( "get_panel_JSON",     &get_panel_JSON);
+    function( "get_widget_JSON",    &get_widget_JSON);
 
     function( "set_slider_value",       &set_slider_value );
     function( "set_range_slider_value", &set_range_slider_value );
     function( "handle_menu_choice",     &handle_menu_choice );
     function( "handle_switch_value",    &handle_switch_value );
-    function( "get_switch_state",       &get_switch_state);
-    function( "pick_direction8",         &pick_direction8);
-    function( "pick_direction4",         &pick_direction4);
+//    function( "get_switch_state",       &get_switch_state);
+    function( "pick_direction8",        &pick_direction8);
+    function( "pick_direction4",        &pick_direction4);
 
     /*
     function( "get_slider_min",     &get_slider_min);

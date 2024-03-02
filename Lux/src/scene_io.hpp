@@ -73,24 +73,42 @@ struct scene_reader {
     void read_cluster(  const json& j );
     void read_queue(    const json& j, effect_list& elist );
 
-    template< class T > void read_harness( const json& j, harness< T >& h, std::unordered_map< std::string, any_fn< T > >& harness_fns );
-    #define READ_ANY_HARNESS( _T_, _U_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h, _U_ ); }
-    READ_ANY_HARNESS( float,  s.float_fns )
-    READ_ANY_HARNESS( int,    s.int_fns )
-    READ_ANY_HARNESS( vec2f,  s.vec2f_fns )
-    READ_ANY_HARNESS( vec2i,  s.vec2i_fns )
-    READ_ANY_HARNESS( bb2f,   s.bb2f_fns )
-    READ_ANY_HARNESS( bb2i,   s.bb2i_fns )
-    READ_ANY_HARNESS( frgb,   s.frgb_fns )
-    READ_ANY_HARNESS( ucolor, s.ucolor_fns )
-    READ_ANY_HARNESS( std::string, s.string_fns )
-    READ_ANY_HARNESS( bool,   s.bool_fns )
-    READ_ANY_HARNESS( direction4, s.direction4_fns )
-    READ_ANY_HARNESS( direction8, s.direction8_fns )
-    READ_ANY_HARNESS( interval_float, s.interval_float_fns )
-    READ_ANY_HARNESS( interval_int, s.interval_int_fns )
+    template< class T > void read_harness( const json& j, harness< T >& h );
+    #define READ_ANY_HARNESS( _T_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h ); }
+    READ_ANY_HARNESS( float )
+    READ_ANY_HARNESS( int )
+    READ_ANY_HARNESS( vec2f )
+    READ_ANY_HARNESS( vec2i )
+    READ_ANY_HARNESS( bb2f )
+    READ_ANY_HARNESS( bb2i )
+    READ_ANY_HARNESS( frgb )
+    READ_ANY_HARNESS( ucolor )
+    READ_ANY_HARNESS( std::string )
+    READ_ANY_HARNESS( bool )
+    READ_ANY_HARNESS( direction4 )
+    READ_ANY_HARNESS( direction8 )
+    READ_ANY_HARNESS( interval_float )
+    READ_ANY_HARNESS( interval_int )
 
     //READ_ANY_HARNESS( std::optional< int > )
     //READ_ANY_HARNESS( std::optional< float > )
     //READ_ANY_HARNESS( std::vector< vec2f > )
+};
+
+template<> struct any_fn< bool >;
+
+template<class... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+
+void to_json( nlohmann::json& j, const switch_fn& s );
+void to_json( nlohmann::json& j, const any_function& af );
+
+struct scene_writer{
+    using json = nlohmann::json;
+
+    scene& s;
+
+    std::string write_UI_json();
+    std::string write_scene_json();
+    scene_writer( scene& s_init ) : s( s_init ) {}
 };

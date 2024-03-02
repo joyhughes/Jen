@@ -198,16 +198,14 @@ typedef std::variant <
 
 // a checkbox or toggle switch activates or deactivates a widget
 struct widget_switch {  
-    std::shared_ptr< switch_fn > switcher;
-    any_widget_ptr widget;
+    std::string switcher;
+    std::string widget;
     std::string label, description;
 
     bool operator () ( element_context& context );
     bool operator () ( bool& val, element_context& context );
 
-    void reset(); // reset switcher and widget to default
-
-    widget_switch( const std::shared_ptr< switch_fn >& switcher_init = nullptr, const any_widget_ptr& widget_init = std::shared_ptr< switch_fn >( nullptr ), const std::string& label_init = "", const std::string& description_init = "" ) : switcher( switcher_init ), widget( widget_init ), label( label_init ), description( description_init ) {}
+    widget_switch( const std::string& switcher_init = "", const std::string& widget_init = "", const std::string& label_init = "", const std::string& description_init = "" ) : switcher( switcher_init ), widget( widget_init ), label( label_init ), description( description_init ) {}
 };
 
 typedef widget_switch widget_switch_condition;
@@ -216,15 +214,17 @@ typedef widget_switch widget_switch_fn;
 struct widget_group {
     std::string name, label, description;
     std::vector< any_condition_fn > conditions;
-    std::vector< any_widget_ptr > widgets;
+    std::vector< std::string > widgets;
     // bool open;      // is this widget group open? (Needed?)
     // bool active;    // is this widget group within active part of scene graph? (Needed?)
 
-    void add_widget( const any_widget_ptr& widget );
-    void reset(); // reset all widgets to default
+    void add_widget( const std::string& widget );
+    void add_condition( const any_condition_fn& condition );
+//    void reset(); // reset all widgets to default
     void clear(); // clear all widgets
 
     widget_group( const std::string& name_init = "", const std::string& label_init = "", const std::string& description_init = "" );
+    ~widget_group();
 };
 
 // Stores state of user interface - mouse position, mouse down, slider values, etc.
@@ -234,8 +234,7 @@ struct UI {
     bool  mouse_down;
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
-    std::unordered_map< std::string, any_widget_ptr > widgets;
-    std::unordered_map< std::string, widget_group > widget_groups;  // should this be a tree?
+    std::vector< widget_group > widget_groups;  // should this be a tree?
 
     void add_widget_group( const std::string& name, const widget_group& wg );
 
