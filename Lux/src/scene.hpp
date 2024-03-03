@@ -201,25 +201,7 @@ struct scene {
     std::string name;
     UI ui;  // We gotta go now
 
-    // future - replace with single map of any_fn
-    std::unordered_map< std::string, any_fn< float  > > float_fns;    
-    std::unordered_map< std::string, any_fn< int    > > int_fns; 
-    std::unordered_map< std::string, any_fn< interval_float > > interval_float_fns;
-    std::unordered_map< std::string, any_fn< interval_int   > > interval_int_fns;   
-    std::unordered_map< std::string, any_fn< vec2f  > > vec2f_fns;    
-    std::unordered_map< std::string, any_fn< vec2i  > > vec2i_fns;
-    std::unordered_map< std::string, any_fn< frgb   > > frgb_fns;
-    std::unordered_map< std::string, any_fn< ucolor > > ucolor_fns;
-    std::unordered_map< std::string, any_fn< bb2i   > > bb2i_fns;
-    std::unordered_map< std::string, any_fn< bb2f   > > bb2f_fns;
-    std::unordered_map< std::string, any_fn< std::string > > string_fns;
-    std::unordered_map< std::string, any_fn< bool   > > bool_fns;
-    std::unordered_map< std::string, any_fn< direction4 > > direction4_fns;
-    std::unordered_map< std::string, any_fn< direction8 > > direction8_fns;
-    std::unordered_map< std::string, any_gen_fn       > gen_fns;
-    std::unordered_map< std::string, any_condition_fn > condition_fns;
-
-    //std::unordered_map< std::string, any_image_ptr > images; // images now stored in buffers map
+    std::unordered_map< std::string, any_function > functions; 
     std::unordered_map< std::string, std::shared_ptr< element > > elements;
     std::unordered_map< std::string, std::shared_ptr< next_element > > next_elements; // next element functions tagged with cluster names
     std::unordered_map< std::string, std::shared_ptr< cluster > > clusters;           

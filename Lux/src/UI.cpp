@@ -108,35 +108,30 @@ template< class T > void direction_picker< T >::reset() {
 template struct direction_picker< direction4 >;
 template struct direction_picker< direction8 >;
 
-void widget_switch::reset() {
-    if ( switcher ) switcher->reset();
-    std::visit( [&]( auto& w ) { if( w ) w->reset(); }, widget );
-}
-
 bool widget_switch::operator() ( element_context& context ) {
-    if ( switcher ) {
-        switcher->operator()( context );
-        return switcher->value;
+    auto sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( context.s.functions[ switcher ] ).any_bool_fn );
+    if ( sw ) {
+        sw->operator()( context );
+        return sw->value;
     }
     else return true; // no switcher, defaults to just the widget
 }
 
 bool widget_switch::operator() ( bool& val, element_context& context ) {
-    if ( switcher ) {
-        switcher->operator()( val, context );
-        return switcher->value;
+    auto sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( context.s.functions[ switcher ] ).any_bool_fn );
+    if ( sw ) {
+        sw->operator()( context );
+        return sw->value;
     }
     else return true; // no switcher, defaults to just the widget
 }
 
-void widget_group::add_widget( const any_widget_ptr& widget ) {
+void widget_group::add_widget( const std::string& widget ) {
     widgets.push_back( widget );
 }
 
-void widget_group::reset() {
-    for( auto& widget : widgets ) {
-        std::visit( [&]( auto& w ) { w->reset(); }, widget );
-    }
+void widget_group::add_condition( const any_condition_fn& condition ) {
+    conditions.push_back( condition );
 }
 
 void widget_group::clear() {
@@ -145,7 +140,11 @@ void widget_group::clear() {
 
 widget_group::widget_group( const std::string& name_init, const std::string& label_init, const std::string& description_init ) : name( name_init ), label( label_init ), description( description_init ) {}
 
+widget_group::~widget_group() {
+    clear();
+}
+
 void UI::add_widget_group( const std::string& name, const widget_group& wg ) {
-    widget_groups[ name ] = wg;
+    widget_groups.push_back( wg );
 }
 

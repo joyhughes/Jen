@@ -332,14 +332,14 @@ void scene_reader::read_element( const json& j ) {
 }
 
 // forward references not implemented
-template< class T > void scene_reader::read_harness( const json& j, harness< T >& h, std::unordered_map< std::string, any_fn< T > >& harness_fns ) {
+template< class T > void scene_reader::read_harness( const json& j, harness< T >& h ) {
     if( j.is_object() ) {
         if( j.contains( "value" ) ) { 
             read( h.val, j[ "value" ] );
         }
         // need list of harness functions by type (map of maps?)
         if( j.contains( "functions" ) ) for( std::string name : j[ "functions" ] ) { 
-            h.add_function( harness_fns[ name ] );
+            h.add_function( std::get< any_fn< T > >( s.functions[ name ] ) );
         }
     }
     else read( h.val, j );
@@ -348,31 +348,31 @@ template< class T > void scene_reader::read_harness( const json& j, harness< T >
 void scene_reader::add_default_functions() {
     // time function
     std::shared_ptr< time_fn > timer( new time_fn );
-    s.float_fns[ "timer" ] = any_fn< float >( timer, std::ref( *timer ), "timer" );
+    s.functions[ "timer" ] = any_fn< float >( timer, std::ref( *timer ), "timer" );
 
     // UI functions
     std::shared_ptr< mouse_pos_fn > mouse_position( new mouse_pos_fn );
-    s.vec2f_fns[ "mouse_position" ] = any_fn< vec2f >( mouse_position, std::ref( *mouse_position ), "mouse_position" );
+    s.functions[ "mouse_position" ] = any_fn< vec2f >( mouse_position, std::ref( *mouse_position ), "mouse_position" );
     std::shared_ptr< mouse_pix_fn > mouse_pixel( new mouse_pix_fn );
-    s.vec2i_fns[ "mouse_pixel" ] = any_fn< vec2i >( mouse_pixel, std::ref( *mouse_pixel ), "mouse_pixel" );
+    s.functions[ "mouse_pixel" ] = any_fn< vec2i >( mouse_pixel, std::ref( *mouse_pixel ), "mouse_pixel" );
 
     // UI conditions
     std::shared_ptr< mousedown_condition > mouse_down( new mousedown_condition );
-    s.condition_fns[ "mouse_down" ] = any_condition_fn( mouse_down, std::ref( *mouse_down ), "mouse_down" );
+    s.functions[ "mouse_down" ] = any_condition_fn( mouse_down, std::ref( *mouse_down ), "mouse_down" );
     std::shared_ptr< mouseover_condition > mouse_over( new mouseover_condition );
-    s.condition_fns[ "mouse_over" ] = any_condition_fn( mouse_over, std::ref( *mouse_over ), "mouse_over" );
+    s.functions[ "mouse_over" ] = any_condition_fn( mouse_over, std::ref( *mouse_over ), "mouse_over" );
     std::shared_ptr< mouseclick_condition > mouse_click( new mouseclick_condition );
-    s.condition_fns[ "mouse_click" ] = any_condition_fn( mouse_click, std::ref( *mouse_click ), "mouse_click" );
+    s.functions[ "mouse_click" ] = any_condition_fn( mouse_click, std::ref( *mouse_click ), "mouse_click" );
 
     // Cluster conditions
     std::shared_ptr< initial_element_condition > initial_element( new initial_element_condition );
-    s.condition_fns[ "initial_element" ] = any_condition_fn( initial_element, std::ref( *initial_element ), "initial_element" );
+    s.functions[ "initial_element" ] = any_condition_fn( initial_element, std::ref( *initial_element ), "initial_element" );
     std::shared_ptr< following_element_condition > following_element( new following_element_condition );
-    s.condition_fns[ "following_element" ] = any_condition_fn( following_element, std::ref( *following_element ), "following_element" );
+    s.functions[ "following_element" ] = any_condition_fn( following_element, std::ref( *following_element ), "following_element" );
     std::shared_ptr< top_level_condition > top_level( new top_level_condition );
-    s.condition_fns[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
+    s.functions[ "top_level" ] = any_condition_fn( top_level, std::ref( *top_level ), "top_level" );
     std::shared_ptr< lower_level_condition > lower_level( new lower_level_condition );
-    s.condition_fns[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
+    s.functions[ "lower_level" ] = any_condition_fn( lower_level, std::ref( *lower_level ), "lower_level" );
 }
 
 void scene_reader::read_function( const json& j ) {
@@ -387,9 +387,9 @@ void scene_reader::read_function( const json& j ) {
     if( type == "filter" ) {
         std::shared_ptr< filter > fn ( new filter );
         any_gen_fn gen_func( fn, std::ref( *fn ), name );
-        if( j.contains( "conditions" ) ) for( auto& c : j[ "conditions" ] ) fn->add_condition( s.condition_fns[ c ] );
-        if( j.contains( "functions"  ) ) for( auto& f : j[ "functions"  ] ) fn->add_function(  s.gen_fns[  f ] );
-        s.gen_fns[ name ] = gen_func;
+        if( j.contains( "conditions" ) ) for( auto& c : j[ "conditions" ] ) fn->add_condition( std::get< any_condition_fn >( s.functions[ c ] ) );
+        if( j.contains( "functions"  ) ) for( auto& f : j[ "functions"  ] ) fn->add_function(  std::get< any_gen_fn       >( s.functions[ f ] ) );
+        s.functions[ name ] = gen_func;
     }
 
     // example of expanded macro sequence
@@ -401,139 +401,124 @@ void scene_reader::read_function( const json& j ) {
     } */
 
     #define FN( _T_, _U_ ) if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ >    func( fn, std::ref( *fn ), name );
-    #define END_FN( _T_ )  s. _T_##_fns[ name ] = func; }
-    #define WIDGET( _T_, _U_ ) if( type == #_T_ ) { std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ >    func( fn, std::ref( *fn ), name );
-    #define END_WIDGET( _T_ )  s. _T_##_fns[ name ] = func; s.ui.widgets[ name ] = fn; }
+    #define END_FN  s.functions[ name ] = func; }
     #define GEN_FN( _T_ )  if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_gen_fn       func( fn, std::ref( *fn ), name ); 
-    #define END_GEN_FN()   s.gen_fns[ name ] = func; }
+    #define END_GEN_FN  s.functions[ name ] = func; }
     #define COND_FN( _T_ ) if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_condition_fn func( fn, std::ref( *fn ), name );
-    #define END_COND_FN()  s.condition_fns[ name ] = func; }
+    #define END_COND_FN  s.functions[ name ] = func; }
+
     #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
     #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
-    #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = s. _T_##_fns[ fn_name ]; }
+    #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = std::get< any_fn< _T_ > >( s.functions[ fn_name ] ); }
 
     // harness bool functions
-    WIDGET( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_WIDGET( bool )
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
     // harness float functions
-    FN( adder_float, float ) HARNESS( r ) END_FN( float )
-    FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN( float )
-    FN( time_fn,     float ) END_FN( float )
-    FN( ratio_float, float ) HARNESS( r ) END_FN( float )
-    FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN( float )
-    WIDGET( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_WIDGET( float )
-    WIDGET( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_WIDGET( interval_float )
+    //FN( adder_float, float ) HARNESS( r ) END_FN
+    FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
+    FN( time_fn,     float ) END_FN
+    FN( ratio_float, float ) HARNESS( r ) END_FN
+    FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
+    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // harness int functions
-    FN( adder_int,  int ) HARNESS( r ) END_FN( int )
-    WIDGET( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_WIDGET( int )
-    WIDGET( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_WIDGET( interval_int )
+    FN( adder_int,  int ) HARNESS( r ) END_FN
+    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // special case for menu
-    WIDGET( menu_int, int ) 
+    FN( menu_int, int ) 
         READ( label ) 
         READ( description ) 
         READ( default_choice )
         READ( tool ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
-    END_WIDGET( int )
+    END_FN
 
-    WIDGET( menu_string, string ) 
+   FN( menu_string, string ) 
         READ( label ) 
         READ( description ) 
         READ( default_choice ) 
         READ( tool ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
-    END_WIDGET( string )
+    END_FN
 
     // harness vec2f functions
-    FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
-    FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN( vec2f )
-    FN( mouse_pos_fn, vec2f ) END_FN( vec2f )
+    FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
+    FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
+    FN( mouse_pos_fn, vec2f ) END_FN
 
     // harness vec2i functions
-    FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN( vec2i )
-    FN( mouse_pix_fn, vec2i ) END_FN( vec2i )
+    FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
+    FN( mouse_pix_fn, vec2i ) END_FN
 
     // harness frgb functions
-    FN( adder_frgb, frgb ) HARNESS( r ) END_FN( frgb )
+    FN( adder_frgb, frgb ) HARNESS( r ) END_FN
 
     // harness ucolor functions
-    FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN( ucolor )
+    FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
     // direction pickers
-    WIDGET( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_WIDGET( direction4 )
-    WIDGET( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_WIDGET( direction8 )
+    FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
     // harness bool functions
-    FN( random_fn, bool ) HARNESS( p ) END_FN( bool )
-    FN( random_sticky_fn, bool ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN( bool )
+    FN( random_fn, bool ) HARNESS( p ) END_FN
+    FN( random_sticky_fn, bool ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
    // equality functions
-    FN( equal_float_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_vec2f_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_int_fn,        bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_vec2i_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_frgb_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_ucolor_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_string_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_bool_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_direction4_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
-    FN( equal_direction8_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN( bool )
+    FN( equal_float_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_vec2f_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_int_fn,        bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_vec2i_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_frgb_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_ucolor_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_string_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_bool_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction4_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction8_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
 
-    try {
-        // ui functions
-        FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN( bool )
-        // special case for widget switch
-        WIDGET( widget_switch_fn, bool ) 
-            if( j.contains( "switcher" ) ) 
-                if( std::holds_alternative<  std::shared_ptr< switch_fn > >( s.bool_fns[ j[ "switcher" ] ].any_bool_fn ) )
-                    fn->switcher = std::get< std::shared_ptr< switch_fn > >( s.bool_fns[ j[ "switcher" ] ].any_bool_fn );
-                else ERROR( "widget_switch_fn switcher must be a switch_fn" )
-            else ERROR( "widget_switch_fn missing switcher" )
-            if( j.contains( "widget" ) ) fn->widget = s.ui.widgets[ j[ "widget" ] ];
-            else ERROR( "widget_switch_fn missing widget" )
-            READ( label ) 
-            READ( description )
-        END_WIDGET( bool ) 
-    }
-    catch( std::exception& e ) {
-        std::cout << "Error in widget_switch_fn: " << e.what() << std::endl;
-    }
+
+    // ui functions
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    // special case for widget switch
+    FN( widget_switch_fn, bool ) READ( switcher ) READ( widget ) READ( label ) READ( description )  END_FN
 
     // parameter functions
-    FN( index_param_float, float ) PARAM( float ) END_FN( float )
-    FN( scale_param_float, float ) PARAM( float ) END_FN( float )
-    FN( time_param_float,  float ) PARAM( float ) END_FN( float )
+    FN( index_param_float, float ) PARAM( float ) END_FN
+    FN( scale_param_float, float ) PARAM( float ) END_FN
+    FN( time_param_float,  float ) PARAM( float ) END_FN
 
     // single field modifiers
-    GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN( gen )
-    GEN_FN( scale_gen_fn       ) HARNESS( scale )       END_FN( gen )
-    GEN_FN( rotation_gen_fn    ) HARNESS( r )           END_FN( gen )
-    GEN_FN( position_gen_fn    ) HARNESS( position )    END_FN( gen )
+    GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN
+    GEN_FN( scale_gen_fn       ) HARNESS( scale )       END_FN
+    GEN_FN( rotation_gen_fn    ) HARNESS( r )           END_FN
+    GEN_FN( position_gen_fn    ) HARNESS( position )    END_FN
 
     // generalized functions (alphabetical order)
-    GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN( gen )
-    GEN_FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN( gen )
-    GEN_FN( curly ) HARNESS( curliness ) END_FN( gen )
+    GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN
+    GEN_FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN
+    GEN_FN( curly ) HARNESS( curliness ) END_FN
     // position_list should go here - figure out how to work the vector of positions
 
     // condition functions
-    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_COND_FN()
-    COND_FN( random_condition ) HARNESS( p ) END_COND_FN()
-    COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_COND_FN()
+    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    COND_FN( random_condition ) HARNESS( p ) END_FN
+    COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
     // equality conditions
-    COND_FN( equal_float_condition )      HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_vec2f_condition )      HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_int_condition )        HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_vec2i_condition )      HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_frgb_condition )       HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_ucolor_condition )     HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_string_condition )     HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_bool_condition )       HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_COND_FN()
-    COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_COND_FN()
+    COND_FN( equal_float_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_vec2f_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_int_condition )        HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_vec2i_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_frgb_condition )       HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_ucolor_condition )     HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_string_condition )     HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_bool_condition )       HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_FN
 }
 
 void scene_reader::read_cluster( const json& j ) {
@@ -561,8 +546,8 @@ void scene_reader::read_cluster( const json& j ) {
     if( j.contains( "max_depth" ) )  read_any_harness( j[ "max_depth" ], clust.max_depth );
     if( j.contains( "min_scale" ) )  read_any_harness( j[ "min_scale" ], clust.min_scale );
     if( j.contains( "max_n" ) )      read_any_harness( j[ "max_n"     ], clust.max_n );
-    if( j.contains( "functions" ) )  for( std::string fname : j[ "functions"  ] ) clust.next_elem.add_function( s.gen_fns[ fname ] ); 
-    if( j.contains( "conditions" ) ) for( std::string fname : j[ "conditions" ] ) clust.next_elem.add_condition( s.condition_fns[ fname ] ); 
+    if( j.contains( "functions" ) )  for( std::string fname : j[ "functions"  ] ) clust.next_elem.add_function(  std::get< any_gen_fn       >( s.functions[ fname ] ) ); 
+    if( j.contains( "conditions" ) ) for( std::string fname : j[ "conditions" ] ) clust.next_elem.add_condition( std::get< any_condition_fn >( s.functions[ fname ] ) ); 
 }
 
 void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) {
@@ -791,6 +776,56 @@ void scene_reader::read_widget_group( const json& j ) {
     else ERROR( "Widget group name missing\n" )
     if( j.contains( "label" ) ) read( wg->label, j[ "label" ] );
     if( j.contains( "description" ) ) read( wg->description, j[ "description" ] );
-    if( j.contains( "conditions" ) ) for( std::string name : j[ "conditions" ] ) wg->conditions.push_back( s.condition_fns[ name ] );
-    if( j.contains( "widgets" ) ) for( std::string wname : j[ "widgets" ] ) wg->widgets.push_back( s.ui.widgets[ wname ] );
+    if( j.contains( "conditions" ) ) for( std::string name : j[ "conditions" ] ) wg->add_condition( std::get< any_condition_fn >( s.functions[ name ] ) );
+    if( j.contains( "widgets" ) ) for( std::string wname : j[ "widgets" ] ) wg->add_widget( wname );
 }
+
+void to_json(nlohmann::json& j, const switch_fn& s) {
+    j = nlohmann::json{
+        {"label", s.label},
+        {"description", s.description},
+        {"value", s.value},
+        {"default_value", s.default_value},
+        {"tool", s.tool == SWITCH_SWITCH ? "switch" : "checkbox"}
+    };
+}
+
+void to_json( nlohmann::json& j, const any_function& af ) {
+    std::visit(overloaded{ 
+        [&]( const any_fn< bool >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr<switch_fn>& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "switch_fn"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value},
+                        {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_bool_fn);
+        },
+        [&]( auto& wrapper ) {
+            // Placeholder for other types
+            j = nlohmann::json{
+                {"name", "unimplemented return type"},
+            };
+        }
+    }, af);
+}
+
+/*
+std::string scene_writer::write_UI_json() {
+
+}
+*/

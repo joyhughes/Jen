@@ -86,6 +86,8 @@ function WidgetGroup({ panelSize, json }) {
           break;
       }
   
+      console.log( window.Module.get_widget_JSON( "edge_block_switch" ) );
+
       return (
         <WidgetContainer key={ widget.name } panelSize = { panelSize } height = { height } >
           { widgetComponent }

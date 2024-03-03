@@ -422,6 +422,25 @@ struct any_gen_fn {
     any_gen_fn( any_gen_fn_ptr my_gen_fn, gen_fn fn, std::string name ) : my_gen_fn( my_gen_fn ), fn( fn ), name( name ) {}
 };
 
+typedef std::variant < 
+    any_fn< float >,
+    any_fn< int >,
+    any_fn< interval_float >,
+    any_fn< interval_int >,
+    any_fn< vec2f >,
+    any_fn< vec2i >,
+    any_fn< frgb >,
+    any_fn< ucolor >,
+    any_fn< bb2f >,
+    any_fn< bb2i >,
+    any_fn< std::string >,
+    any_fn< direction4 >,
+    any_fn< direction8 >,
+    any_fn< bool >,
+    any_condition_fn,
+    any_gen_fn          
+> any_function;
+
 /*
 template< class T > gen_fn   to_gen_fn(   std::shared_ptr< T >& ptr );
 gen_fn resolve_gen_fn( any_gen_fn_ptr& any_fn_ptr);
