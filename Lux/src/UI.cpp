@@ -130,12 +130,20 @@ void widget_group::add_widget( const std::string& widget ) {
     widgets.push_back( widget );
 }
 
-void widget_group::add_condition( const any_condition_fn& condition ) {
+void widget_group::add_condition( const std::string& condition ) {
     conditions.push_back( condition );
 }
 
 void widget_group::clear() {
     widgets.clear();
+}
+
+bool widget_group::operator() ( element_context& context ) {
+    for( auto& c : conditions ) {
+        auto& cfn = std::get< any_condition_fn >( context.s.functions[ c ] );
+        if( !cfn.fn( context ) ) return false;
+    }
+    return true;
 }
 
 widget_group::widget_group( const std::string& name_init, const std::string& label_init, const std::string& description_init ) : name( name_init ), label( label_init ), description( description_init ) {}

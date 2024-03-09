@@ -78,7 +78,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
         s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
     }
 
-    if( j.contains( "widget_groups" ) ) for( auto& wg : j[ "widget_groups" ] ) read_widget_group( wg );
+    if( j.contains( "widget groups" ) ) for( auto& wg : j[ "widget groups" ] ) read_widget_group( wg );
     DEBUG( "Widget groups loaded" )
 
     // set element buffers, copy elements to clusters
@@ -433,7 +433,8 @@ void scene_reader::read_function( const json& j ) {
         READ( label ) 
         READ( description ) 
         READ( default_choice )
-        READ( tool ) 
+        READ( tool )
+        READ( affects_widget_groups ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -443,6 +444,7 @@ void scene_reader::read_function( const json& j ) {
         READ( description ) 
         READ( default_choice ) 
         READ( tool ) 
+        READ( affects_widget_groups ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -483,7 +485,7 @@ void scene_reader::read_function( const json& j ) {
 
 
     // ui functions
-    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
     // special case for widget switch
     FN( widget_switch_fn, bool ) READ( switcher ) READ( widget ) READ( label ) READ( description )  END_FN
 
@@ -505,7 +507,7 @@ void scene_reader::read_function( const json& j ) {
     // position_list should go here - figure out how to work the vector of positions
 
     // condition functions
-    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
     COND_FN( random_condition ) HARNESS( p ) END_FN
     COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
     // equality conditions
@@ -770,17 +772,99 @@ void scene_reader::read_queue( const json& j, effect_list& elist ) {
 }
 
 void scene_reader::read_widget_group( const json& j ) {
-    std::shared_ptr< widget_group > wg = std::make_shared< widget_group >();
+//    std::shared_ptr< widget_group > wg = std::make_shared< widget_group >();
+    widget_group wg;
 
-    if( j.contains( "name" ) ) read( wg->name, j[ "name" ] );
+    if( j.contains( "name" ) ) read( wg.name, j[ "name" ] );
     else ERROR( "Widget group name missing\n" )
-    if( j.contains( "label" ) ) read( wg->label, j[ "label" ] );
-    if( j.contains( "description" ) ) read( wg->description, j[ "description" ] );
-    if( j.contains( "conditions" ) ) for( std::string name : j[ "conditions" ] ) wg->add_condition( std::get< any_condition_fn >( s.functions[ name ] ) );
-    if( j.contains( "widgets" ) ) for( std::string wname : j[ "widgets" ] ) wg->add_widget( wname );
+    if( j.contains( "label" ) ) read( wg.label, j[ "label" ] );
+    if( j.contains( "description" ) ) read( wg.description, j[ "description" ] );
+    if( j.contains( "conditions" ) ) for( std::string condition : j[ "conditions" ] ) wg.add_condition( condition );
+    if( j.contains( "widgets" ) ) for( std::string widget : j[ "widgets" ] ) wg.add_widget( widget );
+    s.ui.widget_groups.push_back( wg );
 }
 
-void to_json(nlohmann::json& j, const switch_fn& s) {
+void to_json( nlohmann::json& j, const interval_int& i ) {
+    j = nlohmann::json{
+        i.min, i.max
+    };
+}
+
+void to_json( nlohmann::json& j, const interval_float& i ) {
+    j = nlohmann::json{
+        i.min, i.max
+    };
+}
+
+void to_json(nlohmann::json& j, const direction4& d ) {
+    switch (d) {
+        case direction4::D4_UP:
+            j = "up";
+            break;
+        case direction4::D4_RIGHT:
+            j = "right";
+            break;
+        case direction4::D4_DOWN:
+            j = "down";
+            break;
+        case direction4::D4_LEFT:
+            j = "left";
+            break;
+        default:
+            // Handle unexpected direction4 value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
+void to_json(nlohmann::json& j, const direction8& d) {
+    switch (d) {
+        case direction8::D8_UP:
+            j = "up";
+            break;
+        case direction8::D8_UPRIGHT:
+            j = "up_right";
+            break;
+        case direction8::D8_RIGHT:
+            j = "right";
+            break;
+        case direction8::D8_DOWNRIGHT:
+            j = "down_right";
+            break;
+        case direction8::D8_DOWN:
+            j = "down";
+            break;
+        case direction8::D8_DOWNLEFT:
+            j = "down_left";
+            break;
+        case direction8::D8_LEFT:
+            j = "left";
+            break;
+        case direction8::D8_UPLEFT:
+            j = "up_left";
+            break;
+        default:
+            // Handle unexpected direction8 value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
+void to_json( nlohmann::json& j, const menu_type& m ) {
+    switch (m) {
+        case MENU_PULL_DOWN:
+            j = "pull_down";
+            break;
+        case MENU_RADIO:
+            j = "radio";
+            break;
+        default:
+            // Handle unexpected menu_type value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+void to_json( nlohmann::json& j, const switch_fn& s) {
     j = nlohmann::json{
         {"label", s.label},
         {"description", s.description},
@@ -790,11 +874,30 @@ void to_json(nlohmann::json& j, const switch_fn& s) {
     };
 }
 
+void to_json( nlohmann::json& j, const widget_group& wg ) {
+    j = nlohmann::json{
+        { "name", wg.name},
+        { "label", wg.label},
+        { "description", wg.description},
+        { "conditions", wg.conditions},
+        { "widgets", wg.widgets}
+    };
+}
+
+/*
+void to_json(nlohmann::json& j, const std::vector<widget_group>& wg_vec) {
+    for (const auto& wg : wg_vec) {
+        nlohmann::json j_wg;
+        to_json(j_wg, wg); // Serialize each widget_group to JSON
+        j.push_back(j_wg); // Add it to the JSON array
+    }
+}
+*/
 void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{ 
         [&]( const any_fn< bool >& wrapper ) {
             std::visit(overloaded{
-                [&]( const std::shared_ptr<switch_fn>& fn ) {
+                [&]( const std::shared_ptr< switch_fn >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
                         {"type", "switch_fn"},
@@ -802,7 +905,244 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"description", fn->description},
                         {"value", fn->value},
                         {"default_value", fn->default_value},
-                        {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"}
+                        {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
+                        {"affects_widget_groups", fn->affects_widget_groups}
+                    };
+                },
+                [&]( const std::shared_ptr< widget_switch_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "widget_switch_fn"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"switcher", fn->switcher},
+                        {"widget", fn->widget}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented bool function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_bool_fn);
+        },
+        [&]( const any_fn< int >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< slider_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "slider_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const std::shared_ptr< menu_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "menu_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"default_choice", fn->default_choice},
+                        {"tool", fn->tool},
+                        {"items", fn->items},
+                        {"affects_widget_groups", fn->affects_widget_groups}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented int function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_int_fn);
+        },
+        [&]( const any_fn< float >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< slider_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "slider_float"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented float function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_float_fn);
+        },
+        [&]( const any_fn< interval_int >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< range_slider_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "range_slider_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented interval_int function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_interval_int_fn);
+        },
+        [&]( const any_fn< interval_float >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< range_slider_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "range_slider_float"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented interval_float function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_interval_float_fn );
+        },
+        /*
+        [&]( const any_fn< vec2f >& wrapper ) {
+        },
+        [&]( const any_fn< vec2i >& wrapper ) {
+        },
+        [&]( const any_fn< frgb >& wrapper ) {
+        },
+        [&]( const any_fn< ucolor >& wrapper ) {
+        },
+        */
+        [&]( const any_fn< std::string >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< menu_string >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "menu_string"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"default_choice", fn->default_choice},
+                        {"tool", fn->tool},
+                        {"items", fn->items},
+                        {"affects_widget_groups", fn->affects_widget_groups}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented string function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                },
+            }, wrapper.any_string_fn);  
+        },
+        [&]( const any_fn< direction4 >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< direction_picker_4 >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "direction_picker_4"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented direction4 function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_direction4_fn);
+        },
+        [&]( const any_fn< direction8 >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< direction_picker_8 >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "direction_picker_8"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented direction8 function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_direction8_fn );
+        },
+        /* 
+        [&]( const any_gen_fn& wrapper ) {
+        },
+        */
+        [&]( const any_condition_fn& wrapper ) {
+             std::visit(overloaded{
+                [&]( const std::shared_ptr<switch_condition>& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "switch_condition"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value},
+                        {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
+                        {"affects_widget_groups", fn->affects_widget_groups}
+                    };
+                },
+                [&]( const std::shared_ptr< widget_switch_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "widget_switch_condition"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"switcher", fn->switcher},
+                        {"widget", fn->widget}
                     };
                 },
                 [&]( const auto& fn ) {
@@ -813,7 +1153,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_bool_fn);
+            }, wrapper.my_condition_fn );           
         },
         [&]( auto& wrapper ) {
             // Placeholder for other types

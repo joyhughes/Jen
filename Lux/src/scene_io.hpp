@@ -100,8 +100,13 @@ template<> struct any_fn< bool >;
 template<class... Ts>
 struct overloaded : Ts... { using Ts::operator()...; };
 
+void to_json( nlohmann::json& j, const interval_float& i );
+void to_json( nlohmann::json& j, const interval_int& i );
+void to_json(nlohmann::json& j, const direction4& d );
+void to_json(nlohmann::json& j, const direction8& d );
 void to_json( nlohmann::json& j, const switch_fn& s );
 void to_json( nlohmann::json& j, const any_function& af );
+void to_json( nlohmann::json& j, const widget_group& wg );
 
 struct scene_writer{
     using json = nlohmann::json;
