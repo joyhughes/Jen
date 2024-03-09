@@ -2,8 +2,19 @@ import React, { useState } from 'react';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 
+const directionToNumber4 = (directionString) => {
+    const mapping = {
+        "up": 0,
+        "right": 1,
+        "down": 2,
+        "left": 3
+    };
+
+    return mapping[directionString] ?? -1; // Return -1 if directionString is not in mapping
+};
+
 function JenDirection4({ json }) {
-    const [direction, setDirection] = useState(json.default_value || -1);
+    const [direction, setDirection] = useState(directionToNumber4(json.default_value));
 
     const handleDirectionChange = (newDirection) => {
         setDirection(newDirection);

@@ -4,12 +4,15 @@ import ToggleButton from "@mui/material/ToggleButton";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-function JenSwitch({ json }) {
+function JenSwitch({ json, onChange }) {
     const [switchValue, setSwitchValue] = useState(json.default_value || false);
 
     const handleSwitchChange = (event) => {
         setSwitchValue(event.target.checked);
         window.Module.handle_switch_value(json.name, event.target.checked);
+        if ( json.affects_widget_groups ) {
+            onChange();
+        }
     };
 
     const renderSwitch = () => {
