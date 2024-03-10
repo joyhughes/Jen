@@ -565,7 +565,7 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
     #define END_RULE()     s.CA_rules[ name ] = rule; }
 
-    RULE( rule_life_ucolor )        END_RULE()
+    RULE( rule_life_ucolor )       READR( use_threshold ) HARNESSR( threshold ) END_RULE()
     RULE( rule_random_copy_ucolor ) END_RULE()
     RULE( rule_random_mix_ucolor )  END_RULE()
     RULE( rule_diffuse_ucolor)      END_RULE()
@@ -950,6 +950,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "menu_int"},
                         {"label", fn->label},
                         {"description", fn->description},
+                        {"choice", fn->choice},
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
@@ -1059,6 +1060,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "menu_string"},
                         {"label", fn->label},
                         {"description", fn->description},
+                        {"choice", fn->choice},
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
@@ -1083,6 +1085,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "direction_picker_4"},
                         {"label", fn->label},
                         {"description", fn->description},
+                        {"value", fn->value},
                         {"default_value", fn->default_value}
                     };
                 },
@@ -1104,6 +1107,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "direction_picker_8"},
                         {"label", fn->label},
                         {"description", fn->description},
+                        {"value", fn->value},
                         {"default_value", fn->default_value}
                     };
                 },

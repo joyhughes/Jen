@@ -2,6 +2,7 @@ import React from 'react';
 import WidgetContainer from './WidgetContainer';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
@@ -40,9 +41,11 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'range_slider_float':
         widgetComponent =       
           <Stack spacing={-0.5} direction="column" alignItems="center">
-            <Typography style={{ textAlign: 'center' }}>
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
+              <Typography variant="subtitle1" component="div">
                 {widget.label}
-            </Typography>
+              </Typography>
+            </Tooltip>
             <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
           </Stack>;
       break;
@@ -52,27 +55,33 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenSwitch key={widget.name} json={widget} size = { "small" } onChange = { onChange } />
-            <Typography variant="subtitle1" component="div">
-              {widget.label}
-            </Typography>
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
+              <Typography variant="subtitle1" component="div">
+                {widget.label}
+              </Typography>
+            </Tooltip>
           </Stack>;
       break;
       case 'direction_picker_8':
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection8 key={widget.name} json={widget} />
-            <Typography variant="subtitle1" component="div">
-              {widget.label}
-            </Typography>
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
+              <Typography variant="subtitle1" component="div">
+                {widget.label}
+              </Typography>
+            </Tooltip>
           </Stack>;
       break;
       case 'direction_picker_4':
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4 key={widget.name} json={widget} />
-            <Typography variant="subtitle1" component="div">
-              {widget.label}
-            </Typography>
+            <Tooltip title={widget.description ?? ''} placement="top"disableInteractive  >
+              <Typography variant="subtitle1" component="div">
+                {widget.label}
+              </Typography>
+            </Tooltip>
           </Stack>;
       break;
       case 'widget_switch_fn':
@@ -101,16 +110,18 @@ function WidgetGroup({ panelSize, json, onChange }) {
           case 'slider_float':
           case 'range_slider_int':
           case 'range_slider_float':   
-            widgetComponent =       
+            widgetComponent = 
               <Stack spacing={-0.5} direction="column" alignItems="center">
-                <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-                  <JenSwitch key={switcher.name} json={switcher} size = { "small" } />
+              <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+                <JenSwitch key={switcher.name} json={switcher} size={"small"} />
+                <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
                   <Typography variant="subtitle1" component="div">
                     {widget.label}
                   </Typography>
-                </Stack>
-                <JenSlider key = { ws_widget.name } json = { ws_widget } width = { panelSize - 75 } />
-              </Stack>;
+                </Tooltip>
+              </Stack>
+              <JenSlider key={ws_widget.name} json={ws_widget} width={panelSize - 75} />
+            </Stack>;
           break;
           default:
             widgetComponent = <div key={ ws_widget.name }>Widget Switch - Unknown widget type: { ws_widget.type }</div>;
@@ -125,7 +136,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
 //      console.log( window.Module.get_widget_JSON( "edge_block_switch" ) );
 
     return (
-      <WidgetContainer key={ widget.name } panelSize = { panelSize } height = { height } >
+      <WidgetContainer key = { widget.name } panelSize = { panelSize } height = { height } >
         { widgetComponent }
       </WidgetContainer>
     );

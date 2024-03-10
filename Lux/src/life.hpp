@@ -86,12 +86,13 @@ template< class T > struct rule_identity {
 // Rule functor for Conway's Game of Life
 template< class T > struct rule_life {
    harness< T > on, off;  // colors to represent on and off states
+   bool use_threshold; // if true, use thresholding to determine on and off states
+   harness< int > threshold; // threshold value
 
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
             
-
-   rule_life( const T& on_init, const T& off_init ) : on( on_init ), off( off_init ) {}
+   rule_life( const T& on_init, const T& off_init, const bool& use_threshold_init = false, const int& threshold_init = 384 ) : on( on_init ), off( off_init ), use_threshold( use_threshold_init ), threshold( threshold_init ) {}
    rule_life();
 };
 

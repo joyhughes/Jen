@@ -391,13 +391,13 @@ template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) {
 template<class T> inline rule_life<T>::rule_life() { 
     T c;
     black( c );
-    on = c;
-    white( c );
     off = c;
+    white( c );
+    on = c;
 }
 
 template< class T > CA_hood rule_life< T >::operator () ( element_context &context ) {
-    on( context ); off( context );
+    on( context ); off( context ); threshold( context );
     return HOOD_MOORE;
 }
 
@@ -406,8 +406,20 @@ template< class T > void rule_life< T >::operator () ( CA< T >& ca ) {
     auto& result = ca.result;
 
     int count = 0;
-    for( int i = 0; i < 4; i++ ) { count += (neighbors[ i ] == *on); }    
-    for( int i = 5; i < 9; i++ ) { count += (neighbors[ i ] == *on); } 
+    if( use_threshold ) {
+        for( int i = 0; i < 4; i++ ) { 
+            unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff ); 
+            count += ( bright > *threshold );
+        }    
+        for( int i = 5; i < 9; i++ ) { 
+            unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff ); 
+            count += ( bright > *threshold );
+        }    
+    }
+    else {
+        for( int i = 0; i < 4; i++ ) { count += ( neighbors[ i ] == *on ); }    
+        for( int i = 5; i < 9; i++ ) { count += ( neighbors[ i ] == *on ); } 
+    }
     if( MM == *on ) {
         if( count == 2 || count == 3 ) result[0] = *on;
         else result[0] = *off;
