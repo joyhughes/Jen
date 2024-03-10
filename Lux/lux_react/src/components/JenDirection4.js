@@ -14,7 +14,7 @@ const directionToNumber4 = (directionString) => {
 };
 
 function JenDirection4( { json } ) {
-    const [ direction, setDirection ] = useState( directionToNumber4( json.value ) );
+    const [ direction, setDirection ] = useState( directionToNumber4( json.value ?? "down" ) );
 
     const handleDirectionChange = ( newDirection ) => {
         setDirection( newDirection );

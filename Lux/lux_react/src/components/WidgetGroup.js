@@ -41,7 +41,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'range_slider_float':
         widgetComponent =       
           <Stack spacing={-0.5} direction="column" alignItems="center">
-            <Tooltip title={widget.description || ''} placement="top" disableInteractive >
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
               <Typography variant="subtitle1" component="div">
                 {widget.label}
               </Typography>
@@ -55,7 +55,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenSwitch key={widget.name} json={widget} size = { "small" } onChange = { onChange } />
-            <Tooltip title={widget.description || ''} placement="top" disableInteractive >
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
               <Typography variant="subtitle1" component="div">
                 {widget.label}
               </Typography>
@@ -66,7 +66,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection8 key={widget.name} json={widget} />
-            <Tooltip title={widget.description || ''} placement="top" disableInteractive >
+            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
               <Typography variant="subtitle1" component="div">
                 {widget.label}
               </Typography>
@@ -77,7 +77,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4 key={widget.name} json={widget} />
-            <Tooltip title={widget.description || ''} placement="top"disableInteractive  >
+            <Tooltip title={widget.description ?? ''} placement="top"disableInteractive  >
               <Typography variant="subtitle1" component="div">
                 {widget.label}
               </Typography>
@@ -114,7 +114,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
               <Stack spacing={-0.5} direction="column" alignItems="center">
               <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
                 <JenSwitch key={switcher.name} json={switcher} size={"small"} />
-                <Tooltip title={widget.description || ''} placement="top" disableInteractive >
+                <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
                   <Typography variant="subtitle1" component="div">
                     {widget.label}
                   </Typography>

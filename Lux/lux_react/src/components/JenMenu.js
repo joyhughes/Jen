@@ -10,7 +10,7 @@ import Tooltip from '@mui/material/Tooltip';
 import { useTheme } from '@mui/material/styles';
 
 function JenMenu({ json, width, onChange }) {
-    const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.choice || '');
+    const [selectedMenuChoice, setSelectedMenuChoice] = useState( json.choice ?? 0 );
 
     const theme = useTheme();
 
@@ -28,7 +28,7 @@ function JenMenu({ json, width, onChange }) {
     const renderMenu = () => {
         if (json.tool === 'pull_down') {
             return (
-                <Tooltip title={json.description || ''} placement="top" disableInteractive >
+                <Tooltip title={json.description ?? ''} placement="top" disableInteractive >
                     <FormControl sx={{ m: 1, minWidth: `${width}px` }} size="small">
                         <InputLabel>{json.label}</InputLabel>
                         <Select
