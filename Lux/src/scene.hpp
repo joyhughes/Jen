@@ -263,8 +263,16 @@ struct scene {
 
 };
 
+
+/*
+static element empty_element;
+static next_element empty_next_element;
+static cluster empty_cluster( empty_element, empty_next_element );
+static scene empty_scene;
+static element_context empty_element_context( empty_element, empty_cluster, empty_scene, any_buffer_pair_ptr( null_buffer_pair_ptr ) );
+*/
 // Test only - remove later
-template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el );
+//template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el );
 
 
 #endif // __SCENE_HPP

@@ -8,8 +8,19 @@ import MediaController from "./MediaController";
 
 function ControlPanel( { ratio, panelSize } ) {
 
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0, isRowDirection: true });
-  const [ groupJSON, setGroupJSON ] = useState( [] );
+  const [ dimensions,   setDimensions ]  = useState({ width: 0, height: 0, isRowDirection: true });
+  const [ panelJSON,    setPanelJSON ]   = useState( [] );
+  const [ activeGroups, setActiveGroups] = useState( [] );
+
+  // Callback function to handle state changes in widget groups
+  const handleWidgetGroupChange = () => {
+    // Logic to update the control panel's state or perform other actions
+    const active = panelJSON.filter(group => 
+      window.Module.is_widget_group_active(group.name)
+    );
+    setActiveGroups(active);
+    console.log("ControlPanel handleWidgetGroupChange activeGroups=" + JSON.stringify( activeGroups ) + " panelJSON = " + panelJSON );
+  };
 
   const resizeBox = () => {
     let windowRatio, width, height, isRowDirection;
@@ -41,8 +52,8 @@ function ControlPanel( { ratio, panelSize } ) {
   
     try {
       const parsedJSON = JSON.parse(panelJSONString);
-      setGroupJSON(parsedJSON);
-      console.log( "ControlPanel setupPanel groupJSON=" + JSON.stringify( groupJSON ) );
+      setPanelJSON(parsedJSON);
+      console.log( "ControlPanel setupPanel panelJSON=" + JSON.stringify( panelJSON ) );
     } catch (error) {
       console.error("Error parsing JSON:", error);
       // Handle the error appropriately
@@ -66,10 +77,12 @@ function ControlPanel( { ratio, panelSize } ) {
   }, [] );
 
   useEffect(() => {
-    console.log("Updated groupJSON:", + JSON.stringify( groupJSON ));
-  }, [groupJSON]);
+    console.log("Updated panelJSON:", + JSON.stringify( panelJSON ));
+    handleWidgetGroupChange();
+  }, [ panelJSON ] );
 
-  // Create list of widget groups from groupJSON
+  // Create list of widget groups from panelJSON
+  
   return (
     <Paper elevation={3} 
       sx={{ 
@@ -84,8 +97,9 @@ function ControlPanel( { ratio, panelSize } ) {
       }}
     >
       < MediaController panelSize={panelSize} />
-      {groupJSON.map((group, index) => (
-        <WidgetGroup key={index} panelSize={panelSize} json={group} />
+      {activeGroups.map((group) => (
+        // Passing handleWidgetGroupChange callback to each WidgetGroup component
+        <WidgetGroup key={group.name} panelSize={panelSize} json={group} onChange={handleWidgetGroupChange} />
       ))}
     </Paper>
   );

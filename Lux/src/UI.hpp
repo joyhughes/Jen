@@ -46,6 +46,7 @@ struct switch_condition {
     switch_type tool;
     std::string label, description;
     bool value, default_value;
+    bool affects_widget_groups;
 
     bool operator () ( element_context& context );
     bool operator () ( bool& val, element_context& context ); 
@@ -55,12 +56,15 @@ struct switch_condition {
     switch_condition(   const switch_type& tool_init = SWITCH_SWITCH,
                         const std::string& label_init = "", 
                         const std::string& description_init = "", 
-                        const bool& default_value_init = true ) : 
+                        const bool& default_value_init = true,
+                        const bool& affects_widget_groups_init = false ) : 
                             tool( tool_init ),
                             label( label_init ),
                             description( description_init ),
                             default_value( default_value_init ),
-                            value( default_value_init ) {}
+                            value( default_value_init ),
+                            affects_widget_groups( affects_widget_groups_init )
+                            {}
 };
 
 typedef switch_condition switch_fn;
@@ -124,6 +128,7 @@ struct menu {
     std::vector< std::string > items;
     int choice, default_choice;
     bool user_defined_item;
+    bool affects_widget_groups;
 
     int operator () ( int& val, element_context& context ); 
     std::string operator () ( std::string& val, element_context& context );
@@ -139,13 +144,15 @@ struct menu {
           const std::string& description_init = "", 
           const int& default_choice_init = 0,
           const menu_type& tool_init = MENU_PULL_DOWN,
-          const bool& user_defined_item_init = false ) : 
+          const bool& user_defined_item_init = false,
+          const bool& affects_widget_groups_init = false ) : 
             label( label_init ), 
             description( description_init ), 
             choice( default_choice_init ), 
             default_choice( default_choice_init ),
             tool( tool_init ),
-            user_defined_item( user_defined_item_init )
+            user_defined_item( user_defined_item_init ),
+            affects_widget_groups( affects_widget_groups_init )
         {}
 };
 
@@ -172,28 +179,6 @@ template< class T > struct direction_picker {
 typedef direction_picker< direction4 > direction_picker_4;
 typedef direction_picker< direction8 > direction_picker_8;
 
-struct widget_group;
-struct widget_switch;
-
-// Widgets also included in any_function_ptr - they are stored as functions within the scene
-typedef std::variant <
-
-    // harness functions that also appear in any_function_ptr
-
-    std::shared_ptr< switch_fn >,
-    std::shared_ptr< slider_float >,
-    std::shared_ptr< slider_int >,
-    std::shared_ptr< range_slider_float >,
-    std::shared_ptr< range_slider_int >,
-    std::shared_ptr< menu >,
-    std::shared_ptr< direction_picker_4 >,
-    std::shared_ptr< direction_picker_8 >,
-    std::shared_ptr< widget_switch >,
-
-    // widget groups can contain other widget groups - do not appear in any_function_ptr
-    std::shared_ptr< widget_group >
-> any_widget_ptr;
-
 // Widget groupings
 
 // a checkbox or toggle switch activates or deactivates a widget
@@ -213,13 +198,14 @@ typedef widget_switch widget_switch_fn;
 
 struct widget_group {
     std::string name, label, description;
-    std::vector< any_condition_fn > conditions;
+    std::vector< std::string > conditions;
     std::vector< std::string > widgets;
     // bool open;      // is this widget group open? (Needed?)
     // bool active;    // is this widget group within active part of scene graph? (Needed?)
 
+    bool operator () ( element_context& context );
     void add_widget( const std::string& widget );
-    void add_condition( const any_condition_fn& condition );
+    void add_condition( const std::string& condition );
 //    void reset(); // reset all widgets to default
     void clear(); // clear all widgets
 

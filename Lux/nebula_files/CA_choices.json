@@ -72,7 +72,7 @@
         },
         {
             "name": "bright_block_widget_switch",
-            "type": "widget_switch",
+            "type": "widget_switch_fn",
             "label": "Brightness freeze",
             "description": "Freeze pixels with brighness outside the range",
             "switcher": "bright_block_switch",
@@ -105,7 +105,8 @@
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
             "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
-            "default_choice": 5
+            "default_choice": 5,
+            "affects_widget_groups": true
         },
         {
             "name": "rule_menu_0",
@@ -145,12 +146,12 @@
         },
         {
             "name": "funk_factor_menu",
-            "type": "menu_string",
+            "type": "menu_int",
             "tool": "pull_down",
             "label": "Funk Factor",
             "description": "Funk factor is a parameter of the Funky sort rule.",
-            "choices": [ "Borg", "Funky Town", "Web" ],
-            "default_choice": 0
+            "items": [ "Borg", "Funky Town", "Web" ],
+            "default_choice": 2
         }
     ],
     "clusters":
@@ -183,6 +184,8 @@
             "name": "Diffuse",
             "type": "CA_ucolor",
             "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
             "rule":
             {
                 "name": "diffuse",
@@ -202,6 +205,8 @@
         {
             "name": "Gravitate",
             "type": "CA_ucolor",
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
@@ -213,6 +218,8 @@
         {
             "name": "Snow",
             "type": "CA_ucolor",
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "rule":
             {
@@ -297,7 +304,7 @@
         {
             "name": "diffuse_group",
             "conditions": [ "rule_menu_0" ],
-            "widgets": [ "max_diff_slider" ]
+            "widgets": [ "max_diff_slider", "bright_block_widget_switch" ]
         },
         {
             "name": "life_group",
@@ -307,12 +314,12 @@
         {
             "name": "gravitate_group",
             "conditions": [ "rule_menu_2" ],
-            "widgets": [ "direction_4" ]
+            "widgets": [ "direction_4", "bright_block_widget_switch" ]
         },
         {
             "name": "snow_group",
             "conditions": [ "rule_menu_3" ],
-            "widgets": [ "direction_4" ]
+            "widgets": [ "direction_4", "bright_block_widget_switch" ]
         },
         {
             "name": "pixel_sort_group",

@@ -250,10 +250,14 @@ std::string load_file_as_string(const std::string& filePath) {
 }
 
 std::string get_panel_JSON() {
-    std::string fileContents;
+    nlohmann::json j;
 
-    fileContents = load_file_as_string("nebula_files/test_widgets.json");
-    return fileContents;
+    j = global_context->s->ui.widget_groups;
+    for( auto wg : global_context->s->ui.widget_groups ) {
+        std::cout << "get_panel_JSON: " << wg.name << std::endl;
+    }
+    std::cout << "get_panel_JSON: " << j.dump() << std::endl;
+    return j.dump();
 }
 
 std::string get_widget_JSON( std::string name ) {
@@ -262,9 +266,29 @@ std::string get_widget_JSON( std::string name ) {
     if( global_context->s->functions.contains( name ) ) {
     //    auto& sw = std::get< std::shared_ptr< switch_fn > >(global_context->s->bool_fns[ name ].any_bool_fn);
         auto& sw = global_context->s->functions[ name ];
-        to_json( j, sw );
+        // std::cout << "get_widget_JSON: " << name << " found" << std::endl;
+        j = sw;
     }
+    // std::cout << "get_widget_JSON: " << name << " " << j.dump() << std::endl;
     return j.dump();
+}
+
+bool is_widget_group_active( std::string name ) {
+    element el;
+    next_element ne;
+    cluster cl( el, ne );
+    any_buffer_pair_ptr null_any_buf_ptr = null_buffer_pair_ptr;
+    element_context context( el, cl, *(global_context->s), null_any_buf_ptr );
+
+
+    for( auto& wg : global_context->s->ui.widget_groups ) {
+        if( wg.name == name ) {
+            std::cout << "is_widget_group_active: " << name << " " << wg( context ) << std::endl;
+            return wg( context );
+        }
+    }
+    std::cout << "is_widget_group_active: " << name << " not in UI" << std::endl;
+    return false;   // group not in UI
 }
 
 int main(int argc, char** argv) { 
@@ -324,6 +348,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
 
     function( "get_panel_JSON",     &get_panel_JSON);
     function( "get_widget_JSON",    &get_widget_JSON);
+    function( "is_widget_group_active", &is_widget_group_active);
 
     function( "set_slider_value",       &set_slider_value );
     function( "set_range_slider_value", &set_range_slider_value );
