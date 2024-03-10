@@ -6,12 +6,11 @@ import RadioGroup from '@mui/material/RadioGroup';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 import { useTheme } from '@mui/material/styles';
 
 function JenMenu({ json, width, onChange }) {
-    const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.default_choice || '');
+    const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.choice || '');
 
     const theme = useTheme();
 
@@ -29,30 +28,30 @@ function JenMenu({ json, width, onChange }) {
     const renderMenu = () => {
         if (json.tool === 'pull_down') {
             return (
-                <FormControl sx={{ m: 1, minWidth: `${width}px` }} size="small">
-                    <InputLabel size="normal" >{json.label}</InputLabel>
-                    <Select
-                        style={{ width: `${width}px` }}
-                        value = { selectedMenuChoice }
-                        label = { json.label }
-                        onChange = { handleMenuChange }
-                        displayEmpty
-                        inputProps = { { 'aria-label': 'Without label' } }
-                        MenuProps={{
-                            PaperProps: {
-                                style: {
-                                    width: `${width}px`, // This ensures the dropdown has a constant width
+                <Tooltip title={json.description || ''} placement="top" disableInteractive >
+                    <FormControl sx={{ m: 1, minWidth: `${width}px` }} size="small">
+                        <InputLabel>{json.label}</InputLabel>
+                        <Select
+                            style={{ width: `${width}px` }}
+                            value={selectedMenuChoice}
+                            label={json.label}
+                            onChange={handleMenuChange}
+                            displayEmpty
+                            inputProps={{ 'aria-label': 'Without label' }}
+                            MenuProps={{
+                                PaperProps: {
+                                    style: {
+                                        width: `${width}px`,
+                                    },
                                 },
-                            },
-                        }}
-                    >
-                        { json.items.map((choice, index) => (
-                            <MenuItem key={index} value={index}>
-                                {choice}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                            }}
+                        >
+                            {json.items.map((choice, index) => (
+                                <MenuItem key={index} value={index}>{choice}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Tooltip>
             );
         } else if (json.tool === 'radio') {
             return (

@@ -5,7 +5,7 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
 function JenSwitch({ json, onChange }) {
-    const [switchValue, setSwitchValue] = useState(json.default_value || false);
+    const [switchValue, setSwitchValue] = useState(json.value || false);
 
     const handleSwitchChange = (event) => {
         setSwitchValue(event.target.checked);

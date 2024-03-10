@@ -43,19 +43,19 @@ function MediaController( { panelSize } ) {
           }
         }}
       >
-        <Tooltip title="Restart">
+        < Tooltip title="Restart" disableInteractive >
           <Button onClick={handleRestart}>
             <RestartIcon />
           </Button>
         </Tooltip>
 
-        <Tooltip title="Advance One Frame">
+        < Tooltip title="Advance One Frame" disableInteractive >
           <Button onClick={handleAdvance}>
             <FrameIcon />
           </Button>
         </Tooltip>
 
-        <Tooltip title={isRunning ? "Pause" : "Run"}>
+        <Tooltip title={isRunning ? "Pause" : "Run"} disableInteractive >
         <Button onClick={handleRunPause}>
             {isRunning ? <PauseIcon /> : <PlayPauseIcon />}
           </Button>

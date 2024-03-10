@@ -14,7 +14,7 @@ const Input = styled(MuiInput)`
 
 function JenSlider({ json, width }) {
     const theme = useTheme();
-    const [value, setValue] = useState(json.default_value || json.min || 0);
+    const [value, setValue] = useState( json.value || json.min || 0 );
     const [minFocus, setMinFocus] = useState(true);
 
     const handleSliderChange = (event, newValue) => {

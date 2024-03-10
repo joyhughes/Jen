@@ -13,19 +13,19 @@ const directionToNumber4 = (directionString) => {
     return mapping[directionString] ?? -1; // Return -1 if directionString is not in mapping
 };
 
-function JenDirection4({ json }) {
-    const [direction, setDirection] = useState(directionToNumber4(json.default_value));
+function JenDirection4( { json } ) {
+    const [ direction, setDirection ] = useState( directionToNumber4( json.value ) );
 
-    const handleDirectionChange = (newDirection) => {
-        setDirection(newDirection);
-        window.Module.pick_direction4(json.name, newDirection);
+    const handleDirectionChange = ( newDirection ) => {
+        setDirection( newDirection );
+        window.Module.pick_direction4( json.name, newDirection );
     };
 
-    const renderDirectionButton = (dirValue, label) => {
+    const renderDirectionButton = ( dirValue, label ) => {
         return (
             <Button
-                variant={direction === dirValue ? "contained" : "outlined"}
-                onClick={() => handleDirectionChange(dirValue)}
+                variant={ direction === dirValue ? "contained" : "outlined" }
+                onClick={ () => handleDirectionChange( dirValue ) }
                 style={{ minWidth: '20px', height: '20px', padding: '0px' }}
             >
                 {label}
