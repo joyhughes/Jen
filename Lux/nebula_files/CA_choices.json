@@ -199,7 +199,9 @@
             "rule":
             {
                 "name": "life",
-                "type": "rule_life_ucolor"            
+                "type": "rule_life_ucolor",
+                "threshold": { "functions": [ "life_slider" ] },
+                "use_threshold": true         
             }
         },
         {
@@ -304,7 +306,7 @@
         {
             "name": "diffuse_group",
             "conditions": [ "rule_menu_0" ],
-            "widgets": [ "max_diff_slider", "bright_block_widget_switch" ]
+            "widgets": [ "bright_block_widget_switch" ]
         },
         {
             "name": "life_group",
