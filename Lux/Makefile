@@ -30,6 +30,9 @@ web_build/image.o: src/image.cpp
 web_build/life.o: src/life.cpp
 	em++ -O3 -MMD -MP -std=c++20 src/life.cpp -c -o web_build/life.o
 
+web_build/next_element.o: src/next_element.cpp
+	em++ -O3 -MMD -MP -std=c++20 src/next_element.cpp -c -o web_build/next_element.o
+	
 web_build/offset_field.o: src/offset_field.cpp
 	em++ -O3 -MMD -MP -std=c++20 src/offset_field.cpp -c -o web_build/offset_field.o
 
