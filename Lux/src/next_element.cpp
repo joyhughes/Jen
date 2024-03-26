@@ -1,6 +1,7 @@
 #include "next_element.hpp"
 #include "any_function.hpp"
 #include "scene.hpp"
+#include "life.hpp"
 
 template< class U > void harness< U >::operator () ( element_context &context ) 
 { for( auto& fn : functions ) {
@@ -37,6 +38,13 @@ template struct harness< direction4 >;
 template struct harness< direction8 >;
 template struct harness< interval_int >;
 template struct harness< interval_float >;
+template struct harness< box_blur_type >;
+
+/*
+template< class U > U identity_fn< U >::operator () ( U& in, element_context& context ) { 
+    return in; 
+}
+*/
 
 float time_fn::operator () ( float& val, element_context& context  ) { 
     return context.s.time; 

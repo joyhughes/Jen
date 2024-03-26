@@ -7,6 +7,7 @@
 #include "vector_field.hpp"
 #include "joy_concepts.hpp"
 #include "joy_rand.hpp"
+#include "life_hacks.hpp"
 
 struct element;
 struct cluster;
@@ -42,6 +43,7 @@ typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn;
 typedef std::function< std::string ( std::string&, element_context& ) > string_fn;
 typedef std::function< direction4 ( direction4&, element_context& ) > direction4_fn;
 typedef std::function< direction8 ( direction8&, element_context& ) > direction8_fn;
+typedef std::function< box_blur_type ( box_blur_type&, element_context& ) > box_blur_type_fn;
 
 typedef std::function< void ( element_context& ) > gen_fn;
 typedef std::function< bool ( element_context& ) > condition_fn;
@@ -84,6 +86,7 @@ typedef identity_fn< bb2f   > identity_bb2f;
 typedef identity_fn< std::string > identity_string;
 typedef identity_fn< direction4 > identity_direction4;
 typedef identity_fn< direction8 > identity_direction8;
+typedef identity_fn< box_blur_type > identity_box_blur_type;
 
 template< Additive U > struct adder {
     harness< U > r;
