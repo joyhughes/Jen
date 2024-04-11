@@ -68,7 +68,7 @@ template< class U > struct harness {
 
 // harness functions
 
-// Placeholder function that returns its first argument - used in default construction of parameter functions
+// Placeholder function that returns its first argument - used in default construction of parameter functions and any_function objects
 template< class U > struct identity_fn { 
     U operator () ( U& in, element_context& context ) { return in; }
 };

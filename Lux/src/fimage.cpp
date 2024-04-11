@@ -21,6 +21,16 @@ template<> void fimage::grayscale() {
     mip_it();
 }
 
+template<> void fimage::invert() {
+    for( auto& c : base ) { ::invert( c ); }
+    mip_it();
+}
+
+template<> void fimage::rotate_colors( const int& r ) {
+    for( auto& c : base ) { rotate_color( c, r ); }
+    mip_it();
+}
+
 template<> void fimage::load( const std::string& filename ) {
     //std::cout << "fimage::load " << filename << std::endl;
     reset();

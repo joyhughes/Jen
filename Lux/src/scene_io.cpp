@@ -166,6 +166,19 @@ direction8 scene_reader::read_direction8( const json& j ) {
     return d;
 }
 
+box_blur_type scene_reader::read_box_blur_type( const json& j ) { 
+    std::string s;
+    box_blur_type b;
+
+    j.get_to( s );
+    if(      s == "orthogonal" ) b = box_blur_type::BB_ORTHOGONAL;
+    else if( s == "diagonal" )   b = box_blur_type::BB_DIAGONAL;
+    else if( s == "all" )        b = box_blur_type::BB_ALL;
+    else if( s == "custom" )     b = box_blur_type::BB_CUSTOM;
+    else ERROR( "Invalid box_blur_type string: " + s )
+    return b;
+}
+
 pixel_type scene_reader::read_pixel_type( const json& j ) { 
     std::string s;
     pixel_type p;
@@ -449,6 +462,7 @@ void scene_reader::read_function( const json& j ) {
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
 
+
     // harness vec2f functions
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
@@ -464,9 +478,27 @@ void scene_reader::read_function( const json& j ) {
     // harness ucolor functions
     FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
-    // direction pickers
+    // pickers
     FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( multi_direction8_picker, int )   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( box_blur_picker, box_blur_type ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+
+    // special case for custom_blur_picker
+    FN( custom_blur_picker, int ) 
+        READ( label ) 
+        READ( description ) 
+        // create list of pairs of multi_direction8_pickers
+        if( j.contains( "pickers" ) ) {
+            for( auto& p : j[ "pickers" ] ) {
+                fn->add_pickers( p[ 0 ], p[ 1 ] );
+            }
+        }
+        else {
+            fn->add_pickers( 17, 17 ); // default orthogonal box blur
+            fn->add_pickers( 68, 68 ); 
+        }
+    END_FN
 
     // harness bool functions
     FN( random_fn, bool ) HARNESS( p ) END_FN
@@ -568,6 +600,7 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_life_ucolor )       READR( use_threshold ) HARNESSR( threshold ) END_RULE()
     RULE( rule_random_copy_ucolor ) END_RULE()
     RULE( rule_random_mix_ucolor )  END_RULE()
+    RULE( rule_box_blur_ucolor ) HARNESSR( max_diff ) HARNESSR( bug_mode ) HARNESSR( blur_method ) HARNESSR( random_copy ) READR( custom_picker ) END_RULE()
     RULE( rule_diffuse_ucolor)      END_RULE()
     RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
@@ -669,6 +702,7 @@ void scene_reader::read_effect( const json& j ) {
     HARNESSE( choice )
     END_EFF()
 
+    EFF( eff_identity ) END_EFF()
     EFF( eff_fill_frgb )   HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_ucolor ) HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_fill_vec2i )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
@@ -850,6 +884,27 @@ void to_json(nlohmann::json& j, const direction8& d) {
     }
 }
 
+void to_json( nlohmann::json& j, const box_blur_type& b ) {
+    switch (b) {
+        case box_blur_type::BB_ORTHOGONAL:
+            j = "orthogonal";
+            break;
+        case box_blur_type::BB_DIAGONAL:
+            j = "diagonal";
+            break;
+        case box_blur_type::BB_ALL:
+            j = "all";
+            break;
+        case box_blur_type::BB_CUSTOM:
+            j = "custom";
+            break;
+        default:
+            // Handle unexpected box_blur_method value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
 void to_json( nlohmann::json& j, const menu_type& m ) {
     switch (m) {
         case MENU_PULL_DOWN:
@@ -957,11 +1012,30 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"affects_widget_groups", fn->affects_widget_groups}
                     };
                 },
+                [&]( const std::shared_ptr< multi_direction8_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "multi_direction_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const std::shared_ptr< custom_blur_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "custom_blur_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"pickers", fn->pickers}
+                    };
+                },
                 [&]( const auto& fn ) {
                     // Placeholder for other types
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "unimplemented int function"} // Replace with actual type identification if needed
+                        {"type", "unimplemented json output for int function"} // Replace with actual type identification if needed
                         // Other placeholder fields...
                     };
                 }
@@ -1120,6 +1194,28 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                     };
                 }
             }, wrapper.any_direction8_fn );
+        },
+        [&]( const any_fn< box_blur_type >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< box_blur_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "box_blur_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented box_blur_type function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_box_blur_type_fn );
         },
         /* 
         [&]( const any_gen_fn& wrapper ) {

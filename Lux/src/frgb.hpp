@@ -72,6 +72,29 @@ static inline void addc( frgb& c1, const frgb& c2 ) { c1 += c2; }
 static inline void subc( frgb& c1, const frgb& c2 ) { c1 -= c2; }
 static inline frgb mulc( const frgb& c1, const frgb& c2 ) { return linalg::cmul( c1, c2 ); }
 
+static inline void rotate_color( frgb& c, const int& r )
+{
+    if(      !r%1 ) c = frgb( { c.R, c.G, c.B } );
+    else if( !r%2 ) c = frgb( { c.B, c.R, c.G } );
+}
+
+static inline frgb rotate_color( const frgb& c, const int& r )
+{
+    if(      !r%1 ) return frgb( { c.R, c.G, c.B } );
+    else if( !r%2 ) return frgb( { c.B, c.R, c.G } );
+    else return c;
+}
+
+static inline void invert( frgb& c )
+{
+    c = frgb( { 1.0f - c.R, 1.0f - c.G, 1.0f - c.B } );
+}
+
+static inline frgb invert( const frgb& c )
+{
+    return frgb( { 1.0f - c.R, 1.0f - c.G, 1.0f - c.B } );
+}
+
 // Future: HSV and other color spaces
 
 #endif // __FRGB_HPP

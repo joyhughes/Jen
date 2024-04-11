@@ -220,6 +220,28 @@ struct scene {
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
+/*
+    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) noexcept {
+        if( functions.contains( name ) ) {
+            auto fn = std::get_if< any_fn< T >* >( &( functions[ name ] ) );
+            if( fn != nullptr ) {
+                auto fn_ptr = std::get_if< std::shared_ptr< F >* >( &( fn->any_fn ) );
+                if( fn_ptr != nullptr ) {
+                    return *fn_ptr;
+                }
+                else {
+                    return nullptr;
+                }
+            }
+            else {
+                return nullptr;
+            }
+        }
+        else {
+            return nullptr;
+        }
+    }
+*/
     // Get mouse position in parametric space of output buffer
     vec2f get_mouse_pos() const;
 

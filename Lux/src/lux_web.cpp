@@ -154,7 +154,7 @@ void set_slider_value( std::string name, float value ) {
             std::get< std::shared_ptr< slider_float > >( std::get< any_fn< float > >( fn ).any_float_fn)->value = value;
         }
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            std::get< std::shared_ptr< slider_int > >( std::get< any_fn< int > >( global_context->s->functions[ name ] ).any_int_fn)->value = (int)std::roundf( value );
+            std::get< std::shared_ptr< slider_int > >( std::get< any_fn< int > >( fn ).any_int_fn)->value = (int)std::roundf( value );
         }
     }
 }
@@ -164,11 +164,11 @@ void set_range_slider_value( std::string name, float value_min, float value_max 
     if( global_context->s->functions.contains( name ) ) { 
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
-            std::get< std::shared_ptr< range_slider_float > >( std::get< any_fn< interval_float > >( global_context->s->functions[ name ] ).any_interval_float_fn)->value = interval_float( value_min, value_max );
+            std::get< std::shared_ptr< range_slider_float > >( std::get< any_fn< interval_float > >( fn ).any_interval_float_fn)->value = interval_float( value_min, value_max );
         }
         else if( std::holds_alternative< any_fn< interval_int > >( fn ) ) {
-            std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
-            std::get< std::shared_ptr< range_slider_int > >( std::get< any_fn< interval_int > >( global_context->s->functions[ name ] ).any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+            //std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
+            std::get< std::shared_ptr< range_slider_int > >( std::get< any_fn< interval_int > >( fn ).any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
         }
     }
 }
@@ -178,12 +178,12 @@ void handle_menu_choice( std::string name, int choice ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< int > >( fn ) ) {
             //std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
-            auto& menu = std::get< std::shared_ptr< menu_int > >( std::get< any_fn< int > >( global_context->s->functions[ name ] ).any_int_fn );
+            auto& menu = std::get< std::shared_ptr< menu_int > >( std::get< any_fn< int > >( fn ).any_int_fn );
             menu->choose( choice );
         }
         else if( std::holds_alternative< any_fn< std::string > >( fn ) ) {
             //std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
-            auto& menu = std::get< std::shared_ptr< menu_string > >( std::get< any_fn< std::string > >( global_context->s->functions[ name ] ).any_string_fn );
+            auto& menu = std::get< std::shared_ptr< menu_string > >( std::get< any_fn< std::string > >( fn ).any_string_fn );
             menu->choose( choice );
         }
     }
@@ -193,11 +193,11 @@ void handle_switch_value( std::string name, bool value ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< bool > >( fn ) ) {
-            auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( global_context->s->functions[ name ] ).any_bool_fn );
+            auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( fn ).any_bool_fn );
             sw->value = value;
         } 
         else if( std::holds_alternative< any_condition_fn >( fn ) ) {
-            auto& sw = std::get< std::shared_ptr< switch_condition > >( std::get< any_condition_fn >( global_context->s->functions[ name ] ).my_condition_fn );
+            auto& sw = std::get< std::shared_ptr< switch_condition > >( std::get< any_condition_fn >( fn ).my_condition_fn );
             sw->value = value;
         }
     }
@@ -207,7 +207,7 @@ void pick_direction8( std::string name, int value ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< direction8 > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(std::get< any_fn< direction8 > >( global_context->s->functions[ name ] ).any_direction8_fn);
+            auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(std::get< any_fn< direction8 > >( fn ).any_direction8_fn);
             picker->value = (direction8)value;
         }
     }
@@ -217,8 +217,64 @@ void pick_direction4( std::string name, int value ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< direction4 > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< direction_picker_4 > >( std::get< any_fn< direction4 > >( global_context->s->functions[ name ] ).any_direction4_fn);
+            auto& picker = std::get< std::shared_ptr< direction_picker_4 > >( std::get< any_fn< direction4 > >( fn ).any_direction4_fn);
             picker->value = (direction4)value;
+        }
+    }
+}
+
+void pick_blur_method( std::string name, int value ) {
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< box_blur_type > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< box_blur_picker > >( std::get< any_fn< box_blur_type > >( fn ).any_box_blur_type_fn);
+            picker->value = (box_blur_type)value;
+        }
+    }
+}
+
+void pick_multi_direction8( std::string name, int value, int id ) {
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        /* Need to do a std::visit for a standalone multi direction picker
+        if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< multi_direction8_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
+            picker->value = value;
+        }
+        */
+        if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
+            picker->set_picker_value( value, id );
+        }
+    }
+}
+
+void print_vector_of_pairs( std::vector< std::pair< int, int > > pickers ) {
+    for( auto& p : pickers ) {
+        std::cout << p.first << " " << p.second << std::endl;
+    }
+}
+
+void remove_custom_blur_pickers( std::string name, int index ) {
+    std::cout << "remove_custom_blur_pickers: " << name << " " << index << std::endl;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
+            picker->remove_pickers( index );
+            print_vector_of_pairs( picker->pickers );
+        }
+    }
+}
+
+void add_custom_blur_pickers( std::string name ) {
+    std::cout << "add_custom_blur_pickers: " << name << std::endl;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
+            picker->add_pickers();
+            print_vector_of_pairs( picker->pickers );
         }
     }
 }
@@ -283,7 +339,7 @@ bool is_widget_group_active( std::string name ) {
 
     for( auto& wg : global_context->s->ui.widget_groups ) {
         if( wg.name == name ) {
-            std::cout << "is_widget_group_active: " << name << " " << wg( context ) << std::endl;
+            //std::cout << "is_widget_group_active: " << name << " " << wg( context ) << std::endl;
             return wg( context );
         }
     }
@@ -355,8 +411,12 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "handle_menu_choice",     &handle_menu_choice );
     function( "handle_switch_value",    &handle_switch_value );
 //    function( "get_switch_state",       &get_switch_state);
-    function( "pick_direction8",        &pick_direction8);
-    function( "pick_direction4",        &pick_direction4);
+    function( "pick_direction8",        &pick_direction8 );
+    function( "pick_direction4",        &pick_direction4 );
+    function( "pick_blur_method",       &pick_blur_method );
+    function( "pick_multi_direction8",  &pick_multi_direction8 );
+    function( "remove_custom_blur_pickers", &remove_custom_blur_pickers);
+    function( "add_custom_blur_pickers", &add_custom_blur_pickers);
 
     /*
     function( "get_slider_min",     &get_slider_min);

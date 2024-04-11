@@ -9,6 +9,16 @@ template<> void uimage::grayscale() {
     mip_it();
 }
 
+template<> void uimage::invert() {
+    for( auto& c : base ) { ::invert( c ); }
+    mip_it();
+}
+
+template<> void uimage::rotate_colors( const int& r ) {
+    for( auto& c : base ) { rotate_color( c, r ); }
+    mip_it();
+}
+
 template<> void uimage::load( const std::string& filename ) {
     base.clear();
     image_loader loader( filename );

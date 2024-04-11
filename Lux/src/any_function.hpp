@@ -4,6 +4,7 @@
 #include <variant>
 #include "next_element.hpp"
 #include "UI.hpp"
+#include "life_hacks.hpp"
 
 template < class T > struct any_fn {};
 
@@ -53,7 +54,9 @@ typedef std::variant <
     // ui functions
     std::shared_ptr< slider_int >,
     std::shared_ptr< range_slider_int >,
-    std::shared_ptr< menu_int >
+    std::shared_ptr< menu_int >,
+    std::shared_ptr< multi_direction8_picker >,
+    std::shared_ptr< custom_blur_picker >
 > any_int_fn_ptr;
 
 template<> struct any_fn< int > {
@@ -301,6 +304,30 @@ template<> struct any_fn< direction8 > {
 };
 
 typedef std::variant < 
+    // harness functions
+    std::shared_ptr< identity_box_blur_type >,
+
+    // ui functions
+    std::shared_ptr< box_blur_picker >
+> any_box_blur_type_fn_ptr;
+
+template<> struct any_fn< box_blur_type > {
+    any_box_blur_type_fn_ptr any_box_blur_type_fn;
+    box_blur_type_fn fn;
+    std::string name;
+
+    box_blur_type operator () ( box_blur_type& val, element_context& context ) { return fn( val, context ); }
+
+    any_fn< box_blur_type >() : name( "identity_box_blur_type_default" ) { 
+        std::shared_ptr< identity_box_blur_type > f( new identity_box_blur_type );
+        fn = std::ref( *f ); 
+        any_box_blur_type_fn = f; 
+    }
+
+    any_fn< box_blur_type >( any_box_blur_type_fn_ptr any_box_blur_type_fn, box_blur_type_fn fn, std::string name ) : any_box_blur_type_fn( any_box_blur_type_fn ), fn( fn ), name( name ) {}
+};
+
+typedef std::variant < 
     // bool harness functions
     std::shared_ptr< initial_element_fn >,
     std::shared_ptr< following_element_fn >,
@@ -436,6 +463,7 @@ typedef std::variant <
     any_fn< std::string >,
     any_fn< direction4 >,
     any_fn< direction8 >,
+    any_fn< box_blur_type >,
     any_fn< bool >,
     any_condition_fn,
     any_gen_fn          

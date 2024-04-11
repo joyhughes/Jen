@@ -67,8 +67,7 @@ void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const 
              ( ( ( ( result & 0x000000ff ) * ( 0xff - ( ( mask & 0x000000ff )       ) ) + ( layer & 0x000000ff ) * ( ( mask & 0x000000ff )       ) ) >> 8 ) & 0x000000ff );
 }
 
-ucolor blend( const ucolor& a, const ucolor& b )
-{
+ucolor blend( const ucolor& a, const ucolor& b ) {
    // Random bit assures average color stays the same
    unsigned int random_bit = fair_coin( gen );
 
@@ -77,6 +76,23 @@ ucolor blend( const ucolor& a, const ucolor& b )
    ( ( ( ( a & 0x0000ff00 ) + ( b & 0x0000ff00 ) + 0x00000100 * random_bit ) >> 1 ) & 0x0000ff00 ) +
    ( ( ( ( a & 0x000000ff ) + ( b & 0x000000ff ) + 0x00000001 * random_bit ) >> 1 ) & 0x000000ff ) +
    0xff000000;
+}
+
+// Can blend up to 256 colors
+ucolor blend( const std::vector< ucolor >& colors ) {
+    unsigned int random_add = rand_uint( gen ) % colors.size();
+
+    unsigned int r = random_add, g = random_add, b = random_add;
+    for( unsigned int i = 0; i < colors.size(); i++ ) {
+        r += rc( colors[ i ] );
+        g += gc( colors[ i ] );
+        b += bc( colors[ i ] );
+    }
+    r /= colors.size();
+    g /= colors.size();
+    b /= colors.size();
+
+    return ( 0xff000000 | ( r << 16 ) | ( g << 8 ) | b );
 }
 
 ucolor gray( const ucolor& in ) {

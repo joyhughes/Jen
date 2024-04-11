@@ -15,9 +15,20 @@ struct vortex {
     int  velocity;   // float - Speed of revolution. Must be integer for animation to loop
     vec2f center_of_revolution;   // vect2 - vortex revolves around this point
 
-    vortex( float diam = 0.33f, float soft = 0.25f, float inten = 1.0f, vec2f c_orig = { 0.0f, 0.0f } ) :
-        diameter( diam ), soften( soft ), intensity( inten ), center_orig( c_orig ),
-        revolving( false ), velocity( 0 ), center_of_revolution( { 0.0f, 0.0f } ) {}
+    vortex( float diameter_init = 0.33f, 
+            float soften_init = 0.25f, 
+            float intensity_init = 1.0f, 
+            vec2f center_orig_init = { 0.0f, 0.0f },
+            bool revolving_init = false,
+            int velocity_init = 1,
+            vec2f center_of_revolution_init = { 0.0f, 0.0f } ) :
+        diameter( diameter_init ),
+        soften( soften_init ),
+        intensity( intensity_init ), 
+        center_orig( center_orig_init ),
+        revolving( revolving_init ), 
+        velocity( velocity_init ), 
+        center_of_revolution( center_of_revolution_init ) {}
 
 
     vec2f operator () ( const vec2f& v, const float& t = 0.0f );
@@ -46,12 +57,25 @@ struct vortex_field  {                  // parameters for field of vortices
 
     vec2f operator () ( const vec2f& v, const float& t = 0.0f );
 
-    vortex_field( int n_init = 10, bool revolving_init = true ) 
-        : n( n_init ), scale_factor( 0.5f ),
-        min_diameter( 0.33f ), max_diameter( 0.33f ), min_soften( 0.25f ), max_soften( 0.25f ),
-        min_intensity( 1.0f ), max_intensity( 1.0f ), intensity_direction( RANDOM ),
-        revolving( revolving_init ), min_velocity( 1 ), max_velocity( 1 ), velocity_direction( RANDOM ),
-        min_orbital_radius( 0.0f ), max_orbital_radius( 0.5f ), generated( false )  {}  
+    vortex_field(   int n_init = 10, 
+                    bool revolving_init = true,
+                    float scale_factor_init = 0.5f,
+                    float min_diameter_init = 0.33f, float max_diameter_init = 0.33f,
+                    float min_soften_init = 0.25f, float max_soften_init = 0.25f,
+                    float min_intensity_init = 1.0f, float max_intensity_init = 1.0f,
+                    rotation_direction intensity_direction_init = RANDOM,
+                    int min_velocity_init = 1, int max_velocity_init = 1,
+                    rotation_direction velocity_direction_init = RANDOM,
+                    float min_orbital_radius_init = 0.0f, float max_orbital_radius_init = 0.5f )
+        :   n( n_init ), revolving( revolving_init ),
+            scale_factor( scale_factor_init ),
+            min_diameter( min_diameter_init ), max_diameter( max_diameter_init ), 
+            min_soften( min_soften_init ), max_soften( max_soften_init ),
+            min_intensity( min_intensity_init ), max_intensity( max_intensity_init ), 
+            intensity_direction( intensity_direction_init ),
+             min_velocity( 1 ), max_velocity( 1 ), velocity_direction( RANDOM ),
+            min_orbital_radius( min_orbital_radius_init ), max_orbital_radius( max_orbital_radius_init ), 
+            generated( false )  {}  
 };
 
 #define vector_field image< vec2f >

@@ -166,10 +166,13 @@ public:
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
+    
     // functions below use template specialization
     void grayscale() {}
     void clamp( float minc = 1.0f, float maxc = 1.0f ) {}
     void constrain() {}
+    void rotate_colors( const int& r ) {}
+    void invert() {}
     // fill warp field or offset field values based on vector field - fields should be same size
     void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
     template< class U > inline void advect( int index, image< U >& in, image< U > out ) {} // advect one pixel (warp field and offset field)
