@@ -31,7 +31,7 @@ struct element_context {
 // An element object contains all the data members needed to create an image splat
 struct element {
     // std::vector< effect< T >& > effects; // should effects be generative functions?
-    
+    bool smooth;                // should image be smoothed?
     vec2f position; 		    // coordinates of element center (relative to parent cluster)
     float scale; 			    // radius of element
     float rotation; 	        // image rotation in degrees
@@ -56,7 +56,8 @@ struct element {
     // render into a buffer pair. Rendering modifies image directly - does not require buffer swap.
     // in this case the element serves as an effect functor
 
-    element(    const vec2f& position_init =  { 0.0f, 0.0f },
+    element(    const bool& smooth_init = false,
+                const vec2f& position_init =  { 0.0f, 0.0f },
                 const float& scale_init = 1.0f,
                 const float& rotation_init = 0.0f,
                 const float& orientation_init = 0.0f,
@@ -68,7 +69,8 @@ struct element {
                 const std::optional< any_pixel > tint_init = std::nullopt,
                 const mask_mode mmode_init = MASK_BLEND           
             ) 
-        : position( position_init ),
+        :   smooth( smooth_init ),
+            position( position_init ),
             scale( scale_init ),
             rotation( rotation_init ),
             orientation( orientation_init ),
@@ -220,6 +222,28 @@ struct scene {
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
+/*
+    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) noexcept {
+        if( functions.contains( name ) ) {
+            auto fn = std::get_if< any_fn< T >* >( &( functions[ name ] ) );
+            if( fn != nullptr ) {
+                auto fn_ptr = std::get_if< std::shared_ptr< F >* >( &( fn->any_fn ) );
+                if( fn_ptr != nullptr ) {
+                    return *fn_ptr;
+                }
+                else {
+                    return nullptr;
+                }
+            }
+            else {
+                return nullptr;
+            }
+        }
+        else {
+            return nullptr;
+        }
+    }
+*/
     // Get mouse position in parametric space of output buffer
     vec2f get_mouse_pos() const;
 

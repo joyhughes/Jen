@@ -39,6 +39,9 @@ typedef enum mutation_type {  MUTATE_NONE,
                               MUTATE_SATURATION 
 } mutation_type;
 
+// Kernel options for mip-mapping
+typedef enum mip_kernel { MIP_BOX, MIP_TENT, MIP_GAUSSIAN } mip_kernel;
+
 typedef enum direction4 { D4_UP, D4_RIGHT, D4_DOWN, D4_LEFT } direction4; // clockwise
 static bool horizontal( direction4 d ) { return ( d == D4_RIGHT || d == D4_LEFT ); }
 static bool vertical(   direction4 d ) { return ( d == D4_UP || d == D4_DOWN ); }
@@ -56,7 +59,6 @@ template< class T > class image {
 protected:
 
     vec2i dim;              // Dimensions in pixels
-    std::vector< T > base;  // Pixels
 
     // bounding boxes
     bb2f bounds;      // bounding box in linear space
@@ -67,43 +69,69 @@ protected:
     bool mip_me;      // Use mip-mapping for this image? Default false.
     bool mipped;      // has mip-map been allocated?
     bool mip_utd;     // is mip-map up to date? Set to false with any modification of base image
-    std::vector< std::unique_ptr< std::vector< T > > > mip;  // mip-map of image
-    std::vector< std::unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
-    std::vector< std::unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
+    mip_kernel kernel;
+    std::vector< std::vector< T > > mip;  // mip-map of image - first level points to base
+    //std::vector< T >& base;  // Pixels
+    std::vector< T > base;  // Pixels
+    std::vector< vec2i > mip_dim;  // dimensions of mip-map levels (int)
+    //std::vector< std::unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
+    //std::vector< std::unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
     // resamples image to crate mip-map            
     void de_mip();  // deallocate all mip-maps
 
 public:
-    typedef image< T > I;
-
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
-        mip_me( false ), mipped( false ), mip_utd( false ) {}     
+        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+        {}     
 
     // creates image of particular size 
     image( const vec2i& dims ) 
         :  dim( dims ), bounds( { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ), 
-           mip_me( false ), mipped( false ), mip_utd( false )  { base.resize( dim.x * dim.y ); }     
+           mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
+            { base.resize( dim.x * dim.y ); }     
 
     image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
-        mip_me( false ), mipped( false ), mip_utd( false ) { base.resize( dim.x * dim.y ); }
+        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
+            { base.resize( dim.x * dim.y ); }
         
     // copy constructor
-    image( const I& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
+    image( const image< T >& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
+        mip_me( img.mip_me ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
         {
             std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
-            mip_it();
+            // copy mip map
+            //mip_it();
         }
     
+    // resize constructor
+    // 
+    image( const image< T >& img, const vec2i& max_size ) : dim( max_size ), 
+        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+        {
+            // set dimensions - fit within max_size rectangle
+            if( dim.x > img.dim.x || dim.y > img.dim.y ) {
+                float scale = std::min( (float)dim.x / img.dim.x, (float)dim.y / img.dim.y );
+                dim = vec2i( (int)( img.dim.x * scale ), (int)( img.dim.y * scale ) );
+            }
+            bounds = { { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } };
+            ipbounds = { { 0, 0 }, dim };
+            fpbounds = { { 0.0f, 0.0f }, ipbounds.maxv - 1.0f };
+            base.resize( dim.x * dim.y );
+
+            // splat image into new image (smoothed)
+            if( !img.mipped ) throw std::runtime_error( "image resize constructor: image to be resized has no mip-map" );
+            splat( img, true );
+        }
+
     // move constructor
-    image( I&& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ) 
+    image( image< T >&& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )//, base( mip[ 0 ] ) 
         {
             // move mip map
             mip = std::move( img.mip );
             base = std::move( img.base );
-            mip_it();
+            //mip_it();
         }
 
     // load constructor
@@ -136,7 +164,9 @@ public:
     inline T index( const unsigned int& i ) const { return base[ i ]; }
     const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
     // Preserved intersting bug       
-    const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;           
+    const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;
+    // fixed point sample           
+    const T sample( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const; // mip-map sample using fixed point coordinates
 
     // sample mip-map
     // const T index( const vec2i& vi, const int& level, const image_extend& extend = SAMP_SINGLE );                
@@ -156,9 +186,10 @@ public:
                     const image_extend& extend = SAMP_SINGLE );
     void turn( const image< T >& in, const direction4& direction );
     void flip( const image< T >& in, const bool& flip_x, const bool& flip_y );
+    void resize( const image< T >& in, const vec2i& max_size ); // resize image to fit within max_size rectangle
 
     // pixel modification functions
-    void copy( const I& img );
+    void copy( const image< T >&  img );
     void fill( const T& c );
     void fill( const T& c, const bb2i& bb );
     void fill( const T& c, const bb2f& bb );
@@ -166,10 +197,13 @@ public:
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
+    
     // functions below use template specialization
     void grayscale() {}
     void clamp( float minc = 1.0f, float maxc = 1.0f ) {}
     void constrain() {}
+    void rotate_colors( const int& r ) {}
+    void invert() {}
     // fill warp field or offset field values based on vector field - fields should be same size
     void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
     template< class U > inline void advect( int index, image< U >& in, image< U > out ) {} // advect one pixel (warp field and offset field)
@@ -178,14 +212,15 @@ public:
     //void color_noise( const T& minc, const T& maxc, const float& a = 1.0f, const bb2i& );
 
     // masking
-    void apply_mask( const I& layer, const I& mask, const mask_mode& mmode = MASK_BLEND );
+    void apply_mask( const image< T >& layer, const image< T >& mask, const mask_mode& mmode = MASK_BLEND );
 
     // rendering
     void splat( 
-        const vec2f& center, // coordinates of splat center
-        const float& scale,  // radius of splat
-        const float& theta,  // rotation in degrees
         const image< T >& splat_image,    // image of the splat
+        const bool& smooth = false,       // smooth the splat
+        const vec2f& center = { 0.0f, 0.0f }, // coordinates of splat center
+        const float& scale = 1.0f,  // radius of splat
+        const float& theta = 0.0f,  // rotation in degrees
         const std::optional< std::reference_wrapper< image< T > > > mask = std::nullopt,  // optional mask image
         const std::optional< T >& tint = std::nullopt,       // change the color of the splat
         const mask_mode& mmode = MASK_BLEND // how will mask be applied to splat and backround?
@@ -237,20 +272,20 @@ public:
     unsigned int size() { return base.size(); } // return size of image
 
     // operators
-    I& operator = ( const I& rhs ); // copy assignment
-    I& operator = ( I&& rhs );      // move assignment
-    I& operator += ( I& rhs );      // add rhs to this
-    I& operator += ( const T& rhs );
-    I& operator -= ( I& rhs );
-    I& operator -= ( const T& rhs );
-    I& operator *= ( I& rhs );
-    I& operator *= ( const T& rhs );
-    I& operator *= ( const float& rhs );
-    I& operator /= ( I& rhs );
-    I& operator /= ( const T& rhs );
-    I& operator /= ( const float& rhs );
+    image< T >&  operator = ( const image< T >&  rhs ); // copy assignment
+    image< T >&  operator = ( image< T >&& rhs );      // move assignment
+    image< T >&  operator += ( image< T >&  rhs );      // add rhs to this
+    image< T >&  operator += ( const T& rhs );
+    image< T >&  operator -= ( image< T >&  rhs );
+    image< T >&  operator -= ( const T& rhs );
+    image< T >&  operator *= ( image< T >&  rhs );
+    image< T >&  operator *= ( const T& rhs );
+    image< T >&  operator *= ( const float& rhs );
+    image< T >&  operator /= ( image< T >&  rhs );
+    image< T >&  operator /= ( const T& rhs );
+    image< T >&  operator /= ( const float& rhs );
 
-    I& operator () ();
+    image< T >&  operator () ();
     //void apply( unary_func< T > func ); // apply function to each pixel (in place)
     //void apply( unary_func< T > func, image< T >& result ); // apply function to each pixel (to target image)
     // apply function to two images

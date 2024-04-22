@@ -69,7 +69,7 @@ void apply_mask( frgb &result, const frgb &layer, const frgb &mask, const mask_m
         case MASK_BLEND:    result =  linalg::lerp( result, layer, mask ); break;
     }
     /*
-    if( mmode % 2 )  {   // mask affects splat
+    if( mmode % 2 )  {   // mask affects 
         if( mmode % 1 ) result = linalg::lerp( result, layer, mask );
         else result += linalg::cmul( layer, mask );
     }

@@ -8,17 +8,27 @@
 
 template<> void fimage::clamp( float minc, float maxc ) {
     for( auto& c : base ) { linalg::clamp( c, minc, maxc ); }
-    mip_it();
+    //mip_it();
 }
 
 template<> void fimage::constrain() {
     for( auto& c : base ) { ::constrain( c ); }
-    mip_it();
+    //mip_it();
 }
 
 template<> void fimage::grayscale() {
     for( auto& c : base ) { c = gray( c ); }
-    mip_it();
+    //mip_it();
+}
+
+template<> void fimage::invert() {
+    for( auto& c : base ) { ::invert( c ); }
+    //mip_it();
+}
+
+template<> void fimage::rotate_colors( const int& r ) {
+    for( auto& c : base ) { rotate_color( c, r ); }
+    //mip_it();
 }
 
 template<> void fimage::load( const std::string& filename ) {
@@ -61,7 +71,7 @@ template<> void fimage::load( const std::string& filename ) {
 
         base.push_back( f );
     }
-    mip_it();
+    //mip_it();
     //std::cout << "Image load complete\n";
 }
 

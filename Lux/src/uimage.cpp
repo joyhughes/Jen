@@ -6,7 +6,17 @@
 // pixel modification functions
 template<> void uimage::grayscale() {
     for( auto& f : base ) { f = gray( f ); }
-    mip_it();
+    //mip_it();
+}
+
+template<> void uimage::invert() {
+    for( auto& c : base ) { ::invert( c ); }
+    //mip_it();
+}
+
+template<> void uimage::rotate_colors( const int& r ) {
+    for( auto& c : base ) { rotate_color( c, r ); }
+    //mip_it();
 }
 
 template<> void uimage::load( const std::string& filename ) {
@@ -56,7 +66,7 @@ template<> void uimage::load( const std::string& filename ) {
         // skip alpha channel - rgba ... if argb need to move line up
         base.push_back( f );
     }
-    mip_it();
+    //mip_it();
 }
 
 template<> void uimage::write_jpg( const std::string& filename, int quality ) {
@@ -75,9 +85,28 @@ template<> void uimage::write_png( const std::string& filename ) {
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }
 
+// Fixed point version of sample
+
+template<> const ucolor image< ucolor >::sample ( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const  {
+    int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
+    int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
+
+    return  blend(
+                blend(
+                    blend( mip[ mip_level ][ l_index ], mip[ mip_level ][ l_index + 1 ],( vi.x >> ( 8 + mip_level ) ) & 0xff ),
+                    blend( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ],( vi.x >> ( 8 + mip_level ) ) & 0xff ),
+                    ( vi.y >> ( 8 + mip_level ) ) & 0xff 
+                ),
+                blend(
+                    blend( mip[ mip_level + 1 ][ u_index ], mip[ mip_level + 1 ][ u_index + 1 ],( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
+                    blend( mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x ], mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ],( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
+                    ( vi.y >> ( 8 + mip_level + 1 ) ) & 0xff 
+                ),
+                mip_blend >> 8
+            );
+}
 
 template<> void uimage::dump() {
     for( auto& v : base ) { std::cout << std::hex << v; }
-    mip_it();
 }
 
