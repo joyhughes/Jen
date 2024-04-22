@@ -91,37 +91,40 @@ vec2f vf_tools::advect( const vec2f& v, const float& step, const mat2f& m, const
     return v + linalg::mul( m, img.sample( v, smooth, extend ) ) * step;
 }
 
-void vf_tools::complement() { for( auto& v : img.base ) { v = ::complement( v ); } img.mip_it(); }
-void vf_tools::radial()     { for( auto& v : img.base ) { v = ::radial( v );     } img.mip_it(); }
-void vf_tools::cartesian()  { for( auto& v : img.base ) { v = ::cartesian( v );  } img.mip_it(); }
+void vf_tools::complement() { for( auto& v : img.base ) { v = ::complement( v ); } //img.mip_it(); 
+}
+void vf_tools::radial()     { for( auto& v : img.base ) { v = ::radial( v );     } //img.mip_it(); 
+}
+void vf_tools::cartesian()  { for( auto& v : img.base ) { v = ::cartesian( v );  } //img.mip_it(); 
+}
 
 void vf_tools::rotate_vectors( const float& ang ) {
     mat2f m = linalg::rotation_matrix_2D( ang / 360.0f * TAU );
     for( auto& v : img.base ) { v = linalg::mul( m, v ); }
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::normalize() { 
     std::transform( img.base.begin(), img.base.end(), img.base.begin(), [] ( const vec2f& v ) { return linalg::normalize( v );  } ); 
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::inverse( float diameter, float soften ) {
     if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
     else for( auto& v : img.base ) { v = ::inverse( v, diameter, soften ); }
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::inverse_square( float diameter, float soften ) {
     if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
     else for( auto& v : img.base ) { v = ::inverse_square( v, diameter, soften ); }
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::concentric( const vec2f& center ) { 
     position_fill();
     for( auto& v : img.base ) { v = v - center; }
-    img.mip_it(); 
+    //img.mip_it(); 
 }
 
 void vf_tools::rotation( const vec2f& center ) { 
@@ -139,7 +142,7 @@ void vf_tools::spiral( const vec2f& center, const float& cscale, const float& rs
     buffer_tools.rotation();
     buffer *= rscale;
     img += buffer;
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::vortex( const ::vortex& vort, const float& t ) {
@@ -148,7 +151,7 @@ void vf_tools::vortex( const ::vortex& vort, const float& t ) {
     rotation( center );
     inverse( vort.diameter, vort.soften );
     img *= vort.intensity;
-    img.mip_it();
+    //img.mip_it();
 }
 
 void vf_tools::turbulent( vortex_field& ca, const float& t ) {
@@ -159,7 +162,7 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
 
     // cavort cavort cavort
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
-    img.mip_it();
+    //img.mip_it();
 }
  
 void vf_tools::position_fill() { 
@@ -170,7 +173,7 @@ void vf_tools::position_fill() {
             v++;
         }
     }
-    // rather than using mip_it() here, calculate directly up hierarchy using bounding box
+    // rather than using //mip_it() here, calculate directly up hierarchy using bounding box
 }
 
 /*

@@ -65,12 +65,36 @@ inline float luminance( const frgb &c );  // Returns approximate visual brightne
 frgb gray( const frgb &c );        // Grays out the color
 inline void white( frgb& w ) { w = frgb( { 1.0f, 1.0f, 1.0f  } ); }
 inline void black( frgb& b ) { b = frgb( { 0.0f, 0.0f, 0.0f  } ); }
-static inline frgb blend( const frgb& a, const frgb& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
+static inline frgb blendf( const frgb& a, const frgb& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
+static inline frgb blend( const frgb& a, const frgb& b ) { return ( a + b ) / 2; }
 
 // Wrappers for addition and subtraction - used for image compatibility
 static inline void addc( frgb& c1, const frgb& c2 ) { c1 += c2; }
 static inline void subc( frgb& c1, const frgb& c2 ) { c1 -= c2; }
 static inline frgb mulc( const frgb& c1, const frgb& c2 ) { return linalg::cmul( c1, c2 ); }
+
+static inline void rotate_color( frgb& c, const int& r )
+{
+    if(      !r%1 ) c = frgb( { c.R, c.G, c.B } );
+    else if( !r%2 ) c = frgb( { c.B, c.R, c.G } );
+}
+
+static inline frgb rotate_color( const frgb& c, const int& r )
+{
+    if(      !r%1 ) return frgb( { c.R, c.G, c.B } );
+    else if( !r%2 ) return frgb( { c.B, c.R, c.G } );
+    else return c;
+}
+
+static inline void invert( frgb& c )
+{
+    c = frgb( { 1.0f - c.R, 1.0f - c.G, 1.0f - c.B } );
+}
+
+static inline frgb invert( const frgb& c )
+{
+    return frgb( { 1.0f - c.R, 1.0f - c.G, 1.0f - c.B } );
+}
 
 // Future: HSV and other color spaces
 

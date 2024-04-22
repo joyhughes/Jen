@@ -37,7 +37,8 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
                 if( el.orientation_lock ) th += el.orientation;
 
                 if( target_buf->has_image() ) {
-                    target_buf->get_image().splat( el.position, el.scale, th, img_buf->get_image(), mask, tint, el.mmode ); 
+//                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
+                    target_buf->get_image().splat( img_buf->get_image(), false, el.position, el.scale, th, mask, tint, el.mmode ); 
                 }
             }
             else std::cout << "splat_element() - no image in buffer" << std::endl;

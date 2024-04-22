@@ -57,15 +57,19 @@ vec2f complex_power( const vec2f& in, const float& p );
 // masking functions
 // vector_field
 void apply_mask( vec2f& result, const vec2f& layer, const vec2f& mask, const mask_mode& mmode = MASK_BLEND  );
-static inline vec2f blend( const vec2f& a, const vec2f& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
+static inline vec2f blendf( const vec2f& a, const vec2f& b, const float& prop ) { return linalg::lerp( a, b, prop ); }
+static inline vec2f blend( const vec2f& a, const vec2f& b ) { return ( a + b ) / 2.0f; }
 
 // warp_field
 void apply_mask( int& result, const int& layer, const int& mask, const mask_mode& mmode = MASK_BLEND  );
-static inline int blend( const int& a, const int& b, const float& prop ) { return (int) std::lerp( (float) a, (float) b, prop ); }
+static inline int blendf( const int& a, const int& b, const float& prop ) { return (int) std::lerp( (float) a, (float) b, prop ); }
+static inline int blend( const int& a, const int& b ) { return ( a + b ) / 2; }
 
 // offset_field
 void apply_mask( vec2i& result, const vec2i& layer, const vec2i& mask, const mask_mode& mmode = MASK_BLEND  );
-static inline vec2i blend( const vec2i& a, const vec2i& b, const float& prop ) { return vec2i( { (int) std::lerp( (float) a.x, (float) b.x, prop ), (int) std::lerp( (float) a.y, (float) b.y, prop ) } ); }
+//static inline vec2i blendf( const vec2i& a, const vec2i& b, const float& prop ) { return vec2i( { (int) std::lerp( (float) a.x, (float) b.x, prop ), (int) std::lerp( (float) a.y, (float) b.y, prop ) } ); }
+static inline vec2i blendf( const vec2i& a, const vec2i& b, const float& prop ) { return a; }
+static inline vec2i blend( const vec2i& a, const vec2i& b ) { return ( a + b ) / 2; }
 
 // default colors for various image operations
 // imagine cellular automata operating on vector fields (weird but maybe cool?)

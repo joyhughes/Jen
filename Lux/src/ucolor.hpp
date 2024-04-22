@@ -48,9 +48,11 @@ ucolor shift_right_7( const ucolor &c );
 
 void apply_mask( ucolor& result, const ucolor& layer, const ucolor& mask, const mask_mode& mmode = MASK_BLEND  );
 ucolor blend( const ucolor& a, const ucolor& b );
+ucolor blend( const ucolor& a, const ucolor& b, const ucolor& c, const ucolor& d );
+ucolor blend( const std::vector< ucolor >& colors );
 
 // proportion 0-256 -> 0-100%
-static inline ucolor blend( const ucolor& a, const ucolor& b, const unsigned int prop )
+static inline ucolor blend( const ucolor& a, const ucolor& b, const unsigned int& prop )
 {
     // should a random bit be included and at what probability?
     // unsigned int random_bit = fair_coin( gen );
@@ -63,13 +65,15 @@ static inline ucolor blend( const ucolor& a, const ucolor& b, const unsigned int
     ( ( ( a & 0x000000ff ) * prop + ( b & 0x000000ff ) * iprop ) >> 8 );
 }
 
-static inline ucolor blend(  const ucolor& a, const ucolor& b, const float& prop ) 
+
+static inline ucolor blendf(  const ucolor& a, const ucolor& b, const float& prop ) 
 { return blend( a, b, (unsigned int)( prop * 256.0f ) ); }
+
 
 inline unsigned long luminance( const ucolor& in ) {
     return( ( ( ( shift_right_2( in ) + shift_right_4( in ) ) >> 16 ) +   // r * 5/16
               ( ( shift_right_1( in ) + shift_right_4( in ) ) >> 8  ) +   // g * 9/16
-                  shift_right_3( in ) ) & 0x000000ff );                  // b * 2/16
+                  shift_right_3( in ) ) & 0x000000ff );                   // b * 2/16
 }
 
 ucolor gray( const ucolor& in );
@@ -123,6 +127,30 @@ static inline ucolor mulc( const ucolor& c1, const ucolor& c2 )
       std::min< unsigned int>( ( ( c1 & 0x00ff0000 ) * ( c2 & 0x00ff0000 ) ) >> 8, 0x00ff0000 ) +
       std::min< unsigned int>( ( ( c1 & 0x0000ff00 ) * ( c2 & 0x0000ff00 ) ) >> 8, 0x0000ff00 ) +
       std::min< unsigned int>( ( ( c1 & 0x000000ff ) * ( c2 & 0x000000ff ) ) >> 8, 0x000000ff );
+}
+
+static inline void rotate_color( ucolor& c, const int& r )
+{
+   if(      !r%1 ) c = ( c & 0xff000000 ) | ( c & 0x00ffff00 >> 8 ) | ( c & 0x000000ff << 16 );
+   else if( !r%2 ) c = ( c & 0xff000000 ) | ( c & 0x0000ffff << 8 ) | ( c & 0x00ff0000 >> 16 );
+ 
+}
+
+static inline ucolor rotate_color( const ucolor& c, const int& r )
+{
+   if(      !r%1 ) return ( c & 0xff000000 ) | ( c & 0x00ffff00 >> 8 ) | ( c & 0x000000ff << 16 );
+   else if( !r%2 ) return ( c & 0xff000000 ) | ( c & 0x0000ffff << 8 ) | ( c & 0x00ff0000 >> 16 );
+   else return c;
+}
+
+static inline void invert( ucolor& c )
+{
+   c = ( c & 0xff000000 ) | ( ( ~c ) & 0x00ffffff );
+}
+
+static inline ucolor invert( const ucolor& c )
+{
+   return ( c & 0xff000000 ) | ( ( ~c ) & 0x00ffffff );
 }
 
 #endif // __UCOLOR_HPP
