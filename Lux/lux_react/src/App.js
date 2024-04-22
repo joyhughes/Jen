@@ -1,5 +1,6 @@
 
 import './App.css';
+//import './emscripten/lux.js';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 //import Home from "./pages/Home";
 //import Tour from "./pages/Tour";
