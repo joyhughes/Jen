@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 function ImagePortCanvas( { width, height } ) {
   const canvasRef = useRef(null);
-  const [isModuleReady, setModuleReady] = useState(false);
+  const [isModuleReady, setModuleReady] = useState( false );
+  const [ frameTime, setFrameTime ] = useState( 0 );
 
   const handleMouseDown = useCallback(() => {
     if (window.Module) {
@@ -50,18 +51,31 @@ function ImagePortCanvas( { width, height } ) {
   const updateCanvas = useCallback(async () => {
     const ctx = canvasRef.current.getContext('2d');
 
+    let t0 = performance.now();
     const imageDataArray = window.Module.get_img_data();
     const bufWidth  = window.Module.get_buf_width();
     const bufHeight = window.Module.get_buf_height();
     
+    let t1, t2, t3, t4;
+    t1 = performance.now();
+    //console.log( "updateCanvas get_img_data time = " + (t1 - t0) );
     const imageData = new ImageData(
       new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
       bufWidth,
       bufHeight
     );
+    t2 = performance.now();
+    //console.log( "updateCanvas new ImageData time = " + (t2 - t1) );
     const imageBitmap = await createImageBitmap(imageData);
+    t3 = performance.now();
+    //console.log( "updateCanvas createImageBitmap time = " + (t3 - t2) );
     //console.log( "width=" + width + " height=" + height );
     ctx.drawImage(imageBitmap, 0, 0, width, height);
+    //ctx.putImageData(imageData, 0, 0);
+    t4 = performance.now();
+    //console.log( "updateCanvas drawImage time = " + (t4 - t3) );
+    //console.log( "frame time = " + (t4 - frameTime) );
+    setFrameTime( t4 );
 
   }, [width, height]);
 

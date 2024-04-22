@@ -5,7 +5,7 @@ import ControlPanel from './ControlPanel';
 
 function InterfaceContainer( { ratio, panelSize } ) {
 
-    const [isRowDirection, setIsRowDirection] = useState( true );
+    const [ isRowDirection, setIsRowDirection ] = useState( true );
 
     const resizeBox = () => {
         let windowRatio, isRowDirection;
@@ -22,10 +22,10 @@ function InterfaceContainer( { ratio, panelSize } ) {
       };
     
       useEffect(() => {
-        window.addEventListener("resize", resizeBox);
+        window.addEventListener( "resize", resizeBox );
         resizeBox();
-        return () => window.removeEventListener("resize", resizeBox);
-      }, [ ratio, panelSize ]);
+        return () => window.removeEventListener( "resize", resizeBox );
+      }, [ ratio, panelSize ] );
 
     return(
         <Box
@@ -41,9 +41,9 @@ function InterfaceContainer( { ratio, panelSize } ) {
             left: 0,
             }}
         >
-          <ImagePort ratio={ratio} panelSize={panelSize} />        
+          < ImagePort ratio={ ratio } panelSize={ panelSize } />        
 
-          <ControlPanel ratio={ratio} panelSize={panelSize} />
+          < ControlPanel ratio={ ratio } panelSize={ panelSize } />
 
         </Box>
     );
