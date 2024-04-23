@@ -3,8 +3,8 @@ import InterfaceContainer from '../components/InterfaceContainer';
 
 
 function Home() {
-  const imgWidth = 1600; // Replace with your image width
-  const imgHeight = 900; // Replace with your image height
+  const imgWidth = 512; // Replace with your image width
+  const imgHeight = 512; // Replace with your image height
   const ratio = imgWidth / imgHeight;
 
   let panelSize = 180;
