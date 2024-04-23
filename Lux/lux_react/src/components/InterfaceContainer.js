@@ -36,9 +36,10 @@ function InterfaceContainer( { ratio, panelSize } ) {
             width: '100vw',
             height: '100vh',
             position: 'absolute',
-            alignContent: 'flex-start',
+            alignContent: 'center',
             top: 0,
             left: 0,
+            justifyContent: 'center',
             }}
         >
           < ImagePort ratio={ ratio } panelSize={ panelSize } />        
