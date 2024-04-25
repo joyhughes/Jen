@@ -94,7 +94,6 @@ function ControlPanel( { ratio, panelSize } ) {
         flexGrow: 1,
         alignItems: 'flex-start',
         alignSelf: 'stretch',
-        margin: '10px',
         
       }}
     >
