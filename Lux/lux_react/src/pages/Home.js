@@ -1,6 +1,4 @@
-import Box from '@mui/material/Box';
-import InterfaceContainer from '../components/InterfaceContainer';
-
+import InterfaceContainer from "../components/InterfaceContainer";
 
 function Home() {
   const imgWidth = 512; // Replace with your image width
@@ -10,10 +8,11 @@ function Home() {
   let panelSize = 180;
 
   return (
-    <div className="App">
-
-      <InterfaceContainer ratio={ratio} panelSize={panelSize} />        
-
+    <div
+      className="App"
+      style={{ height: "100vh", width: "100vw", overflow: "hidden" }}
+    >
+      <InterfaceContainer ratio={ratio} panelSize={panelSize} />
     </div>
   );
 }
