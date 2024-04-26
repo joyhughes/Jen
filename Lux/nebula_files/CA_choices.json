@@ -40,9 +40,16 @@
         {
             "name": "direction_8",
             "type": "direction_picker_8",
-            "default_value": "down",
+            "default_value": "up",
             "label": "Direction",
             "description": "Direction of sort"
+        },        
+        {
+            "name": "direction_8_funky",
+            "type": "direction_picker_8",
+            "default_value": "down_right",
+            "label": "Direction",
+            "description": "Direction of funkiness"
         },
         {
             "name": "edge_block_switch",
@@ -104,7 +111,7 @@
             "tool": "pull_down",
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
+            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Borg", "Box blur", "Blurriffic" ],
             "default_choice": 5,
             "affects_widget_groups": true
         },
@@ -145,13 +152,55 @@
             "b": 5
         },
         {
+            "name": "rule_menu_6",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 6
+        },        
+        {
+            "name": "rule_menu_7",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 7
+        },
+        {
             "name": "funk_factor_menu",
             "type": "menu_int",
             "tool": "pull_down",
             "label": "Funk Factor",
             "description": "Funk factor is a parameter of the Funky sort rule.",
             "items": [ "Borg", "Funky Town", "Web" ],
-            "default_choice": 2
+            "default_choice": 0
+        },
+        {
+            "name": "blur_picker",
+            "type": "box_blur_picker",
+            "label": "Blur method",
+            "description": "Choose a set of possible directions to blur pixels.",
+            "default_value": "orthogonal"
+        },
+        {
+            "name": "blur_picker_custom",
+            "type": "custom_blur_picker",
+            "label": "Custom blur method",
+            "description": "Choose a set of possible directions to blur pixels.",
+            "pickers": [ [ 17, 17 ], [ 68, 68 ] ]
+        },
+        {
+            "name": "box_blur_bug_switch",
+            "type": "switch_fn",
+            "label": "Bug mode",
+            "description": "Bug mode runs the rule incorrectly with interesting results. Switch has the largest effect when sort threshold is low.",
+            "tool": "switch",
+            "default_value": false
+        },
+        {
+            "name": "bb_random_copy_switch",
+            "type": "switch_fn",
+            "label": "Random copy",
+            "description": "Random copy mode copies a random pixel from the neighborhood.",
+            "tool": "switch",
+            "default_value": false
         }
     ],
     "clusters":
@@ -247,14 +296,14 @@
         {
             "name": "Funky sort",
             "type": "CA_ucolor",
-            "edge_block": {"functions": [ "edge_block_switch" ] },
+            "edge_block": {   "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "rule":
             {
                 "name": "funky_sort",
                 "type": "rule_funky_sort_ucolor",
-                "direction": { "functions": [ "direction_8" ] },
+                "direction": { "functions": [ "direction_8_funky" ] },
                 "dafunk_d": "0xffffffffaa00aa00",
                 "dafunk_l": "0x5fc1850e6d728137",
                 "dafunk_r": "0xfa6c916dae77c405",
@@ -262,9 +311,43 @@
             }
         },
         {
+            "name": "Box blur",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "box blur rule",
+                "type": "rule_box_blur_ucolor",
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "bug_mode": { "functions": [ "box_blur_bug_switch" ] },
+                "blur_method": { "functions": [ "blur_picker" ] },
+                "random_copy": false,
+                "custom_picker": "blur_picker_custom"
+            }
+        },        
+        {
+            "name": "Blurriffic",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "Blurriffic rule",
+                "type": "rule_box_blur_ucolor",
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "bug_mode": { "functions": [ "box_blur_bug_switch" ] },
+                "blur_method": "custom",
+                "random_copy": { "functions": [ "bb_random_copy_switch" ]},
+                "custom_picker": "blur_picker_custom"
+            }
+        },  
+        {
             "name": "Rule Chooser",
             "type": "eff_chooser",
-            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
+            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Box blur", "Blurriffic" ],
             "choice": { "functions": [ "rule_menu" ] }
         },
         {
@@ -331,7 +414,17 @@
         {
             "name": "funky_sort_group",
             "conditions": [ "rule_menu_5" ],
-            "widgets": [ "direction_8", "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
+            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
+        },
+        {
+            "name": "box_blur_group",
+            "conditions": [ "rule_menu_6" ],
+            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "blur_picker", "box_blur_bug_switch" ]
+        },
+        {
+            "name": "blurriffic_group",
+            "conditions": [ "rule_menu_7" ],
+            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "box_blur_bug_switch", "bb_random_copy_switch", "blur_picker_custom" ]
         }
     ]
 }
