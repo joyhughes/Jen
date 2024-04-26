@@ -7,8 +7,7 @@ const blurMethodToNumber = (blurString) => {
     const mapping = {
         "orthogonal": 0,
         "diagonal": 1,
-        "all": 2,
-        "custom": 3
+        "all": 2
     };
 
     return mapping[blurString] ?? -1; // Return -1 if blurString is not in mapping
@@ -46,9 +45,6 @@ function JenBlurPicker({ json }) {
             <Tooltip title={ 'all' } placement="top" disableInteractive  >
                 <Grid item>{renderBlurButton(2, '*')}</Grid>
             </Tooltip>            
-            <Tooltip title={ 'custom' } placement="top" disableInteractive  >
-                <Grid item>{renderBlurButton(3, 'C')}</Grid>
-            </Tooltip>
         </Grid>
     );
 }
