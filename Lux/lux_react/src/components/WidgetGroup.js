@@ -37,6 +37,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
       console.error(`No widget found for name: ${name}`);
     }
     //console.log( "WidgetGroup widget json=" + JSON.stringify( widget ) );
+    let labelAndDescription =             
+      <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
+        <Typography variant="subtitle1" component="div">
+          {widget.label}
+        </Typography>
+      </Tooltip>;
+
     switch ( widget.type ) {
       case 'menu_int':
       case 'menu_string':
@@ -48,11 +55,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'range_slider_float':
         widgetComponent =       
           <Stack spacing={-0.5} direction="column" alignItems="center">
-            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-              <Typography variant="subtitle1" component="div">
-                {widget.label}
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
             <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
           </Stack>;
       break;
@@ -62,33 +65,21 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenSwitch key={widget.name} json={widget} size = { "small" } onChange = { onChange } />
-            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-              <Typography variant="subtitle1" component="div">
-                {widget.label}
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
           </Stack>;
       break;
       case 'direction_picker_8':
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection8 key={widget.name} json={widget} />
-            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-              <Typography variant="subtitle1" component="div">
-                {widget.label}
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
           </Stack>;
       break;
       case 'direction_picker_4':
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4 key={ widget.name } json={ widget } />
-            <Tooltip title={ widget.description ?? '' } placement="top" disableInteractive  >
-              <Typography variant="subtitle1" component="div">
-                { widget.label }
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
           </Stack>;
       break;
       case 'box_blur_picker':
@@ -96,11 +87,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenBlurPicker key={ widget.name } json={ widget } />
-            <Tooltip title={ widget.description ?? '' } placement="top" disableInteractive  >
-              <Typography variant="subtitle1" component="div">
-                { widget.label }
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
           </Stack>;
       break;
       case 'custom_blur_picker':
@@ -149,11 +136,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
 
         widgetComponent =       
           <Stack spacing={-0.5} direction="column" alignItems="center">
-            <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-              <Typography variant="subtitle1" component="div">
-                {widget.label}
-              </Typography>
-            </Tooltip>
+            { labelAndDescription }
             <Stack spacing={1} direction="column" alignItems="center">
               {pickerElements}
               <IconButton size="small" onClick={handleAddPicker}>
@@ -192,11 +175,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
               <Stack spacing={-0.5} direction="column" alignItems="center">
               <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
                 <JenSwitch key={switcher.name} json={switcher} size={"small"} />
-                <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-                  <Typography variant="subtitle1" component="div">
-                    {widget.label}
-                  </Typography>
-                </Tooltip>
+                { labelAndDescription }
               </Stack>
               <JenSlider key={ws_widget.name} json={ws_widget} width={panelSize - 75} />
             </Stack>;
