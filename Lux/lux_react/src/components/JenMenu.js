@@ -24,9 +24,9 @@ function JenMenu({ json, width, onChange }) {
             onChange();
         }
     };
-
+ 
     const renderMenu = () => {
-        if (json.tool === 'pull_down') {
+        if (json.tool === 'pull_down' || json.tool === 'image') {
             return (
                 <Tooltip title={json.description ?? ''} placement="top" disableInteractive >
                     <FormControl sx={{ m: 1, minWidth: `${width}px` }} size="small">
