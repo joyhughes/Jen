@@ -154,11 +154,11 @@ typedef enum {
     MODE_ITERATIVE,     // render every frame based on previous frame
     MODE_EPHEMERAL      // render every frame starting with background
 } render_mode;
-
+ 
 // An effect list contains a list of effects to be rendered in sequence
 struct effect_list {
     render_mode rmode;          // how will effects be rendered?
-    std::string source_name;    // name of source image or buffer (if name not in list assume blank source)
+    harness< std::string > source_name;    // name of source image or buffer (if name not in list assume blank source)
     std::string name;
     any_buffer_pair_ptr buf;
     std::vector< std::string > effects;
@@ -167,9 +167,8 @@ struct effect_list {
     float relative_dim; // proportion of buffer size to use for effect - deferred
     bool rendered;      // Has static buffer already been rendered? Set to false after changing any effect
 
-    any_image_ptr get_initial_image();
-    template< class T > void set_buffer( T b ); // T is of the form std::shared_ptr< buffer_pair< U > > where U is a pixel type
-
+    void update_source_name( scene& s );
+    void copy_source_buffer( scene& s );
     void render( scene& s );
     void resize( const vec2i& new_dim );
     void restart( scene& s );   // return to initial condition
@@ -211,7 +210,7 @@ struct scene {
     std::unordered_map< std::string, any_effect_fn > effects;
 
     std::unordered_map< std::string, any_buffer_pair_ptr > buffers; // Source images and results of effect stacks
-    std::vector< effect_list > queue; // list of buffers rendered in order - last in list displayed on screen (should be named "display" )
+    std::vector< effect_list > queue; // list of buffers rendered in order 
 
     float time; 
     float time_interval; 

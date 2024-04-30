@@ -241,8 +241,9 @@ menu_type scene_reader::read_menu_type( const json& j ) {
     menu_type t;
 
     j.get_to( s );
-    if(      s == "pull_down" ) t = MENU_PULL_DOWN;
-    else if( s == "radio"    ) t = MENU_RADIO;
+    if(      s == "pull_down" )     t = MENU_PULL_DOWN;
+    else if( s == "radio"    )      t = MENU_RADIO;
+    else if( s == "image" )         t = MENU_IMAGE;
     else ERROR( "Invalid menu_type string: " + s )
     return t;
 }
@@ -790,7 +791,9 @@ void scene_reader::read_effect( const json& j ) {
 void scene_reader::read_queue( const json& j, effect_list& elist ) {
     if( j.contains( "name"         ) ) read( elist.name,           j[ "name"         ] );
     if( j.contains( "dim"          ) ) read( elist.dim,            j[ "dim"          ] );
-    if( j.contains( "source"       ) ) read( elist.source_name,    j[ "source"       ] );
+    DEBUG( "Reading queue " + elist.name )
+    if( j.contains( "source"       ) ) read_harness< std::string >(     j[ "source"       ], elist.source_name );
+    DEBUG( "queue source successfully read " )
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  
     if( j.contains( "relative_dim" ) ) read( elist.relative_dim,   j[ "relative_dim" ] );  
     if( j.contains( "mode"         ) ) read( elist.rmode,          j[ "mode"         ] );
@@ -904,6 +907,9 @@ void to_json( nlohmann::json& j, const menu_type& m ) {
             break;
         case MENU_RADIO:
             j = "radio";
+            break;
+        case MENU_IMAGE:
+            j = "image";
             break;
         default:
             // Handle unexpected menu_type value

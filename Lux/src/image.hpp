@@ -15,14 +15,12 @@
 #include <functional>
 //#include "any_image.hpp"
 
-enum image_extend
+typedef enum image_extend
 {
 	SAMP_SINGLE,
 	SAMP_REPEAT,
 	SAMP_REFLECT
-};
-
-typedef enum image_extend image_extend;
+} image_extend;
 
 typedef enum file_type
 {
@@ -119,9 +117,9 @@ public:
             fpbounds = { { 0.0f, 0.0f }, ipbounds.maxv - 1.0f };
             base.resize( dim.x * dim.y );
 
-            // splat image into new image (smoothed)
-            if( !img.mipped ) throw std::runtime_error( "image resize constructor: image to be resized has no mip-map" );
-            splat( img, true );
+            //if( !img.mipped ) throw std::runtime_error( "image resize constructor: image to be resized has no mip-map" );
+            // splat image into new image (smoothed if mip map is available)
+            splat( img, img.mipped );
         }
 
     // move constructor
