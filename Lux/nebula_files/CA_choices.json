@@ -25,6 +25,11 @@
         },
         {
             "type": "uimage",
+            "filename": "nebula_files/flower.jpg",
+            "name": "Flower"
+        },
+        {
+            "type": "uimage",
             "filename": "nebula_files/forest.jpg",
             "name": "Forest"
         },
@@ -141,8 +146,8 @@
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
-            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 5
+            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 6
         },
         {
             "name": "rule_menu",
@@ -435,7 +440,7 @@
         {
             "name": "funky_sort_group",
             "conditions": [ "rule_menu_5" ],
-            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
+            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch" ]
         },
         {
             "name": "box_blur_group",
@@ -448,5 +453,5 @@
             "widgets": [ "max_diff_slider", "bright_block_widget_switch", "box_blur_bug_switch", "bb_random_copy_switch", "blur_picker_custom" ]
         }
     ]
-}
+} 
  
