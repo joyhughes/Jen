@@ -1,3 +1,9 @@
+# Purpose
+
+Fun!
+
+I want to recapture the sense of play and creativity of the early days of the Internet. I want to build a community of artists and developers to create and enjoy pieces of interactive art made from images that anyone can easily use.
+
 # Description
 
 
@@ -5,12 +11,12 @@
 
 [Emscripten](https://emscripten.org/) embeds compiled C or C++ code into the browser using WebAssembly, which as a general rule is not human-readable. A program compiled into WebAssembly cannot access the web or the user's disk, but has a virtual filesystem. Preloaded scene files and images can be stored in the generated file lux.js 
 
-Via Emscripten, C++ and JavaScript can have access to the same memory space. This allows the ImagePortCanvas to be rendered in 1-2 milliseconds once the image is rendered.
+Via Emscripten, C++ and JavaScript can have access to shared memory space. This allows the ImagePortCanvas to be rendered in 1-2 milliseconds once the image is rendered.
 
 ## API
-In order to display an image or load an external file, the C++ program must communicate with JavaScript. Lux operates as a virtual server within the browser using a request-response protocol. All communication within the Joyographic app is initiated by the UI module, and information such as JSON and images are returned by Lux to the UI. API functions are defined in [lux_web.cpp](https://github.com/joyhughes/Jen/blob/main/Lux/src/lux_web.cpp) and are listed at the bottom of the file.
+In order to display an image or load an external file, the C++ program must communicate with JavaScript. Lux operates as a virtual server within the browser using a request-response protocol. All communication within the Joyographic app is initiated by the UI module, and information such as JSON and images are returned by Lux to the UI. API functions are defined in [lux_web.cpp](https://github.com/joyhughes/Jen/blob/main/Lux/src/lux_web.cpp) and are listed at the bottom of the file. Emscripten [embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html?highlight=embind) functionality is used for API calls.
 
-# React App
+# Joyographic React App
 
 ## Components of Lux C++
 
@@ -74,15 +80,36 @@ There are two main ways to contribute to Lux - helping build the user interface 
 
 ## Contributing to the user interface (JavaScript)
 
-### UI philosophy
 
-A sense of play
-Simple user choices
-Control panel as a generic container
-Continuous interaction
-Keeping image port uncovered
+## UI philosophy
+
+### General audience
+
+No technical knowledge or training should be required to use the Joyographic app. The user should feel safe making changes, and they should be easily reversed if desired.
+
+### A sense of play
+
+The app should be fun to use and require little or no training to get started. Using any of the controls should make interesting changes to the display. Names of controls should be fun rather than technical or mathematical.
+
+### Simple user choices
+
+The interface should display a small number of controls at any given time to avoid overwhelming the user with too many possibilities. Creators can have access to more powerful tools (such as editing scenes) if desired, but these will not be the first thing a casual user sees.
+
+### Control panel as a generic container
+
+The scene file specifies which widgets will be displayed in the control panel. These might change based on user choices - for instance, selecting a cellular automaton rule. The control panel must display manage these widgets, and handle situations where they overflow the display area. Some UI elements such as the media controller and tabs for brush and target image will always be displayed.
+
+### Continuous interaction
+
+The UI should not pause animated display in the image port unless the user presses the pause button. This will allow the app to potentially respond to audio or camera input, or to be used for visual performance, screen recording, or streaming online. 
+
+### Keep image port uncovered
+
+As much as possible, UI elements should not overlap the image port. This will improve the user experience and allow the app to be used for visual performance, screen recording, or streaming online. 
 
 ## Contributing a function, effect, or cellular automaton rule (C++)
+
+
 
 ## Contributing a scene (JSON)
 
