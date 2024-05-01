@@ -18,6 +18,8 @@ In order to display an image or load an external file, the C++ program must comm
 
 # Joyographic React App
 
+
+
 ## Components of Lux C++
 
 ### Function objects and harnesses 
@@ -112,7 +114,5 @@ As much as possible, UI elements should not overlap the image port. This will im
 
 
 ## Contributing a scene (JSON)
-
-## Contributing scenes
 
 # Roadmap
