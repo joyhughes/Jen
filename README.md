@@ -13,7 +13,7 @@ The code for Jen is stored in three folders in the repo, organized by language.
 All the original C language implementations for each iteration of Jen are here.
 
 ### Lux
-C++ implementation of the 2.5D compositing renderer and scene manager Lux Vitae. The renderer loads a scene file written in JSON, and can render a single image, single-frame animation, or real-time animation. Lux can be run
+C++ implementation of the 2.5D compositing renderer and scene manager Lux Vitae. The renderer loads a scene file written in JSON, and can render a single image, single-frame animation, or real-time animation. Lux can be run on the command line or through a React web interface called the Joyographic web app. See the [Lux REAMDE](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
 
 ### Niffer (deprecated)
 Original Javascript, HTML, CSS front end for Lux. Generates functions, scene files, and generative spaces.
@@ -53,7 +53,7 @@ These simple programs explore visual effects and short animation loops based on 
 
 ### Lux Vitae - C++ Version
 Early 2022
-Migration to C++ happened over a number of months. Lux C++ version features a JSON scene file and an more efficient method of composing functions over whole images. Everything is represented as an effect, including rendering elements and clusters, running cellular automata, and image level effects such as warp. See the README for Lux for more details.
+Migration to C++ happened over a number of months. Lux C++ version features a JSON scene file and an more efficient method of composing functions over whole images. Everything is represented as an effect, including rendering elements and clusters, running cellular automata, and image level effects such as warp. See the [README for Lux](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
 
 ### Curly = L-systems
 Summer 2022
