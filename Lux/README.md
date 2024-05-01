@@ -76,7 +76,15 @@ There are two main ways to contribute to Lux - helping build the user interface 
 
 ### UI philosophy
 
+A sense of play
+Simple user choices
+Control panel as a generic container
+Continuous interaction
+Keeping image port uncovered
+
 ## Contributing a function, effect, or cellular automaton rule (C++)
+
+## Contributing a scene (JSON)
 
 ## Contributing scenes
 
