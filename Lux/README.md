@@ -4,9 +4,13 @@ Fun!
 
 I want to recapture the sense of play and creativity of the early days of the Internet. I want to build a community of artists and developers to create and enjoy pieces of interactive art made from images that anyone can easily use.
 
-It's the intent of a full version of Lux to be able to output still images, real-time and single-frame animation, and collections of generative art which could be used for appllications such as NFTs.
-
 # Description
+
+Lux Vitae ("Living Light" in Latin) is a compositing 2.5D renederer, effects engine, and scene manager written in C++20. It reads a JSON scene file and builds a representation of the scene in the scene object. 
+
+Lux can run standalone in command line mode, in which case it saves one or more .jpg files of the result, or embedded in a web browser via Emscripten as WebAssembly, in which case the result is displayed in the browser window, animating in real time.
+
+It's the intent of a full version of Lux to be able to output still images, real-time and single-frame animation, and collections of generative art which could be used for appllications such as NFTs.
 
 For an overview of the development history of the project see the [Jen README](https://github.com/joyhughes/Jen/blob/Update-documentation/README.md#development-history-of-jen)
 
@@ -18,6 +22,8 @@ Via Emscripten, C++ and JavaScript can have access to shared memory space. This 
 
 ## API
 In order to display an image or load an external file, the C++ program must communicate with JavaScript. Lux operates as a virtual server within the browser using a request-response protocol. All communication within the Joyographic app is initiated by the UI module, and information such as JSON and images are returned by Lux to the UI. API functions are defined in [lux_web.cpp](https://github.com/joyhughes/Jen/blob/main/Lux/src/lux_web.cpp) and are listed at the bottom of the file. Emscripten [embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html?highlight=embind) functionality is used for API calls.
+
+In Javascript, the WebAssembly is represented by the Module object. Calls are preceeded by window.Module. and then the function name. Example: `window.Module.set_slider_value(json.name, newValue);` sets the value of a slider with a given name in the scene to a new value.
 
 # Joyographic React App
 
@@ -79,14 +85,13 @@ See the [lux_react README](https://github.com/joyhughes/Jen/blob/main/Lux/lux_re
 
 # Contributor Guide
 
-There are two main ways to contribute to Lux - helping build the user interface or adding 
-
-
+There are three main ways to contribute to Lux - helping build the user interface, adding functions, elements, or cellular automata rules to the C++ portion, or creating new scenes. Contributors work with the mentors to choose which [issues](https://github.com/joyhughes/Jen/issues) to work on. All pull requests must be approved by a mentor.
 
 ## Contributing to the user interface (JavaScript)
 
+Contributors are invited to work on UI design and layout and widgets in the Joyographic app in accordance with the UI design philosophy. 
 
-## UI philosophy
+## UI design philosophy
 
 ### General audience
 
@@ -114,7 +119,23 @@ As much as possible, UI elements should not overlap the image port. This will im
 
 ## Contributing a function, effect, or cellular automaton rule (C++)
 
+Lux's system is designed to be extensible with new ways to create all kinds of cool behavior. Every function and effect is defined as a functor, a function object that can contain persistent data. If you'd like to contribute on the C++ side, please contact a mentor and we will give you instructions for integrating your new functionality.
 
+Here is an example of a simple functor:
+
+```
+template< MultipliableByFloat U > struct ratio {
+    harness< float > r;
+    
+    U operator () ( U& u, element_context& context ) { 
+        r( context ); 
+        return *r * u; 
+    }
+
+    ratio( const float& r_init = 1.0f ) : r( r_init ) {}
+};
+```
+It multiples its argument by the float value r, represented in this case by a harness so that its value can be defined by another functor.
 
 ## Contributing a scene (JSON)
 
