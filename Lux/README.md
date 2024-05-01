@@ -4,8 +4,11 @@ Fun!
 
 I want to recapture the sense of play and creativity of the early days of the Internet. I want to build a community of artists and developers to create and enjoy pieces of interactive art made from images that anyone can easily use.
 
+It's the intent of a full version of Lux to be able to output still images, real-time and single-frame animation, and collections of generative art which could be used for appllications such as NFTs.
+
 # Description
 
+For an overview of the development history of the project see the [Jen README](https://github.com/joyhughes/Jen/blob/Update-documentation/README.md#development-history-of-jen)
 
 # Emscripten
 
@@ -20,12 +23,12 @@ In order to display an image or load an external file, the C++ program must comm
 
 
 
-## Components of Lux C++
+# Components of Lux C++
 
-### Function objects and harnesses 
+## Function objects and harnesses 
 A function object (called a functor) contains a function that can be applied to one of a variety of data types. A harness includes a value and a list of function objects which can be calculated as needed, and are used as data fields in various types of objects. 
 
-### Effect
+## Effect
 Effect modify the contents of and image. They can include warps, color changes, cellular automata, or rendering an element or cluster. They are represented by function objects and stored within the scene. Effects are run sequentially within effect lists.
 
 ### Element
