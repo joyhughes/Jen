@@ -52,15 +52,23 @@ February 2022 <br>
 These simple programs explore visual effects and short animation loops based on a single image. Rather than using hardcoded functions, a function that defines each effect is stored in a file that describes how the image is to be modified. For each pixel, Warp chooses a pixel in the input image based on the function provided. Melt calculates a vector field based on the function, then applies it repeatedly, creating a flowy, melty effect. Hyperspace works like melt, but overlays each image on top of the previous one (slightly faded) creating trails reminiscent of the Millennium Falcon entering hyperspace. Kaleido is a set of functions used by Warp to simulate a kaleidoscope. Each of these effects, along with Life, will be rolled into Lux Vitae to modify elements within a scene.
 
 ### Lux Vitae - C++ Version
-Early 2022
+2022 - 2023
 Migration to C++ happened over a number of months. Lux C++ version features a JSON scene file and an more efficient method of composing functions over whole images. Everything is represented as an effect, including rendering elements and clusters, running cellular automata, and image level effects such as warp. See the [README for Lux](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
 
-### Curly = L-systems
-Summer 2022
-
-### Emscripten web app proof of concept
+### Curly - L-systems
+2023
+<br><img src = "https://github.com/joyhughes/joyhughes.github.io/blob/main/curly_crop.jpeg" height = 200><br>
+Clusters of elements can branch into other clusters. These tree-like structures are known as L-systems.
 
 ### Joyographic React app
+2024
 
-### Cellular automata scene
+Lux Vitae ("Living Light" in Latin) is a compositing 2.5D renderer, effects engine, and scene manager written in C++20. It reads a JSON scene file and builds a representation of the scene in the scene object.
+
+Lux can run standalone in command line mode, in which case it saves one or more .jpg files of the result, or embedded in a web browser via Emscripten as WebAssembly, in which case the result is displayed in the browser window, animating in real time.
+
+It's the intent of a full version of Lux to be able to output still images, real-time and single-frame animation, and collections of generative art which could be used for applications such as NFTs.
+
+See the [README for Lux](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
+
 
