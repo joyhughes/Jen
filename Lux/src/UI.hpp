@@ -13,7 +13,8 @@
 typedef enum menu_type
 {
     MENU_PULL_DOWN,
-    MENU_RADIO
+    MENU_RADIO,
+    MENU_IMAGE
 } menu_type;
 
 typedef enum switch_type
@@ -159,7 +160,7 @@ struct menu {
 typedef menu menu_int;
 typedef menu menu_string;
 
-template< class T > struct direction_picker {
+template< class T > struct picker {
     std::string label, description;
     T value, default_value;
 
@@ -167,17 +168,41 @@ template< class T > struct direction_picker {
 
     void reset(); // reset value to default
 
-    direction_picker( const std::string& label_init = "", 
-                      const std::string& description_init = "", 
-                      const T& default_value_init = T() ) : 
+    picker( const T& default_value_init = T(),
+                     const std::string& label_init = "", 
+                     const std::string& description_init = "" 
+                       ) : 
                         label( label_init ), 
                         description( description_init ), 
                         value( default_value_init ), 
                         default_value( default_value_init ) {}
 };
 
-typedef direction_picker< direction4 > direction_picker_4;
-typedef direction_picker< direction8 > direction_picker_8;
+typedef picker< direction4 > direction_picker_4;
+typedef picker< direction8 > direction_picker_8;
+typedef picker< box_blur_type > box_blur_picker;
+typedef picker< int > multi_direction8_picker; // bytecode for 8 directions
+
+// Custom blur picker is an int harness function that contains multiple direction pickers
+struct custom_blur_picker {
+    std::string label, description;
+    // generated multi direction pickers wrapped in any_fn 
+    // first is set of directions for blur, second is set of directions for comparison
+    std::vector< std::pair< int, int > > pickers;    
+
+    // returns size of dirs_pickers vector
+    int operator () ( int& val, element_context& context ); 
+
+    void add_pickers(); // push_back a new picker to dirs_pickers and compares_pickers
+    void add_pickers( int dirs, int compares ); // push_back a new picker to dirs_pickers and compares_pickers, setting values
+    void remove_pickers( int index ); // remove dir and compare picker at index
+    void set_picker_value( int value, int id ); // set value of dir or compare picker identified by id
+    void reset(); // reset value to default
+    void clear(); // clear all items
+
+    custom_blur_picker( const std::string& label_init = "", 
+                        const std::string& description_init = "" );
+};
 
 // Widget groupings
 

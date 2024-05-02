@@ -14,9 +14,9 @@ float bf( const ucolor &c )       { return glut.SRGB_to_linear( bc( c ) ); }
 
 // returns single bytes per component 
 unsigned char ac( const ucolor &c ) {  return (unsigned char) ( ( c >> 24 ) & 0xff ); }
-unsigned char rc( const ucolor &c ) {  return (unsigned char) ( ( c >> 16 ) & 0xff ); }
+unsigned char rc( const ucolor &c ) {  return (unsigned char) ( ( c       ) & 0xff ); }
 unsigned char gc( const ucolor &c ) {  return (unsigned char) ( ( c >>  8 ) & 0xff ); }
-unsigned char bc( const ucolor &c ) {  return (unsigned char) ( ( c       ) & 0xff ); }
+unsigned char bc( const ucolor &c ) {  return (unsigned char) ( ( c >> 16 ) & 0xff ); }
 
 // set component
 void setaf( ucolor &c, const float& a )   { setac( c, ( unsigned char )( std::clamp( a, 0.0f, 1.0f ) * 255.0f ) ); }
@@ -27,9 +27,9 @@ void setf(  ucolor &c, const float& r, const float& g, const float& b) { setc( c
 ucolor usetf( const float& r, const float& g, const float& b ) { return usetc(    glut.linear_to_SRGB( r ), glut.linear_to_SRGB( g ), glut.linear_to_SRGB( b )); }
 
 void setac( ucolor &c, const unsigned char& a ) { c = ( c & 0x00ffffff ) | ( ( (unsigned int)a ) << 24 ); }
-void setrc( ucolor &c, const unsigned char& r ) { c = ( c & 0xff00ffff ) | ( ( (unsigned int)r ) << 16 ); }
+void setrc( ucolor &c, const unsigned char& b ) { c = ( c & 0xffffff00 ) | (   (unsigned int)b         ); }
 void setgc( ucolor &c, const unsigned char& g ) { c = ( c & 0xffff00ff ) | ( ( (unsigned int)g ) << 8  ); }
-void setbc( ucolor &c, const unsigned char& b ) { c = ( c & 0xffffff00 ) | (   (unsigned int)b         ); }
+void setbc( ucolor &c, const unsigned char& r ) { c = ( c & 0xff00ffff ) | ( ( (unsigned int)r ) << 16 ); }
 
 void setc(  ucolor &c, const unsigned char& r, const unsigned char& g, const unsigned char& b ) 
 { c = c & 0xff000000 | ( (unsigned int)r << 16 ) | ( (unsigned int)g << 8  ) | ( (unsigned int)b       ); }

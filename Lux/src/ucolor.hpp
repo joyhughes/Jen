@@ -71,9 +71,10 @@ static inline ucolor blendf(  const ucolor& a, const ucolor& b, const float& pro
 
 
 inline unsigned long luminance( const ucolor& in ) {
-    return( ( ( ( shift_right_2( in ) + shift_right_4( in ) ) >> 16 ) +   // r * 5/16
-              ( ( shift_right_1( in ) + shift_right_4( in ) ) >> 8  ) +   // g * 9/16
-                  shift_right_3( in ) ) & 0x000000ff );                   // b * 2/16
+    return( ( (   shift_right_2( in ) + shift_right_4( in ) ) +            // r * 5/16
+              ( ( shift_right_1( in ) + shift_right_4( in ) ) >> 8  ) +    // g * 9/16
+                (  shift_right_3( in ) >> 16 ) )                           // b * 2/16
+                & 0x000000ff );                   
 }
 
 ucolor gray( const ucolor& in );

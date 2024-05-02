@@ -2,23 +2,58 @@
     "name": "CA_scene",
     "title": "Cellular Automata Explorer",
     "images": 
-    [ 
+    [
+        {
+            "type": "uimage",
+            "filename": "nebula_files/Ada.jpg",
+            "name": "Ada"
+        },
         { 
             "type": "uimage", 
             "filename": "nebula_files/crab_nebula.jpg", 
-            "name": "nebula"
+            "name": "Crab Nebula"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/earth.jpg",
+            "name": "Earth"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/everest.jpg",
+            "name": "Everest"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/flower.jpg",
+            "name": "Flower"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/forest.jpg",
+            "name": "Forest"
         },
         { 
             "type": "uimage", 
             "filename": "nebula_files/hk_square_512.jpg", 
-            "name": "nebula_mask"
+            "name": "Hong Kong"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/lighthouse.jpg",
+            "name": "Lighthouse"
+        },
+        {
+            "type": "uimage",
+            "filename": "nebula_files/sunrise.jpg",
+            "name": "Sunrise"
         }
     ],
     "elements":
     [
         {
             "name": "nebula_element",
-            "image": "nebula",
+            "image": "Crab Nebula",
             "mask": "nebula_mask",
             "scale": 0.3
         }
@@ -104,6 +139,15 @@
             "max": 768,
             "default_value": 384,
             "step": 1
+        },
+        {
+            "name": "source_image_menu",
+            "type": "menu_string",
+            "tool": "image",
+            "label": "Source Image",
+            "description": "Choose an image to apply the transition rule to.",
+            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 6
         },
         {
             "name": "rule_menu",
@@ -217,17 +261,6 @@
         {
             "name": "gray",
             "type": "eff_grayscale_ucolor"
-        },
-        {
-            "name": "mirror",
-            "type": "eff_mirror_ucolor",
-            "reflect_x": true,
-            "reflect_y": true
-        },
-        {
-            "name": "turn_right",
-            "type": "eff_turn_ucolor",
-            "direction": "up"
         },
         {
             "name": "Diffuse",
@@ -360,21 +393,14 @@
     [
         {
             "name": "nebula_mask",
-            "source": "nebula",
+            "source": "Crab Nebula",
             "type": "uimage",
             "mode": "static",  
             "effects": [ "gray" ]
         },
         {
-            "name": "nebula_mirror",
-            "source": "nebula",
-            "type": "uimage",
-            "mode": "static",  
-            "effects": [ "turn_right" ]
-        },
-        {
-            "name": "nebula_sort",
-            "source": "nebula_mirror",
+            "name": "Cellular Automata",
+            "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "iterative",  
             "effects": [ "brush", "Rule Chooser" ]
@@ -384,7 +410,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "rule_menu", "edge_block_switch" ]
+            "widgets": [ "source_image_menu", "rule_menu", "edge_block_switch" ]
         },
         {
             "name": "diffuse_group",
@@ -414,7 +440,7 @@
         {
             "name": "funky_sort_group",
             "conditions": [ "rule_menu_5" ],
-            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch", "funk_factor_menu" ]
+            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch" ]
         },
         {
             "name": "box_blur_group",
@@ -427,4 +453,5 @@
             "widgets": [ "max_diff_slider", "bright_block_widget_switch", "box_blur_bug_switch", "bb_random_copy_switch", "blur_picker_custom" ]
         }
     ]
-}
+} 
+ 
