@@ -28,7 +28,7 @@ In Javascript, the WebAssembly is represented by the Module object. Calls are pr
 # Joyographic React App
 
 The Joyographic app allows a user to interact with the scene using various controls. Here is an screen capture of a cellular automaton running within the app:
-<br><img src="https://joyhughes.github.io/app_example.png" height = 400><br>
+<br><img src="https://joyhughes.github.io/app_example.png" height = 400 align = center><br>
 The area containing the image is called the image port and the controls to the right are called the control panel. In a window with portrait aspect ratio (such as a phone) the control panel is displayed below the image port.
 
 The image port accesses the pixels of the image via Emscripten's [memory view](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html?highlight=memory%20view#memory-views) functionality, which exposes memory used by the C++ program to JavaScript.
