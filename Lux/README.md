@@ -28,7 +28,7 @@ In Javascript, the WebAssembly is represented by the Module object. Calls are pr
 # Joyographic React App
 
 The Joyographic app allows a user to interact with the scene using various controls. Here is an example of a cellular automaton:
-<img src="joyhughes.github.io/app_example.png" height = 200>
+<img src="https://joyhughes.github.io/app_example.png" height = 200>
 
 # Components of Lux C++
 
