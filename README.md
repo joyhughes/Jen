@@ -34,7 +34,7 @@ Still Life is my first implementation of a generative space. Each scene is compo
 ### Generative Genesis - Manual Environmental Art
 September 2021 <br>
 <img src = "https://miro.medium.com/max/1400/1*d6pv0GgJkzDXMIc54xgG2Q.jpeg" width = 200 > <br>
-Gensworthy generates clusters of similar elements that vary in position, orientation, size, and color. They can be arranged in circles, grids, or along pathways determined by a vector field. The scene is then constructed by hand, typically in an outdoor setting, often with a scenic backdrop. Lux can be used to generate similar scenes digitally using photographic composition.
+GG generates clusters of similar elements that vary in position, orientation, size, and color. They can be arranged in circles, grids, or along pathways determined by a vector field. The scene is then constructed by hand, typically in an outdoor setting, often with a scenic backdrop. Lux can be used to generate similar scenes digitally using photographic composition.
 
 ### Project Newton - Digitally Composited Light Painting
 October 2021 <br>
