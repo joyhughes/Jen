@@ -21,6 +21,7 @@ For an overview of the development history of the project see the [Jen README](h
 Via Emscripten, C++ and JavaScript can have access to shared memory space. This allows the ImagePortCanvas to be rendered in 1-2 milliseconds once the image is rendered.
 
 ## API
+<br><img src="https://github.com/joyhughes/joyhughes.github.io/blob/main/request_response.png" height = 400><br>
 In order to display an image or load an external file, the C++ program must communicate with JavaScript. Lux operates as a virtual server within the browser using a request-response protocol. All communication within the Joyographic app is initiated by the UI module, and information such as JSON and images are returned by Lux to the UI. API functions are defined in [lux_web.cpp](https://github.com/joyhughes/Jen/blob/main/Lux/src/lux_web.cpp) and are listed at the bottom of the file. Emscripten [embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html?highlight=embind) functionality is used for API calls.
 
 In Javascript, the WebAssembly is represented by the Module object. Calls are preceded by window.Module. and then the function name. Example: `window.Module.set_slider_value(json.name, newValue);` sets the value of a slider with a given name in the scene to a new value.
@@ -117,11 +118,13 @@ See the [lux_react README](https://github.com/joyhughes/Jen/blob/main/Lux/lux_re
 
 # Contributor Guide
 
-There are two main ways to contribute to Lux - helping build the user interface in the React app, adding functions, elements, or cellular automata rules to the C++ portion. Contributors work with the mentors to choose which [issues](https://github.com/joyhughes/Jen/issues) to work on. All pull requests must be approved by a mentor.
+There are two main ways to contribute to Lux - helping build the user interface in the React app, adding functions, elements, or cellular automata rules to the C++ portion. Contributors work with the mentors to choose which [issues](https://github.com/joyhughes/Jen/issues) to work on. All pull requests must be approved by a project admin.
 
 ## Contributing to the user interface (JavaScript)
 
 Contributors are invited to work on UI design and layout and widgets in the Joyographic app in accordance with the UI design philosophy. You don't need to know C++ or Emscripten to contribute to the UI. 
+
+[Issues labeled with UI](https://github.com/joyhughes/Jen/issues?q=is%3Aissue+is%3Aopen+label%3AUI) are suitable for UI contributors. You will find some issues labeled with both UI and C++ - in this case you might want to collaborate with another contributor or a project admin.
 
 ## UI design philosophy
 
