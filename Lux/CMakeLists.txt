@@ -31,11 +31,14 @@ src/image_loader.hpp
 src/image_loader.cpp
 src/image.hpp
 src/image.cpp
+src/joy_concepts.hpp
 src/joy_rand.hpp
 src/json.hpp
+src/life_hacks.hpp
 src/life.hpp
 src/life.cpp
 src/linalg.h
+src/mask_mode.hpp
 src/next_element.hpp
 src/next_element.cpp
 src/offset_field.hpp
@@ -46,6 +49,8 @@ src/scene_io.hpp
 src/scene_io.cpp
 src/ucolor.hpp
 src/ucolor.cpp
+src/UI.hpp
+src/UI.cpp
 src/uimage.hpp
 src/uimage.cpp
 src/vect2.cpp 
