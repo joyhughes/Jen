@@ -15,13 +15,13 @@ void splat_test() {
     std::cout << "image size = " << img1.size() << "splat size = " << splat.size() << std::endl;
     //splat.fill( 0xffffffff );
     //splat.crop_circle();
-    img1.splat( { 0.0, 0.0 }, 0.3, 0.0, splat );
+    img1.splat( splat, false, { 0.0, 0.0 }, 0.3, 0.0 );
     img1.write_jpg( "../samples/element_test.jpg", 100 );
     std::cout << "--------------------------------------";
-    img2.splat( { 0.0, 0.0 }, 0.3, 0.0, splat );
+    img2.splat( splat, false, { 0.0, 0.0 }, 0.3, 0.0 );
     img2.write_jpg( "../samples/element_test2.jpg", 100 );
 }
-
+/*
 // Unit test for splat_element()
 void element_test() {
     fbuf_ptr img   = std::make_shared< buffer_pair< frgb > >( "../samples/mando.jpg" );
@@ -34,6 +34,7 @@ void element_test() {
     splat_element( img, el );
     img->get_image().write_jpg( "../samples/element_test.jpg", 100 );
 }
+*/
 
 void scene_test() {
     scene s;

@@ -34,6 +34,7 @@ struct scene_reader {
     void read( rotation_direction& r, const json& j ) { r = read_rotation_direction( j ); }
     void read( direction4& d,   const json& j ) { d = read_direction4( j ); }
     void read( direction8& d,   const json& j ) { d = read_direction8( j ); }
+    void read( box_blur_type& b, const json& j ) { b = read_box_blur_type( j ); }
     void read( pixel_type& p,   const json& j ) { p = read_pixel_type( j ); }
     void read( image_extend& e, const json& j ) { e = read_image_extend( j ); }
     void read( render_mode& r,  const json& j ) { r = read_render_mode( j ); }
@@ -57,6 +58,7 @@ struct scene_reader {
     rotation_direction read_rotation_direction( const json& j );
     direction4   read_direction4(   const json& j );
     direction8   read_direction8(   const json& j );
+    box_blur_type read_box_blur_type( const json& j );
     pixel_type   read_pixel_type(   const json& j );
     image_extend read_image_extend( const json& j );
     render_mode  read_render_mode(  const json& j );
@@ -89,6 +91,7 @@ struct scene_reader {
     READ_ANY_HARNESS( direction8 )
     READ_ANY_HARNESS( interval_float )
     READ_ANY_HARNESS( interval_int )
+    READ_ANY_HARNESS( box_blur_type )
 
     //READ_ANY_HARNESS( std::optional< int > )
     //READ_ANY_HARNESS( std::optional< float > )
@@ -99,6 +102,8 @@ template<> struct any_fn< bool >;
 
 template<class... Ts>
 struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 void to_json( nlohmann::json& j, const interval_float& i );
 void to_json( nlohmann::json& j, const interval_int& i );
