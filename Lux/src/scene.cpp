@@ -138,6 +138,8 @@ void effect_list::copy_source_buffer( scene& s ) {
 }
 
 void effect_list::render( scene& s ) {
+    // todo: what happens if effect list is targeting a buffer that depends on itself?
+
     update_source_name( s );
     std::cout << "effect_list::render() source name " << *source_name << " rendered = " << rendered << std::endl;
     copy_source_buffer( s );

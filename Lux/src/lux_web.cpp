@@ -17,10 +17,6 @@ using namespace emscripten;
 
 //const val document = val::global("document");
 
-static bool running = true;
-static bool displayed = false;
-static bool advance = false;
-
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
   //SDL_Surface *screen;
@@ -110,9 +106,16 @@ void bitmaps_ready() {
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
+    bool &running = global_context->s->ui.running;
+    bool &advance = global_context->s->ui.advance;
+    bool &displayed = global_context->s->ui.displayed;
+
     //emscripten_run_script("console.log('render and display');");
     if( global_context->frame_callback_ready ) {
         //emscripten_run_script("console.log('callback and bitmaps ready');");
+
+        // Check for dirty buffers (e.g. after source image change)
+        //for( auto q : global_context->s->queue ) if( !q.rendered ) displayed = false;
 
         if( !running && !advance && displayed ) {
             global_context->s->ui.mouse_click = false;
@@ -136,18 +139,19 @@ void render_and_display( void *arg )
 }
 
 void run_pause() {
+    bool &running = global_context->s->ui.running;
     running = !running;
 }
 
 void restart() {
     //global_context->frame = 0;
     global_context->s->restart();
-    displayed = false;
+    global_context->s->ui.displayed = false;
 }
 
 void advance_frame() {
-    advance = true;
-    running = false;
+    global_context->s->ui.advance = true;
+    global_context->s->ui.running = false;
 }
 
 void mouse_move( int x, int y, int width, int height ) {
@@ -201,11 +205,13 @@ void handle_menu_choice( std::string name, int choice ) {
             //std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
             auto& menu = std::get< std::shared_ptr< menu_int > >( std::get< any_fn< int > >( fn ).any_int_fn );
             menu->choose( choice );
+            if( menu->rerender ) restart();
         }
         else if( std::holds_alternative< any_fn< std::string > >( fn ) ) {
             //std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
             auto& menu = std::get< std::shared_ptr< menu_string > >( std::get< any_fn< std::string > >( fn ).any_string_fn );
             menu->choose( choice );
+            if( menu->rerender ) restart();
         }
     }
 }
@@ -444,20 +450,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "remove_custom_blur_pickers", &remove_custom_blur_pickers);
     function( "add_custom_blur_pickers", &add_custom_blur_pickers);
 
-    /*
-    function( "get_slider_min",     &get_slider_min);
-    function( "get_slider_max",     &get_slider_max);
-    function( "get_slider_value",   &get_slider_value);
-    function( "get_slider_step",    &get_slider_step);
-    function( "get_slider_label",   &get_slider_label);
-    function( "get_slider_description", &get_slider_description);
-
-    function( "get_menu_choices",   &get_menu_choices);
-    function( "get_default_menu_choice", &get_default_menu_choice);
-    function( "get_menu_label",     &get_menu_label);
-    function( "get_menu_description", &get_menu_description); 
-    */
-    
+    // mouse functions
     function( "mouse_move",         &mouse_move );
     function( "mouse_down",         &mouse_down );
     function( "mouse_over",         &mouse_over );

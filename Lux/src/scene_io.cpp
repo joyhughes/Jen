@@ -440,7 +440,8 @@ void scene_reader::read_function( const json& j ) {
         READ( description ) 
         READ( default_choice )
         READ( tool )
-        READ( affects_widget_groups ) 
+        READ( affects_widget_groups )
+        READ( rerender ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -451,6 +452,7 @@ void scene_reader::read_function( const json& j ) {
         READ( default_choice ) 
         READ( tool ) 
         READ( affects_widget_groups ) 
+        READ( rerender ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -1007,7 +1009,8 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
-                        {"affects_widget_groups", fn->affects_widget_groups}
+                        {"affects_widget_groups", fn->affects_widget_groups},
+                        {"rerender", fn->rerender}
                     };
                 },
                 [&]( const std::shared_ptr< multi_direction8_picker >& fn ) {
@@ -1136,7 +1139,9 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
-                        {"affects_widget_groups", fn->affects_widget_groups}
+                        {"affects_widget_groups", fn->affects_widget_groups},
+                        {"rerender", fn->rerender}
+
                     };
                 },
                 [&]( const auto& fn ) {

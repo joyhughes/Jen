@@ -128,8 +128,9 @@ struct menu {
     std::string label, description;
     std::vector< std::string > items;
     int choice, default_choice;
-    bool user_defined_item;
+    //bool user_defined_item;
     bool affects_widget_groups;
+    bool rerender;
 
     int operator () ( int& val, element_context& context ); 
     std::string operator () ( std::string& val, element_context& context );
@@ -145,15 +146,17 @@ struct menu {
           const std::string& description_init = "", 
           const int& default_choice_init = 0,
           const menu_type& tool_init = MENU_PULL_DOWN,
-          const bool& user_defined_item_init = false,
-          const bool& affects_widget_groups_init = false ) : 
+          //const bool& user_defined_item_init = false,
+          const bool& affects_widget_groups_init = false,
+          const bool& rerender_init = false ) : 
             label( label_init ), 
             description( description_init ), 
             choice( default_choice_init ), 
             default_choice( default_choice_init ),
             tool( tool_init ),
-            user_defined_item( user_defined_item_init ),
-            affects_widget_groups( affects_widget_groups_init )
+            //user_defined_item( user_defined_item_init ),
+            affects_widget_groups( affects_widget_groups_init ),
+            rerender( rerender_init )
         {}
 };
 
@@ -240,8 +243,13 @@ struct widget_group {
 
 // Stores state of user interface - mouse position, mouse down, slider values, etc.
 struct UI {
+    bool running;
+    bool displayed;
+    bool advance;
+
     bb2i  canvas_bounds; // bounds of canvas in pixels
     vec2i mouse_pixel;  // mouse position in pixels
+
     bool  mouse_down;
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
@@ -249,7 +257,15 @@ struct UI {
 
     void add_widget_group( const std::string& name, const widget_group& wg );
 
-    UI() : canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), mouse_pixel( { 0, 0 } ), mouse_down( false ), mouse_over( false ), mouse_click( false ) {}
+    UI() : 
+        running( true ),
+        displayed( false ),
+        advance( false ),
+        canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), 
+        mouse_pixel( { 0, 0 } ), 
+        mouse_down( false ), 
+        mouse_over( false ), 
+        mouse_click( false ) {}
 };
 
 #endif // UI_HPP
