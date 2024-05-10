@@ -14,9 +14,9 @@ float bf( const ucolor &c )       { return glut.SRGB_to_linear( bc( c ) ); }
 
 // returns single bytes per component 
 unsigned char ac( const ucolor &c ) {  return (unsigned char) ( ( c >> 24 ) & 0xff ); }
-unsigned char rc( const ucolor &c ) {  return (unsigned char) ( ( c       ) & 0xff ); }
+unsigned char rc( const ucolor &c ) {  return (unsigned char) ( ( c >> 16 ) & 0xff ); }
 unsigned char gc( const ucolor &c ) {  return (unsigned char) ( ( c >>  8 ) & 0xff ); }
-unsigned char bc( const ucolor &c ) {  return (unsigned char) ( ( c >> 16 ) & 0xff ); }
+unsigned char bc( const ucolor &c ) {  return (unsigned char) ( ( c       ) & 0xff ); }
 
 // set component
 void setaf( ucolor &c, const float& a )   { setac( c, ( unsigned char )( std::clamp( a, 0.0f, 1.0f ) * 255.0f ) ); }

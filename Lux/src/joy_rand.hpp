@@ -9,7 +9,8 @@
 static std::random_device rd;    // non-deterministic generator
 static std::mt19937 gen( rd() ); // start random engine
 static std::uniform_real_distribution<float> rand1( 0.0f, 1.0f );
-static std::uniform_int_distribution<unsigned int> fair_coin( 0, 1 ); 
+static std::uniform_int_distribution<unsigned int> fair_coin( 0, 1 );
+static std::uniform_int_distribution<unsigned int> rand_uint( 0, 0xffffffff ); 
 static float rand_range( const float a, const float b ) { return a + ( b - a ) * rand1( gen ); }
 
 // potentially unfair coin - returns 1 with probability a
@@ -49,5 +50,8 @@ template< Scalar T > struct interval {
 
 typedef interval< float > interval_float;
 typedef interval< int >   interval_int;
+
+// String typedef for convenience and macros
+typedef std::string string;
 
 #endif // __JOY_RAND_HPP
