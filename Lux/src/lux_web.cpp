@@ -176,12 +176,16 @@ void set_slider_value( std::string name, float value ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
-            std::get< std::shared_ptr< slider_float > >( std::get< any_fn< float > >( fn ).any_float_fn)->value = value;
+            global_context->s->get_fn_ptr< float, slider_float >( name )->value = value;
+            return;
         }
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            std::get< std::shared_ptr< slider_int > >( std::get< any_fn< int > >( fn ).any_int_fn)->value = (int)std::roundf( value );
+           global_context->s->get_fn_ptr< int, slider_int >( name )->value = (int)std::roundf( value );
+           return;
         }
+        throw std::runtime_error( "slider " + name + " invalid type " );
     }
+    throw std::runtime_error( "slider " + name + " not found in scene" );
 }
 
 void set_range_slider_value( std::string name, float value_min, float value_max ) {
@@ -189,13 +193,17 @@ void set_range_slider_value( std::string name, float value_min, float value_max 
     if( global_context->s->functions.contains( name ) ) { 
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
-            std::get< std::shared_ptr< range_slider_float > >( std::get< any_fn< interval_float > >( fn ).any_interval_float_fn)->value = interval_float( value_min, value_max );
+            global_context->s->get_fn_ptr< interval_float, range_slider_float >( name )->value = interval_float( value_min, value_max );
+            return;
         }
         else if( std::holds_alternative< any_fn< interval_int > >( fn ) ) {
             //std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
-            std::get< std::shared_ptr< range_slider_int > >( std::get< any_fn< interval_int > >( fn ).any_interval_int_fn)->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+            global_context->s->get_fn_ptr< interval_int, range_slider_int >( name )->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+            return;
         }
+        throw std::runtime_error( "range slider " + name + " invalid type " );
     }
+    throw std::runtime_error( "range slider " + name + " not found in scene" );
 }
 
 void handle_menu_choice( std::string name, int choice ) {
@@ -203,77 +211,61 @@ void handle_menu_choice( std::string name, int choice ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< int > >( fn ) ) {
             //std::cout << "handle_menu_choice (menu_int): " << name << " " << choice << std::endl;
-            auto& menu = std::get< std::shared_ptr< menu_int > >( std::get< any_fn< int > >( fn ).any_int_fn );
+            auto menu = global_context->s->get_fn_ptr< int, menu_int >( name );
             menu->choose( choice );
+            // future: allow menu to reset a single buffer
             if( menu->rerender ) restart();
+            return;
         }
         else if( std::holds_alternative< any_fn< std::string > >( fn ) ) {
             //std::cout << "handle_menu_choice (menu_string): " << name << " " << choice << std::endl;
-            auto& menu = std::get< std::shared_ptr< menu_string > >( std::get< any_fn< std::string > >( fn ).any_string_fn );
+            auto menu = global_context->s->get_fn_ptr< std::string, menu_string >( name );
             menu->choose( choice );
+            // future: allow menu to reset a single buffer
             if( menu->rerender ) restart();
+            return;
         }
+        throw std::runtime_error( "menu " + name + " invalid type " );
     }
+    throw std::runtime_error( "menu " + name + " not found in scene" );
 }
 
 void handle_switch_value( std::string name, bool value ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< bool > >( fn ) ) {
-            auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( fn ).any_bool_fn );
+            auto sw = global_context->s->get_fn_ptr< bool, switch_fn >( name );
             sw->value = value;
+            return;
         } 
         else if( std::holds_alternative< any_condition_fn >( fn ) ) {
             auto& sw = std::get< std::shared_ptr< switch_condition > >( std::get< any_condition_fn >( fn ).my_condition_fn );
             sw->value = value;
+            return;
         }
+        throw std::runtime_error( "switch " + name + " invalid type " );
     }
+    throw std::runtime_error( "switch " + name + " not found in scene" );
 }
 
 void pick_direction8( std::string name, int value ) {
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        if( std::holds_alternative< any_fn< direction8 > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< direction_picker_8 > >(std::get< any_fn< direction8 > >( fn ).any_direction8_fn);
-            picker->value = (direction8)value;
-        }
-    }
+    auto picker = global_context->s->get_fn_ptr< direction8, direction_picker_8 >( name );
+    picker->value = ( direction8 )value;
 }
 
 void pick_direction4( std::string name, int value ) {
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        if( std::holds_alternative< any_fn< direction4 > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< direction_picker_4 > >( std::get< any_fn< direction4 > >( fn ).any_direction4_fn);
-            picker->value = (direction4)value;
-        }
-    }
+    auto picker = global_context->s->get_fn_ptr< direction4, direction_picker_4 >( name );
+    picker->value = ( direction4 )value;
 }
 
 void pick_blur_method( std::string name, int value ) {
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        if( std::holds_alternative< any_fn< box_blur_type > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< box_blur_picker > >( std::get< any_fn< box_blur_type > >( fn ).any_box_blur_type_fn);
-            picker->value = (box_blur_type)value;
-        }
-    }
+    auto picker = global_context->s->get_fn_ptr< box_blur_type, box_blur_picker >( name );
+    picker->value = (box_blur_type)value;
 }
 
 void pick_multi_direction8( std::string name, int value, int id ) {
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        /* Need to do a std::visit for a standalone multi direction picker
-        if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< multi_direction8_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
-            picker->value = value;
-        }
-        */
-        if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
-            picker->set_picker_value( value, id );
-        }
-    }
+    auto picker = global_context->s->get_fn_ptr< int, custom_blur_picker >( name );
+    picker->set_picker_value( value, id );
 }
 
 void print_vector_of_pairs( std::vector< std::pair< int, int > > pickers ) {
@@ -283,27 +275,17 @@ void print_vector_of_pairs( std::vector< std::pair< int, int > > pickers ) {
 }
 
 void remove_custom_blur_pickers( std::string name, int index ) {
-    std::cout << "remove_custom_blur_pickers: " << name << " " << index << std::endl;
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
-            picker->remove_pickers( index );
-            print_vector_of_pairs( picker->pickers );
-        }
-    }
+    //std::cout << "remove_custom_blur_pickers: " << name << " " << index << std::endl;
+    auto picker = global_context->s->get_fn_ptr< int, custom_blur_picker >( name );
+    picker->remove_pickers( index );
+    //print_vector_of_pairs( picker->pickers );
 }
 
 void add_custom_blur_pickers( std::string name ) {
-    std::cout << "add_custom_blur_pickers: " << name << std::endl;
-    if( global_context->s->functions.contains( name ) ) {
-        any_function& fn = global_context->s->functions[ name ];
-        if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            auto& picker = std::get< std::shared_ptr< custom_blur_picker > >( std::get< any_fn< int > >( fn ).any_int_fn );
-            picker->add_pickers();
-            print_vector_of_pairs( picker->pickers );
-        }
-    }
+    //std::cout << "add_custom_blur_pickers: " << name << std::endl;
+    auto picker = global_context->s->get_fn_ptr< int, custom_blur_picker >( name );
+    picker->add_pickers();
+    //print_vector_of_pairs( picker->pickers );
 }
 
 /*

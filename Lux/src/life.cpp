@@ -3,17 +3,21 @@
 #include "ucolor.hpp"
 #include "vect2.hpp"
 #include "scene.hpp"
-// Moore neighborhood shortcuts
 
-#define UL neighbors[0]
-#define UM neighbors[1]
-#define UR neighbors[2]
-#define ML neighbors[3]
-#define MM neighbors[4]
-#define MR neighbors[5]
-#define DL neighbors[6]
-#define DM neighbors[7]
-#define DR neighbors[8]
+// Moore neighborhood shortcuts
+// First eight rotate counterclockwise from upper middle
+// Center is last
+
+#define UM neighbors[0]
+#define UR neighbors[1]
+#define MR neighbors[2]
+#define DR neighbors[3]
+#define DM neighbors[4]
+#define DL neighbors[5]
+#define ML neighbors[6]
+#define UL neighbors[7]
+#define MM neighbors[8]
+
 // Margolus neighborhood shortcuts (clockwise from upper left)
 
 // Margolus neighborhood shortcuts (clockwise from upper left)
@@ -381,6 +385,8 @@ template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) {
     result.assign( neighbors.begin(), neighbors.end() );
 }
 
+// Moore neighborhood family
+
 /*
  *  Conway's Game of Life
  *  http://en.wikipedia.org/wiki/Conway's_Game_of_Life
@@ -407,18 +413,13 @@ template< class T > void rule_life< T >::operator () ( CA< T >& ca ) {
 
     int count = 0;
     if( use_threshold ) {
-        for( int i = 0; i < 4; i++ ) { 
+        for( int i = 0; i < 8; i++ ) { 
             unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff ); 
             count += ( bright > *threshold );
-        }    
-        for( int i = 5; i < 9; i++ ) { 
-            unsigned int bright = ( ( neighbors[ i ] >> 16 ) & 0xff ) + ( ( neighbors[ i ] >> 8 ) & 0xff ) + ( neighbors[ i ] & 0xff ); 
-            count += ( bright > *threshold );
-        }    
+        }      
     }
     else {
-        for( int i = 0; i < 4; i++ ) { count += ( neighbors[ i ] == *on ); }    
-        for( int i = 5; i < 9; i++ ) { count += ( neighbors[ i ] == *on ); } 
+        for( int i = 0; i < 8; i++ ) { count += ( neighbors[ i ] == *on ); }     
     }
     if( MM == *on ) {
         if( count == 2 || count == 3 ) result[0] = *on;
@@ -457,6 +458,201 @@ template< class T > void rule_random_mix< T >::operator () ( CA< T >& ca ) {
     r = rand_9( gen );
     result[0] |= neighbors[ r ] & 0x000000ff; // copy any neighbor, including possibly itself
 }
+
+template< class T > CA_hood rule_box_blur< T >::operator () ( element_context &context ) 
+{ 
+    max_diff( context );
+    blur_method( context );
+    bug_mode( context );
+    random_copy( context );
+    if( *blur_method == BB_CUSTOM ) {
+        // fill dirs and compares with functions from custom_blur_picker      
+        auto pickers = context.s.get_fn_ptr< int, custom_blur_picker >( custom_picker );
+        dirs.clear(); compares.clear();
+        for( auto& p : pickers->pickers ) {
+            dirs.push_back(     p.first  );
+            compares.push_back( p.second );
+            }
+    }
+    //dirs = { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 } };
+    //dirs = { { 0, 4 }, { 2, 6 }, { 1, 3 }, { 5, 7 } };
+    //dirs = { { 0, 3 }, { 0, 5 }, { 4, 7 }, { 4, 1 }, { 2, 7 }, { 2, 5 }, { 6, 1 }, { 6, 3 } };
+    //dirs = { { 2, 4, 6 }, { 0, 4, 6 }, { 0, 2, 6 }, { 0, 2, 4} };
+    //compares = { { 2, 4, 6 }, { 0, 4, 6 }, { 0, 2, 6 }, { 0, 2, 4} };
+    //dirs = { { 2, 4, 6 }, { 0, 4, 6 }, { 0, 2, 6 }, { 0, 2, 4} };
+    //compares = { { 0 }, { 2 }, { 4 }, { 6 } };
+    //dirs = { 17, 68 };
+    //compares = { 17, 68 };
+    return HOOD_MOORE; 
+}
+
+template< class T > void rule_box_blur< T >::operator () ( CA< T >& ca ) {
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+    
+    switch( (int)*blur_method ) {
+        case BB_ORTHOGONAL: {
+            unsigned int mum = manhattan( MM, UM );
+            unsigned int mdm = manhattan( MM, DM );
+            unsigned int mml = manhattan( MM, ML );
+            unsigned int mmr = manhattan( MM, MR );
+
+            if( mum + mdm < mml + mmr ) {
+                if( ( mum < *max_diff ) && ( mdm < *max_diff ) )result[ 0 ] = blend( UM, DM );
+                else if( !*bug_mode ) result[ 0 ] = MM;
+            }
+            else {
+                if( ( mml < *max_diff ) && ( mmr < *max_diff ) )result[ 0 ] = blend( ML, MR );
+                else if( !*bug_mode ) result[ 0 ] = MM;
+            } 
+        }
+        break;
+        case BB_DIAGONAL: {
+            unsigned int mul = manhattan( MM, UL );
+            unsigned int mur = manhattan( MM, UR );
+            unsigned int mdl = manhattan( MM, DL );
+            unsigned int mdr = manhattan( MM, DR );
+
+            if( mul + mdr < mur + mdl ) {
+                if( ( mul < *max_diff ) && ( mdr < *max_diff ) )result[ 0 ] = blend( UL, DR );
+                else if( !*bug_mode ) result[ 0 ] = MM;
+            }
+            else {
+                if( ( mur < *max_diff ) && ( mdl < *max_diff ) )result[ 0 ] = blend( UR, DL );
+                else if( !*bug_mode ) result[ 0 ] = MM;
+            }
+        }
+        break;
+        case BB_ALL: {
+            unsigned int mum = manhattan( MM, UM );
+            unsigned int mdm = manhattan( MM, DM );
+            unsigned int mml = manhattan( MM, ML );
+            unsigned int mmr = manhattan( MM, MR );
+            unsigned int mul = manhattan( MM, UL );
+            unsigned int mur = manhattan( MM, UR );
+            unsigned int mdl = manhattan( MM, DL );
+            unsigned int mdr = manhattan( MM, DR );
+
+            unsigned int min_diff = 1531;
+            unsigned int min_pair = 0;
+
+            if( mum + mdm < min_diff ) { min_diff = mum + mdm; min_pair = 1; }
+            if( mml + mmr < min_diff ) { min_diff = mml + mmr; min_pair = 2; }
+            if( mul + mdr < min_diff ) { min_diff = mul + mdr; min_pair = 3; }
+            if( mur + mdl < min_diff ) { min_diff = mur + mdl; min_pair = 4; }
+
+            switch( min_pair ) {
+                case 1: {
+                    if( ( mum < *max_diff ) && ( mdm < *max_diff ) )result[ 0 ] = blend( UM, DM );
+                    else if( !*bug_mode ) result[ 0 ] = MM;
+                }
+                break;
+                case 2: {
+                    if( ( mml < *max_diff ) && ( mmr < *max_diff ) )result[ 0 ] = blend( ML, MR );
+                    else if( !*bug_mode ) result[ 0 ] = MM;
+                }
+                break;
+                case 3: {
+                    if( ( mul < *max_diff ) && ( mdr < *max_diff ) )result[ 0 ] = blend( UL, DR );
+                    else if( !*bug_mode ) result[ 0 ] = MM;
+                }
+                break;
+                case 4: {
+                    if( ( mur < *max_diff ) && ( mdl < *max_diff ) )result[ 0 ] = blend( UR, DL );
+                    else if( !*bug_mode ) result[ 0 ] = MM;
+                }
+                break;
+            }
+        }
+        break;
+        case BB_CUSTOM: {
+            diffs[ 0 ] = manhattan( MM, UM );
+            diffs[ 1 ] = manhattan( MM, UR );
+            diffs[ 2 ] = manhattan( MM, MR );
+            diffs[ 3 ] = manhattan( MM, DR );
+            diffs[ 4 ] = manhattan( MM, DM );
+            diffs[ 5 ] = manhattan( MM, DL );
+            diffs[ 6 ] = manhattan( MM, ML );
+            diffs[ 7 ] = manhattan( MM, UL );
+
+            unsigned int min_diff = 1000000;
+            unsigned int min_dir = 0;
+
+            // Find set of directions with minimum manhattan distance sum
+            for( int d = 0; d < dirs.size(); d++ ) {
+                unsigned int sum_diff = 0;
+                int ndirs = 0;
+                int dir_code = dirs[ d ];
+                for( int i = 0; i < 8; i++ ) { 
+                    if( ( dir_code >> i ) & 1 ) sum_diff += diffs[ i ];
+                    ndirs++;
+                }
+                if( dir_code != 0 ) sum_diff /= ndirs; else sum_diff = 1000000;
+                if( sum_diff < min_diff ) {
+                    min_diff = sum_diff;
+                    min_dir = d;
+                }
+            }
+            // Compare to comparison vector
+            int comp = compares[ min_dir ];
+            for( int i = 0; i < 8; i++ ) {
+                if( ( comp >> i ) & 1 ) {
+                    if( diffs[ i ] >= *max_diff ) {
+                        if( !*bug_mode ) {
+                            result[ 0 ] = MM;
+                            return;
+                        }
+                    }
+                }
+            }
+            // Blend pixels
+            int dir_code = dirs[ min_dir ];
+            unsigned int size = 0;
+            if( *random_copy ) {
+                for( int i = 0; i < 8; i++ ) {
+                    if( ( dir_code >> i ) & 1 ) {
+                        auto& n = neighbors[ i ];
+                        size ++;
+                    }
+                }
+                unsigned int res = rand_uint( gen ) % size;
+                unsigned int count = 0;
+                result[ 0 ] = MM;
+                for( int i = 0; i < 8; i++ ) {
+                    if( ( dir_code >> i ) & 1 ) {
+                        if( count == res ) {
+                            result[ 0 ] = neighbors[ i ];
+                        }
+                        count++;
+                    }
+                }
+            }
+            else {
+                unsigned int r = 0, g = 0, b = 0;
+                for( int i = 0; i < 8; i++ ) {
+                    if( ( dir_code >> i ) & 1 ) {
+                        auto& n = neighbors[ i ];
+                        r += rc( n );
+                        g += gc( n );
+                        b += bc( n );
+                        size ++;
+                    }
+                }
+                if( size > 0 ) {
+                    unsigned int random_add = rand_uint( gen ) % size;
+                    r += random_add; r /= size;
+                    g += random_add; g /= size;
+                    b += random_add; b /= size;
+                    result[ 0 ] = usetc( r, g, b );
+                }
+                else result[ 0 ] = MM;
+            }         
+        }
+        break;
+    }
+}
+
+// Margolus neighborhood family
 
 template< class T > CA_hood rule_diffuse< T >::operator () ( element_context &context ) 
 { return HOOD_MARGOLUS; }
@@ -589,11 +785,17 @@ template< class T > void rule_pixel_sort< T >::operator () ( CA< T >& ca ) {
                 SWAP_UP_DIAG   else SAME_ALL
         }
     } else {
-        if( vertical( *direction ) ) {
+        if( vertical( *direction ) ) { 
             if( ( ( wul > wll ) == ( *direction == direction8::D8_DOWN  ) ) && (  manhattan( MLL, MUL ) < *max_diff ) ) 
                 SWAP_LEFT else SAME_LEFT
             if( ( ( wur > wlr ) == ( *direction == direction8::D8_DOWN  ) ) && (  manhattan( MLR, MUR ) < *max_diff ) )
+                SWAP_RIGHT else SAME_RIGHT  
+/* squish rule - how to get pixels below threshold to sort opposite direction?
+            if( ( ( wul < *max_diff ) || ( wll < *max_diff ) ) && ( ( wul > wll ) == ( *direction == direction8::D8_DOWN  ) ) ) 
+                SWAP_LEFT else SAME_LEFT
+            if( ( ( wur < *max_diff ) || ( wlr < *max_diff ) ) && ( ( wur > wlr ) == ( *direction == direction8::D8_DOWN  ) ) )
                 SWAP_RIGHT else SAME_RIGHT
+*/
         } else {
             if( ( ( wul > wur ) == ( *direction == direction8::D8_RIGHT ) ) && ( manhattan( MUL, MUR ) < *max_diff ) ) 
                 SWAP_UPPER else SAME_UPPER
@@ -851,6 +1053,7 @@ template class rule_identity< ucolor >;       // uimage
 template class rule_life< ucolor >;     // uimage
 template class rule_random_copy< ucolor >;     // uimage
 template class rule_random_mix< ucolor >;     // uimage
+template class rule_box_blur< ucolor >;     // uimage
 template class rule_diffuse< ucolor >;     // uimage
 template class rule_gravitate< ucolor >;       // uimage
 template class rule_snow< ucolor >;       // uimage

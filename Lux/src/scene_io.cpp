@@ -982,7 +982,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_bool_fn);
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< int >& wrapper ) {
             std::visit(overloaded{
@@ -1040,7 +1040,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_int_fn);
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< float >& wrapper ) {
             std::visit(overloaded{
@@ -1065,7 +1065,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_float_fn);
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< interval_int >& wrapper ) {
             std::visit(overloaded{
@@ -1090,7 +1090,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_interval_int_fn);
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< interval_float >& wrapper ) {
             std::visit( overloaded {
@@ -1115,7 +1115,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_interval_float_fn );
+            }, wrapper.any_fn_ptr );
         },
         /*
         [&]( const any_fn< vec2f >& wrapper ) {
@@ -1152,7 +1152,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 },
-            }, wrapper.any_string_fn);  
+            }, wrapper.any_fn_ptr);  
         },
         [&]( const any_fn< direction4 >& wrapper ) {
             std::visit( overloaded {
@@ -1174,7 +1174,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_direction4_fn);
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< direction8 >& wrapper ) {
             std::visit( overloaded {
@@ -1196,7 +1196,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_direction8_fn );
+            }, wrapper.any_fn_ptr );
         },
         [&]( const any_fn< box_blur_type >& wrapper ) {
             std::visit( overloaded {
@@ -1218,7 +1218,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         // Other placeholder fields...
                     };
                 }
-            }, wrapper.any_box_blur_type_fn );
+            }, wrapper.any_fn_ptr );
         },
         /* 
         [&]( const any_gen_fn& wrapper ) {

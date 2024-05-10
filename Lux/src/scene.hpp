@@ -210,39 +210,41 @@ struct scene {
     std::unordered_map< std::string, any_effect_fn > effects;
 
     std::unordered_map< std::string, any_buffer_pair_ptr > buffers; // Source images and results of effect stacks
-    std::vector< effect_list > queue; // list of buffers rendered in order 
+    std::vector< effect_list > queue; // list of buffers rendered in order of execution
 
     float time; 
     float time_interval; 
     float default_time_interval;
-    bool paused;
+    
     float aspect;   // aspect ratio of output buffer
         
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
-/*
-    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) noexcept {
-        if( functions.contains( name ) ) {
-            auto fn = std::get_if< any_fn< T >* >( &( functions[ name ] ) );
-            if( fn != nullptr ) {
-                auto fn_ptr = std::get_if< std::shared_ptr< F >* >( &( fn->any_fn ) );
-                if( fn_ptr != nullptr ) {
-                    return *fn_ptr;
-                }
-                else {
-                    return nullptr;
-                }
-            }
-            else {
-                return nullptr;
-            }
-        }
-        else {
+
+    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) {
+        if( !functions.contains( name ) ) {
+            throw std::runtime_error( "function " + name + " not found in scene" ); 
             return nullptr;
         }
+        else {
+            if( !std::holds_alternative< any_fn< T > >( functions[ name ] ) ) {
+                throw std::runtime_error( "function " + name + " not of return type " + typeid( T ).name() );
+                return nullptr;
+            }
+            else {
+                auto fn = std::get< any_fn< T > >( functions[ name ] );
+                if( !std::holds_alternative< std::shared_ptr< F > >( fn.any_fn_ptr ) ) {
+                    throw std::runtime_error( "function " + name + " not of type " + typeid( F ).name() );
+                    return nullptr;
+                }
+                else {
+                    return std::get< std::shared_ptr< F > >( fn.any_fn_ptr );
+                }
+            }
+        }
     }
-*/
+
     // Get mouse position in parametric space of output buffer
     vec2f get_mouse_pos() const;
 

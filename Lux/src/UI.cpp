@@ -2,6 +2,8 @@
 #include "image.hpp"
 //#include "next_element.hpp"
 #include "scene.hpp"
+#include "life.hpp"
+#include "any_function.hpp"
 
 bool mousedown_condition::operator () ( element_context& context ) { 
     return context.s.ui.mouse_down; 
@@ -97,19 +99,65 @@ void menu::clear() {
     items.clear();
 }
 
-template< class T > T direction_picker< T >::operator() ( T& val, element_context& context ) {
+template< class T > T picker< T >::operator() ( T& val, element_context& context ) {
     return value;
 }
 
-template< class T > void direction_picker< T >::reset() {
+template< class T > void picker< T >::reset() {
     value = default_value;
 }
 
-template struct direction_picker< direction4 >;
-template struct direction_picker< direction8 >;
+template struct picker< direction4 >;
+template struct picker< direction8 >;
+template struct picker< box_blur_type >;
+template struct picker< int >;
+
+int custom_blur_picker::operator() ( int& val, element_context& context ) {
+    return pickers.size();
+}
+
+void custom_blur_picker::reset() {
+    for( auto& p : pickers ) {
+        p.first =  0;
+        p.second = 0;
+    }
+}
+
+void custom_blur_picker::clear() {
+    pickers.clear();
+}
+
+void custom_blur_picker::add_pickers() {
+    pickers.push_back( std::make_pair( 0, 0 ) );
+}
+
+void custom_blur_picker::add_pickers( int dirs, int compares) { 
+    pickers.push_back( std::make_pair( dirs, compares ) );
+}
+
+void custom_blur_picker::remove_pickers( int n ) {
+    pickers.erase( pickers.begin() + n );
+}
+
+void custom_blur_picker::set_picker_value( int value, int id ) {
+    // msb = 1 means compare picker, 0 means direction picker
+    if( ( id >> 7 ) & 1 ) {
+        pickers[ id & 0x7F ].second = value;
+    }
+    else {
+        pickers[ id & 0x7F ].first  = value;
+    }
+}
+
+custom_blur_picker::custom_blur_picker( const std::string& label_init, 
+                                        const std::string& description_init ) : 
+                                            label( label_init ), 
+                                            description( description_init ) {
+                                                // initialize pickers
+                                            }
 
 bool widget_switch::operator() ( element_context& context ) {
-    auto sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( context.s.functions[ switcher ] ).any_bool_fn );
+    auto sw = context.s.get_fn_ptr< bool, switch_fn >( switcher );
     if ( sw ) {
         sw->operator()( context );
         return sw->value;
@@ -118,7 +166,7 @@ bool widget_switch::operator() ( element_context& context ) {
 }
 
 bool widget_switch::operator() ( bool& val, element_context& context ) {
-    auto sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( context.s.functions[ switcher ] ).any_bool_fn );
+    auto sw = context.s.get_fn_ptr< bool, switch_fn >( switcher );
     if ( sw ) {
         sw->operator()( context );
         return sw->value;
