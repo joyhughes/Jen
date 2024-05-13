@@ -10,6 +10,6 @@ set -e
 # TODO figure out why this breaks
 #make    
 
-make
+make -f Web_Makefile
 exit 0
 
