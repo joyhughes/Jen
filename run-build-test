@@ -2,11 +2,15 @@
 
 cd $(dirname $0)
 cd Lux
-rm -rf build
-mkdir build
-cd build
+rm -rf build web_build
+mkdir build web_build
 set -e
-cmake ..
+#cd build
+#cmake ..
+# TODO figure out why this breaks
+#make    
+
+cd ../
 make
 exit 0
 
