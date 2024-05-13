@@ -10,7 +10,6 @@ set -e
 # TODO figure out why this breaks
 #make    
 
-cd ../
 make
 exit 0
 
