@@ -8,6 +8,8 @@ jobs:
       image: rudicilibrasi/jen
       options: --cpus 1
     steps:
+      - name: checkout
+        uses: "actions/checkout@v4"
       - name: Check for dockerenv file
         run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
       - name: Find emcc
