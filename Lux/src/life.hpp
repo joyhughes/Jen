@@ -7,7 +7,9 @@
 #include "joy_rand.hpp"
 #include "any_rule.hpp"
 #include "any_image.hpp"
+#include "life_hacks.hpp"
 #include "next_element.hpp"
+#include <array>
  
 // collected funky codes for funky_sort
 #define FUNK_BORG   0xffffffffaa00aa00
@@ -134,6 +136,37 @@ template< class T > struct rule_random_mix {
 #define rule_random_mix_int rule_random_mix< int >
 #define rule_random_mix_vec2i rule_random_mix< vec2i >
 
+template< class T > struct rule_box_blur {
+   harness< int > max_diff; // Maximum difference between pixels to be blurred (Manhattan distance)
+   harness< box_blur_type > blur_method; // Type of box blur
+   harness< bool > bug_mode; // if true, return default color if no neighbors are within max_diff
+   harness< bool > random_copy; // if true, randomly copy color from a neighbor instead of blurring
+   std::array< unsigned int, 8 > diffs; // Manhattan distance to each neighbor
+
+   //harness< int > dirs_size; // number of directions
+   //std::vector< harness < int > > dirs;  // array of directions for blur
+   //std::vector< harness < int > > compares; // array of directions for comparison with max_diff
+   std::string custom_picker; // name of custom blur picker
+   std::vector< int > dirs;  // array of directions for blur
+   std::vector< int > compares; // array of directions for comparison with max_diff
+
+   CA_hood operator () ( element_context& context );
+   void operator () ( CA< T >& ca );
+
+   rule_box_blur( int max_diff_init = 230, 
+                  box_blur_type blur_method_init = BB_ORTHOGONAL, 
+                  bool bug_mode_init = true ) : 
+      max_diff( max_diff_init ),
+      blur_method( blur_method_init ),
+      bug_mode( bug_mode_init ) {}
+};
+
+#define rule_box_blur_frgb rule_box_blur< frgb >
+#define rule_box_blur_ucolor rule_box_blur< ucolor >
+#define rule_box_blur_vec2f rule_box_blur< vec2f >
+#define rule_box_blur_int rule_box_blur< int >
+#define rule_box_blur_vec2i rule_box_blur< vec2i >
+
 // Colors drift separately in given directions
 // Alternative - continuous direction function, use monte carlo interpolation
 /*
@@ -168,7 +201,7 @@ template< class T > struct rule_diffuse {
    void operator () ( CA< T >& ca );
             
 
-   rule_diffuse( bool alpha_block_init = false ) :
+   rule_diffuse() :
       rand_4( std::uniform_int_distribution< int >( 0, 3 ) ) { }
 };
 

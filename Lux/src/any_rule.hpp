@@ -42,6 +42,7 @@ template < class T > struct rule_identity;
 template < class T > struct rule_life;
 template < class T > struct rule_random_copy;
 template < class T > struct rule_random_mix;
+template < class T > struct rule_box_blur;
 template < class T > struct rule_diffuse;
 template < class T > struct rule_gravitate;
 template < class T > struct rule_snow;
@@ -53,6 +54,7 @@ typedef std::variant <
     std::shared_ptr< rule_life< ucolor > >,
     std::shared_ptr< rule_random_copy< ucolor > >,
     std::shared_ptr< rule_random_mix< ucolor > >,
+    std::shared_ptr< rule_box_blur< ucolor > >,
     std::shared_ptr< rule_diffuse< ucolor > >,
     std::shared_ptr< rule_gravitate< ucolor > >,
     std::shared_ptr< rule_snow< ucolor > >,
