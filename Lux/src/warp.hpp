@@ -38,7 +38,7 @@ template< class T > struct vector_melt {
         vec2f coord;
         for( int y = 0; y < vf.get_dim().y; y++ ) {
             for( int x = 0; x < vf.get_dim().x; x++ ) {
-                coord = vf.get_bounds().bb_map( { x, y }, vf.get_ipbounds() );
+                coord = vf.get_bounds().template bb_map< vec2f, 2 >( { x, y }, vf.get_ipbounds() );
                 *vfit += step * driver.sample( coord + *vfit, true, SAMP_REPEAT );
                 vfit++;
             }
@@ -74,7 +74,7 @@ template< class T > struct functional_melt {
         vec2f coord;
         for( int y = 0; y < vf.get_dim().y; y++ ) {
             for( int x = 0; x < vf.get_dim().x; x++ ) {
-                coord = vf.get_bounds().bb_map( { x, y }, vf.get_ipbounds() );
+                coord = vf.get_bounds().template bb_map< vec2f, 2 >( { x, y }, vf.get_ipbounds() );
                 *vfit += step * vfn( coord + *vfit, t );
                 vfit++;
             }
