@@ -30,7 +30,7 @@ web_build/life.o: src/life.cpp
 	em++ -O2 src/life.cpp -c -o web_build/life.o  -std=c++20
 
 web_build/life_web.o: src/life_web.cpp
-	em++ -O2 src/life_web.cpp -c -o web_build/life_web.o  -std=c++20
+	em++ -sUSE_SDL -O2 src/life_web.cpp -c -o web_build/life_web.o  -std=c++20
 
 web_build/lux_web.o: src/lux_web.cpp
 	em++ -O2 src/lux_web.cpp -c -o web_build/lux_web.o  -std=c++20
