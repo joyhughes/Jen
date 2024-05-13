@@ -1,0 +1,15 @@
+#!/usr/bin/bash
+
+cd $(dirname $0)
+cd Lux
+rm -rf build web_build
+mkdir build web_build
+set -e
+#cd build
+#cmake ..
+# TODO figure out why this breaks
+#make    
+
+make -f Web_Makefile
+exit 0
+
