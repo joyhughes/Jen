@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-exec docker run --rm -it -v $(pwd):$(pwd) emtest bash
+exec docker run --rm -it -v $(pwd):$(pwd) jentest bash

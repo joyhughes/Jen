@@ -1,5 +1,5 @@
 #!/usr/bin/bash
 set -e
 cd $(dirname $0)
-docker rmi -f emtest >/dev/null 2>&1  || true
-exec docker build -t emtest .
+docker rmi -f jentest >/dev/null 2>&1  || true
+exec docker build -t jentest .

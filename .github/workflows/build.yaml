@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+jobs:
+  build-test-job:
+    runs-on: ubuntu-latest
+    container:
+      image: rudicilibrasi/jen
+      options: --cpus 1
+    steps:
+      - name: Check for dockerenv file
+        run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
+      - name: Find emcc
+        run: which emcc
+      - name: Find pwd
+        run: pwd
+      - name: Find ls
+        run: ls
