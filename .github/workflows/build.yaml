@@ -18,3 +18,5 @@ jobs:
         run: pwd
       - name: Find ls
         run: ls
+      - name: Run Build Test
+        run: ./run-build-test
