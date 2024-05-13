@@ -43,7 +43,7 @@ typedef std::shared_ptr< buffer_pair< vec2i  > > obuf_ptr;
 
 typedef std::variant< fbuf_ptr, ubuf_ptr, vbuf_ptr, wbuf_ptr, obuf_ptr > any_buffer_pair_ptr; 
 
-static const ubuf_ptr null_buffer_pair_ptr = NULL;
+static ubuf_ptr null_buffer_pair_ptr = NULL;
 
 template< class T > void copy_buffer( T& to, const any_buffer_pair_ptr& from ) { 
 	const T& f = std::get< T >( from );

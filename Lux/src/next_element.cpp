@@ -34,11 +34,12 @@ template struct harness< ucolor >;
 template struct harness< bb2f >;
 template struct harness< std::string >;
 template struct harness< bool >;
-template struct harness< direction4 >;
-template struct harness< direction8 >;
+template struct harness< direction4 >; // future: replace enum harnesses with int harnesses
+template struct harness< direction8 >; // future: replace enum harnesses with int harnesses
 template struct harness< interval_int >;
 template struct harness< interval_float >;
-template struct harness< box_blur_type >;
+template struct harness< box_blur_type >; // future: replace enum harnesses with int harnesses
+//template struct harness< std::vector< int > >;
 
 /*
 template< class U > U identity_fn< U >::operator () ( U& in, element_context& context ) { 
