@@ -71,4 +71,3 @@ It's the intent of a full version of Lux to be able to output still images, real
 
 See the [README for Lux](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
 
-
