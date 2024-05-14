@@ -244,6 +244,7 @@ template< class T > void image< T >::refresh_bounds() {
 
 template< class T > const bb2f image< T >::get_bounds() const { return bounds; }
 template< class T > const bb2i image< T >::get_ipbounds() const { return ipbounds; }
+template< class T > const bb2f image< T >::get_fpbounds() const { return fpbounds; }
 template< class T > void image< T >::set_bounds( const bounding_box< float, 2 >& bb ) { bounds = bb; }
 
 // returns true if images have same dimensions
