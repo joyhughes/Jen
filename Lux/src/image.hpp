@@ -153,6 +153,7 @@ public:
     void refresh_bounds(); // calculates default bounding boxes based on pixel dimensions
     const bb2f get_bounds() const;
     const bb2i get_ipbounds() const;
+    const bb2f get_fpbounds() const;
     void set_bounds( const bb2f& bb );
     template< class U > bool compare_dims( const image< U >& img ) const { return ( dim == img.get_dim() ); }  // returns true if images have same dimensions
 
