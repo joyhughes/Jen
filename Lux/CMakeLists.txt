@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(joylux)
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKdE_BUILD_TYPE "Debug")
   message(STATUS "Build type not specified: Use Debug by default")
 endif(NOT CMAKE_BUILD_TYPE)
 
