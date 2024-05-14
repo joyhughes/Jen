@@ -32,6 +32,7 @@ template< class T > struct vector_melt {
     float step;
 
     void iterate( const float& t = 0.0f ) {
+        /*
          // run function for each point in vector field and integrate
         // std::cout << "vector_melt dim.x  " << vf.get_dim().x << "\n";
         auto vfit = vf.begin(); 
@@ -47,6 +48,7 @@ template< class T > struct vector_melt {
                 vfit++;
             }
         } 
+        */
         frame++; 
     }
 
@@ -74,6 +76,7 @@ template< class T > struct functional_melt {
 
     void iterate( const float& t = 0.0f ) { 
          // run function for each point in vector field and integrate
+        /*
         auto vfit = vf.begin(); 
         vec2f coord;
         for( int y = 0; y < vf.get_dim().y; y++ ) {
@@ -83,6 +86,7 @@ template< class T > struct functional_melt {
                 vfit++;
             }
         } 
+        */
         frame++; 
     }
 
