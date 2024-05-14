@@ -1,5 +1,7 @@
 # Contributing Guidelines
 
+Please "star" this repo. Watch the video [here](https://www.youtube.com/watch?v=vN1ApdESIrc)
+
 When contributing to this repository, it is essential to first discuss the proposed changes with the project maintainers via issue to ensure alignment with the project's goals.
 
 Please adhere to our Code of Conduct during all interactions within the project.
