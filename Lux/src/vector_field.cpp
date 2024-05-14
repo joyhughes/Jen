@@ -36,11 +36,11 @@ void vortex_field::generate() {
             switch ( velocity_direction )
             {
             case COUNTERCLOCKWISE:
-                vort.velocity = abs( vort.velocity );
+                vort.velocity = std::abs( vort.velocity );
                 break;
 
             case CLOCKWISE:
-                vort.velocity = -abs( vort.velocity );
+                vort.velocity = -std::abs( vort.velocity );
                 break;
             
             case RANDOM:
@@ -57,11 +57,11 @@ void vortex_field::generate() {
         switch ( intensity_direction )
         {
         case COUNTERCLOCKWISE:
-            vort.intensity = abs( vort.intensity );
+            vort.intensity = std::abs( vort.intensity );
             break;
 
         case CLOCKWISE:
-            vort.intensity = -abs( vort.intensity );
+            vort.intensity = -std::abs( vort.intensity );
             break;
         
        case RANDOM:
