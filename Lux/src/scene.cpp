@@ -282,7 +282,7 @@ void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];
         eff_list.rendered = false;
-        vec2i dim = { std::round( dim_out.x * eff_list.relative_dim ), std::round( dim_out.y * eff_list.relative_dim ) };
+        vec2i dim = { static_cast<int>(std::round( dim_out.x * eff_list.relative_dim )), static_cast<int>(std::round( dim_out.y * eff_list.relative_dim )) };
         eff_list.resize( dim );
     }
 }

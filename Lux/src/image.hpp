@@ -112,7 +112,7 @@ public:
                 float scale = std::min( (float)dim.x / img.dim.x, (float)dim.y / img.dim.y );
                 dim = vec2i( (int)( img.dim.x * scale ), (int)( img.dim.y * scale ) );
             }
-            bounds = { { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } };
+            bounds = { { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } };
             ipbounds = { { 0, 0 }, dim };
             fpbounds = { { 0.0f, 0.0f }, ipbounds.maxv - 1.0f };
             base.resize( dim.x * dim.y );
