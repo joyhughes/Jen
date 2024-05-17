@@ -59,12 +59,7 @@ template class eff_grayscale< frgb >;
 template class eff_grayscale< ucolor >;
 
 template< class T > void eff_invert< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
-        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
-        buf_ptr->get_image().invert();
-    }
+    get_image< T >( buf ).invert();
 }
 
 template class eff_invert< frgb >;
@@ -365,7 +360,7 @@ template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& 
         if( std::holds_alternative< vbuf_ptr >( vf_buf ) )
         {
             auto& vf = std::get< vbuf_ptr >( vf_buf )->get_image();   // extract vector field from buffer variant
-            buf_ptr->get_image().fill( vf, relative, extend );
+            buf_ptr->get_image().fill( vf, *relative, *extend );
         }
     }
 }

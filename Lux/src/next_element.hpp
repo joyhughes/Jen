@@ -44,6 +44,7 @@ typedef std::function< std::string ( std::string&, element_context& ) > string_f
 typedef std::function< direction4 ( direction4&, element_context& ) > direction4_fn;
 typedef std::function< direction8 ( direction8&, element_context& ) > direction8_fn;
 typedef std::function< box_blur_type ( box_blur_type&, element_context& ) > box_blur_type_fn;
+typedef std::function< image_extend ( image_extend&, element_context& ) > image_extend_fn;
 
 typedef std::function< void ( element_context& ) > gen_fn;
 typedef std::function< bool ( element_context& ) > condition_fn;
@@ -87,6 +88,7 @@ typedef identity_fn< std::string > identity_string;
 typedef identity_fn< direction4 > identity_direction4;
 typedef identity_fn< direction8 > identity_direction8;
 typedef identity_fn< box_blur_type > identity_box_blur_type;
+typedef identity_fn< image_extend > identity_image_extend;
 
 template< Additive U > struct adder {
     harness< U > r;
