@@ -165,14 +165,15 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     //img.mip_it();
 }
 
-void vf_tools::kaleidoscope(    const vec2f& center = { 0.0f, 0.0f }, 
-                                float segments = 6.0,                // Number of segments in kaleidoscope
-                                bool reflect = true ) {              // Reflect alternate segments
+void vf_tools::kaleidoscope(    const vec2f& center, 
+                                float segments,                // Number of segments in kaleidoscope
+                                float offset_angle,            // Beginning of first segment in degrees
+                                bool reflect ) {               // Reflect alternate segments
     if( segments != 0.0f ) {
         position_fill();
         radial();
-        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y, TAU / segments ) }; }
-        else          { for( auto& v : img.base ) { v.y = tmodf( v.y, TAU / segments ) }; }
+        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + offset_angle * TAU / 360.0, TAU / segments ); } }
+        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + offset_angle * TAU / 360.0, TAU / segments ); } }
         cartesian();
     }
 }
