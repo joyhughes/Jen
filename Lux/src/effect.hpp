@@ -163,11 +163,11 @@ typedef eff_flip< vec2i > eff_flip_vec2i;
 
 // Component effect - wrapper for warp with vector field
 template< class T > struct eff_vector_warp {
-    std::string vf_name;    // used to reference vector field from queue
+    harness< std::string > vf_name;    // used to reference vector field from queue
     harness< float > step; 
-    bool smooth;
-    bool relative;
-    image_extend extend;
+    harness< bool > smooth;
+    harness< bool > relative;
+    harness< image_extend > extend;
 
     // In this case t has no effect
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
@@ -187,7 +187,7 @@ typedef eff_vector_warp< int > eff_vector_warp_int;
 typedef eff_vector_warp< vec2i > eff_vector_warp_vec2i;
 
 template< class T > struct eff_feedback {
-    std::string wf_name; // used to reference warp field from queue
+    harness< std::string > wf_name; // used to reference warp field from queue
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
@@ -403,22 +403,19 @@ typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;
 // Warp field effects
 template< class T > struct eff_fill_warp {
     harness< std::string > vf_name;
-    any_buffer_pair_ptr vf_buf;
     harness< bool > relative;
     harness< image_extend > extend;
 
+    bool filled;
+
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_fill_warp() :  
-        relative( true ), 
-        extend( SAMP_REPEAT ) {}
-
-    /*eff_fill_warp( any_buffer_pair_ptr& vf_buf_init = null_buffer_pair_ptr, 
+    eff_fill_warp( std::string vf_name_init = "none", 
                    bool relative_init = true, 
                    image_extend extend_init = SAMP_REPEAT ) : 
-        vf_buf( vf_buf_init ), 
+        vf_name( vf_name_init ), 
         relative( relative_init ), 
-        extend( extend_init ) {}*/
+        extend( extend_init ) {}
 };
 
 typedef eff_fill_warp< int > eff_fill_warp_int;

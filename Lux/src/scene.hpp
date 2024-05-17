@@ -245,6 +245,13 @@ struct scene {
         }
     }
 
+    template< class T > image< T >& get_image( const std::string& name ) {
+        if( !buffers.contains( name ) ) {
+            throw std::runtime_error( "image " + name + " not found in scene" ); 
+        }
+        else return ::get_image< T >( buffers[ name ] );
+    }
+
     // Get mouse position in parametric space of output buffer
     vec2f get_mouse_pos() const;
 

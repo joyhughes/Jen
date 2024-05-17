@@ -89,10 +89,6 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
         std::cout << "adding target buffer " << t.second << " to CA " << t.first << std::endl;
         std::get< std::shared_ptr< CA< ucolor > > >( s.effects[ t.first ].fn_ptr )->target = s.buffers[ t.second ]; 
     }
-    for( auto& v : fill_warp_vfs ) { 
-        std::cout << "adding vector field " << v.second << " to fill_warp " << v.first << std::endl;
-        std::get< std::shared_ptr< eff_fill_warp< int > > >( s.effects[ v.first ].fn_ptr )->vf_buf = s.buffers[ v.second ]; 
-    }
     DEBUG( "scene_reader constructor finished" )
 }
 
@@ -743,17 +739,17 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
-    EFF( eff_vector_warp_frgb )   READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
-    EFF( eff_vector_warp_ucolor ) READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
-    EFF( eff_vector_warp_vec2i )  READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
-    EFF( eff_vector_warp_vec2f )  READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
-    EFF( eff_vector_warp_int )    READE( vf_name ) HARNESSE( step ) READE( smooth ) READE( relative ) READE( extend ) END_EFF()
+    EFF( eff_vector_warp_frgb )   HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+    EFF( eff_vector_warp_ucolor ) HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+    EFF( eff_vector_warp_vec2i )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+    EFF( eff_vector_warp_vec2f )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+    EFF( eff_vector_warp_int )    HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
 
-    EFF( eff_feedback_frgb )   READE( wf_name ) END_EFF()
-    EFF( eff_feedback_ucolor ) READE( wf_name ) END_EFF()
-    EFF( eff_feedback_vec2i )  READE( wf_name ) END_EFF()
-    EFF( eff_feedback_vec2f )  READE( wf_name ) END_EFF()
-    EFF( eff_feedback_int )    READE( wf_name ) END_EFF()
+    EFF( eff_feedback_frgb )   HARNESSE( wf_name ) END_EFF()
+    EFF( eff_feedback_ucolor ) HARNESSE( wf_name ) END_EFF()
+    EFF( eff_feedback_vec2i )  HARNESSE( wf_name ) END_EFF()
+    EFF( eff_feedback_vec2f )  HARNESSE( wf_name ) END_EFF()
+    EFF( eff_feedback_int )    HARNESSE( wf_name ) END_EFF()
 
     // vector field effects
     EFF( eff_complement_vec2f ) END_EFF()
@@ -778,14 +774,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_position_fill_vec2f ) END_EFF()
 
     // warp field effects
-    EFF( eff_fill_warp_int ) 
-        if( j.contains( "vector_field" ) ) {
-            std::string vf_name;
-            j[ "vector_field" ].get_to( vf_name );
-            fill_warp_vfs[ name ] = vf_name;
-        }
-        else ERROR( "reading eff_fill_warp: vector field missing\n" )
-    END_EFF()
+    EFF( eff_fill_warp_int ) HARNESSE( vf_name ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
 
     DEBUG( "Finished reading effect " + name )
 }

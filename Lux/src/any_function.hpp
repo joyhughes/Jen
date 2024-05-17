@@ -294,6 +294,7 @@ typedef std::variant <
     any_fn< direction4 >,
     any_fn< direction8 >,
     any_fn< box_blur_type >,
+    any_fn< image_extend >,
     any_fn< bool >,
     any_condition_fn,
     any_gen_fn          
