@@ -125,7 +125,7 @@ template< class T, int M > struct bounding_box {
     V minp, maxp;  // Padded bounding box values to calculate if point is within a specified distance to bounding box in any dimension
 
     bounding_box()                           : 
-        b1( { -1.0f, -1.0f } ), b2( { 1.0f, 1.0f } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
+        b1( { (T)(-1), (T)(-1) } ), b2( { (T)1, (T)1 } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
 
     bounding_box( const V& v )               :
         b1( 0 ), b2( v ), minv( linalg::min( 0, v ) ), maxv( linalg::max( 0, v ) ), minp( minv ), maxp( maxv ) { }
