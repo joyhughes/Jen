@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+set -e
+cd $(dirname $0)
+cd Lux/lux_react
+rm -rf node_modules
+npm i
+npm run build
+exit 0
+

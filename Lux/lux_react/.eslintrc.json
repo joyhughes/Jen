@@ -1,0 +1,10 @@
+{
+  "overrides": [
+    {
+      "files": ["src/**/*.js"],
+      "rules": {
+        "no-octal-escape": "off"
+      }
+    }
+  ]
+}

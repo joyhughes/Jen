@@ -14,3 +14,5 @@ jobs:
         run: ./run-build-test
       - name: Run Emscripten Build Test
         run: ./run-emscripten-build-test
+      - name: Run React Build Test
+        run: ./run-react-test
