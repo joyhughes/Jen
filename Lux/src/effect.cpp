@@ -320,6 +320,25 @@ template< class T > void eff_position_fill< T >::operator () ( any_buffer_pair_p
 
 template class eff_position_fill< vec2f >;
 
+template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    vec2f old_center=*center; float old_segments=*segments; float old_offset_angle=*offset_angle; bool old_reflect=*reflect;
+    center(context); segments(context); offset_angle(context); reflect(context); filled(context);
+    
+    if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *reflect!=old_reflect)
+    filled=false;
+    old_center = *center; old_segments=*segments; old_offset_angle=*offset_angle; old_reflect=*reflect;
+
+    if(!filled)
+    {
+        filled =true;
+        vftools tools( get_image< T >( buf ) );
+        tools.kaleidoscope(*center,*segments,*offset_angle,*reflect);
+    }  
+}
+
+template class eff_kaleidoscope< vec2f >;
+
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     vf_name( context ); relative( context ); extend( context );
