@@ -771,7 +771,7 @@ void scene_reader::read_effect( const json& j ) {
                                HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
                                READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
                                READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
-    EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
+   // EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
     EFF( eff_position_fill_vec2f ) END_EFF()
 
     // warp field effects
