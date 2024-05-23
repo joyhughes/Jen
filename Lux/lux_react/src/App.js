@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 //import Tour from "./pages/Tour";
 //import SearchAppBar from './components/AppBar';
 import Home from "./pages/Home";
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 /* Tour 
 function App() {
@@ -19,13 +21,23 @@ function App() {
 }
 */
 
+//default dark mode
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
 // Jen prototype
+
 function App() {
-  return <BrowserRouter>
+  return (<ThemeProvider theme={darkTheme}>
+    <BrowserRouter>
     <Routes>
       <Route path="/" element={<Home/>} />
     </Routes>
-  </BrowserRouter>;
+  </BrowserRouter>
+    </ThemeProvider>);
 }
 
 export default App;

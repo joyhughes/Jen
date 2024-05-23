@@ -1,2 +1,2 @@
 #!/usr/bin/bash
-exec docker run --rm -it -v $(pwd):$(pwd) jentest bash
+exec docker run --rm -it -v $(pwd):$(pwd) --net=host jentest bash

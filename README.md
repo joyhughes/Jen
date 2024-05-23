@@ -9,6 +9,21 @@ Jen defines a *generative space* - a set of rules that can produce an arbitrary 
 ## Folders
 The code for Jen is stored in three folders in the repo, organized by language. 
 
+### docker
+The easiest way to get started for developers is generally to build and
+use the developer docker image available with:
+
+```
+./build-docker-image
+```
+
+Then enter the container with:
+```
+./rund
+```
+The container has all necessary dependencies to build, run, and test the
+entire project including C++ drawing engine and web browser frontend GUI.
+
 ### Jen-C (deprecated)
 All the original C language implementations for each iteration of Jen are here.
 

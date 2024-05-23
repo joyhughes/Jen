@@ -2,6 +2,11 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+The easiest way to get started is to use the docker container. All these
+commands work there and if you start the container using the ./rund
+script (repo root) your browser tests can work as normal. You need to run
+./build-docker-image once to build the image first.
+
 ## Available Scripts
 
 In the project directory, you can run:
