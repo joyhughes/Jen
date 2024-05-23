@@ -39,6 +39,7 @@ template struct harness< direction8 >; // future: replace enum harnesses with in
 template struct harness< interval_int >;
 template struct harness< interval_float >;
 template struct harness< box_blur_type >; // future: replace enum harnesses with int harnesses
+template struct harness< image_extend >; // future: replace enum harnesses with int harnesses
 //template struct harness< std::vector< int > >;
 
 /*

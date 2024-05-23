@@ -12,7 +12,6 @@ struct scene_reader {
     std::map< std::string, std::string > elem_img_bufs, elem_mask_bufs; // Handle forward references to element buffers
     std::map< std::string, std::string > CA_targets; // Handle forward references to cellular automata target buffers
     std::map< std::string, std::string > cluster_elements; // Element for each cluster. Elements copied to clusters after buffers added to elements.
-    std::map< std::string, std::string > fill_warp_vfs; // Vector field for each fill_warp effect. Vector fields copied to fill_warps after buffers added to vector fields.
 
     scene_reader( scene& s_init, std::string( filename ) );
 
@@ -92,6 +91,7 @@ struct scene_reader {
     READ_ANY_HARNESS( interval_float )
     READ_ANY_HARNESS( interval_int )
     READ_ANY_HARNESS( box_blur_type )
+    READ_ANY_HARNESS( image_extend )
 
     //READ_ANY_HARNESS( std::optional< int > )
     //READ_ANY_HARNESS( std::optional< float > )

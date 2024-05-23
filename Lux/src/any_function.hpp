@@ -159,6 +159,16 @@ typedef std::variant <
 ANY_FN( box_blur_type )
 
 typedef std::variant < 
+    // harness functions
+    std::shared_ptr< identity_image_extend >,
+
+    // ui functions
+    std::shared_ptr< image_extend_picker >
+> any_image_extend_fn_ptr;
+
+ANY_FN( image_extend )
+
+typedef std::variant < 
     // identity
     std::shared_ptr< identity_bool >,
 
@@ -284,6 +294,7 @@ typedef std::variant <
     any_fn< direction4 >,
     any_fn< direction8 >,
     any_fn< box_blur_type >,
+    any_fn< image_extend >,
     any_fn< bool >,
     any_condition_fn,
     any_gen_fn          

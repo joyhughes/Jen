@@ -1,3 +1,4 @@
 Lux/lux_react/node_modules/
-Lux/build/
-lux/web_build/
+Lux/web_build
+Lux/build
+

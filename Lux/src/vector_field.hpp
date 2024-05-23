@@ -110,6 +110,11 @@ public:
     void vortex( const ::vortex& vort, const float& t = 0.0f );
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
+    void kaleidoscope( const vec2f& center = { 0.0f, 0.0f }, 
+                        float segments = 6.0,                // Number of segments in kaleidoscope
+                        float offset_angle = 0.0f,           // Beginning of first segment in degrees
+                        bool reflect = true );               // Reflect alternate segments
+
     void position_fill();
 
     // TODO:  implement vector field visualization

@@ -164,6 +164,20 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
     //img.mip_it();
 }
+
+void vf_tools::kaleidoscope(    const vec2f& center, 
+                                float segments,                // Number of segments in kaleidoscope
+                                float offset_angle,            // Beginning of first segment in degrees
+                                bool reflect ) {               // Reflect alternate segments
+    if( segments != 0.0f ) {
+        position_fill();
+        radial();
+        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + offset_angle * TAU / 360.0, TAU / segments ); } }
+        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + offset_angle * TAU / 360.0, TAU / segments ); } }
+        cartesian();
+    }
+}
+
  
 void vf_tools::position_fill() { 
     auto v = img.base.begin();

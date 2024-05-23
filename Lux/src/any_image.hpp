@@ -50,5 +50,15 @@ template< class T > void copy_buffer( T& to, const any_buffer_pair_ptr& from ) {
 	if( f.get() == NULL ) throw std::runtime_error( "copy_buffer(): attempt to copy null buffer" );
 	to->copy_first( *f ); 
 }
+ 
+template< class T > image< T >& get_image( const any_buffer_pair_ptr& buf ) { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "get_image: no image in buffer" );
+        return buf_ptr->get_image();
+    }
+	else throw std::runtime_error( "get_image: invalid buffer type" );
+}
 
 #endif // __ANY_IMAGE_HPP

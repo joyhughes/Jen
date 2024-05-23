@@ -59,12 +59,7 @@ template class eff_grayscale< frgb >;
 template class eff_grayscale< ucolor >;
 
 template< class T > void eff_invert< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
-        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
-        buf_ptr->get_image().invert();
-    }
+    get_image< T >( buf ).invert();
 }
 
 template class eff_invert< frgb >;
@@ -149,11 +144,11 @@ template class eff_flip< vec2i >;
 template< class T > void eff_vector_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
+        vf_name( context ); step( context ); smooth( context ); relative( context ); extend( context );
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_vector_warp: no image in buffer" );
-        any_buffer_pair_ptr vf_buf = context.s.buffers[ vf_name ];
-        auto& vf = std::get< vbuf_ptr >( vf_buf )->get_image();   // extract vector field from buffer variant
-        buf_ptr->get_buffer().warp( buf_ptr->get_image(), vf, *step, smooth, relative, extend );
+        auto &vf = context.s.get_image< vec2f >( *vf_name );
+        buf_ptr->get_buffer().warp( buf_ptr->get_image(), vf, *step, *smooth, *relative, *extend );
         buf_ptr->swap();
     }
 }
@@ -168,10 +163,11 @@ template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& b
 {
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
+        wf_name( context );
+
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
-        any_buffer_pair_ptr wf_buf = context.s.buffers[ wf_name ];
-        auto& wf = std::get< wbuf_ptr >( wf_buf )->get_image();  // extract warp field from buffer variant
+        auto& wf = context.s.get_image< int >( *wf_name );
         buf_ptr->get_image().warp( buf_ptr->get_image(), wf );
         buf_ptr->swap();
     }
@@ -187,108 +183,75 @@ template class eff_feedback< vec2i >;
 
 template< class T > void eff_complement< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.complement();
-    }
+    vf_tools tools( get_image< T >( buf ) );
+    tools.complement();
 }
 
 template class eff_complement< vec2f >;
 
 template< class T > void eff_radial< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.radial();
-    }
+    vf_tools tools( get_image< T >( buf ) );
+    tools.radial();
 }
 
 template class eff_radial< vec2f >;
 
 template< class T > void eff_cartesian< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.cartesian();
-    }
+    vf_tools tools( get_image< T >( buf ) );
+    tools.cartesian();
 }
 
 template class eff_cartesian< vec2f >;
 
 template< class T > void eff_rotate_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
-    {
-        //std::cout << "eff_rotate_vectors: " << std::endl;
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.rotate_vectors( *angle );
-    }
+    vf_tools tools( get_image< T >( buf ) );
+    tools.rotate_vectors( *angle );
 }
 
 template class eff_rotate_vectors< vec2f >;
 
 template< class T > void eff_scale_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        buf_ptr->get_image() *= *scale;
-    }
+    scale( context );
+    get_image< T >( buf ) *= *scale;
 }
 
 template class eff_scale_vectors< vec2f >;
 
 template< class T > void eff_normalize< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.normalize();
-    }
+    vf_tools tools( get_image< T >( buf ) );
+    tools.normalize();
 }
 
 template class eff_normalize< vec2f >;
 
 template< class T > void eff_inverse< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.inverse( *diameter, *soften );
-    }
+    diameter( context ); soften( context );
+    vf_tools tools( get_image< T >( buf ) );
+    tools.inverse( *diameter, *soften );
 }
 
 template class eff_inverse< vec2f >;
 
 template< class T > void eff_inverse_square< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf)) 
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.inverse_square( *diameter, *soften );
-    }
+    diameter( context ); soften( context );
+    vf_tools tools( get_image< T >( buf ) );
+    tools.inverse_square( *diameter, *soften );
 }
 
 template class eff_inverse_square< vec2f >;
 
 template< class T > void eff_concentric< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if (std::holds_alternative< vbuf_ptr>(buf)) 
-    {
-        auto& buf_ptr = std::get< vbuf_ptr >(buf);
-        vf_tools tools( buf_ptr->get_image() );
-        tools.concentric( *center );
-    }
+    center( context );
+    vf_tools tools( get_image< T >( buf ) );
+    tools.concentric( *center );
 }
 
 template class eff_concentric< vec2f >;
@@ -359,14 +322,10 @@ template class eff_position_fill< vec2f >;
 
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) 
-    {
-        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf );
-        if( std::holds_alternative< vbuf_ptr >( vf_buf ) )
-        {
-            auto& vf = std::get< vbuf_ptr >( vf_buf )->get_image();   // extract vector field from buffer variant
-            buf_ptr->get_image().fill( vf, relative, extend );
-        }
+    vf_name( context ); relative( context ); extend( context );
+    if( *vf_name != "none" ) {
+        image< vec2f >& vf = context.s.get_image< vec2f >( *vf_name );
+        get_image< T >( buf ).fill( vf, *relative, *extend );
     }
 }
 
