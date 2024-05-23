@@ -1,6 +1,7 @@
 #ifndef __ANY_RULE_HPP
 #define __ANY_RULE_HPP
 
+#include <functional>
 #include <variant>
 #include <vector>
 #include <string>

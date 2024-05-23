@@ -237,7 +237,7 @@ template< class T > void image< T >::set_dim( const vec2i& dims ) {
 
 // calculates default bounding boxes based on pixel dimensions
 template< class T > void image< T >::refresh_bounds() { 
-    bounds.set( { -1.0, ( 1.0 * dim.y ) / dim.x }, { 1.0, ( -1.0 * dim.y ) / dim.x } );
+    bounds.set( { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } );
     ipbounds.set( { 0, 0 }, dim );
     fpbounds.set( { 0.0f, 0.0f }, ( vec2f )dim - 1.0f );
 }
