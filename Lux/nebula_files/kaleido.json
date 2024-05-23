@@ -1,0 +1,53 @@
+{
+    "name": "Kaleidoswirl",
+    "title": "Kaleidoscopic collage",
+    "images": 
+    [
+        { 
+            "type": "uimage", 
+            "filename": "nebula_files/hk_square_512.jpg", 
+            "name": "Hong Kong"
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "make kaleidoscope vector field",
+            "type": "eff_kaleidoscope_vec2f"
+        },
+        {
+            "name": "fill warp field",
+            "type": "eff_fill_warp_int",
+            "vf_name": "kaleido_vf"
+        },
+        {
+            "name": "warp image",
+            "type": "eff_feedback_ucolor",
+            "wf_name": "warper"
+        }
+    ],
+    "queue": 
+    [
+        {
+            "name": "kaleido_vf",
+            "dim": [ 512, 512],
+            "type": "vector_field",
+            "mode": "static",  
+            "effects": [ "make kaleidoscope vector field" ]
+        },
+        {
+            "name": "warper",
+            "dim": [ 512, 512],
+            "type": "warp_field",
+            "mode": "static",  
+            "effects": [ "fill warp field" ]
+        },
+        {
+            "name": "warped_image",
+            "source": "hk_square_512.jpg",
+            "type": "uimage",
+            "mode": "iterative",  
+            "effects": [ "warper" ]
+        }
+    ]
+}
