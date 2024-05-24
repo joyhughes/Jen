@@ -24,6 +24,20 @@ Then enter the container with:
 The container has all necessary dependencies to build, run, and test the
 entire project including C++ drawing engine and web browser frontend GUI.
 
+### Windows-specific steps
+
+1. Install WSL by
+  a. entering PowerShell by typing "powershell" in the search box and running it.
+  b. witin PowerShell type:
+  ```
+  wsl --install
+  ```
+
+2. Install Docker Desktop https://www.docker.com/products/docker-desktop/
+3. Sign in to docker desktop.
+4. Enable "Host Networking" checkbox in Docker Desktop settings.
+5. Follow normal Linux instructions within your WSL shell to get into docker. Then inside the docker container everything is normal. Use `./rund` to start it within your WSL.
+
 ### Jen-C (deprecated)
 All the original C language implementations for each iteration of Jen are here.
 
