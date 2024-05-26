@@ -72,7 +72,7 @@ struct scene_reader {
     void read_function( const json& j );
     void read_widget_group( const json& j );
     void read_cluster(  const json& j );
-    void read_queue(    const json& j, effect_list& elist );
+    void read_queue(    const json& j );
 
     template< class T > void read_harness( const json& j, harness< T >& h );
     #define READ_ANY_HARNESS( _T_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h ); }

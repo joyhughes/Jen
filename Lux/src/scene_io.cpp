@@ -72,10 +72,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Effects loaded" )
 
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
-        effect_list eff_list;
-        read_queue( q, eff_list );
-        s.queue.push_back( eff_list );              // add to render queue
-        s.buffers[ eff_list.name ] = eff_list.buf;  // add to buffer map
+        read_queue( q );              // add to render queue
     }
 
     if( j.contains( "widget groups" ) ) for( auto& wg : j[ "widget groups" ] ) read_widget_group( wg );
@@ -771,7 +768,7 @@ void scene_reader::read_effect( const json& j ) {
                                HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
                                READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
                                READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
-   // EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
+    EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
     EFF( eff_position_fill_vec2f ) END_EFF()
 
     // warp field effects
@@ -780,16 +777,27 @@ void scene_reader::read_effect( const json& j ) {
     DEBUG( "Finished reading effect " + name )
 }
 
-void scene_reader::read_queue( const json& j, effect_list& elist ) {
-    if( j.contains( "name"         ) ) read( elist.name,           j[ "name"         ] );
-    if( j.contains( "dim"          ) ) read( elist.dim,            j[ "dim"          ] );
-    DEBUG( "Reading queue " + elist.name )
-    if( j.contains( "source"       ) ) read_harness< std::string >(     j[ "source"       ], elist.source_name );
-    DEBUG( "queue source successfully read " )
-    if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  
-    if( j.contains( "relative_dim" ) ) read( elist.relative_dim,   j[ "relative_dim" ] );  
-    if( j.contains( "mode"         ) ) read( elist.rmode,          j[ "mode"         ] );
-    if( j.contains( "type"         ) ) read( elist.ptype,          j[ "type"         ] );
+void scene_reader::read_queue( const json& j ) {
+    std::string name = "default";
+    if( j.contains( "name"           ) ) read( name,           j[ "name"         ] );
+    bool self_generated = false;
+    if( j.contains( "self_generated" ) ) read( self_generated, j[ "self_generated" ] );
+    vec2i dim( 512, 512 );
+    if( j.contains( "dim"            ) ) read( dim,            j[ "dim"          ] );
+    pixel_type ptype = pixel_type::PIXEL_UCOLOR;
+    if( j.contains( "type"           ) ) read( ptype,          j[ "type"         ] );
+    render_mode rmode = render_mode::MODE_STATIC;
+    if( j.contains( "mode"           ) ) read( rmode,          j[ "mode"         ] );
+    float relative_dim = 1.0;
+    if( j.contains( "relative_dim"   ) ) read( relative_dim,   j[ "relative_dim" ] );  
+    
+    effect_list elist( name, self_generated, "none", dim, ptype, rmode, relative_dim );
+    // DEBUG( "Reading queue " + .name )
+    if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;
+    if( j.contains( "source"       ) ) read_harness( j[ "source" ], elist.source_name );
+    // DEBUG( "queue source successfully read " )
+    s.queue.push_back( elist );
+    s.buffers[ name ] = elist.buf;
 }
 
 void scene_reader::read_widget_group( const json& j ) {

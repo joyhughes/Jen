@@ -30,6 +30,7 @@
     [
         {
             "name": "kaleido_vf",
+            "self_generated": true,
             "dim": [ 512, 512],
             "type": "vector_field",
             "mode": "static",  
@@ -37,17 +38,18 @@
         },
         {
             "name": "warper",
-            "dim": [ 512, 512],
+            "self_generated": true,
+            "dim": [ 512, 512 ],
             "type": "warp_field",
             "mode": "static",  
             "effects": [ "fill warp field" ]
         },
         {
             "name": "warped_image",
-            "source": "hk_square_512.jpg",
+            "source": "Hong Kong",
             "type": "uimage",
             "mode": "iterative",  
-            "effects": [ "warper" ]
+            "effects": [ "warp image" ]
         }
     ]
 }
