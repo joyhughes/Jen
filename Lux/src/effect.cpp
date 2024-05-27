@@ -161,6 +161,7 @@ template class eff_vector_warp< vec2i >;
 
 template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
+    std::cout << "eff_feedback" << std::endl;
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         wf_name( context );
@@ -168,7 +169,7 @@ template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& b
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
         auto& wf = context.s.get_image< int >( *wf_name );
-        buf_ptr->get_image().warp( buf_ptr->get_image(), wf );
+        buf_ptr->get_buffer().warp( buf_ptr->get_image(), wf );
         buf_ptr->swap();
     }
 }
@@ -320,10 +321,31 @@ template< class T > void eff_position_fill< T >::operator () ( any_buffer_pair_p
 
 template class eff_position_fill< vec2f >;
 
+template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    vec2f old_center=*center; float old_segments=*segments; float old_offset_angle=*offset_angle; bool old_reflect=*reflect;
+    center(context); segments(context); offset_angle(context); reflect(context); 
+    
+    if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *reflect!=old_reflect)
+    filled=false;
+    old_center = *center; old_segments=*segments; old_offset_angle=*offset_angle; old_reflect=*reflect;
+
+    std::cout << "eff_kaleidoscope: filled = " << filled << std::endl;
+    if(!filled)
+    {
+        filled =true;
+        vf_tools tools( get_image< T >( buf ) );
+        tools.kaleidoscope(*center,*segments,*offset_angle,*reflect);
+    }  
+}
+
+template class eff_kaleidoscope< vec2f >;
+
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
+    std::cout << "eff_fill_warp" << std::endl;
     vf_name( context ); relative( context ); extend( context );
-    if( *vf_name != "none" ) {
+    if( *vf_name != "none" && *vf_name != "" ) {
         image< vec2f >& vf = context.s.get_image< vec2f >( *vf_name );
         get_image< T >( buf ).fill( vf, *relative, *extend );
     }

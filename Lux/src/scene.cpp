@@ -97,11 +97,12 @@ void cluster::set_root( element& el ) {
 
 void effect_list::resize( const vec2i& new_dim ) {
     // need to resize buffer (retaining data) instead?
+    std::cout << "effect_list " << name << " resize() " << new_dim.x << " " << new_dim.y << std::endl;
     std::visit( [&]( auto& b ) { b->reset( new_dim ); }, buf );       
 }
 
 void effect_list::update_source_name( scene& s ) {
-    std::cout << "effect_list::update_source_name()" << std::endl;
+    std::cout << "effect_list " << name << " update_source_name() ";
     // create dummy context
     element el;
     next_element ne;
@@ -111,13 +112,14 @@ void effect_list::update_source_name( scene& s ) {
     // check for new source buffer
     std::string old_name = *source_name; 
     source_name( context );
+    std::cout << " old source name: " << old_name << " new source name: " << *source_name << std::endl;
     if( *source_name != old_name ) rendered = false;
 }
-
+ 
 void effect_list::copy_source_buffer( scene& s ) {
     // get dimensions of source buffer - resize output buffer if necessary
         if( rmode == MODE_EPHEMERAL || !rendered ) { // ephemeral buffers are re-rendered each frame
-        std::cout << "preparing to copy buffer " << *source_name << std::endl;
+        //std::cout << "preparing to copy buffer " << *source_name << std::endl;
         if( s.buffers.contains( *source_name ) ) {  // load source image or result into buffer
             // Copy source buffer into working buffer 
             any_buffer_pair_ptr& source_buf = s.buffers[ *source_name ];
@@ -127,12 +129,15 @@ void effect_list::copy_source_buffer( scene& s ) {
                 dim = source_dim;
                 resize( dim );
             }
-            std::visit( [ &, source_buf ]( auto& b ) { copy_buffer( b, source_buf ); }, buf );
+            if( !self_generated ) {
+                std::cout << "effect_list" << name << " copy_source_buffer() - copying buffer " << *source_name << std::endl;
+                std::visit( [ &, source_buf ]( auto& b ) { copy_buffer( b, source_buf ); }, buf );
+            }
         }
         else {  // blank buffer
             //throw std::runtime_error( "effect_list::render() - source buffer not found" );
-            std::cout << "effect_list::render() - source buffer not found" << std::endl;
-            resize( dim );
+            //std::cout << "effect_list::copy_source_buffer() - source buffer not found" << std::endl;
+            //resize( dim );
         }
     }
 }
@@ -141,7 +146,7 @@ void effect_list::render( scene& s ) {
     // todo: what happens if effect list is targeting a buffer that depends on itself?
 
     update_source_name( s );
-    std::cout << "effect_list::render() source name " << *source_name << " rendered = " << rendered << std::endl;
+    std::cout << "effect_list " << name << " render(): source name " << *source_name << " rendered = " << rendered << std::endl;
     copy_source_buffer( s );
     if( !( rmode == MODE_STATIC && rendered ) ) { // no need to re-render static buffers
         for( auto& e : effects ) {
@@ -159,6 +164,7 @@ void effect_list::render( scene& s ) {
 }
 
 void effect_list::restart( scene& s ) {
+    std::cout << "effect_list " << name << " restart()" << std::endl;
     rendered = false;
     update_source_name( s );
     copy_source_buffer( s );

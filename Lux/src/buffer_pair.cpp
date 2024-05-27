@@ -71,6 +71,7 @@ template< class T > void buffer_pair< T >::reset( const image< T >& img ) {
 }
 
 template< class T > void buffer_pair< T >::reset( vec2i& dim ) { 
+    std::cout << "buffer_pair::reset() " << dim.x << " " << dim.y << std::endl;
     image_pair.first.reset( new image< T >( dim ) );
     image_pair.second.reset( NULL );
     swapped = false;

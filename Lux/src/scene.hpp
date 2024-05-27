@@ -158,7 +158,8 @@ typedef enum {
 // An effect list contains a list of effects to be rendered in sequence
 struct effect_list {
     render_mode rmode;          // how will effects be rendered?
-    harness< std::string > source_name;    // name of source image or buffer (if name not in list assume blank source)
+    bool self_generated;        // If false, copy buffer with source name. If true, generate 
+    harness< std::string > source_name;    // name of source image or buffer. Used as reference size for self generated buffers. Will resize buffer if necessary when name changes.
     std::string name;
     any_buffer_pair_ptr buf;
     std::vector< std::string > effects;
@@ -174,12 +175,14 @@ struct effect_list {
     void restart( scene& s );   // return to initial condition
 
     effect_list( const std::string& name_init = "default",
+                 const bool& self_generated_init = false,
                  const std::string& source_name_init = "none",
                  const vec2i& dim_init = { 512, 512 },
                  const pixel_type& ptype_init = PIXEL_UCOLOR, 
                  const render_mode& rmode_init = MODE_STATIC, 
                  const float& relative_dim_init = 1.0f) : 
     name( name_init ),
+    self_generated( self_generated_init ),
     source_name( source_name_init ),
     dim( dim_init ),
     ptype( ptype_init ), 
