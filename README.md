@@ -117,7 +117,7 @@ Clusters of elements can branch into other clusters. These tree-like structures 
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vN1ApdESIrc">
-  <img src="https://i.imgur.com/IL1uUOg.jpeg" alt="YouTube - Joyographic React App" width="560" height="310">
+  <img src="https://github.com/joyhughes/joyhughes.github.io/blob/main/preview.jpg" alt="YouTube - Joyographic React App" width="560" height="310">
 </a>
 </p>
 
