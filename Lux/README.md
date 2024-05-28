@@ -5,10 +5,11 @@ Fun!
 I want to recapture the sense of play and creativity of the early days of the Internet. I want to build a community of artists and developers to create and enjoy pieces of interactive art made from images that anyone can easily use.
 
 # Description
+![preview](https://github.com/ryukaizen/Jen/assets/42107664/1849cfa9-b898-4a3a-9b99-f9c832fe6c20)
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vN1ApdESIrc">
-  <img src="https://i.imgur.com/IL1uUOg.jpeg" alt="YouTube - Joyographic React App" width="560" height="310">
+  <img src="https://github.com/joyhughes/joyhughes.github.io/blob/main/preview.jpg" alt="YouTube - Joyographic React App" width="560" height="310">
 </a>
 </p>
 
