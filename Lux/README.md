@@ -6,6 +6,12 @@ I want to recapture the sense of play and creativity of the early days of the In
 
 # Description
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=vN1ApdESIrc">
+  <img src="https://github.com/joyhughes/joyhughes.github.io/blob/main/preview.jpg" alt="YouTube - Joyographic React App" width="560" height="310">
+</a>
+</p>
+
 Lux Vitae ("Living Light" in Latin) is a compositing 2.5D renderer, effects engine, and scene manager written in C++20. It reads a JSON scene file and builds a representation of the scene in the scene object. 
 
 Lux can run standalone in command line mode, in which case it saves one or more .jpg files of the result, or embedded in a web browser via Emscripten as WebAssembly, in which case the result is displayed in the browser window, animating in real time.
