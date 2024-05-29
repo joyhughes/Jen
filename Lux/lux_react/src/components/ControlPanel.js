@@ -82,7 +82,43 @@ function ControlPanel( { ratio, panelSize } ) {
   }, [ panelJSON ] );
 
   // Create list of widget groups from panelJSON
-  
+  return (
+    <Paper 
+      elevation={3} 
+      sx={{ 
+        minWidth: dimensions.width,
+        minHeight: dimensions.height,
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        flexGrow: 1,
+        alignItems: 'flex-start',
+        alignSelf: 'stretch',
+        overflow: 'auto', // Enable scrolling
+      }}
+    >
+      <div 
+        style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          flexWrap: 'wrap',
+          height: dimensions.height, // Restrict height to container's height
+        }}
+      >
+        <MediaController panelSize={panelSize} />
+        {activeGroups.map((group) => (
+          // Passing handleWidgetGroupChange callback to each WidgetGroup component
+          <WidgetGroup 
+            key={group.name} 
+            panelSize={panelSize} 
+            json={group} 
+            onChange={handleWidgetGroupChange} 
+          />
+        ))}
+      </div>
+    </Paper>
+  );
+  /*
   return (
     <Paper elevation={3} 
       sx={{ 
@@ -104,6 +140,7 @@ function ControlPanel( { ratio, panelSize } ) {
       ))}
     </Paper>
   );
+  */
 }
 
 export default ControlPanel; 

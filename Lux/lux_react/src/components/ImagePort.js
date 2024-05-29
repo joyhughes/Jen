@@ -41,8 +41,8 @@ function ImagePort( { ratio, panelSize } ) {
     //console.log("resizeBox: initial windowRatio = " + windowRatio);
     //console.log("resizeBox: availableWidth = " + availableWidth + ", availableHeight = " + availableHeight);
 
-    windowRatio = availableWidth / availableHeight;
-    if ( windowRatio > ratio ) {
+    let availableWindowRatio = availableWidth / availableHeight;
+    if ( availableWindowRatio > ratio ) {
       height = availableHeight; 
       width = height * ratio;
     } else {
@@ -57,7 +57,6 @@ function ImagePort( { ratio, panelSize } ) {
     setDimensions({ width, height });
   };
 
-  
   useEffect(() => {
     window.addEventListener("resize", resizeBox);
     resizeBox();
