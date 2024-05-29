@@ -6,9 +6,9 @@ import MediaController from "./MediaController";
 
 //import Module from './useEmscripten';
 
-function ControlPanel( { ratio, panelSize } ) {
+function ControlPanel( { dimensions, panelSize } ) {
 
-  const [ dimensions,   setDimensions ]  = useState({ width: 0, height: 0, isRowDirection: true });
+  //const [ dimensions,   setDimensions ]  = useState({ width: 0, height: 0, isRowDirection: true });
   const [ panelJSON,    setPanelJSON ]   = useState( [] );
   const [ activeGroups, setActiveGroups] = useState( [] );
 
@@ -22,6 +22,7 @@ function ControlPanel( { ratio, panelSize } ) {
     //console.log("ControlPanel handleWidgetGroupChange activeGroups=" + JSON.stringify( activeGroups ) + " panelJSON = " + panelJSON );
   };
 
+  /*
   const resizeBox = () => {
     let windowRatio, width, height, isRowDirection;
 
@@ -45,7 +46,7 @@ function ControlPanel( { ratio, panelSize } ) {
     resizeBox();
     return () => window.removeEventListener("resize", resizeBox);
   }, [ ratio, panelSize ]);
-  
+  */
   const setupPanel = () => {
     const panelJSONString = window.Module.get_panel_JSON();
     //console.log( "ControlPanel setupPanel panelJSONString=" + panelJSONString );

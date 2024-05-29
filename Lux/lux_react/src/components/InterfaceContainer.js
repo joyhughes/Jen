@@ -5,17 +5,47 @@ import ImagePort from "./ImagePort";
 
 function InterfaceContainer({ ratio, panelSize }) {
   const [isRowDirection, setIsRowDirection] = useState(true);
+  const [imagePortDimensions, setImagePortDimensions] = useState({ width: 0, height: 0 });
+  const [controlPanelDimensions, setControlPanelDimensions] = useState({ width: 0, height: 0 });
 
   const resizeBox = () => {
     let windowRatio, isRowDirection;
+    let availableWidth, availableHeight;
+    let imagePortWidth, imagePortHeight;
+    let controlPanelWidth, controlPanelHeight;
 
     windowRatio = window.innerWidth / window.innerHeight;
-    if (windowRatio > ratio) {
+    if( windowRatio > ratio ) {
+      availableWidth = window.innerWidth - parseInt(panelSize, 10);
+      availableHeight = window.innerHeight;
       isRowDirection = true;
-    } else {
+    }
+    else {
+      availableWidth = window.innerWidth;
+      availableHeight = window.innerHeight - ( parseInt(panelSize, 10) / ratio );
       isRowDirection = false;
     }
 
+    let availableWindowRatio = availableWidth / availableHeight;
+    if ( availableWindowRatio > ratio ) {
+      imagePortHeight = availableHeight; 
+      imagePortWidth = imagePortHeight * ratio;
+    } else {
+      imagePortWidth = availableWidth; 
+      imagePortHeight = imagePortWidth / ratio;
+    }
+
+    if( windowRatio > ratio ) {
+      controlPanelWidth = window.innerWidth - imagePortWidth;
+      controlPanelHeight = window.innerHeight;
+    }
+    else {
+      controlPanelWidth = window.innerWidth;
+      controlPanelHeight = window.innerHeight - imagePortHeight;
+    }
+
+    setImagePortDimensions({ width: imagePortWidth, height: imagePortHeight });
+    setControlPanelDimensions({ width: controlPanelWidth, height: controlPanelHeight });
     setIsRowDirection(isRowDirection);
   };
 
@@ -38,9 +68,11 @@ function InterfaceContainer({ ratio, panelSize }) {
         justifyContent: "center",
       }}
     >
-      <ImagePort ratio={ratio} panelSize={panelSize} />
+      
+      <ImagePort dimensions={imagePortDimensions} />
 
-      <ControlPanel ratio={ratio} panelSize={panelSize} />
+      <ControlPanel dimensions={controlPanelDimensions} panelSize={panelSize} />
+
     </Box>
   );
 }
