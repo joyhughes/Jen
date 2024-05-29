@@ -360,8 +360,8 @@ int main(int argc, char** argv) {
     vec2i dim( { 512, 512 } );  // original sin
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "nebula_files/kaleido.json" ); 
-    //scene s( "nebula_files/CA_choices.json" ); 
+    //scene s( "nebula_files/kaleido.json" ); 
+    scene s( "nebula_files/CA_choices.json" ); 
     //scene s( "nebula_files/nebula_brush.json" ); 
     //scene s(    //scene s( "diffuser_files/diffuser_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
