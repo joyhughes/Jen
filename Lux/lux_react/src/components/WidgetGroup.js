@@ -200,10 +200,15 @@ function WidgetGroup({ panelSize, json, onChange }) {
   };
 
   return (
+      json.widgets.map( renderWidget )
+  );  
+  /*
+  return (
     <div>
       { json.widgets.map( renderWidget ) }
     </div>
   );
+  */
 }
   
 export default WidgetGroup;

@@ -19,18 +19,4 @@ function Home() {
 
 export default Home;
 
-/*
-                    <MediaController />
-                    <ControlPanel />
-                    <SceneView />
-*/
-/*
-        <Box 
-          sx={{ 
-            maxWidth: '100%',          // Ensure the canvas never exceeds screen width
-            padding: 1
-          }}
-        >
-          <ImagePort ratio={ratio} panelSize={panelWidth} />        
-        </Box>
-*/
+

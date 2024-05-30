@@ -6,9 +6,9 @@ import MediaController from "./MediaController";
 
 //import Module from './useEmscripten';
 
-function ControlPanel( { ratio, panelSize } ) {
+function ControlPanel( { dimensions, panelSize } ) {
 
-  const [ dimensions,   setDimensions ]  = useState({ width: 0, height: 0, isRowDirection: true });
+  //const [ dimensions,   setDimensions ]  = useState({ width: 0, height: 0, isRowDirection: true });
   const [ panelJSON,    setPanelJSON ]   = useState( [] );
   const [ activeGroups, setActiveGroups] = useState( [] );
 
@@ -22,6 +22,7 @@ function ControlPanel( { ratio, panelSize } ) {
     //console.log("ControlPanel handleWidgetGroupChange activeGroups=" + JSON.stringify( activeGroups ) + " panelJSON = " + panelJSON );
   };
 
+  /*
   const resizeBox = () => {
     let windowRatio, width, height, isRowDirection;
 
@@ -45,7 +46,7 @@ function ControlPanel( { ratio, panelSize } ) {
     resizeBox();
     return () => window.removeEventListener("resize", resizeBox);
   }, [ ratio, panelSize ]);
-  
+  */
   const setupPanel = () => {
     const panelJSONString = window.Module.get_panel_JSON();
     //console.log( "ControlPanel setupPanel panelJSONString=" + panelJSONString );
@@ -82,7 +83,43 @@ function ControlPanel( { ratio, panelSize } ) {
   }, [ panelJSON ] );
 
   // Create list of widget groups from panelJSON
-  
+  return (
+    <Paper 
+      elevation={3} 
+      sx={{ 
+        minWidth: dimensions.width,
+        minHeight: dimensions.height,
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        flexGrow: 1,
+        alignItems: 'flex-start',
+        alignSelf: 'stretch',
+        overflow: 'auto', // Enable scrolling
+      }}
+    >
+      <div 
+        style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          flexWrap: 'wrap',
+          height: dimensions.height, // Restrict height to container's height
+        }}
+      >
+        <MediaController panelSize={panelSize} />
+        {activeGroups.map((group) => (
+          // Passing handleWidgetGroupChange callback to each WidgetGroup component
+          <WidgetGroup 
+            key={group.name} 
+            panelSize={panelSize} 
+            json={group} 
+            onChange={handleWidgetGroupChange} 
+          />
+        ))}
+      </div>
+    </Paper>
+  );
+  /*
   return (
     <Paper elevation={3} 
       sx={{ 
@@ -104,6 +141,7 @@ function ControlPanel( { ratio, panelSize } ) {
       ))}
     </Paper>
   );
+  */
 }
 
 export default ControlPanel; 
