@@ -22,7 +22,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
     let widget;
     let height = 60;
 
-    const widgetJSON = window.Module.get_widget_JSON( name );
+    const widgetJSON = window.module.get_widget_JSON( name );
 
     try {
       widget = JSON.parse( widgetJSON );
@@ -95,7 +95,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
 
           const handleClose = () => {
             // Call the close handler with widget.name and row index
-            window.Module.remove_custom_blur_pickers(widget.name, i);
+            window.module.remove_custom_blur_pickers(widget.name, i);
             setRenderCount( renderCount + 1 );
           };
 
@@ -127,7 +127,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
 
         const handleAddPicker = () => {
           // Call the add handler with widget.name
-          window.Module.add_custom_blur_pickers(widget.name);
+          window.module.add_custom_blur_pickers(widget.name);
           setRenderCount( renderCount + 1 );
         };
 
@@ -144,13 +144,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
       break;
       case 'widget_switch_fn':
         let ws_widget;
-        const ws_widgetJSON = window.Module.get_widget_JSON( widget.widget );
+        const ws_widgetJSON = window.module.get_widget_JSON( widget.widget );
         try {
           ws_widget = JSON.parse( ws_widgetJSON );
         } catch (error) {
           console.error("Error parsing JSON:", error);
         }
-        const switcherJSON = window.Module.get_widget_JSON( widget.switcher );
+        const switcherJSON = window.module.get_widget_JSON( widget.switcher );
         let switcher;
         try {
           switcher = JSON.parse( switcherJSON );

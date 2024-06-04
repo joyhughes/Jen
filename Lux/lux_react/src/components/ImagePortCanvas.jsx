@@ -6,44 +6,44 @@ function ImagePortCanvas( { width, height } ) {
  // const [ frameTime, setFrameTime ] = useState( 0 );
 
   const handleMouseDown = useCallback(() => {
-    if (window.Module) {
-      window.Module.mouse_down(true);
+    if (window.module) {
+      window.module.mouse_down(true);
     }
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    if (window.Module) {
-      window.Module.mouse_down(false);
+    if (window.module) {
+      window.module.mouse_down(false);
     }
   }, []);
 
   const handleMouseEnter = useCallback(() => {
-    if (window.Module) {
-      window.Module.mouse_over(true);
+    if (window.module) {
+      window.module.mouse_over(true);
     }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    if (window.Module) {
-      window.Module.mouse_over(false);
+    if (window.module) {
+      window.module.mouse_over(false);
     }
   }, []);
 
   const handleMouseMove = useCallback((event) => {
-    if (window.Module) {
+    if (window.module) {
       const rect = canvasRef.current.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      window.Module.mouse_move(x, y, width, height );
-      window.Module.mouse_over( true );
+      window.module.mouse_move(x, y, width, height );
+      window.module.mouse_over( true );
     }
   }, [ width, height ] );
 
   const handleMouseClick = useCallback(() => {
-    if (window.Module && canvasRef.current) {
+    if (window.module && canvasRef.current) {
       console.log( "handleMouseClick" );
-      window.Module.mouse_click( true );
-      window.Module.mouse_over(  true );
+      window.module.mouse_click( true );
+      window.module.mouse_over(  true );
     }
   }, [] );
 
@@ -51,9 +51,9 @@ function ImagePortCanvas( { width, height } ) {
     const ctx = canvasRef.current.getContext('2d');
 
     let t0 = performance.now();
-    const imageDataArray = window.Module.get_img_data();
-    const bufWidth  = window.Module.get_buf_width();
-    const bufHeight = window.Module.get_buf_height();
+    const imageDataArray = window.module.get_img_data();
+    const bufWidth  = window.module.get_buf_width();
+    const bufHeight = window.module.get_buf_height();
     
     //let t1, t2, t3, t4;
     //t1 = performance.now();
@@ -79,15 +79,15 @@ function ImagePortCanvas( { width, height } ) {
   }, [width, height]);
 
   useEffect(() => {
-    if (window.Module) {
-      window.Module.set_frame_callback(updateCanvas);
+    if (window.module) {
+      window.module.set_frame_callback(updateCanvas);
       setModuleReady(true);
     } else {
       // Poll for the Module to be ready
       const intervalId = setInterval(() => {
-        if (window.Module) {
+        if (window.module) {
           clearInterval(intervalId);
-          window.Module.set_frame_callback(updateCanvas);
+          window.module.set_frame_callback(updateCanvas);
           setModuleReady(true);
         }
       }, 100); // Check every 100ms

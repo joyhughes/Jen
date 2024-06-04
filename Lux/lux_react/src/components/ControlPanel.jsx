@@ -13,13 +13,13 @@ function ControlPanel( { dimensions, panelSize } ) {
   const handleWidgetGroupChange = () => {
     // Logic to update the control panel's state or perform other actions
     const active = panelJSON.filter(group => 
-      window.Module.is_widget_group_active(group.name)
+      window.module.is_widget_group_active(group.name)
     );
     setActiveGroups(active);
   };
 
   const setupPanel = () => {
-    const panelJSONString = window.Module.get_panel_JSON();
+    const panelJSONString = window.module.get_panel_JSON();
   
     try {
       const parsedJSON = JSON.parse(panelJSONString);
@@ -30,12 +30,12 @@ function ControlPanel( { dimensions, panelSize } ) {
   };
 
   useEffect(() => {
-    if (window.Module) {
+    if (window.module) {
         setupPanel();
     } else {
         // Poll for the Module to be ready
         const intervalId = setInterval(() => {
-        if (window.Module) {
+        if (window.module) {
             setupPanel();
             clearInterval(intervalId);
         }

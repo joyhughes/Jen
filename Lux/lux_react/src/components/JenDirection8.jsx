@@ -22,7 +22,7 @@ function JenDirection8({ json }) {
 
     const handleDirectionChange = (newDirection) => {
         setDirection(newDirection);
-        window.Module.pick_direction8(json.name, newDirection);
+        window.module.pick_direction8(json.name, newDirection);
     };
 
     //console.log("JenDirection8 direction=" + direction);

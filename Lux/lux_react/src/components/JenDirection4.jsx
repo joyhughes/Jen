@@ -18,7 +18,7 @@ function JenDirection4( { json } ) {
 
     const handleDirectionChange = ( newDirection ) => {
         setDirection( newDirection );
-        window.Module.pick_direction4( json.name, newDirection );
+        window.module.pick_direction4( json.name, newDirection );
     };
 
     const renderDirectionButton = ( dirValue, label ) => {

@@ -18,8 +18,8 @@ function JenBlurPicker({ json }) {
 
     const handleBlurMethodChange = (newMethod) => {
         setBlurMethod(newMethod);
-        // Assuming window.Module.pick_blurMethod is the method to update the blur type
-        window.Module.pick_blur_method(json.name, newMethod);
+        // Assuming window.module.pick_blurMethod is the method to update the blur type
+        window.module.pick_blur_method(json.name, newMethod);
     };
 
     const renderBlurButton = (typeValue, label) => {

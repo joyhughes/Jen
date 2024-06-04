@@ -11,7 +11,7 @@ function JenMultiDirection8({ name, value, code }) {
     setDirectionsByte(updatedDirectionsByte);
 
     // Call the external function with the updated byte value
-    window.Module.pick_multi_direction8( name, updatedDirectionsByte, code ?? 0 );
+    window.module.pick_multi_direction8( name, updatedDirectionsByte, code ?? 0 );
   };
 
   const isDirectionActive = (dirIndex) => {

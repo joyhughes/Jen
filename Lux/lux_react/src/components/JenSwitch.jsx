@@ -9,7 +9,7 @@ function JenSwitch({ json, onChange }) {
 
     const handleSwitchChange = (event) => {
         setSwitchValue(event.target.checked);
-        window.Module.handle_switch_value(json.name, event.target.checked);
+        window.module.handle_switch_value(json.name, event.target.checked);
         if ( json.affects_widget_groups ) {
             onChange();
         }

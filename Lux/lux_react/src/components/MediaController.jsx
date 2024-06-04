@@ -10,22 +10,22 @@ function MediaController( { panelSize } ) {
   const [isRunning, setIsRunning] = useState(true);
 
   const handleRestart = () => {
-    if ( window.Module ) {
-      window.Module.restart();
+    if ( window.module ) {
+      window.module.restart();
     }
   }
 
   const handleAdvance = () => {
-    if ( window.Module ) {
+    if ( window.module ) {
       setIsRunning(false);
-      window.Module.advance_frame();
+      window.module.advance_frame();
     }
   }
 
   const handleRunPause = () => {
     setIsRunning(!isRunning);
-    if ( window.Module ) {
-      window.Module.run_pause();
+    if ( window.module ) {
+      window.module.run_pause();
     }
   }
 

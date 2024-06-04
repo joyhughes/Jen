@@ -18,7 +18,7 @@ function JenMenu({ json, width, onChange }) {
 
     const handleMenuChange = (event) => {
         console.log( "JenMenu handleMenuChange event.target.value = " + event.target.value + " json.name = " + json.name + " json.affects_widget_groups = " + json.affects_widget_groups );
-        window.Module.handle_menu_choice(json.name, event.target.value);
+        window.module.handle_menu_choice(json.name, event.target.value);
         setSelectedMenuChoice(event.target.value);
         if ( json.affects_widget_groups ) {
             onChange();
