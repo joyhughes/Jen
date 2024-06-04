@@ -1,6 +1,6 @@
 // ImagePort.js
 import React, { useState, useEffect } from "react";
-import Box from '@mui/material/Box';
+import {Box} from '@mui/material';
 import Paper from '@mui/material/Paper';
 
 import ImagePortCanvas from './ImagePortCanvas';

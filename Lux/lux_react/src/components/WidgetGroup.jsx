@@ -24,10 +24,8 @@ function WidgetGroup({ panelSize, json, onChange }) {
 
     const widgetJSON = window.Module.get_widget_JSON( name );
 
-    // console.log( "WidgetGroup renderWidget widgetJSON=" + widgetJSON );
     try {
       widget = JSON.parse( widgetJSON );
-      // console.log( "WidgetGroup renderWidget widget=" + JSON.stringify( widget ) );
     } catch (error) {
       console.error("renderWidget Error parsing JSON:", error);
       // Handle the error appropriately
@@ -36,7 +34,6 @@ function WidgetGroup({ panelSize, json, onChange }) {
     if (!widget) {
       console.error(`No widget found for name: ${name}`);
     }
-    //console.log( "WidgetGroup widget json=" + JSON.stringify( widget ) );
     let labelAndDescription =             
       <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
         <Typography variant="subtitle1" component="div">
@@ -148,23 +145,17 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'widget_switch_fn':
         let ws_widget;
         const ws_widgetJSON = window.Module.get_widget_JSON( widget.widget );
-        // console.log( "WidgetGroup renderWidget widgetJSON=" + ws_widgetJSON );
         try {
           ws_widget = JSON.parse( ws_widgetJSON );
-          // console.log( "WidgetGroup renderWidget widget=" + JSON.stringify( widget ) );
         } catch (error) {
           console.error("Error parsing JSON:", error);
-          // Handle the error appropriately
         }
         const switcherJSON = window.Module.get_widget_JSON( widget.switcher );
-        //console.log( "WidgetGroup renderWidget switcherJSON=" + switcherJSON );
         let switcher;
         try {
           switcher = JSON.parse( switcherJSON );
-          // console.log( "WidgetGroup renderWidget switcher=" + JSON.stringify( switcher ) );
         } catch (error) {
           console.error("Error parsing JSON:", error);
-          // Handle the error appropriately
         }
         switch( ws_widget.type ) {
           case 'slider_int':
@@ -190,8 +181,6 @@ function WidgetGroup({ panelSize, json, onChange }) {
         break;
     }
 
-//      console.log( window.Module.get_widget_JSON( "edge_block_switch" ) );
-
     return (
       <WidgetContainer key = { widget.name } panelSize = { panelSize } height = { height } >
         { widgetComponent }
@@ -202,13 +191,6 @@ function WidgetGroup({ panelSize, json, onChange }) {
   return (
       json.widgets.map( renderWidget )
   );  
-  /*
-  return (
-    <div>
-      { json.widgets.map( renderWidget ) }
-    </div>
-  );
-  */
 }
   
 export default WidgetGroup;
