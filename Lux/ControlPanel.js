@@ -14,7 +14,7 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
-import Box from '@mui/material/Box';
+import {Box} from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
@@ -64,40 +64,40 @@ function ControlPanel( { ratio, panelSize } ) {
   }, [ ratio, panelSize ]);
 
   useEffect(() => {
-    if (window.Module) {
+    if (window.module) {
       setSliderProps({
-        label: window.Module.get_slider_label(),
-        value: window.Module.get_slider_value(),
-        min:   window.Module.get_slider_min(),
-        max:   window.Module.get_slider_max(),
-        step:  window.Module.get_slider_step(),
+        label: window.module.get_slider_label(),
+        value: window.module.get_slider_value(),
+        min:   window.module.get_slider_min(),
+        max:   window.module.get_slider_max(),
+        step:  window.module.get_slider_step(),
         ready: true
       });
       console.log( "ControlPanel useEffect mainSlider=" + JSON.stringify( sliderProps ) );
 
-      const choices = window.Module.get_menu_choices(); 
+      const choices = window.module.get_menu_choices(); 
       console.log( "Menu choices=" + choices );
       const choicesArray = choices.split(','); // Splitting the string into an array
       setMenuChoices(choicesArray);
-      setSelectedMenuChoice(window.Module.get_initial_menu_choice());
+      setSelectedMenuChoice(window.module.get_initial_menu_choice());
     } else {
       // Poll for the Module to be ready
       const intervalId = setInterval(() => {
-        if (window.Module) {
+        if (window.module) {
           setSliderProps({
-            label: window.Module.get_slider_label(),
-            value: window.Module.get_slider_value(),
-            min:   window.Module.get_slider_min(),
-            max:   window.Module.get_slider_max(),
-            step:  window.Module.get_slider_step(),
+            label: window.module.get_slider_label(),
+            value: window.module.get_slider_value(),
+            min:   window.module.get_slider_min(),
+            max:   window.module.get_slider_max(),
+            step:  window.module.get_slider_step(),
             ready: true
           });
           console.log( "ControlPanel useEffect mainSlider=" + JSON.stringify( sliderProps ) );
 
-          const choices = window.Module.get_menu_choices(); 
+          const choices = window.module.get_menu_choices(); 
           const choicesArray = choices.split(','); // Splitting the string into an array
           setMenuChoices(choicesArray);
-          setSelectedMenuChoice(window.Module.get_initial_menu_choice());
+          setSelectedMenuChoice(window.module.get_initial_menu_choice());
 
           clearInterval(intervalId);
         }
@@ -114,16 +114,16 @@ function ControlPanel( { ratio, panelSize } ) {
       value: newValue
     }));
   
-    if (window.Module) {
-      window.Module.slider_value(newValue);
+    if (window.module) {
+      window.module.slider_value(newValue);
     }
   };
 
   const handleMenuChange = (event) => {
     setSelectedMenuChoice(event.target.value);
     console.log( "ControlPanel handleMenuChange event.target.value=" + event.target.value );
-    if (window.Module) {
-      window.Module.handle_menu_choice(event.target.value); 
+    if (window.module) {
+      window.module.handle_menu_choice(event.target.value); 
     }
   };
 

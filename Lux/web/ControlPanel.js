@@ -8,7 +8,7 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
-import Box from '@mui/material/Box';
+import {Box} from '@mui/material';
 
 function ControlPanel( { ratio, panelSize } ) {
   const [sliderValue, setSliderValue] = useState(30);

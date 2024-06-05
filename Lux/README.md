@@ -30,7 +30,7 @@ Via Emscripten, C++ and JavaScript can have access to shared memory space. This 
 <br><img src="https://github.com/joyhughes/joyhughes.github.io/blob/main/request_response.png" height = 400><br>
 In order to display an image or load an external file, the C++ program must communicate with JavaScript. Lux operates as a virtual server within the browser using a request-response protocol. All communication within the Joyographic app is initiated by the UI module, and information such as JSON and images are returned by Lux to the UI. API functions are defined in [lux_web.cpp](https://github.com/joyhughes/Jen/blob/main/Lux/src/lux_web.cpp) and are listed at the bottom of the file. Emscripten [embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html?highlight=embind) functionality is used for API calls.
 
-In Javascript, the WebAssembly is represented by the Module object. Calls are preceded by window.Module. and then the function name. Example: `window.Module.set_slider_value(json.name, newValue);` sets the value of a slider with a given name in the scene to a new value.
+In Javascript, the WebAssembly is represented by the Module object. Calls are preceded by window.module. and then the function name. Example: `window.module.set_slider_value(json.name, newValue);` sets the value of a slider with a given name in the scene to a new value.
 
 # Joyographic React App
 
