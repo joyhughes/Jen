@@ -21,6 +21,9 @@
   },
   "type": "module",
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
+    "clean": "rm -rf dist",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -47,6 +50,7 @@
     "@eslint/js": "^9.3.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
+    "gh-pages": "^6.1.1",
     "globals": "^15.3.0"
   }
 }
