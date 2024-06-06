@@ -23,8 +23,11 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
+  "homepage": "https://joyhughes.github.io/joyographic",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -47,6 +50,7 @@
     "@eslint/js": "^9.3.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
+    "gh-pages": "^6.1.1",
     "globals": "^15.3.0"
   }
 }
