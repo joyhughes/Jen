@@ -168,17 +168,18 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
 void vf_tools::kaleidoscope(    const vec2f& center, 
                                 float segments,                // Number of segments in kaleidoscope
                                 float offset_angle,            // Beginning of first segment in degrees
+                                float spin_angle,
                                 bool reflect ) {               // Reflect alternate segments
     std::cout << "vf_tools::kaleidoscope: segments = " << segments << std::endl;
     if( segments != 0.0f ) {
         position_fill();
-        std::cout << "vf_tools position_fill img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        //std::cout << "vf_tools position_fill img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
         radial();
-        std::cout << "vf_tools radial img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
-        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + offset_angle, 360.0f / segments ); } }
-        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + offset_angle, 360.0f / segments ); } }
+        //std::cout << "vf_tools radial img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
+        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
         cartesian();
-        std::cout << "vf_tools cartesian img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        //std::cout << "vf_tools cartesian img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
     }
 }
 

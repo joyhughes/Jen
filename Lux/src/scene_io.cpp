@@ -418,6 +418,7 @@ void scene_reader::read_function( const json& j ) {
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
+    FN( integrator_float, float ) HARNESS( delta ) READ( val ) END_FN
     FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
@@ -768,7 +769,7 @@ void scene_reader::read_effect( const json& j ) {
                                HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
                                READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
                                READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
-    EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
+    EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( spin_angle ) HARNESSE( reflect ) END_EFF()                    
     EFF( eff_position_fill_vec2f ) END_EFF()
 
     // warp field effects
