@@ -1,0 +1,29 @@
+{
+    "name": "identity_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "../samples/hk_square_512.jpg", 
+            "name": "kh_square"
+        } 
+    ],
+    "effects":
+    [
+        {
+            "name": "identity",
+            "type": "eff_identity"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "hk_identity",
+            "source": "kh_square",
+            "type": "uimage",
+            "dynamic": true,  
+            "effects": [ "identity" ]
+        }
+    ]
+}
+

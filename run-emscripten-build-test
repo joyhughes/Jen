@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+cd $(dirname $0)
+cd Lux
+rm -rf build web_build
+mkdir web_build
+set -e
+make    
+exit 0
+

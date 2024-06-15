@@ -1,0 +1,21 @@
+{
+	"name":				"circle_scene",
+
+	"base_file": 		"orion.jpg",
+	"output_basename": 	"circle_test",
+
+	"elements":		[ 1, {
+		"name":		"orb",
+		"splat":	"orb.jpg",
+		"break"	} ],
+
+	"functions":	[ 1, "circle_cluster_gen.json" ],
+	
+	"clusters":		[ 1, { 
+		"name": 		"circle", 
+		"top_level":	true, 	
+		"gen_func":		"circle_cluster_gen", 
+		"element":		"orb",
+		"break"	 }  ]
+
+}

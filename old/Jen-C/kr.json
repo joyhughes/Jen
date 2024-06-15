@@ -1,0 +1,25 @@
+{
+	"name": "kaleidoscope_ring_animation",
+	"n": 20,
+	"position": 	{ "vect2": [ 0.0, 0.0] },
+	"max_phase":	{ "float": 360.0 }, 	// full rotation
+	"time":			{ "float": 0.0 },
+	"negative":		{ "float": -1.0 },
+	"half":			{ "float": 0.5 },
+	"k":			{ "int": 12 },			// Number of wedges in kaleidoscope
+	"reflect":		{ "bool": true },		// reflect alternate 
+
+	"r":			{ "fn_f_magnitude":		[ "position"] },
+	"theta":		{ "fn_f_vtoa":			[ "position"] },
+	"width":		{ "fn_f_div_i":			[ "max_phase", "k" ] },
+	"plus_phase": 	{ "fn_f_multiply": 		[ "max_phase", 	"time" ] },
+	"minus_phase":	{ "fn_f_multiply":		[ "plus_phase", "negative" ] },
+	"direction":	{ "fn_b_less_than":		[ "r", "half" ] },
+	"phase":		{ "fn_f_choose":		[ "direction", "plus_phase", "minus_phase"] },
+	"kaleido":		{ "fn_f_kaleido":		[ "theta", "width", "reflect" ] },
+	"kaleido_rot":	{ "fn_f_add":			[ "kaleido", "phase" ] },
+	"result":		{ "fn_v_cartesian_f":	[ "r", "kaleido_rot" ] },
+	"color_angle":	{ "fn_f_add":			[ "phase", "theta"] },
+	"color_index":	{ "fn_f_divide":		[ "color_angle", "max_phase" ] },
+	"color_result":	{ "fn_c_rainbow":		[ "color_index"] }
+}

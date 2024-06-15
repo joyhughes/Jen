@@ -1,0 +1,22 @@
+{
+	"name": "rotating_vortex",
+	"n": 17,
+	"position": 		{ "vect2": [ 0.0, 0.0] },
+	"time":				{ "float":  0.0 },
+	"diameter":			{ "float":	0.5 },
+	"soften":			{ "float":	0.5 },
+	"scale":			{ "float":	0.5 },
+	"center_orig":		{ "vect2": [ 0.0, 0.5] },
+	"max_angle":		{ "float":	360.0 },
+
+	"rot_angle":		{ "fn_f_multiply":			[ "time", 			"max_angle" ],
+	"center":			{ "fn_v_rotate":			[ "center_orig", 	"rot_angle" ] },
+	"relative":			{ "fn_v_subtract":			[ "position", "center" ] },
+	"magnitude":		{ "fn_f_magnitude":			[ "relative" ] },
+	"complement":		{ "fn_v_complement" :		[ "relative" ] },
+	"normalize":		{ "fn_v_normalize":			[ "complement" ] },
+	"inverse_square":	{ "fn_f_inverse_square":	[ "magnitude", "diameter", "soften" ] },
+	"v_isquare":		{ "fn_v_scale":				[ "normalize", "inverse_square" ] },
+	"v_scale":			{ "fn_v_scale":				[ "v_isquare", "scale" ] },
+	"result":			{ "fn_v_add":				[ "position", "v_scale" ] }
+}

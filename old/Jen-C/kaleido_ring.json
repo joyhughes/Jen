@@ -1,0 +1,16 @@
+{
+	"name": "standard_kaleidoscope_animation",
+	"n": 11,
+	"position": 	{ "vect2": [ 0.0, 0.0] },
+	"max_phase":	{ "float": 360.0 }, 	// full rotation
+	"time":			{ "float": 0.0 },
+	"k":			{ "int": 12 },			// Number of wedges in kaleidoscope
+	"reflect":		{ "bool": true },		// reflect alternate 
+
+	"width":		{ "fn_f_div_i":			[ "max_phase", "k" ] },
+	"phase": 		{ "fn_f_multiply": 		[ "max_phase", 	"time" ] },
+	"radial":		{ "fn_v_radial":		[ "position" ] },
+	"kaleido":		{ "fn_v_kaleido":		[ "radial", "width", "reflect" ] },
+	"kaleido_rot":	{ "fn_v_add_y":			[ "kaleido", "phase" ] },
+	"result":		{ "fn_v_cartesian":		[ "kaleido_rot" ] }
+}

@@ -1,0 +1,190 @@
+{
+    "name": "curly_scene",
+    "images": 
+    [ 
+        { 
+            "type" : "uimage", 
+            "filename": "curly_files/hk_square_512.jpg", 
+            "name": "hk_square" 
+        },
+        { 
+            "type": "uimage", 
+            "filename": "curly_files/orb.jpg", 
+            "name": "orb"
+        } 
+    ],
+    "elements": 
+    [
+        { 
+            "name": "background_element",
+            "image": "hk_square"
+        },
+        {
+            "name": "orb_element",
+            "image": "orb",
+            "position": [ -0.1, 0.0 ],
+            "scale": 0.05,
+            "orientaion_lock": true
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "initial_scaler_ratio",
+            "type": "ratio_float",
+            "r": 0.175
+        },
+        {
+            "name": "initial_scaler_param",
+            "type": "time_param_float",
+            "fn":   "initial_scaler_ratio"
+        },
+        {
+            "name": "initial_scaler_gen_fn",
+            "type": "scale_gen_fn",
+            "scale": {
+                "functions": [ "initial_scaler_param" ]
+            }
+        },
+        {
+            "name": "initial_scaler",
+            "type": "filter",
+            "conditions": [ "initial_element", "top_level" ],
+            "functions":  [ "initial_scaler_gen_fn" ]
+        },
+        {
+            "name": "swim_advector",
+            "type": "advect_element",
+            "flow": [ 1.0, 0.0 ],
+            "step": -3.5,
+            "time_interval_proportional": true
+        },
+        {
+            "name": "swim",
+            "type": "filter",
+            "conditions": [ "initial_element", "top_level" ],
+            "functions":  [ "swim_advector" ]
+        },
+        {
+            "name": "advector",
+            "type": "advect_element",
+            "flow": [ 1.0, 0.0 ],
+            "step": 1.4
+        },
+        {
+            "name": "following_advector",
+            "type": "filter",
+            "conditions": [ "following_element" ],
+            "functions": [ "advector" ]
+        },
+        {
+            "name": "shrinker",
+            "type": "ratio_float",
+            "r": 0.9
+        },
+        {
+            "name": "scaler",
+            "type": "scale_gen_fn",
+            "scale": { 
+                "value": 0.05,
+                "functions": [ "shrinker" ] 
+            }
+        },
+        {
+            "name": "following_scaler",
+            "type": "filter",
+            "conditions": [ "following_element" ],
+            "functions": [ "scaler" ]
+        },
+        {
+            "name": "brancher",
+            "type": "angle_branch",
+            "interval": 4,
+            "offset": 1
+        },
+        {
+            "name": "wiggler1",
+            "type": "wiggle",
+            "wavelength": 0.25,
+            "amplitude":  0.3,
+            "phase":      0.0,
+            "wiggliness": 0.0
+        },
+        {
+            "name": "wiggle_time1",
+            "type": "time_param_float",
+            "fn": "wiggler1"
+        },
+        {
+            "name": "add_wiggle1",
+            "type": "adder_float",
+            "r": { 
+                "functions": [ "wiggle_time1" ] 
+            }
+        },
+        {
+            "name": "curler",
+            "type": "curly",
+            "curliness": {
+                "value": 0.5,
+                "functions": [ "add_wiggle1" ]
+            }
+        },
+        {
+            "name": "wiggle_damper",
+            "type": "log_fn",
+            "scale": -40.0,
+            "shift": 1.0
+        },
+        {
+            "name": "wiggle_damper_param",
+            "type" : "scale_param_float",
+            "fn": "wiggle_damper" 
+        },
+        {
+            "name": "wiggler",
+            "type": "wiggle", 
+            "wavelength": 4.0,
+            "amplitude": {
+                "value": 45.0,
+                "functions": [ "wiggle_damper_param" ]
+            },
+            "phase": 0.0,
+            "wiggliness": 10.0
+        },
+        {
+            "name": "wiggle_indexer",
+            "type": "index_param_float",
+            "fn": "wiggler"
+        },
+        {
+            "name": "add_wiggle",
+            "type": "adder_float",
+            "r": { "functions": [ "wiggle_indexer" ] }
+        },
+        {
+            "name": "orientation_wave",
+            "type": "orientation_gen_fn",
+            "orientation": { 
+                "value": 0.0,
+                "functions": [ "add_wiggle" ] 
+            }
+        }
+    ],
+    "clusters": 
+    [ 
+        { 
+            "name": "background",
+            "element": "background_element",
+            "tlc": true
+        },
+        {
+            "name": "curly",
+            "element": "orb_element",
+            "max_n": 100,
+            "max_depth": 10,
+            "next_element": [ "initial_scaler", "following_scaler", "curler", "orientation_wave", "swim", "following_advector", "brancher" ],
+            "tlc": true
+        }
+    ]   
+}

@@ -1,0 +1,22 @@
+{
+	"name": "wave_vortex",
+	"n": 16,
+	"position": 		{ "vect2": [ 0.0, 0.0] },
+	"origin":			{ "vect2":	[ -0.17, -0.043] },
+	"negative":			{ "float":	-1.0 },
+	"diameter":			{ "float":	0.5 },
+	"soften":			{ "float":	0.5 },
+	"max_angle":		{ "float":	360.0 },
+	"step":				{ "float":	0.025 },
+
+	"relative":			{ "fn_v_subtract":			[ "position", "origin" ] },
+	"magnitude":		{ "fn_f_magnitude":			[ "relative" ] },
+	"complement":		{ "fn_v_complement":		[ "relative" ] },
+	"reverse":			{ "fn_v_scale":				[ "complement", "negative" ] },
+	"normalize":		{ "fn_v_normalize":			[ "reverse" ] },
+	"inverse_square":	{ "fn_f_inverse_square":	[ "magnitude", "diameter", "soften" ] },
+	"v_isquare":		{ "fn_v_scale":				[ "normalize", "inverse_square" ] },
+	"v_scale":			{ "fn_v_scale":				[ "v_isquare", "step" ] },
+	"result":			{ "fn_v_add":				[ "position", "v_scale" ] }
+
+}

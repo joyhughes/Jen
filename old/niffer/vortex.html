@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>Vortex Generator</title>
+
+  <style>
+    html {
+      font-family: sans-serif;
+    }
+
+    body {
+      width: 50%;
+      max-width: 800px;
+      min-width: 480px;
+      margin: 0 auto;
+    }
+
+    .lastResult {
+      color: white;
+      padding: 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Vortex Generator</h1>
+
+  <p>Generates a warp function with rotating vortices</p>
+
+  <div class="form">
+    <label for="nVortsField">Number of vortices: </label>
+    <input type="text" id="nVortsField" class="nVortsField">
+    <input type="submit" value="Calculate function" class="calculateFunction">
+  </div>
+
+  <div class="resultParas">
+    <p class="guesses"></p>
+    <p class="lastResult"></p>
+    <p class="lowOrHi"></p>
+  </div>
+
+  <script src="niffer.js" defer></script>
+
+</body>
+
+<!--Jay's double range slider contribution start-->
+<link rel="stylesheet" href="vortexSliderStyle.css">
+</head>
+<!--slider one-->
+
+<body>
+  <div class="wrapper">
+    <div class="absolute">
+      <div class="values">
+        <span id="range1">
+          0
+        </span>
+        <span> &dash; </span>
+        <span id="range2">
+          100
+        </span>
+      </div>
+    </div>
+    <div class="container">
+      <div class="slider-track"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-1" oninput="slideOne()">
+      <input type="range" min="0" max="100" value="70" id="slider-2" oninput="slideTwo()">
+    </div>
+  </div>
+</body>
+<!--End slider one-->
+
+<!--slider two-->
+
+<body>
+  <div class="wrapper">
+    <div class="absolute">
+      <div class="values">
+        <span id="range3">
+          0
+        </span>
+        <span> &dash; </span>
+        <span id="range4">
+          100
+        </span>
+      </div>
+    </div>
+    <div class="container">
+      <div class="slider-track2"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-3" oninput="slideThree()">
+      <input type="range" min="0" max="100" value="70" id="slider-4" oninput="slideFour()">
+    </div>
+  </div>
+</body>
+<!--End slider two-->
+
+<!--slider three-->
+
+<body>
+  <div class="wrapper">
+    <div class="absolute">
+      <div class="values">
+        <span id="range5">
+          0
+        </span>
+        <span> &dash; </span>
+        <span id="range6">
+          100
+        </span>
+      </div>
+    </div>
+    <div class="container">
+      <div class="slider-track3"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-5" oninput="slideFive()">
+      <input type="range" min="0" max="100" value="70" id="slider-6" oninput="slideSix()">
+    </div>
+  </div>
+</body>
+
+<!--End slider three-->
+
+<!--slider four-->
+
+<body>
+  <div class="wrapper">
+    <div class="absolute">
+      <div class="values">
+        <span id="range7">
+          0
+        </span>
+        <span> &dash; </span>
+        <span id="range8">
+          100
+        </span>
+      </div>
+    </div>
+    <div class="container">
+      <div class="slider-track4"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-7" oninput="slideSeven()">
+      <input type="range" min="0" max="100" value="70" id="slider-8" oninput="slideEight()">
+    </div>
+  </div>
+</body>
+
+<!--End slider four-->
+
+<!--slider five-->
+
+<body>
+  <div class="wrapper">
+    <div class="absolute">
+      <div class="values">
+        <span id="range9">
+          0
+        </span>
+        <span> &dash; </span>
+        <span id="range10">
+          100
+        </span>
+      </div>
+    </div>
+    <div class="container">
+      <div class="slider-track5"></div>
+      <input type="range" min="0" max="100" value="30" id="slider-9" oninput="slideNine()">
+      <input type="range" min="0" max="100" value="70" id="slider-10" oninput="slideTen()">
+    </div>
+  </div>
+</body>
+<script src="rangeSlider.js"></script>
+<!--End slider five-->
+
+</html>

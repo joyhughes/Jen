@@ -1,0 +1,70 @@
+{
+    "name": "diffuser_dot_scene",
+    "images": 
+    [ 
+        { 
+            "type": "uimage", 
+            "filename": "diffuser_files/hk_square_512.jpg", 
+            "name": "hk_square"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "diffuser_files/circle.jpg", 
+            "name": "dot"
+        } 
+    ],
+    "elements":
+    [
+        {
+            "name": "dot_element",
+            "image": "dot",
+            "scale": 0.1
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "brush_fn",
+            "type": "position_gen_fn",
+            "position": {
+                "functions": [ "mouse_position" ]
+            }
+        }
+    ],
+    "clusters":
+    [
+        {
+            "name": "brush_cluster",
+            "element": "dot_element",
+            "functions": [ "brush_fn" ],
+            "conditions": [ "mouse_down" ]
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "diffuser",
+            "type": "CA_ucolor",
+            "rule": 
+            {
+                "name": "diffuse",
+                "type": "rule_diffuse_ucolor"
+            }
+        },
+        {
+            "name": "brush",
+            "type": "cluster",
+            "cluster_name": "brush_cluster"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "hk_diffuse",
+            "source": "hk_square",
+            "type": "uimage",
+            "mode": "iterative",  
+            "effects": [ "brush", "diffuser" ]
+        }
+    ]
+}
