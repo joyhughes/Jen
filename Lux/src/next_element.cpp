@@ -52,6 +52,17 @@ float time_fn::operator () ( float& val, element_context& context  ) {
     return context.s.time; 
 }
 
+template< MultipliableByFloat U > U integrator< U >::operator () ( U& u, element_context& context ) {
+    if( last_time != context.s.time ) {
+        delta( context );
+        val += ( context.s.time - last_time ) * *delta;
+        last_time = context.s.time;
+    } 
+    return val; 
+}
+
+template struct integrator< float >;
+
 float wiggle::operator ()  ( float& val, element_context& context  )
 {
     wavelength( context ); amplitude( context ); phase( context ); wiggliness( context );

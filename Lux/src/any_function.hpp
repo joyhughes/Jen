@@ -25,6 +25,7 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
+    std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,
     std::shared_ptr< ratio_float >,

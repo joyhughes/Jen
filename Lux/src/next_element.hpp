@@ -145,6 +145,19 @@ template< MultipliableByFloat U > struct ratio {
 typedef ratio<float> ratio_float;
 typedef ratio<vec2f> ratio_vec2f;
 
+// Newton's method
+template< MultipliableByFloat U > struct integrator {
+    harness< float > delta;
+    U val;
+    float last_time;
+    
+    U operator () ( U& u, element_context& context );
+
+    integrator( const float& val_init = U( 0 ), const float& delta_init = 1.0f ) : val( val_init ), delta( delta_init ), last_time( 0.0f ) {}
+};
+
+typedef integrator< float > integrator_float;
+
 // Generalized oscillator
 struct wiggle {
     harness< float > wavelength;
