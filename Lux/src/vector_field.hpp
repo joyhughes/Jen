@@ -111,7 +111,7 @@ public:
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     void kaleidoscope( const vec2f& center = { 0.0f, 0.0f }, 
-                        float segments = 6.0,                // Number of segments in kaleidoscope
+                        float segments = 12.0,                // Number of segments in kaleidoscope
                         float offset_angle = 0.0f,           // Beginning of first segment in degrees
                         float spin_angle = 0.0f,
                         bool reflect = true );               // Reflect alternate segments

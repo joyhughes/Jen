@@ -21,6 +21,19 @@ template < class T > struct any_fn {};
     any_fn< _T_ >( any_##_T_##_fn_ptr any_##_T_##_fn, _T_##_fn fn, std::string name ) : any_fn_ptr( any_##_T_##_fn ), fn( fn ), name( name ) {}; \
 };
 
+/* example 
+template<> struct any_fn< float > { 
+    any_float_fn_ptr any_fn_ptr; 
+    float_fn fn; std::string name; 
+    float operator () ( float& val, element_context& context ) { return fn( val, context ); } 
+    any_fn< float >() : name("identity_" "float" "_default") { 
+        std::shared_ptr< identity_float > f( new identity_fn< float > ); 
+        fn = std::ref( *f ); any_fn_ptr = f; 
+        } 
+    any_fn< float >( any_float_fn_ptr any_float_fn, float_fn fn, std::string name ) : any_fn_ptr( any_float_fn ), fn( fn ), name( name ) {}; 
+};
+*/
+
 typedef std::variant < 
     // harness functions
     std::shared_ptr< identity_float >,

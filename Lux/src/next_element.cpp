@@ -54,9 +54,15 @@ float time_fn::operator () ( float& val, element_context& context  ) {
 
 template< MultipliableByFloat U > U integrator< U >::operator () ( U& u, element_context& context ) {
     if( last_time != context.s.time ) {
-        delta( context );
-        val += ( context.s.time - last_time ) * *delta;
-        last_time = context.s.time;
+        if( context.s.time < last_time ) { // reset if time goes backwards (e.g. looped animation or restart)
+            val = starting_val; 
+            last_time = context.s.time;
+        } 
+        else {
+            delta( context );
+            val += ( context.s.time - last_time ) * *delta;
+            last_time = context.s.time;
+        }
     } 
     return val; 
 }

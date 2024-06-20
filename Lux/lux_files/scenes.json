@@ -1,0 +1,15 @@
+{
+    "scenes":
+    [
+        {
+            "name": "Kaleidoswirl",
+            "description": "A kaleidoscope that spins and swirls",
+            "filename": "lux_files/kaleido.json"
+        },
+        {
+            "name": "Cellular Automata",
+            "description": "A cellular automata simulation",
+            "filename": "lux_files/CA_choices.json"
+        }
+    ]
+}
