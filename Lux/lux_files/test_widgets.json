@@ -1,0 +1,75 @@
+[
+    {
+        "name": "home_group",
+        "title": "Home",
+        "widgets": [
+            {
+                "name": "rule_menu",
+                "type": "menu_int",
+                "tool": "pull_down",
+                "label": "Transition Rule",
+                "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
+                "choices": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort" ],
+                "default_choice": 5
+            },
+            {
+                "name": "max_diff_slider",
+                "type": "slider_int",
+                "label": "Sort Threshold",
+                "description": "Sort Threshold is the maximum brightness difference between adjacent pixels that will be sorted.",
+                "min": 0,
+                "max": 768,
+                "default_value": 230,
+                "step": 1
+            },
+            {
+                "name": "edge_block_switch",
+                "type": "switch_fn",
+                "label": "Edge block",
+                "description": "Freezes pixels on the edge of the image",
+                "tool": "switch",
+                "default_value": true
+            },
+            {
+                "name": "bright_block_widget_switch",
+                "type": "widget_switch",
+                "label": "Brightness freeze",
+                "description": "Freeze pixels with brighness outside the range",
+                "switcher": 
+                {
+                    "name": "bright_block_switch",
+                    "type": "switch_fn",
+                    "label": "Brightness block",
+                    "description": "Freezes pixels with brightness outide the range",
+                    "tool": "switch",
+                    "default_value": false
+                },
+                "widget": 
+                {
+                    "name": "bright_block_slider",
+                    "type": "range_slider_int",
+                    "label": "Brightness block range",
+                    "min": 0,
+                    "max": 768,
+                    "description": "Freezes pixels with brightness outide the range",
+                    "tool": "range_slider",
+                    "default_value": [ 10, 768 ]
+                }
+            },
+            {
+                "name": "direction_4",
+                "type": "direction_picker_4",
+                "default_value": 2,
+                "label": "Direction",
+                "description": "Direction of gravity"
+            },
+            {
+                "name": "direction_8",
+                "type": "direction_picker_8",
+                "default_value": 4,
+                "label": "Direction",
+                "description": "Direction of sort"
+            }
+        ]
+    }
+]
