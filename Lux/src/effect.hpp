@@ -87,6 +87,20 @@ template< class T > struct eff_rotate_colors {
 typedef eff_rotate_colors< frgb > eff_rotate_colors_frgb;
 typedef eff_rotate_colors< ucolor > eff_rotate_colors_ucolor;
 
+template< class T > struct eff_rgb_to_hsv {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_rgb_to_hsv< frgb > eff_rgb_to_hsv_frgb;
+typedef eff_rgb_to_hsv< ucolor > eff_rgb_to_hsv_ucolor;
+
+template< class T > struct eff_hsv_to_rgb {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_hsv_to_rgb< frgb > eff_hsv_to_rgb_frgb;
+typedef eff_hsv_to_rgb< ucolor > eff_hsv_to_rgb_ucolor;
+
 template< class T > struct eff_crop_circle {
     harness< T > background;
     harness< float > ramp_width;

@@ -154,4 +154,12 @@ static inline ucolor invert( const ucolor& c )
    return ( c & 0xff000000 ) | ( ( ~c ) & 0x00ffffff );
 }
 
+ucolor rgb_to_hsv( const ucolor& c );
+ucolor hsv_to_rgb( const ucolor& c );
+
+// Already shifted to second most significant byte
+static inline ucolor rotate_hue( const ucolor& c, const unsigned int& r )
+{
+   return ( ( ( c & 0x00ff0000 ) + r ) & 0x00ff0000 ) | ( c & 0xff00ffff );
+}
 #endif // __UCOLOR_HPP

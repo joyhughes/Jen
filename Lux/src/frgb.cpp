@@ -94,3 +94,67 @@ frgb gray( const frgb &c ) {
     auto l = luminance( c );
     return { l, l, l };
 }
+
+// Future - can value be made equivalent to luminance? How would this affect the inverse function?
+frgb rgb_to_hsv( const frgb& in ) {
+    float max = linalg::maxelem( in );
+    float min = linalg::minelem( in );
+    float h, s, v;
+    v = max; // Value is maximum of RGB components.
+
+    float delta = max - min;
+    if (delta == 0.0f) {
+        s = 0;
+        h = 0; // h is undefined.
+        return frgb( { h, s, v } );
+    }
+
+    if (max != 0.0) { // NOTE: if Max is == 0, this divide would cause a crash
+        s = (delta / max); // s
+    } else {
+        // If max is 0, then r = g = b = 0              
+        s = 0.0f;
+        h = 0.0f; // its now undefined
+        return frgb( { h, s, v } );
+    }
+
+    if ( rf( in ) >= max ) {
+        h = ( gf( in ) - bf( in ) ) / delta; // between yellow & magenta
+    } else if ( gf( in ) >= max) {
+        h = 2.0f + ( bf( in ) - rf( in ) ) / delta; // between cyan & yellow
+    } else {
+        h = 4.0f + ( rf( in ) - gf( in ) ) / delta; // between magenta & cyan
+    }
+
+    h *= 60.0f; // degrees
+
+    if (h < 0.0f) {
+        h += 360.0f;
+    }
+
+    return frgb( { h, s, v } );
+}
+
+frgb hsv_to_rgb( const frgb& in ) {
+    float s = gf( in );
+    float v = bf( in );
+
+    if( s <= 0.0f ) return frgb( { v, v, v } );  // < is bogus, just shuts up warnings
+
+    float hh = rf( in );
+    if( hh >= 360.0f ) hh = 0.0f;
+    hh /= 60.0f;
+    float i = floorf( hh );
+    float ff = hh - i;
+
+    float p = v * ( 1.0f - s );
+    float q = v * ( 1.0f - (s * ff) );
+    float t = v * ( 1.0f - (s * (1.0f - ff) ));
+
+    if( i == 0.0f ) return frgb( { v, t, p } );
+    if( i == 1.0f ) return frgb( { q, v, p } );
+    if( i == 2.0f ) return frgb( { p, v, t } );
+    if( i == 3.0f ) return frgb( { p, q, v } );
+    if( i == 4.0f ) return frgb( { t, p, v } );
+    else            return frgb( { v, p, q } );
+}

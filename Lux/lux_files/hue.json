@@ -1,0 +1,175 @@
+{
+    "name": "Kaleidoswirl",
+    "title": "Kaleidoscopic collage",
+    "images": 
+    [
+        {
+            "type": "uimage",
+            "filename": "lux_files/Ada.jpg",
+            "name": "Ada"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/crab_nebula.jpg", 
+            "name": "Crab Nebula"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/earth.jpg",
+            "name": "Earth"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/everest.jpg",
+            "name": "Everest"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/flower.jpg",
+            "name": "Flower"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/forest.jpg",
+            "name": "Forest"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/hk_square_512.jpg", 
+            "name": "Hong Kong"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/lighthouse.jpg",
+            "name": "Lighthouse"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/sunrise.jpg",
+            "name": "Sunrise"
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "segment_slider",
+            "type": "slider_float",
+            "label": "Segments",
+            "description": "Number of reflections in the kaleidoscope image",
+            "min": 2,
+            "max": 36,
+            "step": 2,
+            "default_value": 12
+        },
+        {
+            "name": "offset_angle_slider",
+            "type": "slider_float",
+            "label": "Starting Angle",
+            "description": "Rotation of image before kaleidoscope effect is applied",
+            "min": -5,
+            "max": 5,
+            "step": 0.5,
+            "default_value": 0
+        },
+        {
+            "name": "spin_angle_slider",
+            "type": "slider_float",
+            "label": "Spin Angle",
+            "description": "Rotation of image after kaleidoscope effect is applied",
+            "min": -5,
+            "max": 5,
+            "step": 0.5,
+            "default_value": 0
+        },
+        {
+            "name": "offset_angle_integrator",
+            "type": "integrator_float",
+            "delta": { "functions": [ "offset_angle_slider" ] },
+            "val": 0
+        },
+        {
+            "name": "spin_angle_integrator",
+            "type": "integrator_float",
+            "delta": { "functions": [ "spin_angle_slider" ] },
+            "val": 0
+        },
+        {
+            "name": "reflect_switch",
+            "type": "switch_fn",
+            "label": "Reflect",
+            "description": "Reflect alternate segments of the kaleidoscope image",
+            "default_value": true
+        },
+        {
+            "name": "source_image_menu",
+            "type": "menu_string",
+            "tool": "image",
+            "label": "Source Image",
+            "description": "Choose an image to apply the transition rule to.",
+            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 6
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "make kaleidoscope vector field",
+            "type": "eff_kaleidoscope_vec2f",
+            "segments": { "functions": [ "segment_slider" ] },
+            "offset_angle": { "functions": [ "offset_angle_integrator" ] },
+            "spin_angle": { "functions": [ "spin_angle_integrator" ] },
+            "reflect": { "functions": [ "reflect_switch" ] }
+        },
+        {
+            "name": "fill warp field",
+            "type": "eff_fill_warp_int",
+            "vf_name": "kaleido_vf"
+        },
+        {
+            "name": "warp image",
+            "type": "eff_feedback_ucolor",
+            "wf_name": "warper"
+        },
+        {
+            "name": "rgb to hsv",
+            "type": "eff_rgb_to_hsv_ucolor"
+        },
+        {
+            "name": "hsv to rgb",
+            "type": "eff_hsv_to_rgb_ucolor"
+        }
+    ],
+    "queue": 
+    [
+        {
+            "name": "kaleido_vf",
+            "self_generated": true,
+            "dim": [ 512, 512],
+            "type": "vector_field",
+            "mode": "ephemeral",  
+            "effects": [ "make kaleidoscope vector field" ]
+        },
+        {
+            "name": "warper",
+            "self_generated": true,
+            "dim": [ 512, 512 ],
+            "type": "warp_field",
+            "mode": "ephemeral",  
+            "effects": [ "fill warp field" ]
+        },
+        {
+            "name": "warped_image",
+            "source": { "functions": [ "source_image_menu" ] },
+            "type": "uimage",
+            "mode": "ephemeral",  
+            "effects": [ "warp image" ]
+        }
+    ],
+    "widget groups":
+    [
+        {
+            "name": "home_group",
+            "widgets": [ "source_image_menu", "hue_slider" ]
+        }
+    ]
+}

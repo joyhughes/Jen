@@ -19,6 +19,16 @@ template<> void uimage::rotate_colors( const int& r ) {
     //mip_it();
 }
 
+template<> void uimage::rgb_to_hsv() {
+    for( auto& c : base ) { c = ::rgb_to_hsv( c ); }
+    // rather than calling mip_it(), probably better to calculate hsv at each mip level
+}
+
+template<> void uimage::hsv_to_rgb() {
+    for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
+    //mip_it();
+}
+
 template<> void uimage::load( const std::string& filename ) {
     base.clear();
     image_loader loader( filename );

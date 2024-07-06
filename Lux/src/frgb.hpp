@@ -96,6 +96,12 @@ static inline frgb invert( const frgb& c )
     return frgb( { 1.0f - c.R, 1.0f - c.G, 1.0f - c.B } );
 }
 
-// Future: HSV and other color spaces
+frgb rgb_to_hsv( const frgb& in );
+frgb hsv_to_rgb( const frgb& in );
+
+static inline frgb rotate_hue( const frgb& c, const float& h )
+{
+    c.R = tmodf( c.R + h, 360.0 );
+}
 
 #endif // __FRGB_HPP

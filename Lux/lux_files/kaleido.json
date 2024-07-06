@@ -129,6 +129,14 @@
             "name": "warp image",
             "type": "eff_feedback_ucolor",
             "wf_name": "warper"
+        },
+        {
+            "name": "rgb to hsv",
+            "type": "eff_rgb_to_hsv_ucolor"
+        },
+        {
+            "name": "hsv to rgb",
+            "type": "eff_hsv_to_rgb_ucolor"
         }
     ],
     "queue": 
@@ -154,7 +162,7 @@
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "warp image" ]
+            "effects": [ "warp image", "rgb to hsv" ]
         }
     ],
     "widget groups":

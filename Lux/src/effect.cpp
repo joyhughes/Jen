@@ -77,6 +77,32 @@ template< class T > void eff_rotate_colors< T >::operator () ( any_buffer_pair_p
 template class eff_rotate_colors< frgb >;
 template class eff_rotate_colors< ucolor >;
 
+template< class T > void eff_rgb_to_hsv< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rgb_to_hsv: no image in buffer" );
+        buf_ptr->get_image().rgb_to_hsv();
+        //auto img = buf_ptr->get_image();
+        //for( auto c = img.begin(); c != img.end(); c++ ) *c = rgb_to_hsv( *c );
+    }
+}
+
+template class eff_rgb_to_hsv< frgb >;
+template class eff_rgb_to_hsv< ucolor >;
+
+template< class T > void eff_hsv_to_rgb< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_hsv_to_rgb: no image in buffer" );
+        buf_ptr->get_image().hsv_to_rgb();
+    }
+}
+
+template class eff_hsv_to_rgb< frgb >;
+template class eff_hsv_to_rgb< ucolor >;
+
 template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {

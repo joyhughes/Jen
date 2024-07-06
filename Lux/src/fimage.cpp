@@ -31,6 +31,16 @@ template<> void fimage::rotate_colors( const int& r ) {
     //mip_it();
 }
 
+template<> void fimage::rgb_to_hsv() {
+    for( auto& c : base ) { c = ::rgb_to_hsv( c ); }
+    // rather than calling mip_it(), probably better to calculate hsv at each mip level
+}
+
+template<> void fimage::hsv_to_rgb() {
+    for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
+    //mip_it();
+}
+
 template<> void fimage::load( const std::string& filename ) {
     //std::cout << "fimage::load " << filename << std::endl;
     reset();
