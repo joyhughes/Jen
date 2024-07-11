@@ -162,7 +162,7 @@
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "warp image", "rgb to hsv" ]
+            "effects": [ "warp image" ]
         }
     ],
     "widget groups":

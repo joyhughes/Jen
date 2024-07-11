@@ -98,7 +98,7 @@
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "grayscale" ]
+            "effects": [ "rgb to hsv", "hue shift", "hsv to rgb" ]
         }
     ],
     "widget groups":

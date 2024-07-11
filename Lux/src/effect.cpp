@@ -104,16 +104,16 @@ template class eff_hsv_to_rgb< frgb >;
 template class eff_hsv_to_rgb< ucolor >;
 
 template< class T > void eff_rotate_hue< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
-    float old_offset = *offset;
+//    float old_offset = *offset;
     offset( context );
-    if( *offset != old_offset ) {
+//    if( *offset != old_offset ) {
         if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
         {
             auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
             if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rotate_hue: no image in buffer" );
             buf_ptr->get_image().rotate_hue( *offset );
         }
-    }
+//    }
 }
 
 template class eff_rotate_hue< frgb >;
