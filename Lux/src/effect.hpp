@@ -390,13 +390,14 @@ template< class T > struct eff_kaleidoscope {
     harness< float > offset_angle;
     harness< float > spin_angle;
     harness< bool >  reflect;
+    any_fn< float > swirl_fn;
 
     bool filled;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_kaleidoscope( vec2f center_init = vec2f( 0.0f, 0.0f ), float segments_init = 6.0f, float offset_angle_init = 0.0f, float spin_angle_init = 0.0f, bool reflect_init = true ) : 
-        center( center_init ), segments( segments_init ), offset_angle( offset_angle_init ), spin_angle( spin_angle_init ), reflect( reflect_init ), filled( false ) {}
+    eff_kaleidoscope( vec2f center_init = vec2f( 0.0f, 0.0f ), float segments_init = 6.0f, float offset_angle_init = 0.0f, float spin_angle_init = 0.0f, bool reflect_init = true) : 
+        center( center_init ), segments( segments_init ), offset_angle( offset_angle_init ), spin_angle( spin_angle_init ), reflect( reflect_init ), filled( false )  {}
 };
 
 typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;
