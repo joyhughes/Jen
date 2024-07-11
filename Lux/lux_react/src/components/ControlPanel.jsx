@@ -3,11 +3,12 @@ import Paper from '@mui/material/Paper';
 
 import WidgetGroup from './WidgetGroup'; 
 import MediaController from "./MediaController";
+import SceneChooser from "./SceneChooser";
 
 function ControlPanel( { dimensions, panelSize } ) {
 
-  const [ panelJSON,    setPanelJSON ]   = useState( [] );
-  const [ activeGroups, setActiveGroups] = useState( [] );
+  const [ panelJSON,     setPanelJSON ]   = useState( [] );
+  const [ activeGroups,  setActiveGroups] = useState( [] );
 
   // Callback function to handle state changes in widget groups
   const handleWidgetGroupChange = () => {
@@ -25,18 +26,25 @@ function ControlPanel( { dimensions, panelSize } ) {
       const parsedJSON = JSON.parse(panelJSONString);
       setPanelJSON(parsedJSON);
     } catch (error) {
-      console.error("Error parsing JSON:", error);
+      console.error("Error parsing panel JSON:", error);
     }
   };
+
+  const clearPanel = () => {
+    setPanelJSON([]);
+    setActiveGroups([]);
+  }
 
   useEffect(() => {
     if (window.module) {
         setupPanel();
+        window.module.set_scene_callback( setupPanel );
     } else {
         // Poll for the Module to be ready
         const intervalId = setInterval(() => {
         if (window.module) {
             setupPanel();
+            window.module.set_scene_callback( setupPanel );
             clearInterval(intervalId);
         }
       }, 100); // Check every 100ms
@@ -50,6 +58,8 @@ function ControlPanel( { dimensions, panelSize } ) {
   }, [ panelJSON ] );
 
   // Create list of widget groups from panelJSON
+  // (below MediaController)         
+
   return (
     <Paper 
       elevation={3} 
@@ -73,7 +83,8 @@ function ControlPanel( { dimensions, panelSize } ) {
           height: dimensions.height, // Restrict height to container's height
         }}
       >
-        <MediaController panelSize={panelSize} />
+        < MediaController panelSize={panelSize} />
+        < SceneChooser width = { panelSize } onChange = { clearPanel } />
         {activeGroups.map((group) => (
           // Passing handleWidgetGroupChange callback to each WidgetGroup component
           <WidgetGroup 
@@ -86,7 +97,6 @@ function ControlPanel( { dimensions, panelSize } ) {
       </div>
     </Paper>
   );
-
 }
 
 export default ControlPanel; 

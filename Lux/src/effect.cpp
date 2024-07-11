@@ -329,7 +329,7 @@ template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_pt
     if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *spin_angle!=old_spin_angle || *reflect!=old_reflect)
     filled=false;
 
-    std::cout << "eff_kaleidoscope: filled = " << filled << std::endl;
+    //std::cout << "eff_kaleidoscope: filled = " << filled << std::endl;
     if(!filled)
     {
         filled =true;

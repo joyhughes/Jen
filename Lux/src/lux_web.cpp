@@ -13,6 +13,9 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+//#include <chrono>
+//#include <thread>
+
 using namespace emscripten;
 
 //const val document = val::global("document");
@@ -20,10 +23,11 @@ using namespace emscripten;
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
   //SDL_Surface *screen;
-  std::function<void()> frame_callback, update_callback;
-  bool frame_callback_ready, update_callback_ready, js_bitmaps_ready;
-  scene *s;
+  std::function<void()> frame_callback, scene_callback;
+  bool frame_callback_ready, scene_callback_ready, js_bitmaps_ready;
+  std::unique_ptr< scene > s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
+  nlohmann::json scene_list;
 };
 
 frame_context *global_context;
@@ -92,11 +96,11 @@ void set_frame_callback(val callback) {
     global_context->frame_callback_ready = true; 
 }
 
-void set_update_callback(val callback) {
-    global_context->update_callback = [callback]() mutable {
+void set_scene_callback(val callback) {
+    global_context->scene_callback = [callback]() mutable {
         callback();
     };
-    global_context->update_callback_ready = true;
+    global_context->scene_callback_ready = true;
 }
 
 void bitmaps_ready() {
@@ -109,7 +113,11 @@ void render_and_display( void *arg )
     bool &running = global_context->s->ui.running;
     bool &advance = global_context->s->ui.advance;
     bool &displayed = global_context->s->ui.displayed;
+    //using namespace std::this_thread;     // sleep_for, sleep_until
+    //using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
+    //using std::chrono::system_clock;
 
+    //sleep_until(system_clock::now() + 1s);
     //emscripten_run_script("console.log('render and display');");
     if( global_context->frame_callback_ready ) {
         //emscripten_run_script("console.log('callback and bitmaps ready');");
@@ -314,6 +322,23 @@ std::string load_file_as_string(const std::string& filePath) {
     return buffer.str();
 }
 
+void load_scene( std::string scene_file ) {
+    global_context->s = std::make_unique< scene >( scene_file );
+    any_buffer_pair_ptr any_buf = global_context->buf;
+    global_context->s->set_output_buffer( any_buf );
+    global_context->s->ui.canvas_bounds = bb2i( global_context->buf->get_image().get_dim() );
+    if( global_context->scene_callback_ready ) {
+        global_context->scene_callback();
+    }
+    else {
+        std::cout << "load_scene: scene callback not ready" << std::endl;
+    }
+}
+
+std::string get_scene_list_JSON() {
+    return global_context->scene_list.dump();
+}
+
 std::string get_panel_JSON() {
     nlohmann::json j;
 
@@ -357,39 +382,45 @@ bool is_widget_group_active( std::string name ) {
 }
 
 int main(int argc, char** argv) { 
+    using namespace nlohmann;
+    std::string filename;
     vec2i dim( { 512, 512 } );  // original sin
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
-    scene s( "nebula_files/kaleido.json" ); 
-    //scene s( "nebula_files/CA_choices.json" ); 
-    //scene s( "nebula_files/nebula_brush.json" ); 
+    global_context = new frame_context();
+    global_context->scene_list = json::parse( load_file_as_string( "lux_files/scenes.json" ) );
+    global_context->scene_list[ "scenes" ][ 0 ][ "filename" ].get_to( filename );
+    global_context->s = std::make_unique< scene >( filename );
+    //scene s( "lux_files/kaleido.json" ); 
+    //scene s( "lux_files/CA_choices.json" ); 
+    //scene s( "lux_files/nebula_brush.json" ); 
     //scene s(    //scene s( "diffuser_files/diffuser_brush.json" ); 
     //scene s( "moon_files/galaxy_moon.json" );
     emscripten_run_script("console.log('scene loaded');");
 
     std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
     any_buffer_pair_ptr any_buf = buf;
-    s.set_output_buffer( any_buf );
-    s.ui.canvas_bounds = bb2i( dim );
+    global_context->s->set_output_buffer( any_buf );
+    global_context->s->ui.canvas_bounds = bb2i( dim );
     //SDL_Init(SDL_INIT_VIDEO); 
     //SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
     // pack context
-    frame_context context;
- //   context.screen = screen;
-    context.s = &s;
-    context.buf = buf;
-    context.frame_callback = nullptr;
-    context.frame_callback_ready = false;
-    context.update_callback = nullptr;
-    context.update_callback_ready = false;
-    context.js_bitmaps_ready = false;
-    global_context = &context;
+ //   frame_context context;
+ //   global_context->screen = screen;
+ //   global_context->s = &s;
+    global_context->buf = buf;
+    global_context->frame_callback = nullptr;
+    global_context->frame_callback_ready = false;
+    global_context->scene_callback = nullptr;
+    global_context->scene_callback_ready = false;
+    global_context->js_bitmaps_ready = false;
+    //global_context = &context;
 
 #ifdef TEST_SDL_LOCK_OPTS
   EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
 #endif
-  emscripten_set_main_loop_arg( render_and_display, &context, -1, 1 );
+  emscripten_set_main_loop_arg( render_and_display, global_context, -1, 1 );
 
 //  SDL_Quit();
 
@@ -398,7 +429,11 @@ int main(int argc, char** argv) {
  
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback", &set_frame_callback );
-    function( "set_update_callback",&set_update_callback );
+    function( "set_scene_callback",&set_scene_callback );
+
+    // scene selection functions
+    function( "load_scene",         &load_scene );
+    function( "get_scene_list_JSON", &get_scene_list_JSON );
 
     // image functions
     function( "bitmaps_ready",      &bitmaps_ready );
@@ -438,4 +473,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_down",         &mouse_down );
     function( "mouse_over",         &mouse_over );
     function( "mouse_click",        &mouse_click );
-}
+} 
