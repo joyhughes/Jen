@@ -390,6 +390,7 @@ template< class T > struct eff_kaleidoscope {
     harness< float > offset_angle;
     harness< float > spin_angle;
     harness< bool >  reflect;
+    any_fn< float > swirl_fn;
 
     bool filled;
 
