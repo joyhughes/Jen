@@ -1,6 +1,6 @@
 {
-    "name": "Kaleidoswirl",
-    "title": "Kaleidoscopic collage",
+    "name": "test hue change",
+    "title": "Hues",
     "images": 
     [
         {
@@ -52,55 +52,6 @@
     "functions":
     [
         {
-            "name": "segment_slider",
-            "type": "slider_float",
-            "label": "Segments",
-            "description": "Number of reflections in the kaleidoscope image",
-            "min": 2,
-            "max": 36,
-            "step": 2,
-            "default_value": 12
-        },
-        {
-            "name": "offset_angle_slider",
-            "type": "slider_float",
-            "label": "Starting Angle",
-            "description": "Rotation of image before kaleidoscope effect is applied",
-            "min": -5,
-            "max": 5,
-            "step": 0.5,
-            "default_value": 0
-        },
-        {
-            "name": "spin_angle_slider",
-            "type": "slider_float",
-            "label": "Spin Angle",
-            "description": "Rotation of image after kaleidoscope effect is applied",
-            "min": -5,
-            "max": 5,
-            "step": 0.5,
-            "default_value": 0
-        },
-        {
-            "name": "offset_angle_integrator",
-            "type": "integrator_float",
-            "delta": { "functions": [ "offset_angle_slider" ] },
-            "val": 0
-        },
-        {
-            "name": "spin_angle_integrator",
-            "type": "integrator_float",
-            "delta": { "functions": [ "spin_angle_slider" ] },
-            "val": 0
-        },
-        {
-            "name": "reflect_switch",
-            "type": "switch_fn",
-            "label": "Reflect",
-            "description": "Reflect alternate segments of the kaleidoscope image",
-            "default_value": true
-        },
-        {
             "name": "source_image_menu",
             "type": "menu_string",
             "tool": "image",
@@ -108,28 +59,20 @@
             "description": "Choose an image to apply the transition rule to.",
             "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
             "default_choice": 6
+        },
+        {
+            "name": "hue_slider",
+            "type": "slider_float",
+            "label": "Hue",
+            "description": "Hue shift",
+            "min": 0,
+            "max": 360.0,
+            "step": 1,
+            "default_value": 0
         }
     ],
     "effects":
     [
-        {
-            "name": "make kaleidoscope vector field",
-            "type": "eff_kaleidoscope_vec2f",
-            "segments": { "functions": [ "segment_slider" ] },
-            "offset_angle": { "functions": [ "offset_angle_integrator" ] },
-            "spin_angle": { "functions": [ "spin_angle_integrator" ] },
-            "reflect": { "functions": [ "reflect_switch" ] }
-        },
-        {
-            "name": "fill warp field",
-            "type": "eff_fill_warp_int",
-            "vf_name": "kaleido_vf"
-        },
-        {
-            "name": "warp image",
-            "type": "eff_feedback_ucolor",
-            "wf_name": "warper"
-        },
         {
             "name": "rgb to hsv",
             "type": "eff_rgb_to_hsv_ucolor"
@@ -137,32 +80,25 @@
         {
             "name": "hsv to rgb",
             "type": "eff_hsv_to_rgb_ucolor"
+        },
+        {
+            "name": "hue shift",
+            "type": "eff_rotate_hue_ucolor",
+            "offset": { "functions": [ "hue_slider" ] }
+        },
+        {
+            "name": "grayscale",
+            "type": "eff_grayscale_ucolor"
         }
     ],
     "queue": 
     [
         {
-            "name": "kaleido_vf",
-            "self_generated": true,
-            "dim": [ 512, 512],
-            "type": "vector_field",
-            "mode": "ephemeral",  
-            "effects": [ "make kaleidoscope vector field" ]
-        },
-        {
-            "name": "warper",
-            "self_generated": true,
-            "dim": [ 512, 512 ],
-            "type": "warp_field",
-            "mode": "ephemeral",  
-            "effects": [ "fill warp field" ]
-        },
-        {
-            "name": "warped_image",
+            "name": "rotate hue",
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "warp image" ]
+            "effects": [ "grayscale" ]
         }
     ],
     "widget groups":

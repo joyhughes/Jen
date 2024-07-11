@@ -18,9 +18,10 @@ template< class T > struct eff_fill;
 template< class T > struct eff_noise;
 template< class T > struct eff_grayscale;
 template< class T > struct eff_invert;
-template< class T > struct eff_rotate_colors;
+template< class T > struct eff_rotate_components;
 template< class T > struct eff_rgb_to_hsv;
 template< class T > struct eff_hsv_to_rgb;
+template< class T > struct eff_rotate_hue;
 
 template< class T > struct eff_crop_circle;
 template< class T > struct eff_mirror;
@@ -80,14 +81,17 @@ typedef std::variant <
     std::shared_ptr< eff_invert< frgb > >,
     std::shared_ptr< eff_invert< ucolor > >,
 
-    std::shared_ptr< eff_rotate_colors< frgb > >,
-    std::shared_ptr< eff_rotate_colors< ucolor > >,
+    std::shared_ptr< eff_rotate_components< frgb > >,
+    std::shared_ptr< eff_rotate_components< ucolor > >,
 
     std::shared_ptr< eff_rgb_to_hsv< frgb > >,
     std::shared_ptr< eff_rgb_to_hsv< ucolor > >,
 
     std::shared_ptr< eff_hsv_to_rgb< frgb > >,
     std::shared_ptr< eff_hsv_to_rgb< ucolor > >,
+
+    std::shared_ptr< eff_rotate_hue< frgb > >,
+    std::shared_ptr< eff_rotate_hue< ucolor > >,
 
     std::shared_ptr< eff_crop_circle< frgb > >,
     std::shared_ptr< eff_crop_circle< ucolor > >,

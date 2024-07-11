@@ -26,8 +26,8 @@ template<> void fimage::invert() {
     //mip_it();
 }
 
-template<> void fimage::rotate_colors( const int& r ) {
-    for( auto& c : base ) { rotate_color( c, r ); }
+template<> void fimage::rotate_components( const int& r ) {
+    for( auto& c : base ) { ::rotate_components( c, r ); }
     //mip_it();
 }
 
@@ -38,6 +38,11 @@ template<> void fimage::rgb_to_hsv() {
 
 template<> void fimage::hsv_to_rgb() {
     for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
+    //mip_it();
+}
+
+template<> void fimage::rotate_hue( const float& h ) {
+    for( auto& c : base ) { c = ::rotate_hue( c, h ); }
     //mip_it();
 }
 

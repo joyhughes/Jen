@@ -14,8 +14,8 @@ template<> void uimage::invert() {
     //mip_it();
 }
 
-template<> void uimage::rotate_colors( const int& r ) {
-    for( auto& c : base ) { rotate_color( c, r ); }
+template<> void uimage::rotate_components( const int& r ) {
+    for( auto& c : base ) { ::rotate_components( c, r ); }
     //mip_it();
 }
 
@@ -26,6 +26,13 @@ template<> void uimage::rgb_to_hsv() {
 
 template<> void uimage::hsv_to_rgb() {
     for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
+    //mip_it();
+}
+
+template<> void uimage::rotate_hue( const float& h ) {
+    unsigned int r = h * 256.0f / 360.0f;
+    r <<= 16;
+    for( auto& c : base ) { c = ::rotate_hue( c, r ); }
     //mip_it();
 }
 

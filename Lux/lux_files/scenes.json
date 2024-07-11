@@ -10,6 +10,11 @@
             "name": "Cellular Automata",
             "description": "A cellular automata simulation",
             "filename": "lux_files/CA_choices.json"
+        },
+        {
+            "name": "Hues",
+            "description": "Rotate hue of an image",
+            "filename": "lux_files/hue.json"
         }
     ]
 }

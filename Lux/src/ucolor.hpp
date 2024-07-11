@@ -130,14 +130,14 @@ static inline ucolor mulc( const ucolor& c1, const ucolor& c2 )
       std::min< unsigned int>( ( ( c1 & 0x000000ff ) * ( c2 & 0x000000ff ) ) >> 8, 0x000000ff );
 }
 
-static inline void rotate_color( ucolor& c, const int& r )
+static inline void rotate_components( ucolor& c, const int& r )
 {
    if(      !r%1 ) c = ( c & 0xff000000 ) | ( c & 0x00ffff00 >> 8 ) | ( c & 0x000000ff << 16 );
    else if( !r%2 ) c = ( c & 0xff000000 ) | ( c & 0x0000ffff << 8 ) | ( c & 0x00ff0000 >> 16 );
  
 }
 
-static inline ucolor rotate_color( const ucolor& c, const int& r )
+static inline ucolor rotate_components( const ucolor& c, const int& r )
 {
    if(      !r%1 ) return ( c & 0xff000000 ) | ( c & 0x00ffff00 >> 8 ) | ( c & 0x000000ff << 16 );
    else if( !r%2 ) return ( c & 0xff000000 ) | ( c & 0x0000ffff << 8 ) | ( c & 0x00ff0000 >> 16 );

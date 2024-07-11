@@ -65,24 +65,24 @@ template< class T > void eff_invert< T >::operator () ( any_buffer_pair_ptr& buf
 template class eff_invert< frgb >;
 template class eff_invert< ucolor >;
 
-template< class T > void eff_rotate_colors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+template< class T > void eff_rotate_components< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
-        buf_ptr->get_image().rotate_colors( *r );
+        buf_ptr->get_image().rotate_components( *r );
     }
 }
 
-template class eff_rotate_colors< frgb >;
-template class eff_rotate_colors< ucolor >;
+template class eff_rotate_components< frgb >;
+template class eff_rotate_components< ucolor >;
 
 template< class T > void eff_rgb_to_hsv< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rgb_to_hsv: no image in buffer" );
-        buf_ptr->get_image().rgb_to_hsv();
+        buf_ptr->get_image().image<T>::rgb_to_hsv();
         //auto img = buf_ptr->get_image();
         //for( auto c = img.begin(); c != img.end(); c++ ) *c = rgb_to_hsv( *c );
     }
@@ -102,6 +102,22 @@ template< class T > void eff_hsv_to_rgb< T >::operator () ( any_buffer_pair_ptr&
 
 template class eff_hsv_to_rgb< frgb >;
 template class eff_hsv_to_rgb< ucolor >;
+
+template< class T > void eff_rotate_hue< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    float old_offset = *offset;
+    offset( context );
+    if( *offset != old_offset ) {
+        if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+        {
+            auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+            if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rotate_hue: no image in buffer" );
+            buf_ptr->get_image().rotate_hue( *offset );
+        }
+    }
+}
+
+template class eff_rotate_hue< frgb >;
+template class eff_rotate_hue< ucolor >;
 
 template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
