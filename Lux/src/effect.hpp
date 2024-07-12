@@ -76,16 +76,41 @@ template< class T > struct eff_invert {
 typedef eff_invert< frgb > eff_invert_frgb;
 typedef eff_invert< ucolor > eff_invert_ucolor;
 
-template< class T > struct eff_rotate_colors {
+template< class T > struct eff_rotate_components {
     harness< int > r;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_rotate_colors( int r_init = 0 ) : r( r_init ) {}
+    eff_rotate_components( int r_init = 0 ) : r( r_init ) {}
 };
 
-typedef eff_rotate_colors< frgb > eff_rotate_colors_frgb;
-typedef eff_rotate_colors< ucolor > eff_rotate_colors_ucolor;
+typedef eff_rotate_components< frgb > eff_rotate_components_frgb;
+typedef eff_rotate_components< ucolor > eff_rotate_components_ucolor;
+
+template< class T > struct eff_rgb_to_hsv {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_rgb_to_hsv< frgb > eff_rgb_to_hsv_frgb;
+typedef eff_rgb_to_hsv< ucolor > eff_rgb_to_hsv_ucolor;
+
+template< class T > struct eff_hsv_to_rgb {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_hsv_to_rgb< frgb > eff_hsv_to_rgb_frgb;
+typedef eff_hsv_to_rgb< ucolor > eff_hsv_to_rgb_ucolor;
+
+template< class T > struct eff_rotate_hue {
+    harness< float > offset;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_rotate_hue( float offset_init = 0.0f ) : offset( offset_init ) {}
+};
+
+typedef eff_rotate_hue< frgb > eff_rotate_hue_frgb;
+typedef eff_rotate_hue< ucolor > eff_rotate_hue_ucolor;
 
 template< class T > struct eff_crop_circle {
     harness< T > background;
