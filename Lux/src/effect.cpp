@@ -325,7 +325,7 @@ template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_pt
 {
     vec2f old_center=*center; float old_segments=*segments; float old_offset_angle = *offset_angle; float old_spin_angle = *spin_angle; bool old_reflect=*reflect;
     center(context); segments(context); offset_angle(context); spin_angle(context); reflect(context); 
-    
+
     if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *spin_angle!=old_spin_angle || *reflect!=old_reflect)
     filled=false;
 
@@ -334,7 +334,7 @@ template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_pt
     {
         filled =true;
         vf_tools tools( get_image< T >( buf ) );
-        tools.kaleidoscope( *center, *segments, *offset_angle, *spin_angle, *reflect );
+        tools.kaleidoscope( *center, *segments, *offset_angle, *spin_angle, *reflect, func=[context](float x) -> float { return swirl_fn(x, context);});
     }  
 }
 
