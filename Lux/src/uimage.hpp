@@ -8,8 +8,11 @@
 
 // pixel modification functions using template specialization
 template<> void uimage::grayscale();
-template<> void uimage::rotate_colors( const int& r );
+template<> void uimage::rotate_components( const int& r );
 template<> void uimage::invert();
+template<> void uimage::rgb_to_hsv();
+template<> void uimage::hsv_to_rgb();
+template<> void uimage::rotate_hue( const float& h );
 
 // I/O functions using template specialization
 template<> void uimage::load( const std::string& filename );

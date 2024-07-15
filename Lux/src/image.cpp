@@ -519,6 +519,16 @@ template< class T > void image< T >::apply_mask( const image< T >& layer, const 
     //mip_it();
 }
 
+// stubs for template specialization
+template< class T > void image< T >::grayscale() {}
+template< class T > void image< T >::constrain() {}
+template< class T > void image< T >::invert() {}
+template< class T > void image< T >::rgb_to_hsv() {}
+template< class T > void image< T >::hsv_to_rgb() {}
+template< class T > void image< T >::rotate_hue( const float& h ) {}
+template< class T > void image< T >::rotate_components( const int& r ) {}
+template< class T > void image< T >::clamp( float minc, float maxc ) {}
+
 template< class T > void image< T >::splat( 
     const image< T >& splat_image,      // image of the splat
     const bool& smooth, 			    // smooth splat?

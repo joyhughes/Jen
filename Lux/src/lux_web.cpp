@@ -40,7 +40,7 @@ val get_buf1() {
     //std::cout << "get_img_data() buffer length: " << buffer_length << std::endl;
     // Create a typed memory view at the specified memory location.
     return val(typed_memory_view(buffer_length, buffer));
-}
+} 
 
 val get_img_data() { return get_buf1(); } 
 

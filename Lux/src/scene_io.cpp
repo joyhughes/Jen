@@ -704,8 +704,17 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_invert_ucolor )  END_EFF()
     EFF( eff_invert_frgb )    END_EFF()
 
-    EFF( eff_rotate_colors_frgb ) HARNESSE( r ) END_EFF()
-    EFF( eff_rotate_colors_ucolor ) HARNESSE( r ) END_EFF()
+    EFF( eff_rotate_components_frgb ) HARNESSE( r ) END_EFF()
+    EFF( eff_rotate_components_ucolor ) HARNESSE( r ) END_EFF()
+
+    EFF( eff_rgb_to_hsv_frgb )   END_EFF()
+    EFF( eff_rgb_to_hsv_ucolor ) END_EFF()
+
+    EFF( eff_hsv_to_rgb_frgb )   END_EFF()
+    EFF( eff_hsv_to_rgb_ucolor ) END_EFF()
+
+    EFF( eff_rotate_hue_frgb )   HARNESSE( offset ) END_EFF()
+    EFF( eff_rotate_hue_ucolor ) HARNESSE( offset ) END_EFF()
 
     EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
     EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()

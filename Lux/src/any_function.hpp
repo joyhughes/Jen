@@ -24,7 +24,8 @@ template < class T > struct any_fn {};
 /* example 
 template<> struct any_fn< float > { 
     any_float_fn_ptr any_fn_ptr; 
-    float_fn fn; std::string name; 
+    float_fn fn; 
+    std::string name; 
     float operator () ( float& val, element_context& context ) { return fn( val, context ); } 
     any_fn< float >() : name("identity_" "float" "_default") { 
         std::shared_ptr< identity_float > f( new identity_fn< float > ); 
