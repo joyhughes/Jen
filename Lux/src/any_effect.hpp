@@ -45,6 +45,11 @@ template< class T > struct eff_spiral;
 template< class T > struct eff_vortex;
 template< class T > struct eff_turbulent;
 template< class T > struct eff_kaleidoscope;
+template< class T > struct eff_theta_swirl;
+template< class T > struct eff_theta_rings;
+template< class T > struct eff_theta_waves;
+template< class T > struct eff_theta_saw;
+template< class T > struct eff_theta_compression_waves;
 template< class T > struct eff_position_fill;
 
 // warp field effects
@@ -144,6 +149,11 @@ typedef std::variant <
     std::shared_ptr< eff_vortex< vec2f > >,
     std::shared_ptr< eff_turbulent< vec2f > >,
     std::shared_ptr< eff_kaleidoscope< vec2f > >,
+    std::shared_ptr< eff_theta_swirl< vec2f > >,
+    std::shared_ptr< eff_theta_rings< vec2f > >,
+    std::shared_ptr< eff_theta_waves< vec2f > >,
+    std::shared_ptr< eff_theta_saw< vec2f > >,
+    std::shared_ptr< eff_theta_compression_waves< vec2f > >,
     std::shared_ptr< eff_position_fill< vec2f > >,
 
     // warp field effects

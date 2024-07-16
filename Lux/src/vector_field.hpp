@@ -111,13 +111,19 @@ public:
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     void kaleidoscope( const vec2f& center = { 0.0f, 0.0f }, 
-                        float segments = 12.0,                // Number of segments in kaleidoscope
-                        float offset_angle = 0.0f,           // Beginning of first segment in degrees
-                        float spin_angle = 0.0f,
-                        bool reflect = true );               // Reflect alternate segments
+                       const float& segments = 12.0,                // Number of segments in kaleidoscope
+                       const float& offset_angle = 0.0f,           // Beginning of first segment in degrees
+                       const float& spin_angle = 0.0f,
+                       const bool& reflect = true );               // Reflect alternate segments
+
+    void theta_swirl( const float& amount = 60.0f );
+    void theta_rings( const float& width = 0.1f, const float& swirl = 0.0f, const float& alternate = 30.0f );
+    void theta_waves( const float& freq = 2.0f, const float& amp = 5.0f, const float& phase = 0.0f, const bool& const_amp = false );
+    void theta_saw(   const float& freq = 2.0f, const float& amp = 5.0f, const float& phase = 0.0f, const bool& const_amp = false );
+    void theta_compression_waves( const float& freq = 6.0f, const float& amp = 5.0f, const float& phase = 0.0f );
 
     void position_fill();
-
+ 
     // TODO:  implement vector field visualization
     void visualize( image< frgb >& img ) const {}
     void visualize( image< ucolor >& img ) const {}

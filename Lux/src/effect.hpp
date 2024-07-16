@@ -9,7 +9,6 @@
 #include "warp_field.hpp"
 #include "next_element.hpp"
 
-
 typedef std::function< void ( any_buffer_pair_ptr& buf, element_context& context ) > effect_fn;
 struct any_effect_fn;
 
@@ -409,6 +408,7 @@ template< class T > struct eff_position_fill {
 
 typedef eff_position_fill< vec2f > eff_position_fill_vec2f;
 
+// Assumes radial coordinates
 template< class T > struct eff_kaleidoscope {
     harness< vec2f > center;
     harness< float > segments;
@@ -425,6 +425,70 @@ template< class T > struct eff_kaleidoscope {
 };
 
 typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;
+
+template< class T > struct eff_theta_swirl {
+    harness< float > amount;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_swirl( float amount_init = 60.0f ) : amount( amount_init ) {}
+};
+
+typedef eff_theta_swirl< vec2f > eff_theta_swirl_vec2f;
+
+template< class T > struct eff_theta_rings {
+    harness< float > width; // width of each ring
+    harness< float > swirl; // amount of swirl
+    harness< float > alternate; // rotate in alternate directions
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_rings( float width_init = 0.1f, float swirl_init = 0.0f, float alternate_init = 30.0f ) : 
+        width( width_init ), swirl( swirl_init ), alternate( alternate_init ) {}
+};
+
+typedef eff_theta_rings< vec2f > eff_theta_rings_vec2f;
+
+template< class T > struct eff_theta_waves {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+    harness< bool  > const_amp;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_waves( float freq_init = 2.0f, float amp_init = 5.0f, float phase_init = 0.0f, bool const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
+};
+
+typedef eff_theta_waves< vec2f > eff_theta_waves_vec2f;
+
+template< class T > struct eff_theta_saw {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+    harness< bool  > const_amp;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_saw( float freq_init = 2.0f, float amp_init = 5.0f, float phase_init = 0.0f, bool const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
+};
+
+typedef eff_theta_saw< vec2f > eff_theta_saw_vec2f;
+
+template< class T > struct eff_theta_compression_waves {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_compression_waves( float freq_init = 6.0f, float amp_init = 5.0f, float phase_init = 0.0f ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ) {}
+};
+
+typedef eff_theta_compression_waves< vec2f > eff_theta_compression_waves_vec2f;
 
 // Warp field effects
 template< class T > struct eff_fill_warp {

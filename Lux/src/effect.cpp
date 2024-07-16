@@ -365,22 +365,92 @@ template class eff_position_fill< vec2f >;
 
 template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    vec2f old_center=*center; float old_segments=*segments; float old_offset_angle = *offset_angle; float old_spin_angle = *spin_angle; bool old_reflect=*reflect;
+    //vec2f old_center=*center; float old_segments=*segments; float old_offset_angle = *offset_angle; float old_spin_angle = *spin_angle; bool old_reflect=*reflect;
     center(context); segments(context); offset_angle(context); spin_angle(context); reflect(context); 
     
-    if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *spin_angle!=old_spin_angle || *reflect!=old_reflect)
-    filled=false;
+    //if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *spin_angle!=old_spin_angle || *reflect!=old_reflect)
+    //filled=false;
 
     //std::cout << "eff_kaleidoscope: filled = " << filled << std::endl;
-    if(!filled)
-    {
+    //if(!filled)
+    //{
         filled =true;
         vf_tools tools( get_image< T >( buf ) );
         tools.kaleidoscope( *center, *segments, *offset_angle, *spin_angle, *reflect );
-    }  
+    //}  
 }
 
 template class eff_kaleidoscope< vec2f >;
+
+template< class T > void eff_theta_swirl< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    amount( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_swirl( *amount );
+    }
+}
+
+template class eff_theta_swirl< vec2f >;
+
+template< class T > void eff_theta_rings< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    width( context ); swirl( context ); alternate( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_rings( *width, *swirl, *alternate );
+    }
+}
+
+template class eff_theta_rings< vec2f >;
+
+template< class T > void eff_theta_waves< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context ); const_amp( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_waves( *freq, *amp, *phase, *const_amp );
+    }
+}
+
+template class eff_theta_waves< vec2f >;
+
+template< class T > void eff_theta_saw< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context ); const_amp( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_saw( *freq, *amp, *phase, *const_amp );
+    }
+}
+
+template class eff_theta_saw< vec2f >;
+
+template< class T > void eff_theta_compression_waves< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_compression_waves( *freq, *amp, *phase );
+    }
+}
+
+template class eff_theta_compression_waves< vec2f >;
 
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
