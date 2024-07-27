@@ -115,7 +115,7 @@ public:
                         float segments = 12.0,                // Number of segments in kaleidoscope
                         float offset_angle = 0.0f,           // Beginning of first segment in degrees
                         float spin_angle = 0.0f,
-                        bool reflect = true);                  // Reflect alternate segments  
+                        bool reflect = true);                // Reflect alternate segments  
                                        
 
     void position_fill();
