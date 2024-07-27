@@ -55,24 +55,44 @@
             "name": "segment_slider",
             "type": "slider_float",
             "label": "Segments",
-            "description": "Number of reflections in the kaleidoscope image",
-            "min": 2,
+            "description": "Number of segments in the kaleidoscope image",
+            "min": 1,
             "max": 36,
-            "step": 2,
-            "default_value": 12
+            "step": 1,
+            "default_value": 6
+        },        
+        {
+            "name": "level_slider",
+            "type": "slider_float",
+            "label": "Levels",
+            "description": "Number of levels in the kaleidoscope image",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "default_value": 1
         },
         {
-            "name": "offset_angle_slider",
+            "name": "start_slider",
             "type": "slider_float",
-            "label": "Starting Angle",
+            "label": "Start",
             "description": "Rotation of image before kaleidoscope effect is applied",
+            "min": -5,
+            "max": 5,
+            "step": 0.5,
+            "default_value": 0
+        },        
+        {
+            "name": "expand_slider",
+            "type": "slider_float",
+            "label": "Expand",
+            "description": "Expand from center of kaleidoscope image",
             "min": -5,
             "max": 5,
             "step": 0.5,
             "default_value": 0
         },
         {
-            "name": "spin_angle_slider",
+            "name": "spin_slider",
             "type": "slider_float",
             "label": "Spin",
             "description": "Rotation of image after kaleidoscope effect is applied",
@@ -80,6 +100,40 @@
             "max": 5,
             "step": 0.5,
             "default_value": 0
+        },
+        {
+            "name": "scope_menu",
+            "type": "menu_int",
+            "tool": "pull_down",
+            "label": "Scope",
+            "description": "Choose the kaleidoscope effect to apply.",
+            "items": [ "None", "Kaleidoscope", "Multiples", "Tile" ],
+            "default_choice": 1,
+            "affects_widget_groups": true
+        },
+        {
+            "name": "scope_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 0
+        },        
+        {
+            "name": "scope_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 1
+        },        
+        {
+            "name": "scope_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 2
+        },
+        {
+            "name": "scope_menu_3",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 3
         },
         {
             "name": "funky_menu",
@@ -148,29 +202,29 @@
             "default_value": 30.0
         },
         {
-            "name": "width_slider",
+            "name": "rings_slider",
             "type": "slider_float",
-            "label": "Width",
-            "description": "Width of the rings in the kaleidoscope image",
-            "min": 0.01,
-            "max": 1.0,
-            "step": 0.01,
-            "default_value": 0.25
-        },
+            "label": "Number of Rings",
+            "description": "Number of rings in the kaleidoscope image",
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "default_value": 10
+        },        
         {
             "name": "freq_slider",
             "type": "slider_float",
-            "label": "Frequency",
+            "label": "Wiggliness",
             "description": "Frequency of the wiggles in the kaleidoscope image",
-            "min": 0.0,
-            "max": 20.0,
-            "step": 0.1,
+            "min": 0,
+            "max": 36,
+            "step": 1,
             "default_value": 6.0
         },
         {
             "name": "amp_slider", 
             "type": "slider_float",
-            "label": "Amplitude",
+            "label": "Waviness",
             "description": "Amplitude of the wiggles in the kaleidoscope image",
             "min": 0.0,
             "max": 30.0,
@@ -190,20 +244,27 @@
         {
             "name": "const_amp_switch",
             "type": "switch_fn",
-            "label": "Constant Width",
+            "label": "Same Waviness",
             "description": "Constant width of the wiggles in the kaleidoscope image",
             "default_value": false
         },
         {
-            "name": "offset_angle_integrator",
+            "name": "start_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "offset_angle_slider" ] },
+            "delta": { "functions": [ "start_slider" ] },
+            "val": 0
+        },        
+        {
+            "name": "expand_integrator",
+            "type": "integrator_float",
+            "delta": { "functions": [ "expand_slider" ] },
+            "scale": 0.002777777777778,
             "val": 0
         },
         {
-            "name": "spin_angle_integrator",
+            "name": "spin_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "spin_angle_slider" ] },
+            "delta": { "functions": [ "spin_slider" ] },
             "val": 0
         },
         {
@@ -217,6 +278,13 @@
             "type": "switch_fn",
             "label": "Reflect",
             "description": "Reflect alternate segments of the kaleidoscope image",
+            "default_value": true
+        },        
+        {
+            "name": "reflect_level_switch",
+            "type": "switch_fn",
+            "label": "Reflect Levels",
+            "description": "Reflect alternate levels of the kaleidoscope image",
             "default_value": true
         },
         {
@@ -247,23 +315,67 @@
             "name": "kaleidoscope",
             "type": "eff_kaleidoscope_vec2f",
             "segments": { "functions": [ "segment_slider" ] },
-            "offset_angle": { "functions": [ "offset_angle_integrator" ] },
-            "spin_angle": { "functions": [ "spin_angle_integrator" ] },
+            "start": { "functions": [ "start_integrator" ] },
+            "spin": { "functions": [ "spin_integrator" ] },
             "reflect": { "functions": [ "reflect_switch" ] }
+        },
+        {
+            "name": "kaleidoscope_cartesian",
+            "type": "eff_composite",
+            "effects": [ "kaleidoscope", "cartesian" ]
+        },
+        {
+            "name": "radial_multiply",
+            "type": "eff_radial_multiply_vec2f",
+            "segments": { "functions": [ "segment_slider" ] },
+            "levels": { "functions": [ "level_slider" ] },
+            "spin": { "functions": [ "spin_integrator" ] },
+            "expand": { "functions": [ "expand_integrator" ] },
+            "reflect": { "functions": [ "reflect_switch" ] },
+            "reflect_levels": { "functions": [ "reflect_level_switch" ] }
+        },
+        { 
+            "name": "radial_multiply_cartesian",
+            "type": "eff_composite",
+            "effects": [ "radial_multiply", "cartesian" ]
         },
         {
             "name": "identity",
             "type": "eff_identity"
         },
         {
-            "name": "theta swirl",
+            "name": "theta_rotate",
+            "type": "eff_theta_rotate_vec2f",
+            "angle": { "functions": [ "spin_integrator" ] }
+        },
+        {
+            "name": "theta_rotate_cartesian",
+            "type": "eff_composite",
+            "effects": [ "theta_rotate", "cartesian" ]
+        },
+        {
+            "name": "radial_tile",
+            "type": "eff_radial_tile_vec2f",
+            "segments": { "functions": [ "segment_slider" ] },
+            "levels": { "functions": [ "level_slider" ] },
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "spin": { "functions": [ "spin_integrator" ] },
+            "expand": { "functions": [ "expand_integrator" ] },
+            "zoom_x": 1.0,
+            "zoom_y": 1.0,
+            "reflect_x": { "functions": [ "reflect_switch" ] },
+            "reflect_y": { "functions": [ "reflect_level_switch" ] }
+        },
+        {
+            "name": "theta_swirl",
             "type": "eff_theta_swirl_vec2f",
             "amount": { "functions": [ "swirl_slider" ] }
         },
         {
             "name": "theta rings",
             "type": "eff_theta_rings_vec2f",
-            "width": { "functions": [ "width_slider" ] },
+            "n": { "functions": [ "rings_slider" ] },
             "swirl": { "functions": [ "swirl_slider" ] },
             "alternate": { "functions": [ "alternate_slider" ] }
         },
@@ -288,12 +400,19 @@
             "type": "eff_theta_compression_waves_vec2f",
             "freq": { "functions": [ "freq_slider" ] },
             "amp": { "functions": [ "amp_slider" ] },
-            "phase": { "functions": [ "phase_integrator" ] }
+            "phase": { "functions": [ "phase_integrator" ] },
+            "const_amp": { "functions": [ "const_amp_switch" ] }
+        },
+        {
+            "name": "scope_chooser",
+            "type": "eff_chooser",
+            "effects": [ "theta_rotate_cartesian", "kaleidoscope_cartesian", "radial_multiply_cartesian", "radial_tile" ],
+            "choice": { "functions": [ "scope_menu" ] }
         },
         {
             "name": "funky chooser",
             "type": "eff_chooser",
-            "effects": [ "identity", "theta swirl", "theta rings", "theta waves", "theta saw", "theta compression waves" ],
+            "effects": [ "identity", "theta_swirl", "theta rings", "theta waves", "theta saw", "theta compression waves" ],
             "choice": { "functions": [ "funky_menu" ] }
         },
         {
@@ -331,7 +450,7 @@
             "dim": [ 512, 512],
             "type": "vector_field",
             "mode": "ephemeral",  
-            "effects": [ "funky chooser", "kaleidoscope", "cartesian" ]
+            "effects": [ "funky chooser", "scope_chooser" ]
         },
         {
             "name": "warper",
@@ -353,7 +472,27 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "source_image_menu", "segment_slider", "offset_angle_slider", "spin_angle_slider", "reflect_switch", "funky_menu" ]
+            "widgets": [ "source_image_menu", "scope_menu", "funky_menu" ]
+        },
+        {
+            "name": "none_group",
+            "conditions": [ "scope_menu_0" ],
+            "widgets": [ "spin_slider"]
+        },
+        {
+            "name": "kaleido_group",
+            "conditions": [ "scope_menu_1" ],
+            "widgets": [ "segment_slider", "start_slider", "spin_slider", "reflect_switch" ]
+        },
+        {
+            "name": "multiples_group",
+            "conditions": [ "scope_menu_2" ],
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
+        },
+        {
+            "name": "tile_group",
+            "conditions": "scope_menu_3",
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
         },
         {
             "name": "swirl_group",
@@ -363,7 +502,7 @@
         {
             "name": "rings_group",
             "conditions": [ "funky_menu_2" ],
-            "widgets": [ "swirl_slider", "alternate_slider", "width_slider" ]
+            "widgets": [ "swirl_slider", "alternate_slider", "rings_slider" ]
         },
         {
             "name": "waves_group",
@@ -378,7 +517,7 @@
         {
             "name": "smoosh_group",
             "conditions": [ "funky_menu_5" ],
-            "widgets": [ "freq_slider", "amp_slider", "phase_slider" ]
+            "widgets": [ "freq_slider", "amp_slider", "phase_slider", "const_amp_switch" ]
         }
     ]
 }

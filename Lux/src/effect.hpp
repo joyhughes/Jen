@@ -410,21 +410,62 @@ typedef eff_position_fill< vec2f > eff_position_fill_vec2f;
 
 // Assumes radial coordinates
 template< class T > struct eff_kaleidoscope {
-    harness< vec2f > center;
     harness< float > segments;
-    harness< float > offset_angle;
-    harness< float > spin_angle;
-    harness< bool >  reflect;
+    harness< float > start;
+    harness< float > spin;
+    harness< bool  > reflect;
 
     bool filled;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_kaleidoscope( vec2f center_init = vec2f( 0.0f, 0.0f ), float segments_init = 12.0f, float offset_angle_init = 0.0f, float spin_angle_init = 0.0f, bool reflect_init = true ) : 
-        center( center_init ), segments( segments_init ), offset_angle( offset_angle_init ), spin_angle( spin_angle_init ), reflect( reflect_init ), filled( false ) {}
+    eff_kaleidoscope( float segments_init = 12.0f, float levels_init = 1.0f, float start_init = 0.0f, float spin_init = 0.0f, bool reflect_init = true, bool reflect_levels_init = true ) : 
+        segments( segments_init ), start( start_init ), spin( spin_init ), reflect( reflect_init ), filled( false ) {}
 };
 
 typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;
+
+template< class T > struct eff_radial_tile {
+    harness< float > segments;
+    harness< float > levels;
+    harness< float > offset_x;
+    harness< float > offset_y;
+    harness< float > spin;
+    harness< float > expand;
+    harness< float > zoom_x;
+    harness< float > zoom_y;
+    harness< bool  > reflect_x;
+    harness< bool  > reflect_y;
+    // orientation
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_radial_tile( float segments_init = 6.0f, float levels_init = 2.0f, float offset_x_init = 0.0f, float offset_y_init = 0.0f, float spin_init = 0.0f, float expand_init = 0.0f, float zoom_x_init = 1.0f, float zoom_y_init = 1.0f, bool reflect_x_init = true, bool reflect_y_init = true ) : 
+        segments( segments_init ), levels( levels_init ), offset_x( offset_x_init ), offset_y( offset_y_init ), spin( spin_init ), expand( expand_init ), zoom_x( zoom_x_init ), zoom_y( zoom_y_init ), reflect_x( reflect_x_init ), reflect_y( reflect_y_init ) {}
+};
+
+typedef eff_radial_tile< vec2f > eff_radial_tile_vec2f;
+
+template< class T > struct eff_radial_multiply {
+    harness< float > segments;
+    harness< float > levels;
+    harness< float > spin;
+    harness< float > expand;
+    harness< bool  > reflect;
+    harness< bool  > reflect_levels;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_radial_multiply(    float segments_init = 6.0f, float levels_init = 1.0f, 
+                            float spin_init = 0.0f, float expand_init = 0.0f,
+                            bool reflect_init = true, bool reflect_levels_init = true 
+                            ) : 
+        segments( segments_init ), levels( levels_init ), 
+        spin( spin_init ), expand( expand_init ), 
+        reflect( reflect_init ), reflect_levels( reflect_levels_init ) {}
+};
+
+typedef eff_radial_multiply< vec2f > eff_radial_multiply_vec2f;
 
 template< class T > struct eff_theta_swirl {
     harness< float > amount;
@@ -436,15 +477,25 @@ template< class T > struct eff_theta_swirl {
 
 typedef eff_theta_swirl< vec2f > eff_theta_swirl_vec2f;
 
+template< class T > struct eff_theta_rotate {
+    harness< float > angle;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_rotate( float angle_init = 0.0f ) : angle( angle_init ) {}
+};
+
+typedef eff_theta_rotate< vec2f > eff_theta_rotate_vec2f;
+
 template< class T > struct eff_theta_rings {
-    harness< float > width; // width of each ring
+    harness< float > n; // number of rings
     harness< float > swirl; // amount of swirl
     harness< float > alternate; // rotate in alternate directions
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_theta_rings( float width_init = 0.1f, float swirl_init = 0.0f, float alternate_init = 30.0f ) : 
-        width( width_init ), swirl( swirl_init ), alternate( alternate_init ) {}
+    eff_theta_rings( float n_init = 10.0f, float swirl_init = 0.0f, float alternate_init = 30.0f ) : 
+        n( n_init ), swirl( swirl_init ), alternate( alternate_init ) {}
 };
 
 typedef eff_theta_rings< vec2f > eff_theta_rings_vec2f;
@@ -481,11 +532,12 @@ template< class T > struct eff_theta_compression_waves {
     harness< float > freq;
     harness< float > amp;
     harness< float > phase;
+    harness< bool  > const_amp;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_theta_compression_waves( float freq_init = 6.0f, float amp_init = 5.0f, float phase_init = 0.0f ) : 
-        freq( freq_init ), amp( amp_init ), phase( phase_init ) {}
+    eff_theta_compression_waves( float freq_init = 6.0f, float amp_init = 5.0f, float phase_init = 0.0f, float const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
 };
 
 typedef eff_theta_compression_waves< vec2f > eff_theta_compression_waves_vec2f;
