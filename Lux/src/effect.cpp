@@ -324,6 +324,15 @@ template< class T > void eff_spiral< T >::operator () ( any_buffer_pair_ptr& buf
 
 template class eff_spiral< vec2f >;
 
+template< class T > void eff_fermat_spiral< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    c(context);
+    vf_tools tools( get_image< T >( buf ) );
+    tools.fermat_spiral( *c );
+}
+
+template class eff_fermat_spiral< vec2f >;
+
 template< class T > void eff_vortex< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     if (std::holds_alternative< vbuf_ptr>(buf)) 

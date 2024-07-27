@@ -770,6 +770,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_concentric_vec2f ) HARNESSE( center ) END_EFF()
     EFF( eff_rotational_vec2f ) HARNESSE( center ) END_EFF()
     EFF( eff_spiral_vec2f ) HARNESSE( center ) HARNESSE( angle ) END_EFF()
+    EFF( eff_fermat_spiral_vec2f ) HARNESSE( c ) END_EFF()
     EFF( eff_vortex_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) HARNESSE( intensity ) HARNESSE( center_orig ) 
                             READE( revolving ) HARNESSE( velocity ) HARNESSE( center_of_revolution ) END_EFF()
     EFF( eff_turbulent_vec2f ) HARNESSE( n ) HARNESSE( bounds ) HARNESSE( scale_factor ) 

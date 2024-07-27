@@ -1,6 +1,7 @@
 #include "linalg.h"
 #include "vect2.hpp"
 #include "vector_field.hpp"
+#include <cmath>
 
 vec2f vortex::operator () ( const vec2f& v, const float& t ) {
     vec2f center = center_orig;
@@ -143,6 +144,15 @@ void vf_tools::spiral( const vec2f& center, const float& cscale, const float& rs
     buffer *= rscale;
     img += buffer;
     //img.mip_it();
+}
+
+void vf_tools::fermat_spiral(const float& c)
+{
+    for( auto& v : img.base )               //Taking every vector in polar form
+    {
+        v.x = c * sqrtf(powf(v.x/c,2)+1.0);
+        v.y = v.y + 137.508;
+    }
 }
 
 void vf_tools::vortex( const ::vortex& vort, const float& t ) {
