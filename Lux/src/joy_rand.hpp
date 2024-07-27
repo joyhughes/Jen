@@ -30,6 +30,12 @@ static float rmodf( const float f, const float m ) {
     else return remf( rat ) * m;
 }
 
+// Modulo operator with optional reflect
+static float omodf( const float f, const float m, const bool reflect = false ) { 
+    if( reflect ) return rmodf( f, m );
+    else return tmodf( f, m );
+}
+
 // Need to determine if interval is open or closed, and handle empty intervals
 template< Scalar T > struct interval {
     T min, max;
