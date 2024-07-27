@@ -164,26 +164,116 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
     //img.mip_it();
 }
-
-void vf_tools::kaleidoscope(    const vec2f& center, 
-                                float segments,                // Number of segments in kaleidoscope
-                                float offset_angle,            // Beginning of first segment in degrees
-                                float spin_angle,
-                                bool reflect ) {               // Reflect alternate segments
+ 
+// Assumes radial coordinates
+void vf_tools::kaleidoscope(    const float& segments,                // Number of segments in kaleidoscope
+                                const float& start,            // Beginning of first segment in degrees
+                                const float& spin,
+                                const bool& reflect ) {               // Reflect alternate segments
     std::cout << "vf_tools::kaleidoscope: segments = " << segments << std::endl;
     if( segments != 0.0f ) {
-        position_fill();
-        //std::cout << "vf_tools position_fill img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
-        radial();
-        //std::cout << "vf_tools radial img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
-        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
-        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
-        cartesian();
-        //std::cout << "vf_tools cartesian img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        if( reflect ) {
+            float segments_adj = segments * 2.0f; 
+            for( auto& v : img.base ) { v.THETA = rmodf( v.THETA + spin, 360.0f / segments_adj ) + start; } 
+        }
+        else          { for( auto& v : img.base ) { v.THETA = tmodf( v.THETA + spin, 360.0f / segments ) + start; } }
     }
 }
 
+// Input in radial coordinates, output in cartesian
+void vf_tools::radial_tile( const float& segments, 
+                            const float& levels, 
+                            const vec2f& offset,   // offset within tile, 
+                            const float& spin,     // rotation within tile
+                            const float& expand,   // expansion within tile
+                            const vec2f& zoom,  // zoom within tile, 
+                            bool reflect_x, 
+                            bool reflect_y ) {
+    for( auto& v : img.base ) {
+        v = vec2f( ( omodf( ( v.THETA - spin ) * segments, 360.0f, reflect_x ) / 180.0f - 1.0f - offset.x ) * zoom.x,
+                   ( omodf( ( v.R - expand ) * levels, 1.0f, reflect_y ) *   2.0f - 1.0f - offset.y ) * zoom.y );
+    }
+}
+
+void vf_tools::radial_multiply( const float& segments, 
+                                const float& levels, 
+                                const float& spin, 
+                                const float& expand, 
+                                const bool&  reflect, 
+                                const bool&  reflect_levels ) {
+    float segments_adj = segments;
+    if( reflect ) segments_adj *= 2.0f;
+    for( auto& v : img.base ) {
+        v.R =     omodf( ( v.R - expand ) * levels, 1.0f, reflect_levels ); 
+        v.THETA = omodf( ( v.THETA + spin ) * segments_adj, 360.0f, reflect ); 
+    }      
+}
+
+// rotation shortcut assuming radial coordinates
+void vf_tools::theta_rotate( const float& angle ) {
+    for( auto& v : img.base ) { v.THETA += angle; }
+}
+
+void vf_tools::theta_swirl( const float& amount ) {
+    if( amount != 0.0f ) {
+        for( auto& v : img.base ) { v.THETA += v.R * amount; }
+    }
+}
+
+void vf_tools::theta_rings( const float& n, const float& swirl, const float& alternate ) {
+    if( n != 0.0f ) {
+        float ring_number;
+        for( auto& v : img.base ) { 
+            ring_number = floorf( v.R * n );
+            if( fmodf( ring_number, 2.0f ) == 0.0f ) v.THETA = alternate - v.THETA;
+            else v.THETA += alternate;
+            v.THETA += swirl * ring_number / n;
+        }
+    }
+}
+
+void vf_tools::theta_waves( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
+    float freq_adj = freq * TAU;
+    float phase_adj = phase * TAU / 360.0f;
+
+    if( const_amp ) {
+        for( auto& v : img.base ) { 
+            if( v.R != 0.0f) v.THETA += amp / v.R * sin( freq_adj * v.R - phase_adj ); 
+        }
+    }
+    else {
+        for( auto& v : img.base ) { v.THETA += amp * sin( freq_adj * v.R - phase_adj ); }
+    }
+}
  
+void vf_tools::theta_saw( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
+    float freq_adj = freq * 4.0f;
+    float phase_adj = phase * 4.0f / 360.0f;
+
+    if( const_amp ) {
+        for( auto& v : img.base ) { 
+            if( v.R != 0.0f) v.THETA += amp / v.R * rmodf( freq_adj * v.R - phase_adj, 1.0f ); 
+        }
+    }
+    else {
+        for( auto& v : img.base ) { v.THETA += amp * rmodf( freq_adj * v.R - phase_adj, 1.0f ); }
+    }
+}
+ 
+void vf_tools::theta_compression_waves( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
+    float freq_adj = freq * TAU / 360.0f;
+    float phase_adj = phase * TAU / 360.0f;
+
+    if( const_amp ) {
+        for( auto& v : img.base ) {
+            if( v.R != 0.0f) v.THETA += amp / v.R * sin( freq_adj * v.THETA - phase_adj ); 
+        }
+    }
+    else {
+        for( auto& v : img.base ) { v.THETA += amp * sin( freq_adj * v.THETA - phase_adj ); }
+    }
+}
+
 void vf_tools::position_fill() { 
     auto v = img.base.begin();
     for( int y = 0; y < img.dim.y; y++ ) {
@@ -217,4 +307,3 @@ template<> void vector_field::write_file(const std::string &filename, file_type 
         default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
     }
 }
-

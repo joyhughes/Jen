@@ -51,7 +51,7 @@ typedef struct Vortex
 	wave_params diameter;
 	wave_params soften;				
 	wave_params offset_distance;
-	wave_params offset_angle;
+	wave_params start;
 } vortex;
 
 // eventually will hold all params for a 2d animated vector function
