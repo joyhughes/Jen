@@ -1,6 +1,7 @@
 #include "linalg.h"
 #include "vect2.hpp"
 #include "vector_field.hpp"
+#include <cmath>
 
 vec2f vortex::operator () ( const vec2f& v, const float& t ) {
     vec2f center = center_orig;
@@ -145,6 +146,15 @@ void vf_tools::spiral( const vec2f& center, const float& cscale, const float& rs
     //img.mip_it();
 }
 
+void vf_tools::fermat_spiral(const float& c)
+{
+    for( auto& v : img.base )               //Taking every vector in polar form
+    {
+        v.x = c * sqrtf(powf(v.x/c,2)+1.0);
+        v.y = v.y + 137.508;
+    }
+}
+
 void vf_tools::vortex( const ::vortex& vort, const float& t ) {
     vec2f center= vort.center_orig;
     if( vort.revolving ) center = vort.center_of_revolution + linalg::rot( vort.velocity * t * TAU, vort.center_orig - vort.center_of_revolution );
@@ -164,19 +174,21 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
     //img.mip_it();
 }
- 
-// Assumes radial coordinates
-void vf_tools::kaleidoscope(    const float& segments,                // Number of segments in kaleidoscope
-                                const float& start,            // Beginning of first segment in degrees
-                                const float& spin,
-                                const bool& reflect ) {               // Reflect alternate segments
+
+void vf_tools::kaleidoscope(    float segments,                // Number of segments in kaleidoscope
+                                float offset_angle,            // Beginning of first segment in degrees
+                                float spin_angle,
+                                bool reflect ) {               // Reflect alternate segments
     std::cout << "vf_tools::kaleidoscope: segments = " << segments << std::endl;
     if( segments != 0.0f ) {
-        if( reflect ) {
-            float segments_adj = segments * 2.0f; 
-            for( auto& v : img.base ) { v.THETA = rmodf( v.THETA + spin, 360.0f / segments_adj ) + start; } 
-        }
-        else          { for( auto& v : img.base ) { v.THETA = tmodf( v.THETA + spin, 360.0f / segments ) + start; } }
+        position_fill();
+        //std::cout << "vf_tools position_fill img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        radial();
+        //std::cout << "vf_tools radial img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
+        if( reflect ) { for( auto& v : img.base ) { v.y = rmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
+        else          { for( auto& v : img.base ) { v.y = tmodf( v.y + spin_angle, 360.0f / segments ) + offset_angle; } }
+        cartesian();
+        //std::cout << "vf_tools cartesian img.base " << img.base[0].x << " " << img.base[0].y << std::endl;
     }
 }
 
