@@ -385,7 +385,7 @@ template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_pt
     {
         filled =true;
         vf_tools tools( get_image< T >( buf ) );
-        tools.kaleidoscope( *center, *segments, *offset_angle, *spin_angle, *reflect, func=[context](float x) -> float { return swirl_fn(x, context);});
+        tools.kaleidoscope( *center, *segments, *offset_angle, *spin_angle, *reflect );
     }  
 }
 
