@@ -174,21 +174,12 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
     //img.mip_it();
 }
-<<<<<<< HEAD
-
-void vf_tools::kaleidoscope(    const vec2f& center, 
-                                float segments,                // Number of segments in kaleidoscope
-                                float offset_angle,            // Beginning of first segment in degrees
-                                float spin_angle,
-                                bool reflect ) {               // Reflect alternate segments               
-=======
  
 // Assumes radial coordinates
 void vf_tools::kaleidoscope(    const float& segments,                // Number of segments in kaleidoscope
                                 const float& start,            // Beginning of first segment in degrees
                                 const float& spin,
                                 const bool& reflect ) {               // Reflect alternate segments
->>>>>>> e7f81af784faaa58ad730344d17149dcc9b294f9
     std::cout << "vf_tools::kaleidoscope: segments = " << segments << std::endl;
     if( segments != 0.0f ) {
         if( reflect ) {
