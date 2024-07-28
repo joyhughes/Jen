@@ -148,13 +148,14 @@ typedef ratio<vec2f> ratio_vec2f;
 // Newton's method
 template< MultipliableByFloat U > struct integrator {
     harness< float > delta;
+    harness< float > scale;
     U val;
     U starting_val;
     float last_time;
     
     U operator () ( U& u, element_context& context );
 
-    integrator( const float& val_init = U( 0 ), const float& delta_init = 1.0f ) : val( val_init ), starting_val( val_init ), delta( delta_init ), last_time( 0.0f ) {}
+    integrator( const float& val_init = U( 0 ), const float& delta_init = 1.0f, const float& scale_init = 1.0f ) : val( val_init ), starting_val( val_init ), delta( delta_init ), scale( scale_init ), last_time( 0.0f ) {}
 };
 
 typedef integrator< float > integrator_float;

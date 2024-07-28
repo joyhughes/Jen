@@ -59,8 +59,8 @@ template< MultipliableByFloat U > U integrator< U >::operator () ( U& u, element
             last_time = context.s.time;
         } 
         else {
-            delta( context );
-            val += ( context.s.time - last_time ) * *delta;
+            delta( context ); scale( context );
+            val += ( context.s.time - last_time ) * *delta * *scale;
             last_time = context.s.time;
         }
     } 

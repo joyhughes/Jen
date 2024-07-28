@@ -111,15 +111,38 @@ public:
     void vortex( const ::vortex& vort, const float& t = 0.0f );
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
-    void kaleidoscope( const vec2f& center = { 0.0f, 0.0f }, 
-                        float segments = 12.0,                // Number of segments in kaleidoscope
-                        float offset_angle = 0.0f,           // Beginning of first segment in degrees
-                        float spin_angle = 0.0f,
-                        bool reflect = true);                // Reflect alternate segments  
-                                       
+    // scopes
+    void kaleidoscope(  const float& segments = 6.0f,                // Number of segments in kaleidoscope
+                        const float& start = 0.0f,           // Beginning of first segment in degrees
+                        const float& spin = 0.0f,
+                        const bool& reflect = true );               // Reflect alternate segments
 
-    void position_fill();
+    void radial_tile(   const float& segments = 6.0f, 
+                        const float& levels = 2.0f,
+                        const vec2f& offset = { 0.0f, 0.0f },   // offset within tile, 
+                        const float& spin = 0.0f,
+                        const float& expand = 0.0f,
+                        const vec2f& zoom = { 1.0f, 1.0f }, // zoom within tile, 
+                        bool reflect_x = false, 
+                        bool reflect_y = false );                // Reflect alternate segments
 
+    void radial_multiply(   const float& segments = 6.0f, 
+                            const float& levels = 1.0f, 
+                            const float& spin = 0.0f, 
+                            const float& expand = 0.0f, 
+                            const bool&  reflect = true, 
+                            const bool&  reflect_levels = true );
+
+    // theta modifiers
+    void theta_rotate( const float& angle = 0.0f );
+    void theta_swirl( const float& amount = 60.0f );
+    void theta_rings( const float& n = 10.0f, const float& swirl = 0.0f, const float& alternate = 30.0f );
+    void theta_waves( const float& freq = 2.0f, const float& amp = 5.0f, const float& phase = 0.0f, const bool& const_amp = false );
+    void theta_saw(   const float& freq = 2.0f, const float& amp = 5.0f, const float& phase = 0.0f, const bool& const_amp = false );
+    void theta_compression_waves( const float& freq = 6.0f, const float& amp = 5.0f, const float& phase = 0.0f, const bool& const_amp = false );
+
+    void position_fill(); // fills field with position in image's linear space
+ 
     // TODO:  implement vector field visualization
     void visualize( image< frgb >& img ) const {}
     void visualize( image< ucolor >& img ) const {}
