@@ -332,6 +332,16 @@ template< class T > struct eff_spiral {
 
 typedef eff_spiral< vec2f > eff_spiral_vec2f;
 
+template< class T > struct eff_fermat_spiral {
+    harness< float > c;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_fermat_spiral( float const_init = 0.0f ) : c( const_init ) {}
+};
+
+typedef eff_fermat_spiral< vec2f > eff_fermat_spiral_vec2f;
+
 template< class T > struct eff_vortex {
     harness< float > diameter;   // float - Overall size of vortex
     harness< float > soften;     // float - Avoids a singularity in the center of vortex
