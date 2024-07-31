@@ -174,22 +174,27 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
     //img.mip_it();
 }
- 
+
 // Assumes radial coordinates
-void vf_tools::kaleidoscope(    const float& segments,                // Number of segments in kaleidoscope
+void vf_tools::kaleidoscope(    const float& segments,         // Number of segments in kaleidoscope
+                                const float& levels,           // Number of levels in kaleidoscope
                                 const float& start,            // Beginning of first segment in degrees
                                 const float& spin,
-                                const bool& reflect ) {               // Reflect alternate segments
-    std::cout << "vf_tools::kaleidoscope: segments = " << segments << std::endl;
-    if( segments != 0.0f ) {
-        if( reflect ) {
-            float segments_adj = segments * 2.0f; 
-            for( auto& v : img.base ) { v.THETA = rmodf( v.THETA + spin, 360.0f / segments_adj ) + start; } 
-        }
-        else          { for( auto& v : img.base ) { v.THETA = tmodf( v.THETA + spin, 360.0f / segments ) + start; } }
+                                const float& level_start,
+                                const float& expand,
+                                const bool& reflect,           // Reflect alternate segments
+                                const bool& reflect_levels
+                                 ) {               
+    float segments_adj = segments;
+    if( reflect ) segments_adj *= 2.0f;    
+    if( segments != 0.0f && levels != 0.0f ) {
+        for( auto& v : img.base ) { 
+            v.R =     rmodf( omodf( v.R - expand, 1.0f / levels, reflect_levels ) - level_start, 1.0f );
+            v.THETA = omodf( v.THETA - spin, 360.0f / segments_adj, reflect ) - start; 
+        } 
     }
 }
-
+ 
 // Input in radial coordinates, output in cartesian
 void vf_tools::radial_tile( const float& segments, 
                             const float& levels, 
@@ -215,7 +220,7 @@ void vf_tools::radial_multiply( const float& segments,
     if( reflect ) segments_adj *= 2.0f;
     for( auto& v : img.base ) {
         v.R =     omodf( ( v.R - expand ) * levels, 1.0f, reflect_levels ); 
-        v.THETA = omodf( ( v.THETA + spin ) * segments_adj, 360.0f, reflect ); 
+        v.THETA = omodf( ( v.THETA - spin ) * segments_adj, 360.0f, reflect ); 
     }      
 }
 
