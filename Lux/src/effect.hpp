@@ -421,16 +421,34 @@ typedef eff_position_fill< vec2f > eff_position_fill_vec2f;
 // Assumes radial coordinates
 template< class T > struct eff_kaleidoscope {
     harness< float > segments;
+    harness< float > levels;
     harness< float > start;
     harness< float > spin;
+    harness< float > level_start;
+    harness< float > expand;
     harness< bool  > reflect;
+    harness< bool  > reflect_levels;
 
     bool filled;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_kaleidoscope( float segments_init = 12.0f, float levels_init = 1.0f, float start_init = 0.0f, float spin_init = 0.0f, bool reflect_init = true, bool reflect_levels_init = true ) : 
-        segments( segments_init ), start( start_init ), spin( spin_init ), reflect( reflect_init ), filled( false ) {}
+    eff_kaleidoscope( float segments_init = 6.0f, 
+                      float levels_init = 1.0f, 
+                      float start_init = 0.0f, 
+                      float spin_init = 0.0f, 
+                      float level_start_init = 0.0f, 
+                      bool expand_init = 0.0f, 
+                      bool reflect_init = true, 
+                      bool reflect_levels_init = true ) : 
+        segments( segments_init ),
+        levels( levels_init ), 
+        start( start_init ),
+        spin( spin_init ),
+        level_start( level_start_init ),
+        reflect( reflect_init ),
+        reflect_levels( reflect_levels_init ),
+        filled( false ) {}
 };
 
 typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;

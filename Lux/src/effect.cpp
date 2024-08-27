@@ -375,11 +375,14 @@ template class eff_position_fill< vec2f >;
 template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     //vec2f old_center=*center; float old_segments=*segments; float old_start = *start; float old_spin = *spin; bool old_reflect=*reflect;
-    segments(context); start(context); spin(context); reflect(context); 
+    segments( context ); levels( context );
+    start( context ); spin( context );
+    level_start( context ); expand( context );
+    reflect( context ); reflect_levels( context );
     
     filled =true;
     vf_tools tools( get_image< T >( buf ) );
-    tools.kaleidoscope( *segments, *start, *spin, *reflect );  
+    tools.kaleidoscope( *segments, *levels, *start, *spin, *level_start, *expand, *reflect, *reflect_levels );  
 }
 
 template class eff_kaleidoscope< vec2f >;

@@ -112,10 +112,14 @@ public:
     void turbulent( vortex_field& f,  const float& t = 0.0f );
 
     // scopes
-    void kaleidoscope(  const float& segments = 6.0f,                // Number of segments in kaleidoscope
-                        const float& start = 0.0f,           // Beginning of first segment in degrees
-                        const float& spin = 0.0f,
-                        const bool& reflect = true );               // Reflect alternate segments
+    void kaleidoscope(  const float& segments = 6.0f,         // Number of segments in kaleidoscope
+                        const float& levels = 1.0f,           // Number of levels in kaleidoscope
+                        const float& start = 0.0f,            // Beginning of first segment in degrees
+                        const float& spin = 0.0f,      
+                        const float& level_start = 0.0f, 
+                        const float& expand = 0.0f,
+                        const bool& reflect = true,           // Reflect alternate segments
+                        const bool& reflect_levels = true );               // Reflect alternate segments
 
     void radial_tile(   const float& segments = 6.0f, 
                         const float& levels = 2.0f,
