@@ -7,6 +7,11 @@
             "type": "uimage",
             "filename": "lux_files/Ada.jpg",
             "name": "Ada"
+        },        
+        {
+            "type": "uimage",
+            "filename": "lux_files/apples.jpg",
+            "name": "Apples"
         },
         { 
             "type": "uimage", 
@@ -262,35 +267,35 @@
             "name": "start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "start_slider" ] },
-            "scale": 0.25,
+            "scale": 0.1,
             "val": 0
         },        
         {
             "name": "level_start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "level_start_slider" ] },
-            "scale": 0.002777777777778,
+            "scale": 0.001,
             "val": 0
         },        
         {
             "name": "expand_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "expand_slider" ] },
-            "scale": 0.002777777777778,
+            "scale": 0.001,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "spin_slider" ] },
-            "scale": 0.25,
+            "scale": 0.1,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "phase_slider" ] },
-            "scale": 0.25,
+            "scale": 0.1,
             "val": 0
         },
         {
@@ -313,8 +318,13 @@
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
-            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 6
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 1
+        },
+        {
+            "name": "source_image_dim",
+            "type": "buffer_dim_fn",
+            "buf_name": { "functions": [ "source_image_menu" ] }
         }
     ],
     "effects":
@@ -463,7 +473,7 @@
         {
             "name": "base radial field",
             "self_generated": true,
-            "dim": [ 512, 512 ],
+            "dim": { "functions": [ "source_image_dim" ] },
             "type": "vector_field",
             "mode": "static",
             "effects": [ "position fill", "radial" ]
@@ -471,7 +481,6 @@
         {
             "name": "kaleido_vf",
             "source": "base radial field",
-            "dim": [ 512, 512],
             "type": "vector_field",
             "mode": "ephemeral",  
             "effects": [ "funky chooser", "scope_chooser" ]
@@ -479,7 +488,7 @@
         {
             "name": "warper",
             "self_generated": true,
-            "dim": [ 512, 512 ],
+            "dim": { "functions": [ "source_image_dim" ] },
             "type": "warp_field",
             "mode": "ephemeral",  
             "effects": [ "fill warp field" ]

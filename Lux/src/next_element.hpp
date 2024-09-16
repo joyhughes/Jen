@@ -173,6 +173,15 @@ struct wiggle {
         : wavelength( wavelength_init ), amplitude( amplitude_init ), phase( phase_init ), wiggliness( wiggliness_init ) {}
 };
 
+// Dimensions of buffer with given name
+struct buffer_dim_fn {
+    harness< std::string > buf_name;
+
+    vec2i operator () ( vec2i& val, element_context& context );
+
+    buffer_dim_fn( const std::string& buf_name_init = "none" ) : buf_name( buf_name_init ) {}
+};
+
 // Vec2f function returning mouse position in parametric space
 struct mouse_pos_fn {
     vec2f operator () ( vec2f& val, element_context& context );

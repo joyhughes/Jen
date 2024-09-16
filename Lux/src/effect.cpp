@@ -203,7 +203,7 @@ template class eff_vector_warp< vec2i >;
 
 template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    std::cout << "eff_feedback" << std::endl;
+    //std::cout << "eff_feedback" << std::endl;
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         wf_name( context );
@@ -503,7 +503,7 @@ template class eff_theta_compression_waves< vec2f >;
 
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    std::cout << "eff_fill_warp" << std::endl;
+    //std::cout << "eff_fill_warp" << std::endl;
     vf_name( context ); relative( context ); extend( context );
     if( *vf_name != "none" && *vf_name != "" ) {
         image< vec2f >& vf = context.s.get_image< vec2f >( *vf_name );

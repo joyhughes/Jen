@@ -80,6 +80,14 @@ float wiggle::operator ()  ( float& val, element_context& context  )
     else return 0.0f; 
 }
 
+vec2i buffer_dim_fn::operator () ( vec2i& val, element_context& context  )
+{
+    buf_name( context );
+    any_buffer_pair_ptr buf = context.s.buffers[ *buf_name ];
+    std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
+    return val;
+}
+
 vec2f mouse_pos_fn::operator () ( vec2f& val, element_context& context  )
 {
     return context.s.get_mouse_pos();
