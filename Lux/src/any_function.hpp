@@ -105,6 +105,7 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_vec2i >,
     std::shared_ptr< adder_vec2i >,
+    std::shared_ptr< buffer_dim_fn >,
     std::shared_ptr< mouse_pix_fn >
 > any_vec2i_fn_ptr;
 

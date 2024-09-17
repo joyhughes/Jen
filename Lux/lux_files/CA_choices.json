@@ -7,6 +7,11 @@
             "type": "uimage",
             "filename": "lux_files/Ada.jpg",
             "name": "Ada"
+        },        
+        {
+            "type": "uimage",
+            "filename": "lux_files/apples.jpg",
+            "name": "Apples"
         },
         { 
             "type": "uimage", 
@@ -146,8 +151,8 @@
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
-            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 6
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 1
         },
         {
             "name": "rule_menu",

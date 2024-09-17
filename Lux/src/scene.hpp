@@ -164,12 +164,13 @@ struct effect_list {
     any_buffer_pair_ptr buf;
     std::vector< std::string > effects;
     pixel_type ptype;   // pixel type of buffer
-    vec2i dim;          // dimensions of buffer
+    harness< vec2i > dim;          // dimensions of buffer
     float relative_dim; // proportion of buffer size to use for effect - deferred
     bool rendered;      // Has static buffer already been rendered? Set to false after changing any effect
 
-    void update_source_name( scene& s );
-    void copy_source_buffer( scene& s );
+    void update( scene& s );
+    //void update_source_name( scene& s );
+    //void copy_source_buffer( scene& s );
     void render( scene& s );
     void resize( const vec2i& new_dim );
     void restart( scene& s );   // return to initial condition
@@ -191,11 +192,11 @@ struct effect_list {
     rendered( false ) 
     {
         switch( ptype ) {
-            case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( dim ); break;
-            case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( dim ); break;
-            case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( dim ); break;
-            case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( dim ); break;
-            case( PIXEL_VEC2I  ): buf = std::make_shared< buffer_pair< vec2i >  >( dim ); break;
+            case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( *dim ); break;
+            case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( *dim ); break;
+            case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( *dim ); break;
+            case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( *dim ); break;
+            case( PIXEL_VEC2I  ): buf = std::make_shared< buffer_pair< vec2i >  >( *dim ); break;
         }
     }
 };

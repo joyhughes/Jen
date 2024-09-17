@@ -459,6 +459,7 @@ void scene_reader::read_function( const json& j ) {
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
+    FN( buffer_dim_fn, vec2i ) HARNESS( buf_name ) END_FN
     FN( mouse_pix_fn, vec2i ) END_FN
 
     // harness frgb functions
@@ -811,7 +812,6 @@ void scene_reader::read_queue( const json& j ) {
     bool self_generated = false;
     if( j.contains( "self_generated" ) ) read( self_generated, j[ "self_generated" ] );
     vec2i dim( 512, 512 );
-    if( j.contains( "dim"            ) ) read( dim,            j[ "dim"          ] );
     pixel_type ptype = pixel_type::PIXEL_UCOLOR;
     if( j.contains( "type"           ) ) read( ptype,          j[ "type"         ] );
     render_mode rmode = render_mode::MODE_STATIC;
@@ -823,6 +823,8 @@ void scene_reader::read_queue( const json& j ) {
     // DEBUG( "Reading queue " + .name )
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;
     if( j.contains( "source"       ) ) read_harness( j[ "source" ], elist.source_name );
+    if( j.contains( "dim"          ) ) read_harness( j[ "dim"    ], elist.dim );
+
     // DEBUG( "queue source successfully read " )
     s.queue.push_back( elist );
     s.buffers[ name ] = elist.buf;

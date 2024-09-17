@@ -23,10 +23,11 @@ using namespace emscripten;
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
   //SDL_Surface *screen;
-  std::function<void()> frame_callback, scene_callback;
-  bool frame_callback_ready, scene_callback_ready, js_bitmaps_ready;
+  std::function<void()> frame_callback, resize_callback, scene_callback;
+  bool frame_callback_ready, resize_callback_ready, scene_callback_ready, js_bitmaps_ready;
   std::unique_ptr< scene > s;
   std::shared_ptr< buffer_pair< ucolor > > buf;
+  vec2i buf_dim;
   nlohmann::json scene_list;
 };
 
@@ -96,6 +97,13 @@ void set_frame_callback(val callback) {
     global_context->frame_callback_ready = true; 
 }
 
+void set_resize_callback(val callback) {
+    global_context->resize_callback = [callback]() mutable {
+        callback();
+    };
+    global_context->resize_callback_ready = true; 
+}
+
 void set_scene_callback(val callback) {
     global_context->scene_callback = [callback]() mutable {
         callback();
@@ -124,6 +132,16 @@ void render_and_display( void *arg )
 
         // Check for dirty buffers (e.g. after source image change)
         //for( auto q : global_context->s->queue ) if( !q.rendered ) displayed = false;
+
+        // Check for buffer resize (e.g. after source image change)
+        vec2i dim = global_context->buf->get_image().get_dim();
+        if( dim != global_context->buf_dim ) {
+            std::cout << "resize buffer: " << dim.x << " " << dim.y << std::endl;
+            global_context->buf_dim = dim;
+            global_context->s->ui.canvas_bounds = bb2i( dim );
+            if( global_context->resize_callback_ready ) global_context->resize_callback();
+            displayed = false;
+        }
 
         if( !running && !advance && displayed ) {
             global_context->s->ui.mouse_click = false;
@@ -370,7 +388,6 @@ bool is_widget_group_active( std::string name ) {
     any_buffer_pair_ptr null_any_buf_ptr = null_buffer_pair_ptr;
     element_context context( el, cl, *(global_context->s), null_any_buf_ptr );
 
-
     for( auto& wg : global_context->s->ui.widget_groups ) {
         if( wg.name == name ) {
             //std::cout << "is_widget_group_active: " << name << " " << wg( context ) << std::endl;
@@ -410,8 +427,11 @@ int main(int argc, char** argv) {
  //   global_context->screen = screen;
  //   global_context->s = &s;
     global_context->buf = buf;
+    global_context->buf_dim = dim;
     global_context->frame_callback = nullptr;
     global_context->frame_callback_ready = false;
+    global_context->resize_callback = nullptr;
+    global_context->resize_callback_ready = false;
     global_context->scene_callback = nullptr;
     global_context->scene_callback_ready = false;
     global_context->js_bitmaps_ready = false;
@@ -428,8 +448,9 @@ int main(int argc, char** argv) {
 }
  
 EMSCRIPTEN_BINDINGS(my_module) {
-    function( "set_frame_callback", &set_frame_callback );
-    function( "set_scene_callback",&set_scene_callback );
+    function( "set_frame_callback",  &set_frame_callback );
+    function( "set_resize_callback", &set_resize_callback );
+    function( "set_scene_callback",  &set_scene_callback );
 
     // scene selection functions
     function( "load_scene",         &load_scene );
@@ -473,4 +494,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_down",         &mouse_down );
     function( "mouse_over",         &mouse_over );
     function( "mouse_click",        &mouse_click );
-} 
+}
