@@ -11,7 +11,7 @@
 class image_loader {
     unsigned char *stbi_ptr;
 public:
-    std :: span< unsigned char > img;
+    std::span< unsigned char > img;
     int xsiz, ysiz, channels;
 
     // Disable copy constructor and equal operator

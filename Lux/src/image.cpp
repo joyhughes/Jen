@@ -11,6 +11,8 @@
 #include <iostream>
 #include <fstream>
 
+// Inline functions only used in image.cpp
+
 template< class T > inline T blend4( const T& a, const T& b, const T& c, const T& d ) {
     return ( a + b + c + d ) / 4;
 }
@@ -58,19 +60,30 @@ template<> inline ucolor blend_tent_corner( const ucolor& center, const ucolor& 
     0xff000000; // blend alphas?
 }
 
-#define MIP( xm, ym )   mip[ level ][ ( ym ) * mip_dim[ level ].x + ( xm ) ]
+#define MIP(   xm, ym ) mip[ level     ][ ( ym ) * mip_dim[ level     ].x + ( xm ) ]
 #define BELOW( xb, yb ) mip[ level - 1 ][ ( yb ) * mip_dim[ level - 1 ].x + ( xb ) ]
 
 template< class T > void image< T >::mip_it() { // mip it good
+    kernel = MIP_BOX;
     if( mip_me ) {
         if( !mipped ) {
+            if( mip.size() > 1 ) {
+                std::cout << "warning: mip_it: mip.size() > 1"  << std::endl;
+                de_mip();
+            }            
+            if( mip.size() == 0 ) {
+                std::cout << "warning: mip_it: mip.size() == 0"  << std::endl;
+                de_mip();
+            }
             int level = 0;
+            mip_dim.push_back( dim );
+            // mip[0] should already contain base data
             // allocate mip map memory
             while( mip_dim[ level ].x > 1 || mip_dim[ level ].y > 1 ) {
-                if( mip.size() <= level + 1 ) {
+                //if( mip.size() <= level + 1 ) {
                     mip.push_back( std::vector< T >( ( mip_dim[ level ].x + 1 ) / 2 * ( mip_dim[ level ].y + 1 ) / 2 ) );
                     mip_dim.push_back( vec2i( ( mip_dim[ level ].x + 1 ) / 2, ( mip_dim[ level ].y + 1 ) / 2 ) );
-                }
+                //}
                 level++;
             }
             mipped = true;
@@ -87,6 +100,7 @@ template< class T > void image< T >::mip_it() { // mip it good
                     if( b.y % 2 ) maxy = m.y - 1; else maxy = m.y;
                     for( int y = 0; y < maxy; y++ ) {
                         for( int x = 0; x < maxx; x++ ) {
+                            // central part of image
                             MIP( x, y ) = blend4< T >( 
                                 BELOW( x * 2,     y * 2 ),
                                 BELOW( x * 2 + 1, y * 2 ),
@@ -210,7 +224,7 @@ template< class T > void image< T >::de_mip() {
     // deallocate all mip-maps except base
     // remove all elements of mip vector except first
     if( mip.size() > 1 ) mip.erase( mip.begin() + 1, mip.end() );
-    if( mip_dim.size() > 1 ) mip_dim.erase( mip_dim.begin() + 1, mip_dim.end() );
+    mip_dim.clear();
 }
 
 template< class T > void image< T >::reset() { 
@@ -230,9 +244,12 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
 // Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
+    auto& base = mip[ 0 ];
     if( dim != dims ) base.resize( dims.x * dims.y );
+    de_mip();
     dim = dims;
     refresh_bounds();
+    mip_it();
 }
 
 // calculates default bounding boxes based on pixel dimensions
@@ -252,6 +269,7 @@ template< class T > void image< T >::set_bounds( const bounding_box< float, 2 >&
 template< class T > const T image< T >::index ( const vec2i& vi, const image_extend& extend ) const {
 
     T result;   // expect zero initialization
+    auto& base = mip[ 0 ];
 
     if( extend == SAMP_SINGLE ) {
         if( ipbounds.in_bounds_half_open( vi ) ) result = base[ vi.y * dim.x + vi.x ]; // else retain zero-initialized result
@@ -358,6 +376,7 @@ template< class T > void image< T >::crop_circle( const T& background, const flo
     float r1 = r2 * ( 1.0f - ramp_width );
     r1 = r1 * r1; r2 = r2 * r2;
     vec2f center = fpbounds.center();
+    auto& base = mip[ 0 ];
     
     for( int x = 0; x < dim.x; x++ ) {
         for( int y = 0; y < dim.y; y++ ) {
@@ -386,7 +405,7 @@ template< class T > void image< T >::mirror(    const image< T >& in,
     if( in.dim != dim ) throw std::runtime_error( "mirror: input image must have same dimensions" );                                               
     vec2i icenter = ipbounds.bb_map( center, bounds );
 
-    auto it = base.begin();
+    auto it = begin();
     for( int y = 0; y < dim.y; y++ ) {
         vec2i ip = { 0, y };
         if( reflect_y ) {
@@ -405,6 +424,7 @@ template< class T > void image< T >::mirror(    const image< T >& in,
             it++;
         }
     }
+    mip_utd = false;
 }
 
 template< class T > void image< T >::turn( const image< T >& in, const direction4& direction ) {
@@ -424,6 +444,7 @@ template< class T > void image< T >::turn( const image< T >& in, const direction
             }
         }
     }
+    mip_utd = false;
 }
 
 template< class T > void image< T >::flip( const image< T >& in, const bool& flip_x, const bool& flip_y ) {
@@ -449,21 +470,34 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
         }
         else { std::copy( in.begin(), in.end(), begin() ); } // no change
     }
+    mip_utd = false;
 }
 
 // copy image of same size ( may need to be able to scale as well )
 template< class T > void image< T >::copy( const image< T >& img ) {
+    std::cout << "image::copy() - set_dim() " << std::endl;
     set_dim( img.dim );
+    std::cout << "image::copy() - set_bounds() " << std::endl;
     set_bounds( img.bounds );
-    std::copy( img.base.begin(), img.base.end(), base.begin() );
+    std::cout << "image::copy() - std::copy() " << std::endl;
+    mip.resize(img.mip.size()); // Resize the outer vector to match the source
+
+    for (size_t i = 0; i < img.mip.size(); ++i) {
+        mip[i] = img.mip[i]; // Use the assignment operator to copy each inner vector
+    }    
+    std::cout << "image::copy() - complete" << std::endl;
+
     //mip_it();    
 }
 
 template< class T > void image< T >::fill( const T& c ) {
+    auto& base = mip[ 0 ];
     std::fill( begin(), base.end(), c );
+    mip_utd = false;
 }
 
 template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
+    auto& base = mip[ 0 ];
     if( ( bb.minv == ipbounds.minv ) && ( bb.maxv == ipbounds.maxv ) ) fill( c );
     else {
         auto bb1 = bb.intersect( ipbounds );
@@ -474,25 +508,30 @@ template< class T > void image< T >::fill( const T& c, const bb2i& bb ) {
             std::fill( beg_it, end_it, c );
         }
     }
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::fill( const T& c, const bb2f& bb ) {
     fill( c, bb.map_box( bounds, ipbounds ) );
+    mip_utd = false;
 }
 
 template< class T > void image< T >::clear() {
     T b;
     black( b );
     fill( b );
+    mip_utd = false;
 }
 
 // Black and white noise
 template< class T > void image< T >::noise( const float& a ) {
+    auto& base = mip[ 0 ];
     for( auto& pix : base ) { if( weighted_bit( a ) ) white( pix ); else black( pix ); }
+    mip_utd = false;
 }
 
 template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
+    auto& base = mip[ 0 ];
     if( ( bb.minv == ipbounds.minv ) && ( bb.maxv == ipbounds.maxv ) ) noise( a );
     else {
         auto bb1 = bb.intersect( ipbounds );
@@ -502,7 +541,7 @@ template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
             }
         }
     }
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::noise( const float& a, const bb2f& bb ) {
@@ -543,6 +582,7 @@ template< class T > void image< T >::splat(
     std::cout << "splat: smooth = " << smooth << std::endl;
     const image< T >& g( splat_image );
     T gval, mval;
+    auto& base = mip[ 0 ];
 
     bool has_tint = tint.has_value();
     T my_tint;
@@ -606,8 +646,8 @@ template< class T > void image< T >::splat(
                                 mval = m.sample( mip_level, mip_blend, sfix );
                             }
                             else {
-                                gval = g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
-                                mval = m.base[ (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) ];
+                                gval = *( g.begin() + (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) );
+                                mval = *( m.begin() + (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) );
                             }
                             if( has_tint ) ::apply_mask( base[ y * dim.x + x ], mulc( gval, my_tint ), mval, mmode );
                             else ::apply_mask( base[ y * dim.x + x ], gval, mval, mmode );
@@ -639,8 +679,8 @@ template< class T > void image< T >::splat(
                                 mval = m.sample( m_mip_level, m_mip_blend, msfix );
                             }
                             else {
-                                gval = g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
-                                mval = m.base[ (msfix.y >> 16) * m.dim.x + (msfix.x >> 16) ];
+                                gval = *( g.begin() + (sfix.y  >> 16) * g.dim.x + (sfix.x  >> 16) );
+                                mval = *( m.begin() + (msfix.y >> 16) * m.dim.x + (msfix.x >> 16) );
                             }
                             if( has_tint ) ::apply_mask( base[ y * dim.x + x ], mulc( gval, my_tint ), mval, mmode );
                             else           ::apply_mask( base[ y * dim.x + x ], gval, mval, mmode );
@@ -661,7 +701,7 @@ template< class T > void image< T >::splat(
                 for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
                     if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
                         if( smooth ) gval = g.sample( mip_level, mip_blend, sfix );
-                        else gval = g.base[ (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) ];
+                        else gval = *( g.begin() + (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) );
                         if( has_tint ) addc( base[ y * dim.x + x ], mulc( gval, my_tint ) );
                         else           addc( base[ y * dim.x + x ], gval );
                     }
@@ -671,6 +711,7 @@ template< class T > void image< T >::splat(
             scfix += unxfix;
         }
     }
+    mip_utd = false;
 }
 
 template< class T > void image< T >::warp (  const image< T >& in, 
@@ -680,6 +721,8 @@ template< class T > void image< T >::warp (  const image< T >& in,
                                     const bool& relative,         // default true
                                     const image_extend& extend )  // default SAMP_SINGLE 
 {
+    std::cout << "warp()" << std::endl;
+
     bool same_dims = compare_dims( vf ); // If vector field and input image are same dimension, interpolation not necessary
     if( ( !relative ) && same_dims )
         std::transform( begin(), end(), vf.begin(), begin(), [ &in, &smooth, &extend ] ( T &r, const vec2f &v ) { return in.sample( v, smooth, extend ); } );
@@ -699,7 +742,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
             }
         }
     }
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::warp (  const image< T >& in, 
@@ -709,6 +752,7 @@ template< class T > void image< T >::warp (  const image< T >& in,
                                     const bool& relative,         // default true
                                     const image_extend& extend )  // default SAMP_SINGLE 
 {
+    std::cout << "warp()" << std::endl;
     auto it = begin();
     for( int y = 0; y < dim.y; y++ ) {
         for( int x = 0; x < dim.x; x++ ) {
@@ -719,15 +763,17 @@ template< class T > void image< T >::warp (  const image< T >& in,
             it++;
         }
     }
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::warp ( const image< T >& in, 
                                             const image< int >& wf ) {
+    std::cout << "warp() (int warp field)" << std::endl;
+
     if( !compare_dims( wf ) ) return; // Vector field and warp field must be same dimension
     if( !compare_dims( in ) ) return; // Vector field and input image must be same dimension
     std::transform( begin(), end(), wf.begin(), begin(), [ &in ] ( T &r, const unsigned int &i ) { return in.index( i ); } );
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::warp(  const image< T > &in, 
@@ -736,25 +782,30 @@ template< class T > void image< T >::warp(  const image< T > &in,
                                             const image_extend &extend, 
                                             const image_extend &of_extend ) {
     
+    std::cout << "warp()" << std::endl;
     auto warp_bounds = ipbounds;
     if( of_extend == SAMP_SINGLE ) warp_bounds.intersect( bb2i( slide, slide + of.get_dim() ) );
 
     vec2i v;
     for ( v.y = warp_bounds.minv.y; v.y < warp_bounds.maxv.y; v.y++) {
+        std::cout << "warp() - calculating beginning iterator" << std::endl;
         auto it = begin() + v.y * dim.x + warp_bounds.minv.x;
         for ( v.x = warp_bounds.minv.x; v.x < warp_bounds.maxv.x; v.x++) {
+            std::cout << "warp() - calculating coord" << std::endl;
             vec2i coord = of.index( v - slide, of_extend );
+            std::cout << "warp() - calculating index" << std::endl;
             *it = in.index( v + coord , extend );
             it++;
         }
     }
-    //mip_it();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::read_binary(  const std::string &filename )
 {
     vec2i new_dim;
     bb2f new_bounds;
+    auto& base = mip[ 0 ];
 
     std::ifstream in_file( filename, std::ios::in | std::ios::binary );
     in_file.read( (char*)&new_dim, sizeof( vec2i ) );
@@ -765,11 +816,14 @@ template< class T > void image< T >::read_binary(  const std::string &filename )
     set_bounds( new_bounds );
 
     in_file.read( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
-    //mip_it();
+    in_file.close();
+    mip_utd = false;
 }
 
 template< class T > void image< T >::write_binary( const std::string &filename )
 {
+    auto& base = mip[ 0 ];
+
     std::ofstream out_file( filename, std::ios::out | std::ios::binary );
     out_file.write( (char*)&dim, sizeof( vec2i ) );
     out_file.write( (char*)&bounds, sizeof( bb2f ) );
@@ -788,18 +842,24 @@ template< class T > void image< T >::write_file(const std::string &filename, fil
 
 // apply a vector function to each point in image
 template< class T > void image< T >::apply( const std::function< T ( const T&, const float& ) > fn, const float& t ) {
+    auto& base = mip[ 0 ];
     for( auto& v : base ) { v = fn( v, t ); }
-    //mip_it();
+    mip_utd = false;
 } 
 
 // copy assignment
 template< class T > image< T >& image< T >::operator = ( const image< T >& rhs ) {
     if( this != &rhs ) {
-        base = rhs.base;
+        mip.resize( rhs.mip.size() );
+        for( size_t i = 0; i < rhs.mip.size(); ++i ) {
+            mip[ i ] = rhs.mip[ i ];
+        }
         dim = rhs.dim;
         bounds = rhs.bounds;
         ipbounds = rhs.ipbounds;
-        //mip_it();
+        mip_me = rhs.mip_me;
+        mip_utd = rhs.mip_utd;
+        mipped = rhs.mipped;
     }
     return *this;
 }
@@ -807,82 +867,84 @@ template< class T > image< T >& image< T >::operator = ( const image< T >& rhs )
 // move assignment
 template< class T > image< T >& image< T >::operator = ( image< T >&& rhs ) {
     if( this != &rhs ) {
-        base = std::move( rhs.base );
+        mip = std::move( rhs.mip );
         dim = rhs.dim;
         bounds = rhs.bounds;
         ipbounds = rhs.ipbounds;
-        //mip_it();
+        mip_me = rhs.mip_me;
+        mip_utd = rhs.mip_utd;
+        mipped = rhs.mipped;
     }
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator += ( image< T >& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a + b; } );
-    //mip_it();
+    std::transform( begin(), end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a + b; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator += ( const T& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a + rhs; } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return a + rhs; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator -= ( image< T >& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), rhs.begin(), begin(), []( const T &a, const T &b ) { return a - b; } );
-    //mip_it();
+    std::transform( begin(), end(), rhs.begin(), begin(), []( const T &a, const T &b ) { return a - b; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator -= ( const T& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a - rhs; } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return a - rhs; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator *= ( image< T >& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a * b; } );
-    //mip_it();
+    std::transform( begin(), end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a * b; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator *= ( const T& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a * rhs; } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return a * rhs; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator *= ( const float& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return ( T )( a * rhs ); } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return ( T )( a * rhs ); } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator /= ( image< T >& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a / b; } );
-    //mip_it();
+    std::transform( begin(), end(), rhs.begin(), begin(), [] ( const T &a, const T &b ) { return a / b; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator /= ( const T& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return a / rhs; } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return a / rhs; } );
+    mip_utd = false;
     return *this;
 }
 
 template< class T > image< T >& image< T >::operator /= ( const float& rhs ) {
     using namespace linalg;
-    std::transform( begin(), base.end(), begin(), [ rhs ]( const T &a ) { return ( T )( a / rhs ); } );
-    //mip_it();
+    std::transform( begin(), end(), begin(), [ rhs ]( const T &a ) { return ( T )( a / rhs ); } );
+    mip_utd = false;
     return *this;
 }
 

@@ -10,6 +10,6 @@ export default [
         name: "eslint/global-rules",
         rules: {
             "no-octal-escape": "off",
-	}
+	    }
     },
 ];

@@ -81,25 +81,40 @@ public:
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
         mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
-        {}     
+        {
+            // create stub base vector
+            std::vector< T > v;
+            mip.push_back( v );
+        }     
 
     // creates image of particular size 
-    image( const vec2i& dims ) 
+    image( vec2i dims ) 
         :  dim( dims ), bounds( { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ), 
            mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
-            { base.resize( dim.x * dim.y ); }     
+            { 
+                std::vector< T > v;
+                mip.push_back( v );
+                std::cout << "image constructor: " << dim.x << " " << dim.y << std::endl;
+                mip[ 0 ].resize( dim.x * dim.y ); 
+                std::cout << "image constructor: " << mip[ 0 ].size() << std::endl;
+            }     
 
     image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
         mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
-            { base.resize( dim.x * dim.y ); }
-        
+        { 
+            std::vector< T > v;
+            mip.push_back( v );
+            mip[ 0 ].resize( dim.x * dim.y ); 
+        }   
+
     // copy constructor
     image( const image< T >& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )//, base( mip[ 0 ] ) 
         {
-            std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
-            // copy mip map
-            //mip_it();
+            mip.resize(img.mip.size()); // Resize the outer vector to match the source
+            for (size_t i = 0; i < img.mip.size(); ++i) {
+                mip[i] = img.mip[i]; // Use the assignment operator to copy each inner vector
+            }
         }
     
     // resize constructor
@@ -128,7 +143,7 @@ public:
         {
             // move mip map
             mip = std::move( img.mip );
-            base = std::move( img.base );
+            //base = std::move( img.base );
             //mip_it();
         }
 
@@ -137,13 +152,17 @@ public:
 
     friend class vf_tools;  // additional functions for vector fields
 
-    T* get_base() { return &(base[0]); }    
+    const std::vector< T >& get_base_vector() const { return mip[0]; }
+
+    T* get_base_ptr() { 
+        return &(mip[0][0]);
+    }    
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
-    auto begin() noexcept { return base.begin(); }
-    const auto begin() const noexcept { return base.begin(); }
-    auto end() noexcept { return base.end(); }
-    const auto end() const noexcept { return base.end(); }
+    auto begin() noexcept             { return mip[ 0 ].begin(); }
+    const auto begin() const noexcept { return mip[ 0 ].begin(); }
+    auto end() noexcept               { return mip[ 0 ].end(); }
+    const auto end() const noexcept   { return mip[ 0 ].end(); }
 
     void reset();                          // clear memory & set dimensions to zero (mip_me remembered)
     void use_mip( bool m );
@@ -158,9 +177,9 @@ public:
     template< class U > bool compare_dims( const image< U >& img ) const { return ( dim == img.get_dim() ); }  // returns true if images have same dimensions
 
     // Sample base image
-    inline void set( const unsigned int& i, const T& val ) { base[ i ] = val; }
+    inline void set( const unsigned int& i, const T& val ) { mip[ 0 ][ i ] = val; }
     const T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE ) const;
-    inline T index( const unsigned int& i ) const { return base[ i ]; }
+    inline T index( const unsigned int& i ) const { return mip[ 0 ][ i ]; }
     const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
     // Preserved intersting bug       
     const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;

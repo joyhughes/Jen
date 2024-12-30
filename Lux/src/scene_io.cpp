@@ -72,6 +72,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Effects loaded" )
 
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
+        DEBUG( "Reading queue" )
         read_queue( q );              // add to render queue
     }
 
@@ -818,7 +819,6 @@ void scene_reader::read_queue( const json& j ) {
     if( j.contains( "mode"           ) ) read( rmode,          j[ "mode"         ] );
     float relative_dim = 1.0;
     if( j.contains( "relative_dim"   ) ) read( relative_dim,   j[ "relative_dim" ] );  
-    
     effect_list elist( name, self_generated, "none", dim, ptype, rmode, relative_dim );
     // DEBUG( "Reading queue " + .name )
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;

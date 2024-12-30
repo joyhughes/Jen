@@ -5,44 +5,52 @@
 
 // pixel modification functions
 template<> void uimage::grayscale() {
+    auto& base = mip[ 0 ];
     for( auto& f : base ) { f = gray( f ); }
-    //mip_it();
+    mip_utd = false;
 }
 
 template<> void uimage::invert() {
+    auto& base = mip[ 0 ];
     for( auto& c : base ) { ::invert( c ); }
-    //mip_it();
+    mip_utd = false;
 }
 
 template<> void uimage::rotate_components( const int& r ) {
+    auto& base = mip[ 0 ];
     for( auto& c : base ) { ::rotate_components( c, r ); }
-    //mip_it();
+    mip_utd = false;
 }
 
 template<> void uimage::rgb_to_hsv() {
-    for( auto& c : base ) { c = ::rgb_to_hsv( c ); }
-    // rather than calling mip_it(), probably better to calculate hsv at each mip level
+    for( auto& level : mip ) {
+        for( auto& c : level ) { c = ::rgb_to_hsv( c ); }
+    }
 }
 
 template<> void uimage::hsv_to_rgb() {
+    auto& base = mip[ 0 ];
     for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
-    //mip_it();
+    mip_utd = false;
 }
 
 template<> void uimage::rotate_hue( const float& h ) {
+    auto& base = mip[ 0 ];
     unsigned int r = h * 256.0f / 360.0f;
     r <<= 16;
     for( auto& c : base ) { c = ::rotate_hue( c, r ); }
-    //mip_it();
+    mip_utd = false;
 }
 
 template<> void uimage::load( const std::string& filename ) {
-    base.clear();
+    reset();
     image_loader loader( filename );
     dim = { loader.xsiz, loader.ysiz };
     refresh_bounds();
     //std::cout << "uimage::load: " << filename << " " << loader.xsiz << " " << loader.ysiz << " " << loader.channels << std::endl;
     ucolor f = 0xff000000;
+    auto& base = mip[0];
+    base.reserve( dim.x * dim.y );
 
 //    int size = loader.xsiz * loader.ysiz;
 //    auto it = std::begin( loader.img );
@@ -83,13 +91,15 @@ template<> void uimage::load( const std::string& filename ) {
         // skip alpha channel - rgba ... if argb need to move line up
         base.push_back( f );
     }
-    //mip_it();
+    // default mip mapping for testing - future: set use_mip from scene file
+    use_mip(true);
+    mip_it();
 }
 
 template<> void uimage::write_jpg( const std::string& filename, int quality ) {
-    //std::cout << "uimage::write_jpg: " << filename << std::endl;
-    //dump();
     std::vector< unsigned char > carray;
+    carray.reserve( dim.x * dim.y * 3 );
+    auto& base = mip[ 0 ];
     for( auto& f : base ) {
         carray.push_back( rc( f ) );
         carray.push_back( gc( f ) );
@@ -99,6 +109,7 @@ template<> void uimage::write_jpg( const std::string& filename, int quality ) {
 }
 
 template<> void uimage::write_png( const std::string& filename ) {
+    auto& base = mip[ 0 ];
 	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
 }
 
@@ -124,6 +135,7 @@ template<> const ucolor image< ucolor >::sample ( const unsigned int mip_level, 
 }
 
 template<> void uimage::dump() {
+    auto& base = mip[ 0 ];
     for( auto& v : base ) { std::cout << std::hex << v; }
 }
 

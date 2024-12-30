@@ -36,7 +36,7 @@ void iterate_and_display(void *arg)
   if (SDL_MUSTLOCK(screen)) SDL_LockSurface(screen);
   // copy Lux buffer into SDL buffer
   unsigned int* pixel_ptr = (unsigned int*)screen->pixels;
-  unsigned int* base_ptr = buf.get_image().get_base();
+  unsigned int* base_ptr = buf.get_image().get_base_ptr();
   for( int i=0; i< dims.x * dims.y; i++ ) {
     *pixel_ptr = *base_ptr;
     pixel_ptr++; base_ptr++;
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   // vec2i dims( { 512, 512 } );
   uimage img( "samples/crab_nebula.jpg" );
   auto dims = img.get_dim();
-  ucolor* base = img.get_base();
+  ucolor* base = img.get_base_ptr();
   // fill image with random black and white pixels (for life test)
   /*for( int i=0; i< dims.x * dims.y; i++ ) {
     if( weighted_bit( 0.33f ) ) base[ i ] = on;

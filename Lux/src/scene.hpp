@@ -172,7 +172,7 @@ struct effect_list {
     //void update_source_name( scene& s );
     //void copy_source_buffer( scene& s );
     void render( scene& s );
-    void resize( const vec2i& new_dim );
+    void resize( vec2i new_dim );
     void restart( scene& s );   // return to initial condition
 
     effect_list( const std::string& name_init = "default",
@@ -191,13 +191,31 @@ struct effect_list {
     relative_dim( relative_dim_init ),
     rendered( false ) 
     {
+        std::cout << "effect_list constructor - ready to make buffer " << name << std::endl;
+        //std::cout << "dim = " << *dim << std::endl;
         switch( ptype ) {
-            case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( *dim ); break;
-            case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( *dim ); break;
-            case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( *dim ); break;
-            case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( *dim ); break;
-            case( PIXEL_VEC2I  ): buf = std::make_shared< buffer_pair< vec2i >  >( *dim ); break;
+            case( PIXEL_FRGB   ):   
+                std::cout << "effect_list constructor - making frgb buffer " << std::endl;
+                buf = std::make_shared< buffer_pair< frgb >   >( dim_init ); 
+                break;
+            case( PIXEL_UCOLOR ):
+                std::cout << "effect_list constructor - making ucolor buffer " << std::endl;
+                buf = std::make_shared< buffer_pair< ucolor > >( dim_init ); 
+                break;
+            case( PIXEL_VEC2F ):
+                std::cout << "effect_list constructor - making vec2f buffer " << std::endl;
+                buf = std::make_shared< buffer_pair< vec2f >  >( dim_init ); 
+                break;
+            case( PIXEL_INT    ): 
+                std::cout << "effect_list constructor - making int buffer " << std::endl;
+                buf = std::make_shared< buffer_pair< int >    >( dim_init ); 
+                break;
+            case( PIXEL_VEC2I  ): 
+                std::cout << "effect_list constructor - making vec2i buffer " << std::endl;
+                buf = std::make_shared< buffer_pair< vec2i >  >( dim_init ); 
+                break;
         }
+        std::cout << "effect_list constructor - buffer made " << std::endl;
     }
 };
 
