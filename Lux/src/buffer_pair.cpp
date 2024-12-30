@@ -16,11 +16,8 @@ template< class T > buffer_pair< T >::buffer_pair( const image< T > &img ) {
 }
 
 template< class T > buffer_pair< T >::buffer_pair( vec2i dim ) {
-    std::cout << "buffer_pair::buffer_pair() " << dim.x << " " << dim.y << std::endl;
     image_pair.first = std::make_unique< image< T > >( dim );
-    std::cout << "image pair first created" << std::endl;
     image_pair.second = NULL;
-    std::cout << "image pair second created" << std::endl;
 }
 
 /*
@@ -89,12 +86,10 @@ template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp 
         //std::cout << "buffer_pair::copy_first() - source pointer not NULL" << std::endl;
         if( image_pair.first.get() == NULL ) {
             //std::cout << "buffer_pair::copy_first() - dest pointer NULL" << std::endl;
-            std::cout << "copy_first - ready to make unique" << std::endl;
             image_pair.first = std::make_unique< image< T > >( *bp.image_pair.first );
         }
         else {
             //std::cout << "buffer_pair::copy_first() - dest pointer not NULL" << std::endl;
-            std::cout << "copy_first - ready to run copy on image " << std::endl;
             image_pair.first->copy( *bp.image_pair.first );
         }
     }

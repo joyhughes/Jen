@@ -255,29 +255,25 @@ switch_type scene_reader::read_switch_type( const json& j ) {
 
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
-    DEBUG( "scene_reader::read_image" )
 
     if( j.contains( "filename" ) ) j[ "filename" ].get_to( filename );
     else ERROR( "scene_reader::read_image error - image filename missing\n" )
-    DEBUG( "scene_reader::read_image - filename: " + filename )
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );
     else name = filename;
-    DEBUG( "scene_reader::read_image - name: " + name )
 
     if( j.contains( "type") ) j[ "type" ].get_to( type );
     else ERROR( "scene_reader::read_image error - image type missing\n" )
-    DEBUG( "scene_reader::read_image - type: " + type )
 
     // future: add binary file format for all image types
 
+    DEBUG( "scene_reader::read_image() - filename " + filename + "name " + name + " type " + type )
     if( type == "fimage" ) {
         fbuf_ptr img( new buffer_pair< frgb >( filename ) );
         s.buffers[ name ] = img;
     }
 
     if( type == "uimage" ) {
-        DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
         s.buffers[ name ] = img;
         //std :: cout << "uimage pointer " << img << std::endl;

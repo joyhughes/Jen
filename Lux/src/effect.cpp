@@ -204,16 +204,12 @@ template class eff_vector_warp< vec2i >;
 template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     //std::cout << "eff_feedback" << std::endl;
-    std::cout << "eff_feedback: " <<  std::endl;
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         wf_name( context );
-        std::cout << "eff_feedback: " << *wf_name << " getting buffer pair pointer" << std::endl;
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
-        std::cout << "eff_feedback: " << *wf_name << " getting image" << std::endl;
         auto& wf = context.s.get_image< int >( *wf_name );
-        std::cout << "eff_feedback: " << *wf_name << " warping" << std::endl;
         buf_ptr->get_buffer().warp( buf_ptr->get_image(), wf );
         buf_ptr->swap();
     }

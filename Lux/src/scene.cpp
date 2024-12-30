@@ -103,19 +103,16 @@ void effect_list::resize( vec2i new_dim ) {
 }
 
 void effect_list::update( scene& s ) {
-    //std::cout << "effect_list " << name << " update_source_name() ";
     // create dummy context
     element el;
     next_element ne;
     cluster cl( el, ne );
     element_context context( el, cl, s, buf );
 
-    std::cout << "effect_list " << name << " update() " << std::endl;
     if( self_generated ) {
         vec2i old_dim = *dim;
         dim( context );
         vec2i new_dim = *dim;
-        std::cout << "effect_list::update() - old dim: " << old_dim.x << " " << old_dim.y << " new dim: " << new_dim.x << " " << new_dim.y << std::endl;
         if( new_dim != old_dim ) {
             resize( new_dim );
             rendered = false;
@@ -123,48 +120,36 @@ void effect_list::update( scene& s ) {
     }
     else {
         // check for new source buffer
-        std::cout << "effect_list (not self generated) " << name << " update_source_name() " << std::endl;
         std::string old_name = *source_name; 
-std::cout << "Setting source_name to context" << std::endl;
-source_name(context);
+        source_name(context);
 
-if (*source_name != old_name) {
-    std::cout << "Source name has changed from " << old_name << " to " << *source_name << std::endl;
-    rendered = false;
-}
-
-if (rmode == MODE_EPHEMERAL || !rendered) {
-    std::cout << "Render mode is ephemeral or not rendered" << std::endl;
-
-    if (s.buffers.contains(*source_name)) {
-        std::cout << "Source buffer found in scene buffers" << std::endl;
-
-        any_buffer_pair_ptr& source_buf = s.buffers[*source_name];
-        vec2i source_dim;
-
-        std::cout << "Getting dimensions of source buffer" << std::endl;
-        std::visit([&](auto& b) {
-            source_dim = b->get_image().get_dim();
-            std::cout << "Source buffer dimensions: " << source_dim.x << " " << source_dim.y << std::endl;
-        }, source_buf);
-
-        if (source_dim != *dim) {
-            std::cout << "Source dimensions differ from current dimensions. Resizing..." << std::endl;
-            dim = source_dim;
-            resize(*dim);
+        if (*source_name != old_name) {
+            rendered = false;
         }
 
-        std::cout << "Copying source buffer into working buffer" << std::endl;
-        std::visit([&, source_buf](auto& b) {
-            copy_buffer(b, source_buf);
-        }, buf);
-    } else {
-        std::cout << "Source buffer not found in scene buffers" << std::endl;
+        if (rmode == MODE_EPHEMERAL || !rendered) {
+
+            if (s.buffers.contains(*source_name)) {
+
+                any_buffer_pair_ptr& source_buf = s.buffers[*source_name];
+                vec2i source_dim;
+
+                std::visit([&](auto& b) {
+                    source_dim = b->get_image().get_dim();
+                }, source_buf);
+
+                if (source_dim != *dim) {
+                    dim = source_dim;
+                    resize(*dim);
+                }
+
+                std::visit([&, source_buf](auto& b) {
+                    copy_buffer(b, source_buf);
+                }, buf);
+            } else {
+            }
+        }
     }
-}
-std::cout << "Exiting update function" << std::endl;
-    }
-    std::cout << "effect_list::update() complete" << std::endl;
 }
 /*
 void effect_list::update_source_name( scene& s ) {
@@ -220,18 +205,18 @@ void effect_list::render( scene& s ) {
             next_element default_next_element;
             cluster default_cluster( default_element, default_next_element );
             element_context context( default_element, default_cluster, s, buf );
-            std::cout << "about to render effect " << e << " into buffer " << name << std::endl;
+            //std::cout << "about to render effect " << e << " into buffer " << name << std::endl;
             s.effects[ e ]( buf, context );
-            std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
+            //std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
         }
         rendered = true;
     }
     //else std::cout << "static or already rendered" << std::endl;
-    std::cout << "effect_list render complete" << std::endl;
+    // std::cout << "effect_list render complete" << std::endl;
 }
 
 void effect_list::restart( scene& s ) {
-    std::cout << "effect_list " << name << " restart()" << std::endl;
+    //std::cout << "effect_list " << name << " restart()" << std::endl;
     rendered = false;
     update( s );
 }
@@ -262,10 +247,8 @@ void scene::set_time_interval( const float& t ) {
 }
 
 void scene::render() {
-    std::cout << "scene::render() " << std::endl;
     for( auto& eff_list : queue ) eff_list.render( *this );
     time += time_interval;
-    std::cout << "scene::render() complete" << std::endl;
 }
 
 void scene::save_result( 

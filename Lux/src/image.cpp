@@ -475,17 +475,13 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
 
 // copy image of same size ( may need to be able to scale as well )
 template< class T > void image< T >::copy( const image< T >& img ) {
-    std::cout << "image::copy() - set_dim() " << std::endl;
     set_dim( img.dim );
-    std::cout << "image::copy() - set_bounds() " << std::endl;
     set_bounds( img.bounds );
-    std::cout << "image::copy() - std::copy() " << std::endl;
     mip.resize(img.mip.size()); // Resize the outer vector to match the source
 
     for (size_t i = 0; i < img.mip.size(); ++i) {
         mip[i] = img.mip[i]; // Use the assignment operator to copy each inner vector
     }    
-    std::cout << "image::copy() - complete" << std::endl;
 
     //mip_it();    
 }
@@ -721,8 +717,6 @@ template< class T > void image< T >::warp (  const image< T >& in,
                                     const bool& relative,         // default true
                                     const image_extend& extend )  // default SAMP_SINGLE 
 {
-    std::cout << "warp()" << std::endl;
-
     bool same_dims = compare_dims( vf ); // If vector field and input image are same dimension, interpolation not necessary
     if( ( !relative ) && same_dims )
         std::transform( begin(), end(), vf.begin(), begin(), [ &in, &smooth, &extend ] ( T &r, const vec2f &v ) { return in.sample( v, smooth, extend ); } );
@@ -752,7 +746,6 @@ template< class T > void image< T >::warp (  const image< T >& in,
                                     const bool& relative,         // default true
                                     const image_extend& extend )  // default SAMP_SINGLE 
 {
-    std::cout << "warp()" << std::endl;
     auto it = begin();
     for( int y = 0; y < dim.y; y++ ) {
         for( int x = 0; x < dim.x; x++ ) {
@@ -768,8 +761,6 @@ template< class T > void image< T >::warp (  const image< T >& in,
 
 template< class T > void image< T >::warp ( const image< T >& in, 
                                             const image< int >& wf ) {
-    std::cout << "warp() (int warp field)" << std::endl;
-
     if( !compare_dims( wf ) ) return; // Vector field and warp field must be same dimension
     if( !compare_dims( in ) ) return; // Vector field and input image must be same dimension
     std::transform( begin(), end(), wf.begin(), begin(), [ &in ] ( T &r, const unsigned int &i ) { return in.index( i ); } );
@@ -782,18 +773,14 @@ template< class T > void image< T >::warp(  const image< T > &in,
                                             const image_extend &extend, 
                                             const image_extend &of_extend ) {
     
-    std::cout << "warp()" << std::endl;
     auto warp_bounds = ipbounds;
     if( of_extend == SAMP_SINGLE ) warp_bounds.intersect( bb2i( slide, slide + of.get_dim() ) );
 
     vec2i v;
     for ( v.y = warp_bounds.minv.y; v.y < warp_bounds.maxv.y; v.y++) {
-        std::cout << "warp() - calculating beginning iterator" << std::endl;
         auto it = begin() + v.y * dim.x + warp_bounds.minv.x;
         for ( v.x = warp_bounds.minv.x; v.x < warp_bounds.maxv.x; v.x++) {
-            std::cout << "warp() - calculating coord" << std::endl;
             vec2i coord = of.index( v - slide, of_extend );
-            std::cout << "warp() - calculating index" << std::endl;
             *it = in.index( v + coord , extend );
             it++;
         }

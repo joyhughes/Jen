@@ -94,9 +94,7 @@ public:
             { 
                 std::vector< T > v;
                 mip.push_back( v );
-                std::cout << "image constructor: " << dim.x << " " << dim.y << std::endl;
                 mip[ 0 ].resize( dim.x * dim.y ); 
-                std::cout << "image constructor: " << mip[ 0 ].size() << std::endl;
             }     
 
     image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
