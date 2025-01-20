@@ -96,39 +96,41 @@ template<> void uimage::load( const std::string& filename ) {
     mip_it();
 }
 
-template<> void uimage::write_jpg( const std::string& filename, int quality ) {
+template<> void uimage::write_jpg( const std::string& filename, int quality, int level ) {
     std::vector< unsigned char > carray;
     carray.reserve( dim.x * dim.y * 3 );
-    auto& base = mip[ 0 ];
-    for( auto& f : base ) {
-        carray.push_back( rc( f ) );
+    auto& pixels = mip[ level ];
+    for( auto& f : pixels ) {
+        carray.push_back( bc( f ) );
         carray.push_back( gc( f ) );
-        carray.push_back( bc( f ) ); 
+        carray.push_back( rc( f ) ); 
     }
-	wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, carray.data(), quality );
+	wrapped_write_jpg( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 3, carray.data(), quality );
 }
 
-template<> void uimage::write_png( const std::string& filename ) {
-    auto& base = mip[ 0 ];
-	wrapped_write_png( filename.c_str(), dim.x, dim.y, 4, (unsigned char *)base.data() );
+template<> void uimage::write_png( const std::string& filename, int level ) {
+    auto& pixels = mip[ level ];
+	wrapped_write_png( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 4, (unsigned char *)pixels.data() );
 }
 
 // Fixed point version of sample
 
-template<> const ucolor image< ucolor >::sample ( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const  {
+template<> const ucolor image< ucolor >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const  {
+    //std::cout << "sample ucolor" << std::endl;
+    //std::cout << "mip_dim.size = " << mip_dim.size() << std::endl;
     int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
     int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
-
+    //std::cout << "uimage sample - l_index: " << l_index << " u_index: " << u_index << std::endl;
     return  blend(
                 blend(
-                    blend( mip[ mip_level ][ l_index ], mip[ mip_level ][ l_index + 1 ],( vi.x >> ( 8 + mip_level ) ) & 0xff ),
-                    blend( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ],( vi.x >> ( 8 + mip_level ) ) & 0xff ),
+                    blend( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], ( vi.x >> ( 8 + mip_level ) ) & 0xff ),
+                    blend( mip[ mip_level ][ l_index                          + 1 ], mip[ mip_level ][ l_index                          ], ( vi.x >> ( 8 + mip_level ) ) & 0xff ),
                     ( vi.y >> ( 8 + mip_level ) ) & 0xff 
                 ),
                 blend(
-                    blend( mip[ mip_level + 1 ][ u_index ], mip[ mip_level + 1 ][ u_index + 1 ],( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
-                    blend( mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x ], mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ],( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
-                    ( vi.y >> ( 8 + mip_level + 1 ) ) & 0xff 
+                    blend( mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x ], ( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
+                    blend( mip[ mip_level + 1 ][ u_index                              + 1 ], mip[ mip_level + 1 ][ u_index ],                              ( vi.x >> ( 8 + mip_level + 1 ) ) & 0xff ),
+                    0xff - ( vi.y >> ( 8 + mip_level + 1 ) ) & 0xff 
                 ),
                 mip_blend >> 8
             );

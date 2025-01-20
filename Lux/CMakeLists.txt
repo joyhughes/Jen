@@ -19,6 +19,7 @@ src/any_rule.hpp
 src/any_rule.cpp
 src/buffer_pair.hpp
 src/buffer_pair.cpp
+src/colors.hpp
 src/effect.hpp
 src/effect.cpp
 src/fimage.hpp

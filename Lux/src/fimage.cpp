@@ -106,29 +106,29 @@ template<> void fimage::load( const std::string& filename ) {
     //std::cout << "Image load complete\n";
 }
 
-template<> void fimage::write_jpg( const std::string& filename, int quality ) {
+template<> void fimage::write_jpg( const std::string& filename, int quality, int level ) {
     std::vector< unsigned char > img;
     img.reserve( dim.x * dim.y * 3 );
-    auto& base = mip[ 0 ];
+    auto& pixels = mip[ level ];
 
-    for( auto& f : base ) {
+    for( auto& f : pixels ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); 
     }
-    wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
+    wrapped_write_jpg( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 3, img.data(), quality );
 }
 
-template<> void fimage::write_png( const std::string& filename ) {    
+template<> void fimage::write_png( const std::string& filename, int level ) {    
     std::vector< unsigned char > img;
     img.reserve( dim.x * dim.y * 3 );
-    auto& base = mip[ 0 ];
+    auto& pixels = mip[ level ];
 
-    for( auto& f : base ) {
+    for( auto& f : pixels ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); 
     }
-	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
+	wrapped_write_png( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 3, img.data() );
 }
 

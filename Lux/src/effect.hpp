@@ -27,13 +27,8 @@ template< class T > struct eff_fill  {
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_fill() : bounded( false ) {
-        T b;
-        black( b );
-        fill_color = b;
-    }
-    eff_fill( T& fill_color_init ) : bounded( false ), fill_color( fill_color_init ) {}
-    eff_fill( T& fill_color_init, const bb2i& bounds_init ) : bounds( bounds_init ), fill_color( fill_color_init ) {}
+    eff_fill( const T& fill_color_init = black< T > ) : bounded( false ), fill_color( fill_color_init ) {}
+    eff_fill( const T& fill_color_init, const bb2i& bounds_init ) : bounds( bounds_init ), fill_color( fill_color_init ) {}
 };
 
 typedef eff_fill< frgb > eff_fill_frgb;
@@ -60,6 +55,23 @@ typedef eff_noise< ucolor > eff_noise_ucolor;
 typedef eff_noise< vec2f > eff_noise_vec2f;
 typedef eff_noise< int > eff_noise_int;
 typedef eff_noise< vec2i > eff_noise_vec2i;
+
+template< class T > struct eff_checkerboard {
+    harness< T > c1;
+    harness< T > c2;
+    harness< int > box_size;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_checkerboard( T c1_init = black< T >, T c2_init = white< T >, int box_size_init = 8 ) : 
+        c1( c1_init ), c2( c2_init ), box_size( box_size_init ) {}
+};
+
+typedef eff_checkerboard< frgb > eff_checkerboard_frgb;
+typedef eff_checkerboard< ucolor > eff_checkerboard_ucolor;
+typedef eff_checkerboard< vec2f > eff_checkerboard_vec2f;
+typedef eff_checkerboard< int > eff_checkerboard_int;
+typedef eff_checkerboard< vec2i > eff_checkerboard_vec2i;
 
 template< class T > struct eff_grayscale {
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );

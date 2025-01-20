@@ -394,14 +394,6 @@ template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) {
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template<class T> inline rule_life<T>::rule_life() { 
-    T c;
-    black( c );
-    off = c;
-    white( c );
-    on = c;
-}
-
 template< class T > CA_hood rule_life< T >::operator () ( element_context &context ) {
     on( context ); off( context ); threshold( context );
     return HOOD_MOORE;

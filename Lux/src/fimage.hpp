@@ -19,7 +19,7 @@ template<> void fimage::rotate_hue( const float& h );
 
 // I/O functions using template specialization
 template<> void fimage::load( const std::string& filename );
-template<> void fimage::write_jpg( const std :: string& filename, int quality );
-template<> void fimage::write_png( const std :: string& filename );
+template<> void fimage::write_jpg( const std :: string& filename, int quality, int level );
+template<> void fimage::write_png( const std :: string& filename, int level );
 
 #endif // __FIMAGE_HPP

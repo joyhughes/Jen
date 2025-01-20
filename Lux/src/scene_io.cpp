@@ -744,6 +744,12 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
+    EFF( eff_checkerboard_frgb)   HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_ucolor) HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2i)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2f)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_int)    HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+
     EFF( eff_vector_warp_frgb )   HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_ucolor ) HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_vec2i )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()

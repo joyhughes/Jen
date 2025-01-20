@@ -100,12 +100,7 @@ template< Additive U > struct adder {
         return v; 
     }
 
-    adder() { // zero default value
-        U r_init;
-        black( r_init ); 
-        r = r_init;
-    } 
-    adder( const U& r_init ) : r( r_init ) {}
+    adder( const U& r_init = black< U > ) : r( r_init ) {}
 };
 
 typedef adder< int    > adder_int;

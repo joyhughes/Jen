@@ -38,7 +38,7 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
 
                 if( target_buf->has_image() ) {
 //                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
-                    target_buf->get_image().splat( img_buf->get_image(), false, el.position, el.scale, th, mask, tint, el.mmode ); 
+                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
                 }
             }
             else std::cout << "splat_element() - no image in buffer" << std::endl;
@@ -210,6 +210,8 @@ void effect_list::render( scene& s ) {
             //std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
         }
         rendered = true;
+        // use std::visit to call mip_it on image pixels
+        std::visit( [&]( auto& b ) { b->get_image().use_mip(true); b->get_image().mip_it(); }, buf );
     }
     //else std::cout << "static or already rendered" << std::endl;
     // std::cout << "effect_list render complete" << std::endl;

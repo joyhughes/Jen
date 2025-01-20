@@ -5,9 +5,7 @@
 #ifndef __IMAGE_HPP
 #define __IMAGE_HPP
 
-#include "vect2.hpp"
-#include "frgb.hpp"
-#include "ucolor.hpp"
+#include "colors.hpp"
 #include <iterator>
 #include <vector>
 #include <memory>
@@ -167,6 +165,7 @@ public:
     void mip_it();  // mipit good
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
+    const int get_mip_levels() const { return mip.size(); } // returns number of mip-map levels
     void refresh_bounds(); // calculates default bounding boxes based on pixel dimensions
     const bb2f get_bounds() const;
     const bb2i get_ipbounds() const;
@@ -182,7 +181,7 @@ public:
     // Preserved intersting bug       
     const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;
     // fixed point sample           
-    const T sample( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const; // mip-map sample using fixed point coordinates
+    const T sample( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const; // mip-map sample using fixed point coordinates
 
     // sample mip-map
     // const T index( const vec2i& vi, const int& level, const image_extend& extend = SAMP_SINGLE );                
@@ -191,8 +190,8 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void crop_circle( const T& background, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
-    void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const T& background = black< T >, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    //void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
     void mirror(    const image< T >& in,
                     const bool& reflect_x = false, 
                     const bool& reflect_y = true, 
@@ -213,7 +212,8 @@ public:
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
-    
+    void checkerboard( const int& box_size = 1, const T& c1 = black< T >, const T& c2 = white< T > );
+
     // functions below use template specialization
     void grayscale();
     void clamp( float minc = 1.0f, float maxc = 1.0f );
@@ -237,7 +237,7 @@ public:
     // rendering
     void splat( 
         const image< T >& splat_image,    // image of the splat
-        const bool& smooth = false,       // smooth the splat
+        const bool& smooth = true,       // smooth the splat
         const vec2f& center = { 0.0f, 0.0f }, // coordinates of splat center
         const float& scale = 1.0f,  // radius of splat
         const float& theta = 0.0f,  // rotation in degrees
@@ -277,12 +277,12 @@ public:
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
     void load( const std::string& filename ) { std::cout << "default image load" << std::endl; }
-    void write_jpg( const std::string& filename, int quality ) { std::cout << "default image write_jpg" << std::endl; }
-    void write_png( const std::string& filename ) { std::cout << "default image write_png" << std::endl; }
+    void write_jpg( const std::string& filename, int quality, int level = 0 ) { std::cout << "default image write_jpg" << std::endl; }
+    void write_png( const std::string& filename, int level = 0 ) { std::cout << "default image write_png" << std::endl; }
     void read_binary(  const std::string& filename );  
-    void write_binary( const std::string& filename );
+    void write_binary( const std::string& filename, int level = 0 );
     // determine file type from extension?
-    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 );
+    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100, int level = 0 );
 
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );

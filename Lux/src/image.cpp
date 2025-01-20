@@ -27,9 +27,9 @@ template< class T > inline T blend_tent( const T& center, const T& edge1, const 
 
 template<> inline ucolor blend_tent( const ucolor& center, const ucolor& edge1, const ucolor& edge2, const ucolor& edge3, const ucolor& edge4, const ucolor& corner1, const ucolor& corner2, const ucolor& corner3, const ucolor& corner4 ) {
    return
-   ( ( ( ( ( ( ( center & 0x00ff0000 ) << 2 ) + ( ( ( edge1 & 0x00ff0000 ) + ( edge2 & 0x00ff0000 ) + ( edge3 & 0x00ff0000 ) + ( edge4 & 0x00ff0000 ) ) << 1 ) + ( corner1 & 0x00ff0000 ) + ( corner2 & 0x00ff0000 ) + ( corner3 & 0x00ff0000 ) + ( corner4 & 0x00ff0000 ) ) >> 2 ) + 0x00080000 ) >> 4 ) & 0x00ff0000 ) + 
-   ( ( ( ( ( ( ( center & 0x0000ff00 ) << 2 ) + ( ( ( edge1 & 0x0000ff00 ) + ( edge2 & 0x0000ff00 ) + ( edge3 & 0x0000ff00 ) + ( edge4 & 0x0000ff00 ) ) << 1 ) + ( corner1 & 0x0000ff00 ) + ( corner2 & 0x0000ff00 ) + ( corner3 & 0x0000ff00 ) + ( corner4 & 0x0000ff00 ) ) >> 2 ) + 0x00000800 ) >> 4 ) & 0x0000ff00 ) + 
-   ( ( ( ( ( ( ( center & 0x000000ff ) << 2 ) + ( ( ( edge1 & 0x000000ff ) + ( edge2 & 0x000000ff ) + ( edge3 & 0x000000ff ) + ( edge4 & 0x000000ff ) ) << 1 ) + ( corner1 & 0x000000ff ) + ( corner2 & 0x000000ff ) + ( corner3 & 0x000000ff ) + ( corner4 & 0x000000ff ) ) >> 2 ) + 0x00000008 ) >> 4 ) & 0x000000ff ) + 
+   ( ( ( ( ( ( ( center & 0x00ff0000 ) << 2 ) + ( ( ( edge1 & 0x00ff0000 ) + ( edge2 & 0x00ff0000 ) + ( edge3 & 0x00ff0000 ) + ( edge4 & 0x00ff0000 ) ) << 1 ) + ( corner1 & 0x00ff0000 ) + ( corner2 & 0x00ff0000 ) + ( corner3 & 0x00ff0000 ) + ( corner4 & 0x00ff0000 ) ) ) + 0x00080000 ) >> 4 ) & 0x00ff0000 ) + 
+   ( ( ( ( ( ( ( center & 0x0000ff00 ) << 2 ) + ( ( ( edge1 & 0x0000ff00 ) + ( edge2 & 0x0000ff00 ) + ( edge3 & 0x0000ff00 ) + ( edge4 & 0x0000ff00 ) ) << 1 ) + ( corner1 & 0x0000ff00 ) + ( corner2 & 0x0000ff00 ) + ( corner3 & 0x0000ff00 ) + ( corner4 & 0x0000ff00 ) ) ) + 0x00000800 ) >> 4 ) & 0x0000ff00 ) + 
+   ( ( ( ( ( ( ( center & 0x000000ff ) << 2 ) + ( ( ( edge1 & 0x000000ff ) + ( edge2 & 0x000000ff ) + ( edge3 & 0x000000ff ) + ( edge4 & 0x000000ff ) ) << 1 ) + ( corner1 & 0x000000ff ) + ( corner2 & 0x000000ff ) + ( corner3 & 0x000000ff ) + ( corner4 & 0x000000ff ) ) ) + 0x00000008 ) >> 4 ) & 0x000000ff ) + 
    0xff000000; // blend alphas?
 }
 
@@ -64,9 +64,12 @@ template<> inline ucolor blend_tent_corner( const ucolor& center, const ucolor& 
 #define BELOW( xb, yb ) mip[ level - 1 ][ ( yb ) * mip_dim[ level - 1 ].x + ( xb ) ]
 
 template< class T > void image< T >::mip_it() { // mip it good
-    kernel = MIP_BOX;
+    kernel = MIP_TENT;
+    std::cout << "mip it" << std::endl;
     if( mip_me ) {
+        std::cout << "mip it good" << std::endl;
         if( !mipped ) {
+            std::cout << "mip_it: mipped = false" << std::endl;
             if( mip.size() > 1 ) {
                 std::cout << "warning: mip_it: mip.size() > 1"  << std::endl;
                 de_mip();
@@ -89,6 +92,7 @@ template< class T > void image< T >::mip_it() { // mip it good
             mipped = true;
         }
         if( !mip_utd ) {
+            std::cout << "mip_it: mip_utd = false" << std::endl;
             unsigned int mip_level, mip_blend;
             // calculate mip-maps
             if( kernel == MIP_BOX ) {
@@ -224,10 +228,12 @@ template< class T > void image< T >::de_mip() {
     // deallocate all mip-maps except base
     // remove all elements of mip vector except first
     if( mip.size() > 1 ) mip.erase( mip.begin() + 1, mip.end() );
+    std::cout << "de_mip()" << std::endl;
     mip_dim.clear();
 }
 
 template< class T > void image< T >::reset() { 
+    std::cout << "image::reset()" << std::endl;
     set_dim( { 0, 0 } );
     de_mip(); 
 }
@@ -244,6 +250,7 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
 // Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
+    std::cout << "image::set_dim()" << std::endl;
     auto& base = mip[ 0 ];
     if( dim != dims ) base.resize( dims.x * dims.y );
     de_mip();
@@ -333,6 +340,7 @@ template< class T > const T image< T >::sample_tile ( const vec2f& v, const bool
 
 template< class T > const T image< T >::sample ( const vec2f& v, const bool& smooth, const image_extend& extend ) const {
     using namespace linalg;
+    std::cout << "why am I here?" << std::endl;
     vec2f vf = fpbounds.bb_map( v, bounds );
     vec2i vi = ( vec2i )vf;
     if( vf.x < 0.0f ) vi.x -= 1;     // Correct for round towards zero
@@ -349,20 +357,19 @@ template< class T > const T image< T >::sample ( const vec2f& v, const bool& smo
 
 // Fixed point version of sample
 
-template< class T > const T image< T >::sample ( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const  {
+template< class T > const T image< T >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const  {
     int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
     int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
-
     return  blendf(
                 blendf(
-                    blendf( mip[ mip_level ][ l_index ], mip[ mip_level ][ l_index + 1 ], ( ( vi.x >> ( mip_level ) ) & 0xffff ) / 65536.0f ),
-                    blendf( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], ( (  vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
-                    ( ( vi.y >> ( mip_level ) ) & 0xffff ) / 65536.0f 
+                    blendf( mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
+                    blendf( mip[ mip_level + 1 ][ u_index                              + 1 ], mip[ mip_level + 1 ][ u_index                              ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
+                    ( ( vi.y >> mip_level ) & 0xffff ) / 65536.0f 
                 ),
                 blendf(
-                    blendf( mip[ mip_level + 1 ][ u_index ], mip[ mip_level + 1 ][ u_index + 1 ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-                    blendf( mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x ], mip[ mip_level ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-                    ( ( vi.y >> mip_level ) & 0xffff ) / 65536.0f 
+                    blendf( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
+                    blendf( mip[ mip_level ][ l_index                          + 1 ], mip[ mip_level ][ l_index                          ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
+                    ( ( vi.y >> ( mip_level ) ) & 0xffff ) / 65536.0f 
                 ),
                 mip_blend / 65536.0f
             );
@@ -385,15 +392,15 @@ template< class T > void image< T >::crop_circle( const T& background, const flo
             else blendf( base[ y * dim.x + x ], background, ( 1.0f - sqrtf( r / r2 ) ) / ramp_width );
         }
     }
-    //mip_it(); 
+    mip_utd = false; 
 }
 
 // Colors black everything outside of a centered circle
+/*
 template< class T > void image< T >::crop_circle( const float& ramp_width ) {
-    T b; 
-    black( b );
     crop_circle( b, ramp_width );
 }
+*/
 
 template< class T > void image< T >::mirror(    const image< T >& in,
                                                 const bool& reflect_x, 
@@ -513,16 +520,14 @@ template< class T > void image< T >::fill( const T& c, const bb2f& bb ) {
 }
 
 template< class T > void image< T >::clear() {
-    T b;
-    black( b );
-    fill( b );
+    fill( black< T > );
     mip_utd = false;
 }
 
 // Black and white noise
 template< class T > void image< T >::noise( const float& a ) {
     auto& base = mip[ 0 ];
-    for( auto& pix : base ) { if( weighted_bit( a ) ) white( pix ); else black( pix ); }
+    for( auto& pix : base ) { pix = weighted_bit(a) ? white< T > : black< T >; }
     mip_utd = false;
 }
 
@@ -533,7 +538,7 @@ template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
         auto bb1 = bb.intersect( ipbounds );
         for( int y = bb1.minv.y; y < bb1.maxv.y; y++ ) {
             for( int x = bb1.minv.x; x < bb1.maxv.x; x++ ) {
-                if( weighted_bit( a ) ) white( base[ y * dim.x + x ] ); else black( base[ y * dim.x + x ] );
+                base[ y * dim.x + x ] = weighted_bit( a ) ? white< T > : black< T >;
             }
         }
     }
@@ -542,6 +547,17 @@ template< class T > void image< T >::noise( const float& a, const bb2i& bb ) {
 
 template< class T > void image< T >::noise( const float& a, const bb2f& bb ) {
     noise( a, bb.map_box( bounds, ipbounds ) );
+}
+
+template< class T > void image< T >::checkerboard( const int& box_size, const T& c1, const T& c2 ) {
+    auto& base = mip[ 0 ];
+    for( int y = 0; y < dim.y; y++ ) {
+        for( int x = 0; x < dim.x; x++ ) {
+            if( ( x / box_size + y / box_size ) % 2 ) base[ y * dim.x + x ] = c1;
+            else base[ y * dim.x + x ] = c2;
+        }
+    }
+    mip_utd = false;
 }
 
 template< class T > void image< T >::apply_mask( const image< T >& layer, const image< T >& mask, const mask_mode& mmode ) {
@@ -630,6 +646,14 @@ template< class T > void image< T >::splat(
     // future: add vector and color effects
     if( has_mask ) {
         const image< T >& m = mask->get();
+        std::cout << "g.mip.size() = " << g.mip.size() << std::endl;
+        for( int level = 0; level < g.mip.size(); level++ ) {
+            std::cout << "g.mip[" << level << "].size() = " << g.mip[ level ].size() << std::endl;
+        }
+        std::cout << "m.mip.size() = " << m.mip.size() << std::endl;
+        for( int level = 0; level < m.mip.size(); level++ ) {
+            std::cout << "m.mip[" << level << "].size() = " << m.mip[ level ].size() << std::endl;
+        }
         // image and mask same size
         if( m.dim == g.dim ) {
             for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
@@ -638,6 +662,7 @@ template< class T > void image< T >::splat(
                     for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
                         if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
                             if( smooth ) { 
+                                std::cout << "smooth sample sfix.x = " << sfix.x << " sfix.y = " << sfix.y << std::endl; 
                                 gval = g.sample( mip_level, mip_blend, sfix );
                                 mval = m.sample( mip_level, mip_blend, sfix );
                             }
@@ -807,22 +832,24 @@ template< class T > void image< T >::read_binary(  const std::string &filename )
     mip_utd = false;
 }
 
-template< class T > void image< T >::write_binary( const std::string &filename )
+template< class T > void image< T >::write_binary( const std::string &filename, int level )
 {
-    auto& base = mip[ 0 ];
+    auto& pixels = mip[ level ];
 
     std::ofstream out_file( filename, std::ios::out | std::ios::binary );
     out_file.write( (char*)&dim, sizeof( vec2i ) );
     out_file.write( (char*)&bounds, sizeof( bb2f ) );
-    out_file.write( (char*)&(base[0]), dim.x * dim.y * sizeof( T ) );
+    out_file.write( (char*)&(pixels[0]), dim.x * dim.y * sizeof( T ) );
     out_file.close();
 }
 
-template< class T > void image< T >::write_file(const std::string &filename, file_type type, int quality ) {
+template< class T > void image< T >::write_file(const std::string &filename, file_type type, int quality, int level ) {
+    if( level > 0 && !mipped) { std::cout << "image::write_file: mip-map not generated\n"; return; }
+    if( level > mip.size() ) { std::cout << "image::write_file: mip-map level out of range\n"; return; }
     switch( type ) {
-        case FILE_JPG: write_jpg( filename, quality ); break;
-        case FILE_PNG: write_png( filename ); break;
-        case FILE_BINARY: write_binary( filename ); break;
+        case FILE_JPG: write_jpg( filename, quality, level ); break;
+        case FILE_PNG: write_png( filename, level ); break;
+        case FILE_BINARY: write_binary( filename, level ); break;
         default: std::cout << "image::write_file: unknown file type " << type << std::endl;
     }
 }

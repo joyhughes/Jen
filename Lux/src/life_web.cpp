@@ -65,8 +65,8 @@ void slider_value( int value ) {
 }
 
 int main(int argc, char** argv) {
-  ucolor white, black;
-  ::white( white ); ::black( black );
+  //ucolor white, black;
+  //::white( white ); ::black( black );
 
   ucolor on = 0x00ffffff;
   ucolor off = 0x00000000;

@@ -342,11 +342,11 @@ void vector_field::write_png(const std::string &filename ) {
 }
 */
 
-template<> void vector_field::write_file(const std::string &filename, file_type type, int quality ) {
+template<> void vector_field::write_file(const std::string &filename, file_type type, int quality, int level ) {
     switch( type ) {
         //case FILE_JPG: write_jpg( filename, quality ); break;
         //case FILE_PNG: write_png( filename ); break;
-        case FILE_BINARY: write_binary( filename ); break;
+        case FILE_BINARY: write_binary( filename, level ); break;
         default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
     }
 }
