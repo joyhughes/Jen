@@ -348,5 +348,3 @@ Lux Vitae ("Living Light" in Latin) is a compositing 2.5D renderer, effects engi
 Lux can run standalone in command line mode, in which case it saves one or more .jpg files of the result, or embedded in a web browser via Emscripten as WebAssembly, in which case the result is displayed in the browser window, animating in real time.
 
 It's the intent of a full version of Lux to be able to output still images, real-time and single-frame animation, and collections of generative art which could be used for applications such as NFTs.
-
-See the [README for Lux](https://github.com/joyhughes/Jen/blob/Update-documentation/Lux/README.md) for more details.
