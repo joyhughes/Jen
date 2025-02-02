@@ -398,6 +398,64 @@ bool is_widget_group_active( std::string name ) {
     return false;   // group not in UI
 }
 
+void add_image_to_scene(std::string name, std::string filepath) {
+    try {
+        std::cout << "Adding image: " << name << " filepath: " << filepath << std::endl;
+
+        ubuf_ptr img(new buffer_pair<ucolor>(filepath));
+        any_buffer_pair_ptr any_buf = img;
+
+        global_context->s->buffers[name] = any_buf;
+        // Mark affected queues for re-render
+        for (auto& q : global_context->s->queue) {
+            q.rendered = false;
+        }
+        global_context->s->restart();
+    } catch (const std::exception& e) {
+        std::cerr << "Error in add_image_to_scene: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+void update_source_name(std::string name) {
+    try {
+        std::cout << "Updating source to: " << name << std::endl;
+
+        if (!global_context->s->buffers.contains(name)) {
+            std::cerr << "Source buffer not found: " << name << std::endl;
+            return;
+        }
+
+        for (auto& q : global_context->s->queue) {
+            q.rendered = false;
+        }
+
+        global_context->s->restart();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error in update_source_name: " << e.what() << std::endl;
+    }
+}
+
+void add_to_menu(std::string menu_name, std::string item) {
+    try {
+        if (global_context->s->functions.contains(menu_name)) {
+            // Get the menu function pointer and cast it to menu_string type
+            auto menu = global_context->s->get_fn_ptr<std::string, menu_string>(menu_name);
+
+            // Check if item already exists to avoid duplicates
+            if (std::find(menu->items.begin(), menu->items.end(), item) == menu->items.end()) {
+                menu->items.push_back(item);
+                std::cout << "Added " << item << " to menu " << menu_name << std::endl;
+            }
+        } else {
+            std::cerr << "Menu " << menu_name << " not found" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error in add_to_menu: " << e.what() << std::endl;
+    }
+}
+
 int main(int argc, char** argv) { 
     using namespace nlohmann;
     std::string filename;
@@ -494,4 +552,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_down",         &mouse_down );
     function( "mouse_over",         &mouse_over );
     function( "mouse_click",        &mouse_click );
+    function("add_image_to_scene", &add_image_to_scene);
+    function("add_to_menu", &add_to_menu);
+    function("update_source_name", &update_source_name);
 }
