@@ -26,6 +26,8 @@ struct element_context {
 
     element_context( element& el_init, cluster& cl_init, scene& s_init, any_buffer_pair_ptr& buf_init ) :
         el( el_init ), cl( cl_init ), s( s_init ), buf( buf_init ) {}
+
+    element_context( scene& s_init, any_buffer_pair_ptr& buf_init );
 };
 
 // An element object contains all the data members needed to create an image splat
@@ -100,6 +102,8 @@ struct element {
         {}
 };
 
+static element default_element = element();
+
 // A default cluster with root set to default element with a single image should produce a full frame image, e.g. for background
 struct cluster {
     element root_elem;       // initial element in cluster
@@ -148,6 +152,9 @@ struct cluster {
         background_dependent( cl.background_dependent )
         {}        
 };
+
+static next_element default_next_element = next_element();
+static cluster default_cluster = cluster( default_element, default_next_element );
 
 typedef enum {
     MODE_STATIC,        // render once

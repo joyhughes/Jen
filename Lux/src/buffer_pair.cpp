@@ -72,12 +72,12 @@ template< class T > void buffer_pair< T >::reset( const image< T >& img ) {
 
 template< class T > void buffer_pair< T >::reset( vec2i dim ) {
     // Code in here is problematic and has been causing segfaults
-    if( image_pair.first.get() == NULL || image_pair.first->get_dim() != dim ) {
+    //if( image_pair.first.get() == NULL || image_pair.first->get_dim() != dim ) {
         std::cout << "buffer_pair::reset() " << dim.x << " " << dim.y << std::endl;
         image_pair.first.reset( new image< T >( dim ) );
         image_pair.second.reset( NULL );
         swapped = false;
-    }
+    //}
 }
 
 template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp ) { 
@@ -91,12 +91,23 @@ template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp 
         else {
             //std::cout << "buffer_pair::copy_first() - dest pointer not NULL" << std::endl;
             image_pair.first->copy( *bp.image_pair.first );
+            //image_pair.second.reset( NULL );
         }
     }
     else {
         //std::cout << "buffer_pair::copy_first() - source pointer NULL" << std::endl;
         image_pair.first.reset( NULL );
     }
+    /*auto first_dim = image_pair.first->get_dim();
+    std::cout << "buffer_pair::copy_first() result: (" << first_dim.x << " " << first_dim.y << "),";
+    if(image_pair.second) {
+        auto second_dim = image_pair.second->get_dim();
+        std::cout << "(" << second_dim.x << " " << second_dim.y << ")" << std::endl;
+    }
+    else { 
+        std::cout << "NULL" << std::endl; 
+    }*/
+   image_pair.second.reset( NULL );
 }
 
 template< class T > image< T >& buffer_pair< T >::operator () () {

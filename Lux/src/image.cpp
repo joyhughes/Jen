@@ -250,13 +250,15 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 
 // Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
-    std::cout << "image::set_dim()" << std::endl;
+    //std::cout << "image::set_dim()" << std::endl;
     auto& base = mip[ 0 ];
-    if( dim != dims ) base.resize( dims.x * dims.y );
-    de_mip();
-    dim = dims;
-    refresh_bounds();
-    mip_it();
+    if( dim != dims ) {
+        base.resize( dims.x * dims.y );
+        //de_mip();
+        dim = dims;
+        refresh_bounds();
+        //mip_it();
+    }
 }
 
 // calculates default bounding boxes based on pixel dimensions
@@ -482,6 +484,7 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
 
 // copy image of same size ( may need to be able to scale as well )
 template< class T > void image< T >::copy( const image< T >& img ) {
+    //std::cout << "image::copy()" << std::endl;
     set_dim( img.dim );
     set_bounds( img.bounds );
     mip.resize(img.mip.size()); // Resize the outer vector to match the source

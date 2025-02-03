@@ -47,6 +47,7 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
     }
     else std::cout << "splat_element() - unmatched image buffer" << std::endl;
 }
+element_context::element_context( scene& s_init, any_buffer_pair_ptr& buf_init ) : el(default_element), s(s_init), buf(buf_init), cl(default_cluster) {}
 
 // splats any element onto any image
 void element::render( any_buffer_pair_ptr& target ) { 
@@ -104,10 +105,7 @@ void effect_list::resize( vec2i new_dim ) {
 
 void effect_list::update( scene& s ) {
     // create dummy context
-    element el;
-    next_element ne;
-    cluster cl( el, ne );
-    element_context context( el, cl, s, buf );
+    element_context context( s, buf );
 
     if( self_generated ) {
         vec2i old_dim = *dim;
@@ -130,7 +128,6 @@ void effect_list::update( scene& s ) {
         if (rmode == MODE_EPHEMERAL || !rendered) {
 
             if (s.buffers.contains(*source_name)) {
-
                 any_buffer_pair_ptr& source_buf = s.buffers[*source_name];
                 vec2i source_dim;
 
@@ -147,10 +144,12 @@ void effect_list::update( scene& s ) {
                     copy_buffer(b, source_buf);
                 }, buf);
             } else {
+                std::cout << "effect_list::update() - what happens here?" << std::endl;
             }
         }
     }
 }
+
 /*
 void effect_list::update_source_name( scene& s ) {
     //std::cout << "effect_list " << name << " update_source_name() ";
@@ -211,7 +210,7 @@ void effect_list::render( scene& s ) {
         }
         rendered = true;
         // use std::visit to call mip_it on image pixels
-        std::visit( [&]( auto& b ) { b->get_image().use_mip(true); b->get_image().mip_it(); }, buf );
+        //std::visit( [&]( auto& b ) { b->get_image().use_mip(true); b->get_image().mip_it(); }, buf );
     }
     //else std::cout << "static or already rendered" << std::endl;
     // std::cout << "effect_list render complete" << std::endl;
@@ -332,10 +331,11 @@ void scene::animate(
 void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     auto& output_list = queue.back();
     output_list.buf = buf;
+    std::visit( [&]( auto& b ) { b->reset( *(output_list.dim) ); }, buf );
     output_list.ptype = ( pixel_type )buf.index();
     vec2i dim_out;
     std::visit( [&]( auto& b ) { dim_out = b->get_image().get_dim(); }, buf );
-    //std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
+    std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
 
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];

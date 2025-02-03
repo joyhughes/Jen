@@ -92,8 +92,8 @@ template<> void uimage::load( const std::string& filename ) {
         base.push_back( f );
     }
     // default mip mapping for testing - future: set use_mip from scene file
-    use_mip(true);
-    mip_it();
+    //use_mip(true);
+    //mip_it();
 }
 
 template<> void uimage::write_jpg( const std::string& filename, int quality, int level ) {
