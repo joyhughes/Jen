@@ -115,6 +115,7 @@ make clean
 ```
 ##React + Emscripten
 ```
+mkdir web_build
 make
 cd lux_react
 npm start

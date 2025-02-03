@@ -13,6 +13,7 @@ import JenMultiDirection8 from './JenMultiDirection8';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
+import {ImagePicker} from "./ImagePicker.jsx";
 
 function WidgetGroup({ panelSize, json, onChange }) {
   const [ renderCount, setRenderCount ] = useState(0);
@@ -44,8 +45,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
     switch ( widget.type ) {
       case 'menu_int':
       case 'menu_string':
-        widgetComponent = < JenMenu key = { widget.name } json = { widget } width = { panelSize - 40 } onChange = { onChange } />;
-      break;
+        if (widget.tool === 'image') {
+          widgetComponent = <ImagePicker json={widget} width={panelSize - 40} onChange={onChange} />;
+          height = 180;
+        } else {
+          widgetComponent = <JenMenu json={widget} width={panelSize - 40} onChange={onChange} />;
+        }
+        break;
       case 'slider_int':
       case 'slider_float':
       case 'range_slider_int':
