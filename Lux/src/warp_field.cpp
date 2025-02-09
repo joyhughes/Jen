@@ -2,6 +2,12 @@
 
 // fill warp field values based on vector field - fields should be same size
 template<> void warp_field::fill( const image< vec2f >& vfield, bool relative, const image_extend extend ) {
+    auto& base = mip[ 0 ];
+
+    if( vfield.get_dim() != dim ) {
+        std::cerr << "Error: vector field and warp field must be same size" << std::endl;
+        return;
+    }
     for( int x = 0; x < dim.x; x++ ) {
         for( int y = 0; y < dim.y; y++ ) {
             vec2f vf = vfield.index( y * dim.x + x );

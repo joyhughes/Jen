@@ -35,7 +35,7 @@ frame_context *global_context;
 
 val get_buf1() {
     uimage& img = (uimage &)(global_context->buf->get_image());
-    unsigned char* buffer = (unsigned char* )img.get_base();
+    unsigned char* buffer = (unsigned char* )img.get_base_ptr();
     size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
 
     //std::cout << "get_img_data() buffer length: " << buffer_length << std::endl;
@@ -47,7 +47,7 @@ val get_img_data() { return get_buf1(); }
 
 val get_buf2() {
     uimage& img = (uimage &)(global_context->buf->get_buffer());
-    unsigned char* buffer = (unsigned char* )img.get_base();
+    unsigned char* buffer = (unsigned char* )img.get_base_ptr();
     size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
 
     //std::cout << "get_img_data() buffer length: " << buffer_length << std::endl;
@@ -72,7 +72,7 @@ bool is_swapped() {
 val get_thumbnail( std::string name, int width, int height) {
     uimage img( vec2i{ width, height } );
     bool drawn = false;
-    unsigned char* buffer = (unsigned char* )img.get_base();
+    unsigned char* buffer = (unsigned char* )img.get_base_ptr();
     size_t buffer_length = width * height * 4; // Assuming 4 bytes per pixel (RGBA)
 
     if( global_context->s->buffers.contains( name ) ) {
@@ -382,11 +382,8 @@ std::string get_widget_JSON( std::string name ) {
 }
 
 bool is_widget_group_active( std::string name ) {
-    element el;
-    next_element ne;
-    cluster cl( el, ne );
     any_buffer_pair_ptr null_any_buf_ptr = null_buffer_pair_ptr;
-    element_context context( el, cl, *(global_context->s), null_any_buf_ptr );
+    element_context context( *(global_context->s), null_any_buf_ptr );
 
     for( auto& wg : global_context->s->ui.widget_groups ) {
         if( wg.name == name ) {

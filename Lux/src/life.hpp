@@ -94,8 +94,7 @@ template< class T > struct rule_life {
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
             
-   rule_life( const T& on_init, const T& off_init, const bool& use_threshold_init = false, const int& threshold_init = 384 ) : on( on_init ), off( off_init ), use_threshold( use_threshold_init ), threshold( threshold_init ) {}
-   rule_life();
+   rule_life( const T& on_init = white< T >, const T& off_init = black< T >, const bool& use_threshold_init = false, const int& threshold_init = 384 ) : on( on_init ), off( off_init ), use_threshold( use_threshold_init ), threshold( threshold_init ) {}
 };
 
 #define rule_life_frgb rule_life< frgb >

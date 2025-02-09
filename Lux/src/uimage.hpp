@@ -16,10 +16,10 @@ template<> void uimage::rotate_hue( const float& h );
 
 // I/O functions using template specialization
 template<> void uimage::load( const std::string& filename );
-template<> void uimage::write_jpg( const std :: string& filename, int quality );
-template<> void uimage::write_png( const std :: string& filename );
+template<> void uimage::write_jpg( const std :: string& filename, int quality, int level );
+template<> void uimage::write_png( const std :: string& filename, int level );
 
-template<> const ucolor image< ucolor >::sample ( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const;
+template<> const ucolor image< ucolor >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const;
 
 template<> void uimage::dump();
 

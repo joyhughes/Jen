@@ -72,6 +72,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Effects loaded" )
 
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
+        DEBUG( "Reading queue" )
         read_queue( q );              // add to render queue
     }
 
@@ -254,29 +255,25 @@ switch_type scene_reader::read_switch_type( const json& j ) {
 
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
-    DEBUG( "scene_reader::read_image" )
 
     if( j.contains( "filename" ) ) j[ "filename" ].get_to( filename );
     else ERROR( "scene_reader::read_image error - image filename missing\n" )
-    DEBUG( "scene_reader::read_image - filename: " + filename )
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );
     else name = filename;
-    DEBUG( "scene_reader::read_image - name: " + name )
 
     if( j.contains( "type") ) j[ "type" ].get_to( type );
     else ERROR( "scene_reader::read_image error - image type missing\n" )
-    DEBUG( "scene_reader::read_image - type: " + type )
 
     // future: add binary file format for all image types
 
+    DEBUG( "scene_reader::read_image() - filename " + filename + "name " + name + " type " + type )
     if( type == "fimage" ) {
         fbuf_ptr img( new buffer_pair< frgb >( filename ) );
         s.buffers[ name ] = img;
     }
 
     if( type == "uimage" ) {
-        DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
         s.buffers[ name ] = img;
         //std :: cout << "uimage pointer " << img << std::endl;
@@ -747,6 +744,12 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
+    EFF( eff_checkerboard_frgb)   HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_ucolor) HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2i)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2f)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_int)    HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+
     EFF( eff_vector_warp_frgb )   HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_ucolor ) HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_vec2i )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
@@ -818,7 +821,6 @@ void scene_reader::read_queue( const json& j ) {
     if( j.contains( "mode"           ) ) read( rmode,          j[ "mode"         ] );
     float relative_dim = 1.0;
     if( j.contains( "relative_dim"   ) ) read( relative_dim,   j[ "relative_dim" ] );  
-    
     effect_list elist( name, self_generated, "none", dim, ptype, rmode, relative_dim );
     // DEBUG( "Reading queue " + .name )
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;

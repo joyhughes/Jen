@@ -124,4 +124,3 @@ void apply_mask( vec2i& result, const vec2i& layer, const vec2i& mask, const mas
 
 
 
-

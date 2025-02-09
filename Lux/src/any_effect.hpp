@@ -16,6 +16,7 @@ struct cluster;
 template< class T > struct CA;
 template< class T > struct eff_fill;
 template< class T > struct eff_noise;
+template< class T > struct eff_checkerboard;
 template< class T > struct eff_grayscale;
 template< class T > struct eff_invert;
 template< class T > struct eff_rotate_components;
@@ -84,6 +85,12 @@ typedef std::variant <
     std::shared_ptr< eff_noise< int > >,
     std::shared_ptr< eff_noise< vec2i > >,
 
+    std::shared_ptr< eff_checkerboard< frgb > >,
+    std::shared_ptr< eff_checkerboard< ucolor > >,
+    std::shared_ptr< eff_checkerboard< vec2f > >,
+    std::shared_ptr< eff_checkerboard< int > >,
+    std::shared_ptr< eff_checkerboard< vec2i > >,
+    
     std::shared_ptr< eff_grayscale< frgb > >,
     std::shared_ptr< eff_grayscale< ucolor > >,
 

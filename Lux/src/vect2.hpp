@@ -74,20 +74,20 @@ static inline vec2i blend( const vec2i& a, const vec2i& b ) { return ( a + b ) /
 // default colors for various image operations
 // imagine cellular automata operating on vector fields (weird but maybe cool?)
 // vector_field
-inline void white( vec2f& w ) { w = vec2f( { 1.0f, 1.0f } ); }
-inline void black( vec2f& b ) { b = vec2f( { 0.0f, 0.0f } ); }
+//inline void white( vec2f& w ) { w = vec2f( { 1.0f, 1.0f } ); }
+//inline void black( vec2f& b ) { b = vec2f( { 0.0f, 0.0f } ); }
 
 // warp_field
-inline void white( int& w ) { w = 1; }
-inline void black( int& b ) { b = 0; }
+//inline void white( int& w ) { w = 1; }
+//inline void black( int& b ) { b = 0; }
 
 // offset_field
-inline void white( vec2i& w ) { w = vec2i( { 1, 1 } ); }
-inline void black( vec2i& b ) { b = vec2i( { 0, 0 } ); }
+//inline void white( vec2i& w ) { w = vec2i( { 1, 1 } ); }
+//inline void black( vec2i& b ) { b = vec2i( { 0, 0 } ); }
 
 // scalar field
-inline void white( float& w ) { w = 1.0f; }
-inline void black( float& b ) { b = 0.0f; }
+//inline void white( float& w ) { w = 1.0f; }
+//inline void black( float& b ) { b = 0.0f; }
 
 // wrappers for addition and subtraction - used for image compatibility
 // vector_field
