@@ -26,6 +26,8 @@ struct element_context {
 
     element_context( element& el_init, cluster& cl_init, scene& s_init, any_buffer_pair_ptr& buf_init ) :
         el( el_init ), cl( cl_init ), s( s_init ), buf( buf_init ) {}
+
+    element_context( scene& s_init, any_buffer_pair_ptr& buf_init );
 };
 
 // An element object contains all the data members needed to create an image splat
@@ -100,6 +102,8 @@ struct element {
         {}
 };
 
+static element default_element = element();
+
 // A default cluster with root set to default element with a single image should produce a full frame image, e.g. for background
 struct cluster {
     element root_elem;       // initial element in cluster
@@ -149,6 +153,9 @@ struct cluster {
         {}        
 };
 
+static next_element default_next_element = next_element();
+static cluster default_cluster = cluster( default_element, default_next_element );
+
 typedef enum {
     MODE_STATIC,        // render once
     MODE_ITERATIVE,     // render every frame based on previous frame
@@ -172,7 +179,7 @@ struct effect_list {
     //void update_source_name( scene& s );
     //void copy_source_buffer( scene& s );
     void render( scene& s );
-    void resize( const vec2i& new_dim );
+    void resize( vec2i new_dim );
     void restart( scene& s );   // return to initial condition
 
     effect_list( const std::string& name_init = "default",
@@ -191,12 +198,23 @@ struct effect_list {
     relative_dim( relative_dim_init ),
     rendered( false ) 
     {
+        //std::cout << "dim = " << *dim << std::endl;
         switch( ptype ) {
-            case( PIXEL_FRGB   ): buf = std::make_shared< buffer_pair< frgb >   >( *dim ); break;
-            case( PIXEL_UCOLOR ): buf = std::make_shared< buffer_pair< ucolor > >( *dim ); break;
-            case( PIXEL_VEC2F  ): buf = std::make_shared< buffer_pair< vec2f >  >( *dim ); break;
-            case( PIXEL_INT    ): buf = std::make_shared< buffer_pair< int >    >( *dim ); break;
-            case( PIXEL_VEC2I  ): buf = std::make_shared< buffer_pair< vec2i >  >( *dim ); break;
+            case( PIXEL_FRGB   ):   
+                buf = std::make_shared< buffer_pair< frgb >   >( dim_init ); 
+                break;
+            case( PIXEL_UCOLOR ):
+                buf = std::make_shared< buffer_pair< ucolor > >( dim_init ); 
+                break;
+            case( PIXEL_VEC2F ):
+                buf = std::make_shared< buffer_pair< vec2f >  >( dim_init ); 
+                break;
+            case( PIXEL_INT    ): 
+                buf = std::make_shared< buffer_pair< int >    >( dim_init ); 
+                break;
+            case( PIXEL_VEC2I  ): 
+                buf = std::make_shared< buffer_pair< vec2i >  >( dim_init ); 
+                break;
         }
     }
 };

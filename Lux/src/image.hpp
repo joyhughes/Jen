@@ -76,7 +76,7 @@ protected:
 public:
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
-        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT ) 
         {
             // create stub base vector
             std::vector< T > v;
@@ -86,7 +86,7 @@ public:
     // creates image of particular size 
     image( vec2i dims ) 
         :  dim( dims ), bounds( { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ), 
-           mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
+           mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )
             { 
                 std::vector< T > v;
                 mip.push_back( v );
@@ -94,7 +94,7 @@ public:
             }     
 
     image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
-        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
+        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )
         { 
             std::vector< T > v;
             mip.push_back( v );
@@ -103,7 +103,7 @@ public:
 
     // copy constructor
     image( const image< T >& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )//, base( mip[ 0 ] ) 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel ) 
         {
             mip.resize(img.mip.size()); // Resize the outer vector to match the source
             for (size_t i = 0; i < img.mip.size(); ++i) {
@@ -113,8 +113,8 @@ public:
     
     // resize constructor
     // 
-    image( const image< T >& img, const vec2i& max_size ) : dim( max_size ), 
-        mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+    image( const image< T >& img, const vec2i& max_size, const bool& mip_me_init = false ) : dim( max_size ), 
+        mip_me( mip_me_init ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )
         {
             // set dimensions - fit within max_size rectangle
             if( dim.x > img.dim.x || dim.y > img.dim.y ) {
@@ -124,20 +124,21 @@ public:
             bounds = { { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } };
             ipbounds = { { 0, 0 }, dim };
             fpbounds = { { 0.0f, 0.0f }, ipbounds.maxv - 1.0f };
-            base.resize( dim.x * dim.y );
+            mip.resize( 1 );
+            mip[0].resize( dim.x * dim.y );
 
             //if( !img.mipped ) throw std::runtime_error( "image resize constructor: image to be resized has no mip-map" );
             // splat image into new image (smoothed if mip map is available)
             splat( img, img.mipped );
+            mip_it();
         }
 
     // move constructor
     image( image< T >&& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )//, base( mip[ 0 ] ) 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )
         {
             // move mip map
             mip = std::move( img.mip );
-            //base = std::move( img.base );
             //mip_it();
         }
 
@@ -287,7 +288,7 @@ public:
 
     // Debugging functions
     void dump() {} // dump image to console
-    unsigned int size() { return base.size(); } // return size of image
+    unsigned int size() { return mip[0].size(); } // return size of image
 
     // operators
     image< T >&  operator = ( const image< T >&  rhs ); // copy assignment
