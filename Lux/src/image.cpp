@@ -482,14 +482,24 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
     mip_utd = false;
 }
 
-// copy image
+// copy image in place
 template< class T > void image< T >::copy( const image< T >& img ) {
     //std::cout << "image::copy()" << std::endl;
     if( img.dim == dim ) {
         mip.assign( img.mip );
+        mip_dim.assign( img.mip_dim );
     } else {
+        dim = img.dim;
         mip = img.mip;
+        mip_dim = img.mip_dim;
     }  
+    bounds = img.bounds;
+    ipbounds = img.ipbounds;
+    fpbounds = img.fpbounds;
+    mip_me = img.mip_me;
+    mipped = img.mipped;
+    mip_utd = img.mip_utd;
+    kernel = img.kernel;
 }
 
 template< class T > void image< T >::fill( const T& c ) {

@@ -67,8 +67,6 @@ protected:
     bool mip_utd;     // is mip-map up to date? Set to false with any modification of base image
     mip_kernel kernel;
     std::vector< std::vector< T > > mip;  // mip-map of image - first level points to base
-    //std::vector< T >& base;  // Pixels
-    std::vector< T > base;  // Pixels
     std::vector< vec2i > mip_dim;  // dimensions of mip-map levels (int)
     //std::vector< std::unique_ptr< bb2i > > ipbounds_mip;  // pixel space bounding box of mipped image (int)
     //std::vector< std::unique_ptr< bb2f > > fpbounds_mip;  // pixel space bounding box of mipped image (float)
