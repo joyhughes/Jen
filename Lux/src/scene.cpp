@@ -97,7 +97,7 @@ void cluster::set_root( element& el ) {
 }
 
 void effect_list::resize( vec2i new_dim ) {
-    if( new_dim == *dim ) return;
+    //if( new_dim == *dim ) return;
     // need to resize buffer (retaining data) instead?
     std::cout << "effect_list " << name << " resize() " << new_dim.x << " " << new_dim.y << std::endl;
     std::visit( [&]( auto& b ) { b->reset( new_dim ); }, buf );       
@@ -137,9 +137,10 @@ void effect_list::update( scene& s ) {
 
                 if (source_dim != *dim) {
                     dim = source_dim;
-                    resize(*dim);
+                    resize(source_dim);
                 }
 
+                // Copying here may be an unnecessary extra step - can we render directly from source buffer?
                 std::visit([&, source_buf](auto& b) {
                     copy_buffer(b, source_buf);
                 }, buf);
