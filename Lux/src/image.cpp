@@ -251,10 +251,10 @@ template< class T > const vec2i image< T >::get_dim() const { return dim; }
 // Reallocates base memory to match new dimensions, if needed
 template< class T > void image< T >::set_dim( const vec2i& dims ) {
     //std::cout << "image::set_dim()" << std::endl;
-    auto& base = mip[ 0 ];
     if( dim != dims ) {
+        auto& base = mip[ 0 ];
         base.resize( dims.x * dims.y );
-        //de_mip();
+        de_mip();
         dim = dims;
         refresh_bounds();
         //mip_it();
@@ -482,18 +482,14 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
     mip_utd = false;
 }
 
-// copy image of same size ( may need to be able to scale as well )
+// copy image
 template< class T > void image< T >::copy( const image< T >& img ) {
     //std::cout << "image::copy()" << std::endl;
-    set_dim( img.dim );
-    set_bounds( img.bounds );
-    mip.resize(img.mip.size()); // Resize the outer vector to match the source
-
-    for (size_t i = 0; i < img.mip.size(); ++i) {
-        mip[i] = img.mip[i]; // Use the assignment operator to copy each inner vector
-    }    
-
-    //mip_it();    
+    if( img.dim == dim ) {
+        mip.assign( img.mip );
+    } else {
+        mip = img.mip;
+    }  
 }
 
 template< class T > void image< T >::fill( const T& c ) {
