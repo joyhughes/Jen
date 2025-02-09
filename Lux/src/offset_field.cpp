@@ -2,6 +2,7 @@
 
 // fill warp field values based on vector field - fields should be same size
 template<> void offset_field::fill(const image< vec2f >& vfield, const bool relative, const image_extend extend ) {
+    auto& base = mip[ 0 ];
 
     if( vfield.get_dim() != dim ) {
         std::cerr << "Error: vector field and warp field must be same size" << std::endl;
@@ -31,4 +32,5 @@ template<> void offset_field::fill(const image< vec2f >& vfield, const bool rela
             }
         }
     }
+    mip_utd = false;
 }

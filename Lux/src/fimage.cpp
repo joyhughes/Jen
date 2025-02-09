@@ -7,42 +7,57 @@
 // pixel modification functions
 
 template<> void fimage::clamp( float minc, float maxc ) {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { linalg::clamp( c, minc, maxc ); }
-    //mip_it();
 }
 
 template<> void fimage::constrain() {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { ::constrain( c ); }
-    //mip_it();
 }
 
 template<> void fimage::grayscale() {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { c = gray( c ); }
-    //mip_it();
 }
 
 template<> void fimage::invert() {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { ::invert( c ); }
-    //mip_it();
 }
 
 template<> void fimage::rotate_components( const int& r ) {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { ::rotate_components( c, r ); }
-    //mip_it();
 }
 
 template<> void fimage::rgb_to_hsv() {
-    for( auto& c : base ) { c = ::rgb_to_hsv( c ); }
-    // rather than calling mip_it(), probably better to calculate hsv at each mip level
+    mip_it();
+    for( auto& level : mip ) {
+        { 
+            for( auto& c : level ) { c = ::rgb_to_hsv( c ); }
+        }
+    }
 }
 
 template<> void fimage::hsv_to_rgb() {
+    auto& base = mip[ 0 ];
+    mip_utd = false;
     for( auto& c : base ) { c = ::hsv_to_rgb( c ); }
-    //mip_it();
 }
 
 template<> void fimage::rotate_hue( const float& h ) {
-    for( auto& c : base ) { c = ::rotate_hue( c, h ); }
+    mip_it();
+    for( auto& level : mip ) {
+        { 
+            for( auto& c : level ) { c = ::rotate_hue( c, h ); }
+        }
+    }
     //mip_it();
 }
 
@@ -54,6 +69,7 @@ template<> void fimage::load( const std::string& filename ) {
     refresh_bounds();
 	int c = 0;
     frgb f;
+    auto& base = mip[ 0 ];    
 
     for (auto it = std::begin (loader.img); it <= std::end (loader.img); ) {
         if( loader.channels == 1 )	// monochrome image
@@ -90,23 +106,28 @@ template<> void fimage::load( const std::string& filename ) {
     //std::cout << "Image load complete\n";
 }
 
-template<> void fimage::write_jpg( const std::string& filename, int quality ) {
+template<> void fimage::write_jpg( const std::string& filename, int quality, int level ) {
     std::vector< unsigned char > img;
-    for( auto& f : base ) {
+    img.reserve( dim.x * dim.y * 3 );
+    auto& pixels = mip[ level ];
+
+    for( auto& f : pixels ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); 
     }
-    wrapped_write_jpg( filename.c_str(), dim.x, dim.y, 3, img.data(), quality );
+    wrapped_write_jpg( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 3, img.data(), quality );
 }
 
-template<> void fimage::write_png( const std::string& filename ) {    
+template<> void fimage::write_png( const std::string& filename, int level ) {    
     std::vector< unsigned char > img;
-    for( auto& f : base ) {
+    img.reserve( dim.x * dim.y * 3 );
+    auto& pixels = mip[ level ];
+
+    for( auto& f : pixels ) {
         img.push_back( rc( f ) );
         img.push_back( gc( f ) );
         img.push_back( bc( f ) ); 
     }
-	wrapped_write_png( filename.c_str(), dim.x, dim.y, 3, img.data() );
+	wrapped_write_png( filename.c_str(), mip_dim[level].x, mip_dim[level].y, 3, img.data() );
 }
-

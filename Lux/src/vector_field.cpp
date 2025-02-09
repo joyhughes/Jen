@@ -92,40 +92,56 @@ vec2f vf_tools::advect( const vec2f& v, const float& step, const mat2f& m, const
     return v + linalg::mul( m, img.sample( v, smooth, extend ) ) * step;
 }
 
-void vf_tools::complement() { for( auto& v : img.base ) { v = ::complement( v ); } //img.mip_it(); 
+void vf_tools::complement() { 
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base ) { v = ::complement( v ); } 
+    img.mip_utd = false; 
 }
-void vf_tools::radial()     { for( auto& v : img.base ) { v = ::radial( v );     } //img.mip_it(); 
+void vf_tools::radial()     { 
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base ) { v = ::radial( v );     }
+    img.mip_utd = false; 
 }
-void vf_tools::cartesian()  { for( auto& v : img.base ) { v = ::cartesian( v );  } //img.mip_it(); 
+void vf_tools::cartesian()  { 
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base ) { v = ::cartesian( v );  } 
+    img.mip_utd = false; 
 }
 
 void vf_tools::rotate_vectors( const float& ang ) {
     mat2f m = linalg::rotation_matrix_2D( ang / 360.0f * TAU );
-    for( auto& v : img.base ) { v = linalg::mul( m, v ); }
-    //img.mip_it();
+    auto& base = img.mip[ 0 ];
+
+    for( auto& v : base ) { v = linalg::mul( m, v ); }
+    img.mip_utd = false;
 }
 
 void vf_tools::normalize() { 
-    std::transform( img.base.begin(), img.base.end(), img.base.begin(), [] ( const vec2f& v ) { return linalg::normalize( v );  } ); 
-    //img.mip_it();
+    std::transform( img.begin(), img.end(), img.begin(), [] ( const vec2f& v ) { return linalg::normalize( v );  } ); 
+    img.mip_utd = false;
 }
 
 void vf_tools::inverse( float diameter, float soften ) {
+    auto& base = img.mip[ 0 ];
+
     if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
-    else for( auto& v : img.base ) { v = ::inverse( v, diameter, soften ); }
-    //img.mip_it();
+    else for( auto& v : base ) { v = ::inverse( v, diameter, soften ); }
+    img.mip_utd = false;
 }
 
 void vf_tools::inverse_square( float diameter, float soften ) {
+    auto& base = img.mip[ 0 ];
     if( diameter == 0.0f ) { img.fill( { 0.0f, 0.0f } ); }
-    else for( auto& v : img.base ) { v = ::inverse_square( v, diameter, soften ); }
-    //img.mip_it();
+    else for( auto& v : base ) { v = ::inverse_square( v, diameter, soften ); }
+    img.mip_utd = false;
 }
 
-void vf_tools::concentric( const vec2f& center ) { 
+void vf_tools::concentric( const vec2f& center ) {
+    auto& base = img.mip[ 0 ];
+ 
     position_fill();
-    for( auto& v : img.base ) { v = v - center; }
-    //img.mip_it(); 
+    for( auto& v : base ) { v = v - center; }
+    img.mip_utd = false; 
 }
 
 void vf_tools::rotation( const vec2f& center ) { 
@@ -143,12 +159,13 @@ void vf_tools::spiral( const vec2f& center, const float& cscale, const float& rs
     buffer_tools.rotation();
     buffer *= rscale;
     img += buffer;
-    //img.mip_it();
+    img.mip_utd = false;
 }
 
 void vf_tools::fermat_spiral(const float& c)
 {
-    for( auto& v : img.base )               //Taking every vector in polar form
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base )               //Taking every vector in polar form
     {
         v.x = c * sqrtf(powf(v.x/c,2)+1.0);
         v.y = v.y + 137.508;
@@ -161,7 +178,7 @@ void vf_tools::vortex( const ::vortex& vort, const float& t ) {
     rotation( center );
     inverse( vort.diameter, vort.soften );
     img *= vort.intensity;
-    //img.mip_it();
+    img.mip_utd = false;
 }
 
 void vf_tools::turbulent( vortex_field& ca, const float& t ) {
@@ -172,7 +189,7 @@ void vf_tools::turbulent( vortex_field& ca, const float& t ) {
 
     // cavort cavort cavort
     for( auto& vort : ca.vorts ) { buffer_tools.vortex( vort ); img += buffer; }
-    //img.mip_it();
+    img.mip_utd = false;
 }
 
 // Assumes radial coordinates
@@ -185,10 +202,12 @@ void vf_tools::kaleidoscope(    const float& segments,         // Number of segm
                                 const bool& reflect,           // Reflect alternate segments
                                 const bool& reflect_levels
                                  ) {               
-    float segments_adj = segments;
+    float segments_adj = segments;    
+    auto& base = img.mip[ 0 ];
+
     if( reflect ) segments_adj *= 2.0f;    
     if( segments != 0.0f && levels != 0.0f ) {
-        for( auto& v : img.base ) { 
+        for( auto& v : base ) { 
             v.R =     rmodf( omodf( v.R - expand, 1.0f / levels, reflect_levels ) - level_start, 1.0f );
             v.THETA = omodf( v.THETA - spin, 360.0f / segments_adj, reflect ) - start; 
         } 
@@ -204,7 +223,8 @@ void vf_tools::radial_tile( const float& segments,
                             const vec2f& zoom,  // zoom within tile, 
                             bool reflect_x, 
                             bool reflect_y ) {
-    for( auto& v : img.base ) {
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base ) {
         v = vec2f( ( omodf( ( v.THETA - spin ) * segments, 360.0f, reflect_x ) / 180.0f - 1.0f - offset.x ) * zoom.x,
                    ( omodf( ( v.R - expand ) * levels, 1.0f, reflect_y ) *   2.0f - 1.0f - offset.y ) * zoom.y );
     }
@@ -217,8 +237,9 @@ void vf_tools::radial_multiply( const float& segments,
                                 const bool&  reflect, 
                                 const bool&  reflect_levels ) {
     float segments_adj = segments;
+    auto& base = img.mip[ 0 ];
     if( reflect ) segments_adj *= 2.0f;
-    for( auto& v : img.base ) {
+    for( auto& v : base ) {
         v.R =     omodf( ( v.R - expand ) * levels, 1.0f, reflect_levels ); 
         v.THETA = omodf( ( v.THETA - spin ) * segments_adj, 360.0f, reflect ); 
     }      
@@ -226,19 +247,23 @@ void vf_tools::radial_multiply( const float& segments,
 
 // rotation shortcut assuming radial coordinates
 void vf_tools::theta_rotate( const float& angle ) {
-    for( auto& v : img.base ) { v.THETA += angle; }
+    auto& base = img.mip[ 0 ];
+    for( auto& v : base ) { v.THETA += angle; }
 }
 
 void vf_tools::theta_swirl( const float& amount ) {
+    auto& base = img.mip[ 0 ];
     if( amount != 0.0f ) {
-        for( auto& v : img.base ) { v.THETA += v.R * amount; }
+        for( auto& v : base ) { v.THETA += v.R * amount; }
     }
 }
 
 void vf_tools::theta_rings( const float& n, const float& swirl, const float& alternate ) {
+    auto& base = img.mip[ 0 ];
+
     if( n != 0.0f ) {
         float ring_number;
-        for( auto& v : img.base ) { 
+        for( auto& v : base ) { 
             ring_number = floorf( v.R * n );
             if( fmodf( ring_number, 2.0f ) == 0.0f ) v.THETA = alternate - v.THETA;
             else v.THETA += alternate;
@@ -250,47 +275,50 @@ void vf_tools::theta_rings( const float& n, const float& swirl, const float& alt
 void vf_tools::theta_waves( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
     float freq_adj = freq * TAU;
     float phase_adj = phase * TAU / 360.0f;
+    auto& base = img.mip[ 0 ];
 
     if( const_amp ) {
-        for( auto& v : img.base ) { 
+        for( auto& v : base ) { 
             if( v.R != 0.0f) v.THETA += amp / v.R * sin( freq_adj * v.R - phase_adj ); 
         }
     }
     else {
-        for( auto& v : img.base ) { v.THETA += amp * sin( freq_adj * v.R - phase_adj ); }
+        for( auto& v : base ) { v.THETA += amp * sin( freq_adj * v.R - phase_adj ); }
     }
 }
  
 void vf_tools::theta_saw( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
     float freq_adj = freq * 4.0f;
     float phase_adj = phase * 4.0f / 360.0f;
+    auto& base = img.mip[ 0 ];
 
     if( const_amp ) {
-        for( auto& v : img.base ) { 
+        for( auto& v : base ) { 
             if( v.R != 0.0f) v.THETA += amp / v.R * rmodf( freq_adj * v.R - phase_adj, 1.0f ); 
         }
     }
     else {
-        for( auto& v : img.base ) { v.THETA += amp * rmodf( freq_adj * v.R - phase_adj, 1.0f ); }
+        for( auto& v : base ) { v.THETA += amp * rmodf( freq_adj * v.R - phase_adj, 1.0f ); }
     }
 }
  
 void vf_tools::theta_compression_waves( const float& freq, const float& amp, const float& phase, const bool& const_amp ) {
     float freq_adj = freq * TAU / 360.0f;
     float phase_adj = phase * TAU / 360.0f;
+    auto& base = img.mip[ 0 ];
 
     if( const_amp ) {
-        for( auto& v : img.base ) {
+        for( auto& v : base ) {
             if( v.R != 0.0f) v.THETA += amp / v.R * sin( freq_adj * v.THETA - phase_adj ); 
         }
     }
     else {
-        for( auto& v : img.base ) { v.THETA += amp * sin( freq_adj * v.THETA - phase_adj ); }
+        for( auto& v : base ) { v.THETA += amp * sin( freq_adj * v.THETA - phase_adj ); }
     }
 }
 
-void vf_tools::position_fill() { 
-    auto v = img.base.begin();
+void vf_tools::position_fill() {
+    auto v = img.begin();
     for( int y = 0; y < img.dim.y; y++ ) {
         for( int x = 0; x < img.dim.x; x++ ) {
             *v = img.bounds.bb_map( vec2f( x, y ), img.ipbounds );
@@ -314,11 +342,11 @@ void vector_field::write_png(const std::string &filename ) {
 }
 */
 
-template<> void vector_field::write_file(const std::string &filename, file_type type, int quality ) {
+template<> void vector_field::write_file(const std::string &filename, file_type type, int quality, int level ) {
     switch( type ) {
         //case FILE_JPG: write_jpg( filename, quality ); break;
         //case FILE_PNG: write_png( filename ); break;
-        case FILE_BINARY: write_binary( filename ); break;
+        case FILE_BINARY: write_binary( filename, level ); break;
         default: std::cout << "fimage::write_file: unknown file type " << type << std::endl;
     }
 }

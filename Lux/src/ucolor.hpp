@@ -79,8 +79,8 @@ inline unsigned long luminance( const ucolor& in ) {
 
 ucolor gray( const ucolor& in );
 
-inline void white( ucolor& w ) { w = 0xffffffff; }
-inline void black( ucolor& b ) { b = 0xff000000; } // Alpha channel set
+//inline void white( ucolor& w ) { w = 0xffffffff; }
+//inline void black( ucolor& b ) { b = 0xff000000; } // Alpha channel set
 
 static inline unsigned int manhattan( const ucolor& a, const ucolor& b )
 {

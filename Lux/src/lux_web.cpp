@@ -382,11 +382,8 @@ std::string get_widget_JSON( std::string name ) {
 }
 
 bool is_widget_group_active( std::string name ) {
-    element el;
-    next_element ne;
-    cluster cl( el, ne );
     any_buffer_pair_ptr null_any_buf_ptr = null_buffer_pair_ptr;
-    element_context context( el, cl, *(global_context->s), null_any_buf_ptr );
+    element_context context( *(global_context->s), null_any_buf_ptr );
 
     for( auto& wg : global_context->s->ui.widget_groups ) {
         if( wg.name == name ) {

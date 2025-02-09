@@ -356,4 +356,3 @@ bool next_element::operator () ( element_context& context ) {
 
 next_element::next_element() {}
 
-
