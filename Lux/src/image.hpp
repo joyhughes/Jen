@@ -5,9 +5,7 @@
 #ifndef __IMAGE_HPP
 #define __IMAGE_HPP
 
-#include "vect2.hpp"
-#include "frgb.hpp"
-#include "ucolor.hpp"
+#include "colors.hpp"
 #include <iterator>
 #include <vector>
 #include <memory>
@@ -81,25 +79,38 @@ public:
     // default constructor - creates empty "stub" image
     image() : dim( { 0, 0 } ), bounds(), ipbounds( { 0, 0 }, { 0, 0 } ), fpbounds( ipbounds ),
         mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
-        {}     
+        {
+            // create stub base vector
+            std::vector< T > v;
+            mip.push_back( v );
+        }     
 
     // creates image of particular size 
-    image( const vec2i& dims ) 
+    image( vec2i dims ) 
         :  dim( dims ), bounds( { -1.0f, ( 1.0f * dim.y ) / dim.x }, { 1.0f, ( -1.0f * dim.y ) / dim.x } ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ), 
            mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
-            { base.resize( dim.x * dim.y ); }     
+            { 
+                std::vector< T > v;
+                mip.push_back( v );
+                mip[ 0 ].resize( dim.x * dim.y ); 
+            }     
 
     image( const vec2i& dims, const bb2f& bb ) :  dim( dims ), bounds( bb ), ipbounds( { 0, 0 }, dim ), fpbounds( { 0.0f, 0.0f }, ipbounds.maxv - 1.0f ) ,
         mip_me( false ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] )
-            { base.resize( dim.x * dim.y ); }
-        
+        { 
+            std::vector< T > v;
+            mip.push_back( v );
+            mip[ 0 ].resize( dim.x * dim.y ); 
+        }   
+
     // copy constructor
     image( const image< T >& img ) : dim( img.dim ), bounds( img.bounds ), ipbounds( img.ipbounds ), fpbounds( ipbounds ), 
-        mip_me( img.mip_me ), mipped( false ), mip_utd( false ), kernel( MIP_TENT )//, base( mip[ 0 ] ) 
+        mip_me( img.mip_me ), mipped( img.mipped ), mip_utd( img.mip_utd ), kernel( img.kernel )//, base( mip[ 0 ] ) 
         {
-            std::copy( img.base.begin(), img.base.end(), back_inserter( base ) );
-            // copy mip map
-            //mip_it();
+            mip.resize(img.mip.size()); // Resize the outer vector to match the source
+            for (size_t i = 0; i < img.mip.size(); ++i) {
+                mip[i] = img.mip[i]; // Use the assignment operator to copy each inner vector
+            }
         }
     
     // resize constructor
@@ -128,7 +139,7 @@ public:
         {
             // move mip map
             mip = std::move( img.mip );
-            base = std::move( img.base );
+            //base = std::move( img.base );
             //mip_it();
         }
 
@@ -137,19 +148,24 @@ public:
 
     friend class vf_tools;  // additional functions for vector fields
 
-    T* get_base() { return &(base[0]); }    
+    const std::vector< T >& get_base_vector() const { return mip[0]; }
+
+    T* get_base_ptr() { 
+        return &(mip[0][0]);
+    }    
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
-    auto begin() noexcept { return base.begin(); }
-    const auto begin() const noexcept { return base.begin(); }
-    auto end() noexcept { return base.end(); }
-    const auto end() const noexcept { return base.end(); }
+    auto begin() noexcept             { return mip[ 0 ].begin(); }
+    const auto begin() const noexcept { return mip[ 0 ].begin(); }
+    auto end() noexcept               { return mip[ 0 ].end(); }
+    const auto end() const noexcept   { return mip[ 0 ].end(); }
 
     void reset();                          // clear memory & set dimensions to zero (mip_me remembered)
     void use_mip( bool m );
     void mip_it();  // mipit good
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
+    const int get_mip_levels() const { return mip.size(); } // returns number of mip-map levels
     void refresh_bounds(); // calculates default bounding boxes based on pixel dimensions
     const bb2f get_bounds() const;
     const bb2i get_ipbounds() const;
@@ -158,14 +174,14 @@ public:
     template< class U > bool compare_dims( const image< U >& img ) const { return ( dim == img.get_dim() ); }  // returns true if images have same dimensions
 
     // Sample base image
-    inline void set( const unsigned int& i, const T& val ) { base[ i ] = val; }
+    inline void set( const unsigned int& i, const T& val ) { mip[ 0 ][ i ] = val; }
     const T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE ) const;
-    inline T index( const unsigned int& i ) const { return base[ i ]; }
+    inline T index( const unsigned int& i ) const { return mip[ 0 ][ i ]; }
     const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
     // Preserved intersting bug       
     const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;
     // fixed point sample           
-    const T sample( const unsigned int mip_level, const unsigned int mip_blend, const vec2i& vi ) const; // mip-map sample using fixed point coordinates
+    const T sample( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const; // mip-map sample using fixed point coordinates
 
     // sample mip-map
     // const T index( const vec2i& vi, const int& level, const image_extend& extend = SAMP_SINGLE );                
@@ -174,8 +190,8 @@ public:
     // size modification functions
     void resize( vec2i siz );
     void crop( const bb2i& bb );
-    void crop_circle( const T& background, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
-    void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    void crop_circle( const T& background = black< T >, const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
+    //void crop_circle( const float& ramp_width = 0.0f );	// Sets to zero everything outside of a centered circle
     void mirror(    const image< T >& in,
                     const bool& reflect_x = false, 
                     const bool& reflect_y = true, 
@@ -196,7 +212,8 @@ public:
     void noise( const float& a );
     void noise( const float& a, const bb2i& bb );
     void noise( const float& a, const bb2f& bb );
-    
+    void checkerboard( const int& box_size = 1, const T& c1 = black< T >, const T& c2 = white< T > );
+
     // functions below use template specialization
     void grayscale();
     void clamp( float minc = 1.0f, float maxc = 1.0f );
@@ -220,7 +237,7 @@ public:
     // rendering
     void splat( 
         const image< T >& splat_image,    // image of the splat
-        const bool& smooth = false,       // smooth the splat
+        const bool& smooth = true,       // smooth the splat
         const vec2f& center = { 0.0f, 0.0f }, // coordinates of splat center
         const float& scale = 1.0f,  // radius of splat
         const float& theta = 0.0f,  // rotation in degrees
@@ -260,12 +277,12 @@ public:
     // load image from file - JPEG and PNG are only defined for fimage and uimage, so virtual function
     // future - binary file type for any image (needed for vector field and out of range fimage)
     void load( const std::string& filename ) { std::cout << "default image load" << std::endl; }
-    void write_jpg( const std::string& filename, int quality ) { std::cout << "default image write_jpg" << std::endl; }
-    void write_png( const std::string& filename ) { std::cout << "default image write_png" << std::endl; }
+    void write_jpg( const std::string& filename, int quality, int level = 0 ) { std::cout << "default image write_jpg" << std::endl; }
+    void write_png( const std::string& filename, int level = 0 ) { std::cout << "default image write_png" << std::endl; }
     void read_binary(  const std::string& filename );  
-    void write_binary( const std::string& filename );
+    void write_binary( const std::string& filename, int level = 0 );
     // determine file type from extension?
-    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100 );
+    void write_file( const std::string& filename, file_type ftype = FILE_JPG, int quality = 100, int level = 0 );
 
     // apply function to each pixel in place (can I make this any parameter list with variadic template?)
     void apply( const std::function< T ( const T&, const float& ) > fn, const float& t = 0.0f );
