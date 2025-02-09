@@ -41,3 +41,35 @@ template< class U > class joy_fn {
 
     ~joy_fn();
 };
+
+template <typename T>
+class reference_safe_map {
+public:
+    // Add an element
+    void add(const std::string& key, const T& obj) {
+        object_list.push_back(obj);
+        object_map[key] = std::prev(object_list.end());
+    }
+
+    // Access an element by key
+    T& get(const std::string& key) {
+        return *(object_map.at(key));
+    }
+
+    // Check if an element exists
+    bool contains(const std::string& key) const {
+        return object_map.find(key) != object_map.end();
+    }
+
+private:
+    std::list<T> object_list;
+    std::unordered_map<std::string, typename std::list<T>::iterator> object_map;
+};
+
+// Example usage
+class any_joy_fn {
+public:
+    void do_something() const {
+        std::cout << "Doing something" << std::endl;
+    }
+};
