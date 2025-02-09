@@ -458,7 +458,7 @@ template< class T > void image< T >::turn( const image< T >& in, const direction
 
 template< class T > void image< T >::flip( const image< T >& in, const bool& flip_x, const bool& flip_y ) {
     if( in.dim != dim ) throw std::runtime_error( "flip: image size mismatch" ); 
-    auto it = base.begin();
+    auto it = begin();
     if( flip_x ) {
         if( flip_y ) { std::reverse_copy( in.begin(), in.end(), begin() ); }
         else {    
@@ -486,8 +486,8 @@ template< class T > void image< T >::flip( const image< T >& in, const bool& fli
 template< class T > void image< T >::copy( const image< T >& img ) {
     //std::cout << "image::copy()" << std::endl;
     if( img.dim == dim ) {
-        mip.assign( img.mip );
-        mip_dim.assign( img.mip_dim );
+        mip.assign( img.mip.begin(), img.mip.end() );
+        mip_dim.assign( img.mip_dim.begin(), img.mip_dim.end() );
     } else {
         dim = img.dim;
         mip = img.mip;
