@@ -46,6 +46,22 @@ template class eff_noise< vec2f >;
 template class eff_noise< int >;
 template class eff_noise< vec2i >;
 
+template< class T > void eff_checkerboard< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    c1( context ); c2( context ); box_size( context );
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_checkerboard: no image in buffer" );
+        buf_ptr->get_image().checkerboard( *box_size, *c1, *c2 );
+    }
+}
+
+template class eff_checkerboard< frgb >;
+template class eff_checkerboard< ucolor >;
+template class eff_checkerboard< vec2f >;
+template class eff_checkerboard< int >;
+template class eff_checkerboard< vec2i >;
+
 template< class T > void eff_grayscale< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
@@ -207,7 +223,6 @@ template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& b
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         wf_name( context );
-
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
         auto& wf = context.s.get_image< int >( *wf_name );
@@ -546,5 +561,4 @@ void eff_chooser::choose( const std::string& name ) {
 }
 
 void eff_chooser::add_effect( const any_effect_fn& eff ) { effects.push_back( eff ); }
-
 
