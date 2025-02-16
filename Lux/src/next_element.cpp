@@ -35,6 +35,7 @@ template struct harness< bb2f >;
 template struct harness< std::string >;
 template struct harness< bool >;
 template struct harness< direction4 >; // future: replace enum harnesses with int harnesses
+template struct harness< direction4_diagonal >; // future: replace enum harnesses with int harnesses
 template struct harness< direction8 >; // future: replace enum harnesses with int harnesses
 template struct harness< interval_int >;
 template struct harness< interval_float >;
@@ -318,6 +319,7 @@ template struct equal_condition< ucolor >;
 template struct equal_condition< std::string >;
 template struct equal_condition< bool >;
 template struct equal_condition< direction4 >;
+template struct equal_condition< direction4_diagonal >;
 template struct equal_condition< direction8 >;
 
 void filter::operator () ( element_context& context ) { 

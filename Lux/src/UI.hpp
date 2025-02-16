@@ -182,6 +182,7 @@ template< class T > struct picker {
 };
 
 typedef picker< direction4 > direction_picker_4;
+typedef picker< direction4_diagonal > direction_picker_4_diagonal;
 typedef picker< direction8 > direction_picker_8;
 typedef picker< box_blur_type > box_blur_picker;
 typedef picker< image_extend > image_extend_picker;

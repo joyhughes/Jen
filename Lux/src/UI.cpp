@@ -108,6 +108,7 @@ template< class T > void picker< T >::reset() {
 }
 
 template struct picker< direction4 >;
+template struct picker< direction4_diagonal >;
 template struct picker< direction8 >;
 template struct picker< box_blur_type >;
 template struct picker< int >;

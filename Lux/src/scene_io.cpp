@@ -143,6 +143,19 @@ direction4 scene_reader::read_direction4( const json& j ) {
     return d;
 }
 
+direction4_diagonal scene_reader::read_direction4_diagonal( const json& j ) { 
+    std::string s;
+    direction4_diagonal d;
+
+    j.get_to( s );
+    if(      s == "up_right"  ) d = direction4_diagonal::D4D_UPRIGHT;
+    else if( s == "down_right") d = direction4_diagonal::D4D_DOWNRIGHT;
+    else if( s == "down_left" ) d = direction4_diagonal::D4D_DOWNLEFT;
+    else if( s == "up_left"   ) d = direction4_diagonal::D4D_UPLEFT;
+    else ERROR( "Invalid direction4_diagonal string: " + s )
+    return d;
+}
+
 direction8 scene_reader::read_direction8( const json& j ) { 
     std::string s;
     direction8 d;
@@ -467,6 +480,7 @@ void scene_reader::read_function( const json& j ) {
 
     // pickers
     FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4_diagonal, direction4_diagonal ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( multi_direction8_picker, int )   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( box_blur_picker, box_blur_type ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
@@ -500,6 +514,7 @@ void scene_reader::read_function( const json& j ) {
     FN( equal_string_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_bool_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_direction4_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction4_diagonal_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_direction8_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
 
 
@@ -539,6 +554,7 @@ void scene_reader::read_function( const json& j ) {
     COND_FN( equal_string_condition )     HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_bool_condition )       HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction4_diagonal_condition ) HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_FN
 }
 
@@ -873,6 +889,27 @@ void to_json(nlohmann::json& j, const direction4& d ) {
             break;
         default:
             // Handle unexpected direction4 value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
+void to_json(nlohmann::json& j, const direction4_diagonal& d) {
+    switch (d) {
+        case direction4_diagonal::D4D_UPRIGHT:
+            j = "up_right";
+            break;
+        case direction4_diagonal::D4D_DOWNRIGHT:
+            j = "down_right";
+            break;
+        case direction4_diagonal::D4D_DOWNLEFT:
+            j = "down_left";
+            break;
+        case direction4_diagonal::D4D_UPLEFT:
+            j = "up_left";
+            break;
+        default:
+            // Handle unexpected direction4_diagonal value
             j = nullptr; // Or any indication of an error/invalid value
             break;
     }
