@@ -608,7 +608,8 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
     RULE( rule_pixel_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) END_RULE()
-    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( hood ) END_RULE()
+    RULE( rule_diagonal_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_d ) READR( hood ) END_RULE()
     DEBUG( "CA rule " + name + " complete" )
 }
 
