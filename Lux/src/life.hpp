@@ -275,14 +275,14 @@ template< class T > struct rule_funky_sort {
 
    // How funky to make it (64 bit truth table comparing pairs in the Margolus neighborhood)
    // future: make harness< unsigned long long > 
-   unsigned long long dafunk_l;  // Funky lookup table for first pair, rotated by direction  
-   unsigned long long dafunk_r;  // Funky lookup table for second pair, rotated by direction
+   harness< funk_factor > dafunk_l;  // Funky lookup table for first pair, rotated by direction  
+   harness< funk_factor > dafunk_r;  // Funky lookup table for second pair, rotated by direction
 
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
             
-   rule_funky_sort(  unsigned long long dafunk_l_init = 0, 
-                     unsigned long long dafunk_r_init = 0, 
+   rule_funky_sort(  funk_factor dafunk_l_init = FUNK_WEB_L, 
+                     funk_factor dafunk_r_init = FUNK_WEB_R, 
                      int max_diff_init = 300,
                      direction4 direction_init = D4_DOWN, 
                      CA_hood hood_init = HOOD_HOUR
@@ -306,13 +306,12 @@ template< class T > struct rule_diagonal_funky_sort {
    harness< int > max_diff; // Maximum difference between pixels to be sorted (Manhattan distance)
 
    // How funky to make it (64 bit truth table comparing pairs in the Margolus neighborhood)
-   // future: make harness< unsigned long long > 
-   unsigned long long dafunk_d;  // Funky lookup table for diagonal pair, rotated by direction
+   harness< funk_factor > dafunk_d;  // Funky lookup table for diagonal pair, rotated by direction
 
    CA_hood operator () ( element_context& context );
    void operator () ( CA< T >& ca );
             
-   rule_diagonal_funky_sort( unsigned long long dafunk_d_init = FUNK_BORG, 
+   rule_diagonal_funky_sort( funk_factor dafunk_d_init = FUNK_BORG, 
                            int max_diff_init = 300,
                            direction4_diagonal direction_init = D4D_DOWNRIGHT, 
                            CA_hood hood_init = HOOD_HOUR

@@ -28,7 +28,7 @@ struct scene_reader {
     void read( bb2i& bb,  const json& j ) { bb = read_bb2i( j );  }
     void read( frgb& f,   const json& j ) { f  = read_frgb( j );  }
     void read( ucolor& u, const json& j ) { u  = read_ucolor( j );}
-    void read( unsigned long long& ull, const json& j ) { ull = read_ull( j ); }
+    void read( funk_factor& ull, const json& j ) { ull = read_funk_factor( j ); }
     void read( std::string& s,  const json& j ) { s = read_string( j ); }
     void read( rotation_direction& r, const json& j ) { r = read_rotation_direction( j ); }
     void read( direction4& d,   const json& j ) { d = read_direction4( j ); }
@@ -53,7 +53,7 @@ struct scene_reader {
     bb2f   read_bb2f(   const json& j );
     bb2i   read_bb2i(   const json& j );
     ucolor read_ucolor( const json& j );  // hexadecimal color
-    unsigned long long read_ull(    const json& j ); // hexadecimal
+    unsigned long long read_funk_factor(    const json& j ); // hexadecimal
     std::string  read_string(       const json& j );
     rotation_direction read_rotation_direction( const json& j );
     direction4   read_direction4(   const json& j );
@@ -80,6 +80,7 @@ struct scene_reader {
     #define READ_ANY_HARNESS( _T_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h ); }
     READ_ANY_HARNESS( float )
     READ_ANY_HARNESS( int )
+    READ_ANY_HARNESS( funk_factor )
     READ_ANY_HARNESS( vec2f )
     READ_ANY_HARNESS( vec2i )
     READ_ANY_HARNESS( bb2f )

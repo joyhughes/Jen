@@ -8,6 +8,7 @@ import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
 import JenDirection8 from './JenDirection8';
 import JenDirection4 from './JenDirection4';
+import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import IconButton from '@mui/material/IconButton';
@@ -82,6 +83,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
         widgetComponent =           
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4 key={ widget.name } json={ widget } />
+            { labelAndDescription }
+          </Stack>;
+      break;
+      case 'direction_picker_4_diagonal':
+        widgetComponent =           
+          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+            <JenDirection4Diagonal key={ widget.name } json={ widget } />
             { labelAndDescription }
           </Stack>;
       break;

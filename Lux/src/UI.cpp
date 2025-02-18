@@ -112,6 +112,7 @@ template struct picker< direction4_diagonal >;
 template struct picker< direction8 >;
 template struct picker< box_blur_type >;
 template struct picker< int >;
+template struct picker< funk_factor >;
 
 int custom_blur_picker::operator() ( int& val, element_context& context ) {
     return pickers.size();

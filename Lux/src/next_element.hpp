@@ -14,10 +14,13 @@ struct cluster;
 struct scene;
 struct element_context;
 
+typedef unsigned long long funk_factor;
+
 template< class T > struct any_fn;
 template<> struct any_fn< bool >;
 template<> struct any_fn< float >;
 template<> struct any_fn< int >;
+template<> struct any_fn< funk_factor >;
 template<> struct any_fn< interval_float >;
 template<> struct any_fn< interval_int >;
 template<> struct any_fn< vec2f >;
@@ -33,6 +36,7 @@ struct any_gen_fn;
 typedef std::function< bool   ( bool&,   element_context& ) > bool_fn; 
 typedef std::function< float  ( float&,  element_context& ) > float_fn; 
 typedef std::function< int    ( int&,    element_context& ) > int_fn; 
+typedef std::function< funk_factor ( funk_factor&, element_context& ) > funk_factor_fn;
 typedef std::function< interval_float ( interval_float&,  element_context& ) > interval_float_fn;
 typedef std::function< interval_int   ( interval_int&,    element_context& ) > interval_int_fn;
 typedef std::function< vec2f  ( vec2f&,  element_context& ) > vec2f_fn; 
@@ -78,6 +82,7 @@ template< class U > struct identity_fn {
 typedef identity_fn< bool   > identity_bool;
 typedef identity_fn< int    > identity_int;
 typedef identity_fn< float  > identity_float;
+typedef identity_fn< funk_factor > identity_funk_factor;
 typedef identity_fn< interval_float  > identity_interval_float;
 typedef identity_fn< interval_int    > identity_interval_int;
 typedef identity_fn< vec2i  > identity_vec2i;
@@ -107,6 +112,7 @@ template< Additive U > struct adder {
 
 typedef adder< int    > adder_int;
 typedef adder< float  > adder_float;
+typedef adder< funk_factor > adder_funk_factor;
 typedef adder< vec2i  > adder_vec2i;
 typedef adder< vec2f  > adder_vec2f;
 typedef adder< frgb   > adder_frgb;
@@ -478,6 +484,7 @@ typedef equal_condition< vec2f > equal_vec2f_condition;
 typedef equal_condition< vec2f > equal_vec2f_fn;
 typedef equal_condition< int > equal_int_condition;
 typedef equal_condition< int > equal_int_fn;
+typedef equal_condition< funk_factor > equal_funk_factor_condition;
 typedef equal_condition< vec2i > equal_vec2i_condition;
 typedef equal_condition< vec2i > equal_vec2i_fn;
 typedef equal_condition< frgb > equal_frgb_condition;

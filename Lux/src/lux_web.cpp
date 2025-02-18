@@ -279,6 +279,11 @@ void pick_direction8( std::string name, int value ) {
     picker->value = ( direction8 )value;
 }
 
+void pick_funk_factor( std::string name, int value ) {
+    auto picker = global_context->s->get_fn_ptr< funk_factor, funk_factor_picker >( name );
+    picker->value = ( funk_factor )value;
+}
+
 void pick_direction4( std::string name, int value ) {
     auto picker = global_context->s->get_fn_ptr< direction4, direction_picker_4 >( name );
     picker->value = ( direction4 )value;
@@ -318,20 +323,6 @@ void add_custom_blur_pickers( std::string name ) {
     picker->add_pickers();
     //print_vector_of_pairs( picker->pickers );
 }
-
-/*
-bool get_switch_state( std::string name ) {
-    if( global_context->s->functions.contains( name ) ) {
-        auto& sw = std::get< std::shared_ptr< switch_fn > >( std::get< any_fn< bool > >( global_context->s->functions[ name ] ).any_bool_fn);
-        return sw->value;
-    }
-    else if( global_context->s->functions.contains( name ) ) {
-        auto& sw = std::get< std::shared_ptr< switch_condition > >(global_context->s->condition_fns[ name ].my_condition_fn);
-        return sw->value;
-    }
-    return false;
-}
-*/
 
 std::string load_file_as_string(const std::string& filePath) {
     std::ifstream fileStream(filePath);
@@ -537,24 +528,25 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "is_widget_group_active", &is_widget_group_active);
 
     // widget control functions
-    function( "set_slider_value",       &set_slider_value );
-    function( "set_range_slider_value", &set_range_slider_value );
-    function( "handle_menu_choice",     &handle_menu_choice );
-    function( "handle_switch_value",    &handle_switch_value );
-//    function( "get_switch_state",       &get_switch_state);
-    function( "pick_direction8",        &pick_direction8 );
-    function( "pick_direction4",        &pick_direction4 );
-    function( "pick_blur_method",       &pick_blur_method );
-    function( "pick_multi_direction8",  &pick_multi_direction8 );
+    function( "set_slider_value",           &set_slider_value );
+    function( "set_range_slider_value",     &set_range_slider_value );
+    function( "handle_menu_choice",         &handle_menu_choice );
+    function( "handle_switch_value",        &handle_switch_value );
+    function( "pick_funk_factor",           &pick_funk_factor );
+    function( "pick_direction8",            &pick_direction8 );
+    function( "pick_direction4",            &pick_direction4 );
+    function( "pick_direction4_diagonal",   &pick_direction4_diagonal );
+    function( "pick_blur_method",           &pick_blur_method );
+    function( "pick_multi_direction8",      &pick_multi_direction8 );
     function( "remove_custom_blur_pickers", &remove_custom_blur_pickers);
-    function( "add_custom_blur_pickers", &add_custom_blur_pickers);
+    function( "add_custom_blur_pickers",    &add_custom_blur_pickers);
 
     // mouse functions
-    function( "mouse_move",         &mouse_move );
-    function( "mouse_down",         &mouse_down );
-    function( "mouse_over",         &mouse_over );
-    function( "mouse_click",        &mouse_click );
+    function( "mouse_move",        &mouse_move );
+    function( "mouse_down",        &mouse_down );
+    function( "mouse_over",        &mouse_over );
+    function( "mouse_click",       &mouse_click );
     function("add_image_to_scene", &add_image_to_scene);
-    function("add_to_menu", &add_to_menu);
+    function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
 }
