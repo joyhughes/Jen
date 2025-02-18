@@ -153,6 +153,15 @@ typedef std::variant <
 > any_direction4_fn_ptr;
 
 ANY_FN( direction4 )
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_direction4_diagonal >,
+
+    // ui functions
+    std::shared_ptr< direction_picker_4_diagonal >
+> any_direction4_diagonal_fn_ptr;
+
+ANY_FN( direction4_diagonal )
 
 typedef std::variant <
     // harness functions
@@ -206,6 +215,7 @@ typedef std::variant <
     std::shared_ptr< equal_string_fn >,
     std::shared_ptr< equal_bool_fn >,
     std::shared_ptr< equal_direction4_fn >,
+    std::shared_ptr< equal_direction4_diagonal_fn >,
     std::shared_ptr< equal_direction8_fn >,
 
     // ui functions
@@ -236,6 +246,7 @@ typedef std::variant <
     std::shared_ptr< equal_string_condition >,
     std::shared_ptr< equal_bool_condition >,
     std::shared_ptr< equal_direction4_condition >,
+    std::shared_ptr< equal_direction4_diagonal_condition >,
     std::shared_ptr< equal_direction8_condition >,
 
     // ui conditions
@@ -308,6 +319,7 @@ typedef std::variant <
     any_fn< bb2i >,
     any_fn< std::string >,
     any_fn< direction4 >,
+    any_fn< direction4_diagonal >,
     any_fn< direction8 >,
     any_fn< box_blur_type >,
     any_fn< image_extend >,
