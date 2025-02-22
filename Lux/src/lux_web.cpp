@@ -284,6 +284,11 @@ void pick_direction4( std::string name, int value ) {
     picker->value = ( direction4 )value;
 }
 
+void pick_direction4_diagonal( std::string name, int value ) {
+    auto picker = global_context->s->get_fn_ptr< direction4_diagonal, direction_picker_4_diagonal >( name );
+    picker->value = ( direction4_diagonal )value;
+}
+
 void pick_blur_method( std::string name, int value ) {
     auto picker = global_context->s->get_fn_ptr< box_blur_type, box_blur_picker >( name );
     picker->value = (box_blur_type)value;
