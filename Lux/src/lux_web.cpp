@@ -279,9 +279,9 @@ void pick_direction8( std::string name, int value ) {
     picker->value = ( direction8 )value;
 }
 
-void pick_funk_factor( std::string name, funk_factor value ) {
+void pick_funk_factor( std::string name, std::string value ) {
     auto picker = global_context->s->get_fn_ptr< funk_factor, funk_factor_picker >( name );
-    picker->value = ( funk_factor )value;
+    picker->value = std::stoull(value, nullptr, 16); // value passed as hexidecimal string
 }
 
 void pick_direction4( std::string name, int value ) {

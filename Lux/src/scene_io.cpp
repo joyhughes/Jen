@@ -1017,6 +1017,13 @@ void to_json(nlohmann::json& j, const std::vector<widget_group>& wg_vec) {
     }
 }
 */
+
+std::string ullToHexString(unsigned long long value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << value;
+    return ss.str();
+}
+
 void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{ 
         [&]( const any_fn< bool >& wrapper ) {
@@ -1144,8 +1151,8 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "funk_factor_picker"},
                         {"label", fn->label},
                         {"description", fn->description},
-                        {"value", fn->value},
-                        {"default_value", fn->default_value}
+                        {"value", ullToHexString( fn->value ) },
+                        {"default_value", ullToHexString( fn->default_value ) }
                     };
                 },
                 [&]( const auto& fn ) {

@@ -1,8 +1,12 @@
+#ifndef SCENE_IO_HPP
+#define SCENE_IO_HPP
+
 #include "scene.hpp"
 #include "json.hpp"
 #include "next_element.hpp"
 #include "any_function.hpp"
 #include "life.hpp"
+#include <sstream>
 
 struct scene_reader {
     using json = nlohmann::json;
@@ -127,3 +131,5 @@ struct scene_writer{
     std::string write_scene_json();
     scene_writer( scene& s_init ) : s( s_init ) {}
 };
+
+#endif // SCENE_IO_HPP

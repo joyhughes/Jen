@@ -13,11 +13,12 @@ const Circle = styled('div')(({ filled }) => ({
 }));
 
 function JenFunkyPicker({ json }) { 
-    const [funky, setFunky] = useState(BigInt("0xffffffffaa00aa00"));
+    const [funky, setFunky] = useState(BigInt(json.value) ?? BigInt("0xffffffffaa00aa00"));
 //    const [funky, setFunky] = useState(json.value ?? 18446744072266754560n );
 
     useEffect(() => {
-        window.module.pick_funk_factor(json.name, funky);
+        // pass value as hexidecimal string
+        window.module.pick_funk_factor(json.name, '0x' + funky.toString(16));
     }, [funky, json.name]);
 
     const funkItUp = (index) => {
