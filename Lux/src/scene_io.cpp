@@ -1141,7 +1141,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                 [&]( const std::shared_ptr< funk_factor_picker >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "direction_picker_4"},
+                        {"type", "funk_factor_picker"},
                         {"label", fn->label},
                         {"description", fn->description},
                         {"value", fn->value},
@@ -1152,7 +1152,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                     // Placeholder for other types
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "unimplemented direction4 function"} // Replace with actual type identification if needed
+                        {"type", "unimplemented funk_factor function"} // Replace with actual type identification if needed
                         // Other placeholder fields...
                     };
                 }

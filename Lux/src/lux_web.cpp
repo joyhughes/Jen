@@ -279,7 +279,7 @@ void pick_direction8( std::string name, int value ) {
     picker->value = ( direction8 )value;
 }
 
-void pick_funk_factor( std::string name, int value ) {
+void pick_funk_factor( std::string name, funk_factor value ) {
     auto picker = global_context->s->get_fn_ptr< funk_factor, funk_factor_picker >( name );
     picker->value = ( funk_factor )value;
 }
@@ -549,4 +549,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_image_to_scene", &add_image_to_scene);
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
-}
+} 

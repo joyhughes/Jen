@@ -162,6 +162,7 @@ typedef std::variant <
 > any_direction4_fn_ptr;
 
 ANY_FN( direction4 )
+
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_direction4_diagonal >,

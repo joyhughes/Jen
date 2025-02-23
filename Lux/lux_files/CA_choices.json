@@ -226,13 +226,11 @@
             "b": 8
         },
         {
-            "name": "funk_factor_menu",
-            "type": "menu_funk_factor",
-            "tool": "pull_down",
+            "name": "dafunk",
+            "type": "funk_factor_picker",
             "label": "Funk Factor",
             "description": "Funk factor is a parameter of the Funky sort rule.",
-            "items": [ "Borg", "Funky Town", "Web" ],
-            "default_choice": 0
+            "default_value": "0xffffffffaa00aa00"
         },
         {
             "name": "blur_picker",
@@ -369,7 +367,8 @@
                 "name": "funky_sort",
                 "type": "rule_diagonal_funky_sort_ucolor",
                 "direction": { "functions": [ "direction_4_diagonal" ] },
-                "max_diff": { "functions": [ "max_diff_slider" ] }
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_d": { "functions": [ "dafunk" ] }
             }
         },
         {
@@ -474,7 +473,7 @@
         {
             "name": "diagonal_funky_sort_group",
             "conditions": [ "rule_menu_6" ],
-            "widgets": [ "direction_4_diagonal", "max_diff_slider", "bright_block_widget_switch" ]
+            "widgets": [ "direction_4_diagonal", "max_diff_slider", "bright_block_widget_switch", "dafunk" ]
         },
         {
             "name": "box_blur_group",
