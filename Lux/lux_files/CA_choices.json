@@ -233,6 +233,20 @@
             "default_value": "0xffffffffaa00aa00"
         },
         {
+            "name": "left dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Left",
+            "description": "Funk factor for left hand side of sort.",
+            "default_value": "0xffff0000ffff0000"
+        },
+        {
+            "name": "right dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Right",
+            "description": "Funk factor for right hand side of sort.",
+            "default_value": "0xffffffff00000000"
+        },
+        {
             "name": "blur_picker",
             "type": "box_blur_picker",
             "label": "Blur method",
@@ -353,7 +367,9 @@
                 "name": "funky_sort",
                 "type": "rule_funky_sort_ucolor",
                 "direction": { "functions": [ "direction_4_funky" ] },
-                "max_diff": { "functions": [ "max_diff_slider" ] }
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_l": { "functions": [ "left dafunk" ] },
+                "dafunk_r": { "functions": [ "right dafunk" ] }
             }
         },
         {
@@ -468,7 +484,7 @@
         {
             "name": "funky_sort_group",
             "conditions": [ "rule_menu_5" ],
-            "widgets": [ "direction_4_funky", "max_diff_slider", "bright_block_widget_switch" ]
+            "widgets": [ "direction_4_funky", "max_diff_slider", "bright_block_widget_switch", "left dafunk", "right dafunk" ]
         },        
         {
             "name": "diagonal_funky_sort_group",

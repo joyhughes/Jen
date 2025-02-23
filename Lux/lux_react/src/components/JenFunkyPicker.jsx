@@ -49,6 +49,7 @@ function JenFunkyPicker({ json }) {
                 gap: 0,
                 width: '160px',
                 height: '160px',
+                border: '1px solid white',
             }}
         >
             {Array.from({ length: 64 }, (_, index) => renderButton(index))}

@@ -549,4 +549,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_image_to_scene", &add_image_to_scene);
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
-} 
+}
