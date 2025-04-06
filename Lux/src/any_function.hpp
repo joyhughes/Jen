@@ -5,6 +5,7 @@
 #include "next_element.hpp"
 #include "UI.hpp"
 #include "life_hacks.hpp"
+struct bool_function_condition;
 
 template < class T > struct any_fn {};
 
@@ -35,7 +36,7 @@ template<> struct any_fn< float > {
 };
 */
 
-typedef std::variant < 
+typedef std::variant <
     // harness functions
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
@@ -228,7 +229,9 @@ typedef std::variant <
 
 ANY_FN( bool )
 
-typedef std::variant < 
+typedef std::variant <
+    std::shared_ptr< bool_function_condition >,
+
     std::shared_ptr< initial_element_condition >,
     std::shared_ptr< following_element_condition >,
     std::shared_ptr< top_level_condition >,
@@ -272,18 +275,18 @@ struct any_condition_fn {
     any_condition_fn( any_condition_fn_ptr my_condition_fn, condition_fn fn, std::string name ) : my_condition_fn( my_condition_fn ), fn( fn ), name( name ) {}
 };
 
-typedef std::variant < 
+typedef std::variant <
     // identity function (no effect)
     std::shared_ptr< identity_gen_fn >,
+
+    // wiggle function
+    std::shared_ptr< wiggle_gen_fn >,
 
     // single field modifiers
     std::shared_ptr< orientation_gen_fn >,
     std::shared_ptr< scale_gen_fn >,
     std::shared_ptr< rotation_gen_fn >,
     std::shared_ptr< position_gen_fn >,
-
-    // generalized conditional function 
-    std::shared_ptr< filter >,
 
     // generalized functions (alphabetical order)
     std::shared_ptr< advect_element >,
@@ -327,6 +330,13 @@ typedef std::variant <
     any_condition_fn,
     any_gen_fn          
 > any_function;
+
+
+struct bool_function_condition {
+    std::string source_function_name; // name of the bool function to read
+    bool_function_condition( std::string const& source_function_name = "") ;
+    bool operator()(element_context& context);
+};
 
 /*
 template< class T > gen_fn   to_gen_fn(   std::shared_ptr< T >& ptr );

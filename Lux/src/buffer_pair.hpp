@@ -12,6 +12,7 @@ template< class T > class buffer_pair {
     std::pair< image_ptr, image_ptr > image_pair;
     bool swapped = false;
 public:
+    void initialize();
     buffer_pair();
     buffer_pair( const std::string& filename );
     buffer_pair( const image< T >& img );       // copy image into buffer
@@ -26,6 +27,7 @@ public:
     image< T >& get_buffer();                   // get buffer, create if necessary
     std::unique_ptr< image< T > >& get_buffer_ptr();
     void swap();                                // swap image and buffer
+    void adopt_image(std::unique_ptr<image<T>> img_ptr); // adopt image pointer
 
     /*
     void load( const std::string& filename ) { 

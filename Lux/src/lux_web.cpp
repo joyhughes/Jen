@@ -13,12 +13,14 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+#include "emscripten_utils.hpp"
 //#include <chrono>
 //#include <thread>
 
 using namespace emscripten;
+#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+#define ERROR( msg ) throw std::runtime_error( msg );
 
-//const val document = val::global("document");
 
 // used for stuffing everything needed to iterate and display a frame into a single void*
 struct frame_context {
@@ -69,25 +71,77 @@ bool is_swapped() {
     return global_context->buf->is_swapped();
 }
 
-val get_thumbnail( std::string name, int width, int height) {
-    uimage img( vec2i{ width, height } );
+val get_thumbnail(std::string name, int width, int height) {
+    // create temporal target thumbnail image
+    auto thumb_img_ptr = std::make_unique<uimage >(vec2i{width, height});
+    if (!thumb_img_ptr) {
+        std::cerr << "Failed to create thumbnail image" << std::endl;
+        // return an empty view to JS
+        return emscripten::val(emscripten::typed_memory_view(0, static_cast<unsigned char *>(nullptr)));
+    }
+
+    uimage thumb_img = *thumb_img_ptr;
+    unsigned char *buffer = (unsigned char *) thumb_img.get_base_ptr();
+    size_t buffer_length = width * height * 4;
     bool drawn = false;
-    unsigned char* buffer = (unsigned char* )img.get_base_ptr();
-    size_t buffer_length = width * height * 4; // Assuming 4 bytes per pixel (RGBA)
 
-    if( global_context->s->buffers.contains( name ) ) {
-        // make sure buffer contains uimage buffer pair
-        if( std::holds_alternative< ubuf_ptr >( global_context->s->buffers[ name ] ) )
-            img.splat( std::get< ubuf_ptr >( global_context->s->buffers[ name ] )->get_image() );
-            drawn = true;
-    }
-    // gray out if not drawn
-    if( !drawn ) {
-        img.fill( 0xff080808 );
+    // find source buffer and validate
+    if (global_context && global_context->s && global_context->s->buffers.count(name)) {
+        any_buffer_pair_ptr &source_buf_variant = global_context->s->buffers[name];
+        if (std::holds_alternative<ubuf_ptr>(source_buf_variant)) {
+            ubuf_ptr &source_buf_pair_ptr = std::get<ubuf_ptr>(source_buf_variant);
+            if (source_buf_pair_ptr && source_buf_pair_ptr->has_image()) {
+                image<ucolor> &source_image = source_buf_pair_ptr->get_image();
+                if (source_image.get_dim().x > 0 && source_image.get_dim().y > 0) {
+                    // define splat parameters
+                    bool thumb_smooth = false;
+                    vec2f thumb_center = vec2f(0, 0);
+                    float thumb_scale = 1.0f;
+                    float thumb_delta = 0.0f;
+                    std::optional<std::reference_wrapper<image<ucolor> > > thumb_mask = std::nullopt;
+                    std::optional<ucolor> thumb_tint = std::nullopt;
+                    mask_mode thumb_mode = MASK_NOEFFECT;
+                    // call splat
+                    try {
+                        thumb_img.splat(source_image, thumb_smooth, thumb_center, thumb_scale, thumb_delta, thumb_mask,
+                                        thumb_tint, thumb_mode);
+                        drawn = true;
+
+                        if (drawn && width > 0 && height > 0) {
+                            int x = 0;
+                            int y = 0;
+                            unsigned int pixel_index = y * thumb_img.get_dim().x + x;
+                            if (pixel_index < thumb_img.size()) { // Use size() method you added
+                                ucolor first_pixel_value = thumb_img.index(pixel_index); // <<< Use index(i)
+                                unsigned char* first_pixel_bytes = reinterpret_cast<unsigned char*>(&first_pixel_value);
+                                DEBUG("get_thumbnail: First pixel value (hex): " + ucolor_to_hex_string(first_pixel_value)); // Add hex log if possible
+                                DEBUG("get_thumbnail: First pixel bytes (memory): [" +
+                                      std::to_string(first_pixel_bytes[0]) + ", " + // Byte 0 (Lowest address)
+                                      std::to_string(first_pixel_bytes[1]) + ", " + // Byte 1
+                                      std::to_string(first_pixel_bytes[2]) + ", " + // Byte 2
+                                      std::to_string(first_pixel_bytes[3]) + "]");  // Byte 3 (Highest address)
+                            } else {
+                                DEBUG("get_thumbnail: Calculated pixel index out of bounds!");
+                            }
+                        }
+                    } catch (const std::exception &e) {
+                        std::cerr << "Error during splat operation: " << e.what() << std::endl;
+                    } catch (...) {
+                        std::cerr << "Unknown error during splat operation" << std::endl;
+                    }
+                }
+            }
+        }
     }
 
-    // Create a typed memory view at the specified memory location.
-    return val(typed_memory_view(buffer_length, buffer));
+    if (!drawn) {
+        std::cerr << "Failed to draw thumbnail" << std::endl;
+        thumb_img.fill(0xff808080); // gray placeholder
+    }
+    // IMPORTANT: The JS side MUST be finished with this view before this C++ function scope ends,
+    // otherwise 'buffer' will point to deallocated memory from thumb_img_ptr going out of scope.
+    // For simple drawing, this is usually okay as JS copies it quickly.
+    return emscripten::val(typed_memory_view(buffer_length, buffer));
 }
 
 void set_frame_callback(val callback) {
@@ -199,6 +253,7 @@ void mouse_click( bool click ) {
 }
 
 void set_slider_value( std::string name, float value ) {
+    std::cout << "C++ set_slider_value: Received name='" << name << "', value=" << value << std::endl;
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
@@ -211,6 +266,7 @@ void set_slider_value( std::string name, float value ) {
         }
         throw std::runtime_error( "slider " + name + " invalid type " );
     }
+    std::cerr << "  Slider '" << name << "' not found or invalid type in set_slider_value." << std::endl;
     throw std::runtime_error( "slider " + name + " not found in scene" );
 }
 
@@ -400,42 +456,191 @@ bool is_widget_group_active( std::string name ) {
     return false;   // group not in UI
 }
 
-void add_image_to_scene(std::string name, std::string filepath) {
-    try {
-        std::cout << "Adding image: " << name << " filepath: " << filepath << std::endl;
 
-        ubuf_ptr img(new buffer_pair<ucolor>(filepath));
-        any_buffer_pair_ptr any_buf = img;
+void add_image_to_scene(std::string name, int width, int height, emscripten::val pixelDataVal) {
+    // Use DEBUG/ERROR macros defined in scene_io.hpp or similar
+    DEBUG("C++ add_image_to_scene: Adding '" + name + "' (" + std::to_string(width) + "x" + std::to_string(height) + ")");
 
-        global_context->s->buffers[name] = any_buf;
-        // Mark affected queues for re-render
-        for (auto& q : global_context->s->queue) {
-            q.rendered = false;
-        }
-        global_context->s->restart();
-    } catch (const std::exception& e) {
-        std::cerr << "Error in add_image_to_scene: " << e.what() << std::endl;
-        throw;
+    if (!global_context || !global_context->s) {
+        std::cerr << "ERROR: Global context or scene not available in add_image_to_scene." << std::endl;
+        // Cannot use ERROR macro here if it relies on global_context->s
+        return; // Early exit if context is missing
     }
-}
 
-void update_source_name(std::string name) {
+    // 1. Check for name collision (Optional: Decide on overwrite or error)
+    if (global_context->s->buffers.count(name)) {
+        std::cerr << "Warning: Image name '" + name + "' already exists. Overwriting." << std::endl;
+    }
+
+    // 2. Validate dimensions
+    if (width <= 0 || height <= 0) {
+        ERROR("Invalid dimensions for image '" + name + "'"); // Calls exit(0) via emscripten_error
+        return; // Return added for clarity, though ERROR likely halts
+    }
+
+    // 3. Create new uimage (using unique_ptr for safety)
+    std::unique_ptr<uimage> new_image;
     try {
-        std::cout << "Updating source to: " << name << std::endl;
+       new_image = std::make_unique<uimage>(vec2i{width, height});
+    } catch (const std::bad_alloc& e) {
+       ERROR("ERROR: Failed to allocate memory for uimage '" + name + "': " + std::string(e.what()));
+       return;
+    } catch (...) {
+       ERROR("ERROR: Unknown error creating uimage for '" + name + "'");
+       return;
+    }
 
-        if (!global_context->s->buffers.contains(name)) {
-            std::cerr << "Source buffer not found: " << name << std::endl;
+    if (!new_image) { // Should be caught by exceptions, but belts-and-suspenders
+        ERROR("ERROR: Failed to create new image buffer (make_unique returned null?) for '" + name + "'");
+        return;
+    }
+
+    // 4. Get pixel data pointer and length from JS val
+    size_t expected_length = static_cast<size_t>(width) * height * 4; // RGBA
+    size_t actual_length = 0;
+    uintptr_t data_ptr_addr = 0;
+    const unsigned char* js_pixels_ptr = nullptr;
+
+    try {
+        // Verify it looks like a TypedArray view before accessing properties
+        bool is_valid_typed_array = !pixelDataVal["byteLength"].isUndefined() &&
+                                    !pixelDataVal["byteOffset"].isUndefined() &&
+                                    !pixelDataVal["buffer"].isUndefined() &&
+                                     pixelDataVal["buffer"]["byteLength"].isNumber(); // Check buffer exists and has length
+
+        if (!is_valid_typed_array) {
+             ERROR("Passed pixelDataVal is not a valid JS TypedArray/DataView for image '" + name + "'");
+             return;
+        }
+
+        actual_length = pixelDataVal["byteLength"].as<size_t>();
+        if (actual_length != expected_length) {
+            ERROR("Pixel data size mismatch for '" + name + "'. Expected=" + std::to_string(expected_length) + ", Got=" + std::to_string(actual_length));
             return;
         }
 
-        for (auto& q : global_context->s->queue) {
-            q.rendered = false;
-        }
+        // Get the numeric address of the start of the data view
+        // Access ArrayBuffer address via ['buffer']['byteLength'] as a trick to get its address as number
+        data_ptr_addr = pixelDataVal["buffer"]["byteLength"].as<uintptr_t>() - pixelDataVal["buffer"]["byteLength"].as<size_t>() ; // Get base address of ArrayBuffer
+        size_t offset = pixelDataVal["byteOffset"].as<size_t>(); // Get the view's offset within the buffer
+        data_ptr_addr += offset; // Add offset to get the start of this view's data
 
-        global_context->s->restart();
+        // Cast numeric address back to C++ pointer (only used locally)
+        js_pixels_ptr = reinterpret_cast<const unsigned char*>(data_ptr_addr);
 
     } catch (const std::exception& e) {
-        std::cerr << "Error in update_source_name: " << e.what() << std::endl;
+         // Catch potential errors during property access or .as<T>() conversions
+         ERROR("Exception accessing pixelDataVal properties for image '" + name + "': " + std::string(e.what()));
+         return;
+    } catch (...) {
+         ERROR("Unknown exception accessing pixelDataVal for image '" + name + "'");
+         return;
+    }
+
+    // 5. Copy and potentially reorder pixels
+    unsigned char* cpp_buffer = (unsigned char*)new_image->get_base_ptr();
+    DEBUG("  Starting pixel copy for '" + name + "'...");
+    try {
+        // Assuming JS ImageData (pixelDataVal) is RGBA
+        // Assuming C++ ucolor is ARGB (0xAARRGGBB)
+        // *** VERIFY YOUR ACTUAL UCOLOR LAYOUT ***
+        for(size_t i = 0; i < expected_length; i+= 4) {
+            const unsigned char* js_pixel = js_pixels_ptr + i; // Pointer to start of RGBA pixel
+                  unsigned char* cpp_pixel_loc = cpp_buffer + i; // Pointer to destination ARGB pixel location
+
+            // Read RGBA
+            unsigned char r = js_pixel[0];
+            unsigned char g = js_pixel[1];
+            unsigned char b = js_pixel[2];
+            unsigned char a = js_pixel[3];
+
+            // Write ARGB (adjust byte order if ucolor is different, e.g., ABGR)
+            cpp_pixel_loc[0] = a; // Alpha
+            cpp_pixel_loc[1] = r; // Red
+            cpp_pixel_loc[2] = g; // Green
+            cpp_pixel_loc[3] = b; // Blue
+
+            // If ucolor is stored as uint32_t:
+            // ucolor pixel = (static_cast<ucolor>(a) << 24) | (static_cast<ucolor>(r) << 16) |
+            //                (static_cast<ucolor>(g) << 8)  | (static_cast<ucolor>(b));
+            // memcpy(cpp_buffer + (i / 4) * sizeof(ucolor), &pixel, sizeof(ucolor));
+        }
+        // If ucolor *is* RGBA (same as JS ImageData):
+        // memcpy(cpp_buffer, js_pixels_ptr, expected_length);
+
+    } catch (const std::exception& e) {
+        ERROR("Exception during pixel copy for '" + name + "': " + std::string(e.what()));
+        return;
+    } catch (...) {
+        ERROR("Unknown exception during pixel copy for '" + name + "'");
+        return;
+    }
+    DEBUG("  Pixel copy finished for '" + name + "'.");
+
+
+    // 6. Create buffer pair, adopt image, initialize mipmaps
+    ubuf_ptr new_buffer_pair = std::make_shared<buffer_pair<ucolor>>();
+    new_buffer_pair->adopt_image(std::move(new_image)); // Transfer ownership
+    new_buffer_pair->initialize(); // Generate mipmaps
+
+    // 7. Add to scene buffers map (overwrites if key exists)
+    global_context->s->buffers[name] = new_buffer_pair;
+    DEBUG("  Successfully added buffer '" + name + "' to scene map.");
+
+    // 8. Call JS function to update the UI menu (Optional)
+    try {
+        std::string escaped_menu_name = escape_for_js_string("source_image_menu"); // Name of the JS menu state/ID
+        std::string escaped_item_name = escape_for_js_string(name);
+        // Construct the JS command string
+        std::string js_command = "if (window.module && typeof window.module.add_to_menu === 'function') { "
+                                 "  window.module.add_to_menu('" + escaped_menu_name + "', '" + escaped_item_name + "'); "
+                                 "} else { console.warn('JS function window.module.add_to_menu not found or module not ready'); }";
+        emscripten_run_script(js_command.c_str()); // Execute the JS command
+        DEBUG("  Called JS add_to_menu('" + escaped_menu_name + "', '" + escaped_item_name + "') attempt finished.");
+    } catch (...) { // Catch potential C++ exceptions during string formatting etc.
+        std::cerr << "Warning: Exception occurred trying to call JS add_to_menu for '" << name << "'." << std::endl;
+    }
+
+    // 9. Restart scene to apply changes and trigger re-render
+    //    (Might be possible to do a less drastic update if only source changed)
+    DEBUG("  Restarting scene after adding image '" + name + "'...");
+    global_context->s->restart();
+    DEBUG("  add_image_to_scene completed for '" + name + "'.");
+}
+
+
+void update_source_name(std::string name) {
+    DEBUG("C++ update_source_name: Request to switch to '" + name + "'");
+    if (!global_context || !global_context->s) return;
+
+    // validate the buffer exists
+    if (!global_context->s->buffers.count(name) || !std::holds_alternative<
+            ubuf_ptr>(global_context->s->buffers[name])) {
+        std::cerr << "ERROR: update_source_name - Invalid or non-ucolor source name: " << name << std::endl;
+        return;
+    }
+
+    // update the menu function
+    std::string menu_func_name = "source_image_menu";
+    if (global_context->s->functions.count(menu_func_name)) {
+        try {
+            auto menu = global_context->s->get_fn_ptr<std::string, menu_string>(menu_func_name);
+            menu->choose(name); // update menu choice
+
+            if (menu->rerender) {
+                global_context->s->restart(); // full start if menu causes structural change
+                DEBUG("  Source updated via menu, restarting scene.");
+            } else {
+                global_context->s->ui.displayed = false;
+                DEBUG("  Source updated via menu, flagging redraw.");
+            }
+        } catch (const std::exception &e) {
+            std::cerr << "Warning: Failed to update menu '" << menu_func_name << "': " << e.what() << std::endl;
+        }
+    } else {
+        std::cerr << "Warning: update_source_name - menu '" << menu_func_name << "' not found. Flagging redraw." <<
+                std::endl;
+        global_context->s->ui.displayed = false;
     }
 }
 
@@ -458,7 +663,7 @@ void add_to_menu(std::string menu_name, std::string item) {
     }
 }
 
-int main(int argc, char** argv) { 
+int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
     vec2i dim( { 512, 512 } );  // original sin
@@ -468,10 +673,10 @@ int main(int argc, char** argv) {
     global_context->scene_list = json::parse( load_file_as_string( "lux_files/scenes.json" ) );
     global_context->scene_list[ "scenes" ][ 0 ][ "filename" ].get_to( filename );
     global_context->s = std::make_unique< scene >( filename );
-    //scene s( "lux_files/kaleido.json" ); 
-    //scene s( "lux_files/CA_choices.json" ); 
-    //scene s( "lux_files/nebula_brush.json" ); 
-    //scene s(    //scene s( "diffuser_files/diffuser_brush.json" ); 
+    //scene s( "lux_files/kaleido.json" );
+    //scene s( "lux_files/CA_choices.json" );
+    //scene s( "lux_files/nebula_brush.json" );
+    //scene s(    //scene s( "diffuser_files/diffuser_brush.json" );
     //scene s( "moon_files/galaxy_moon.json" );
     emscripten_run_script("console.log('scene loaded');");
 
@@ -479,7 +684,7 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     global_context->s->set_output_buffer( any_buf );
     global_context->s->ui.canvas_bounds = bb2i( dim );
-    //SDL_Init(SDL_INIT_VIDEO); 
+    //SDL_Init(SDL_INIT_VIDEO);
     //SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
     // pack context

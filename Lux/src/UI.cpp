@@ -77,11 +77,11 @@ void menu::choose( int c ) {
 }
 
 void menu::choose( const std::string& name ) {
-    //std::cout << "Menu choose(string): nitems=" << items.size() << " name=" << name << "\n";
+    std::cout << "Menu choose(string): nitems=" << items.size() << " name=" << name << "\n";
     for( int i = 0; i < items.size(); i++ ) {
         if( items[ i ] == name ) {
             choice = i;
-            //std::cout << "Menu choose(string): found name=" << name << " choice=" << choice << "\n";
+            std::cout << "Menu choose(string): found name=" << name << " choice=" << choice << "\n";
             return;
         }
     }

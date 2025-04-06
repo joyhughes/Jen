@@ -2,8 +2,7 @@
 #define __NEXT_ELEMENT_HPP
 
 #include <functional>
-#include <concepts>
-#include "buffer_pair.hpp"
+#include "any_image.hpp"
 #include "vector_field.hpp"
 #include "joy_concepts.hpp"
 #include "joy_rand.hpp"
@@ -499,12 +498,34 @@ struct filter {
     std::vector< any_condition_fn > conditions;
     std::vector< any_gen_fn > functions;        // list of component functions, executed in order
 
-    void operator () ( element_context& context );
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
     void add_function(  const any_gen_fn& fn );
     void add_condition( const any_condition_fn& c );
 
     filter();
 };
+
+struct wiggle_gen_fn {
+    harness< float > wavelength;
+    harness< float > amplitude;
+    harness< float > phase;
+    harness< float > wiggliness;
+
+    // Keep constructor definition inline
+    wiggle_gen_fn( const float& wavelength_init = 1.0f,
+                   const float& amplitude_init = 1.0f,
+                   const float& phase_init = 0.0f,
+                   const float& wiggliness_init = 0.0f )
+        : wavelength( wavelength_init ),
+          amplitude( amplitude_init ),
+          phase( phase_init ),
+          wiggliness( wiggliness_init ) {}
+
+    // *** DECLARE operator() only ***
+    void operator () ( element_context& context );
+
+};
+
 /*
 struct chooser_gen_fn {
     std::vector< any_gen_fn > functions;        // list of component functions, executed in order

@@ -51,3 +51,5 @@ thumb
 sketch
 cmake-build-debug
 
+Lux/node_modules
+Lux/lux_react/src/lux.wasm

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App.jsx';
+import ThemedApp from "./components/App.jsx";
 
 /*
 var factory = require('./lux.js');
@@ -30,7 +30,7 @@ factory().then((instance) => {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <ThemedApp />
   </React.StrictMode>
 );
 

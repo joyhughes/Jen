@@ -5,7 +5,7 @@
 #ifndef __VECT2_HPP
 #define __VECT2_HPP
 
-#ifndef R   
+#ifndef R
     #define R x
 #endif // R
 
@@ -24,7 +24,7 @@ typedef linalg::vec< int,   2 > vec2i;
 typedef linalg::mat< float, 2, 2 > mat2f;
 
 // Time-dependent vector function
-typedef std::function< vec2f ( const vec2f&, const float& ) > vector_fn;    
+typedef std::function< vec2f ( const vec2f&, const float& ) > vector_fn;
 
 enum rotation_direction
 {
@@ -36,7 +36,7 @@ enum rotation_direction
 typedef enum rotation_direction rotation_direction;
 
 // degree-based trig functions
-// Jen generates angles in degrees for readability 
+// Jen generates angles in degrees for readability
 float sin_deg( const float& theta );
 float cos_deg( const float& theta );
 float tan_deg( const float& theta );
@@ -124,18 +124,18 @@ template< class T, int M > struct bounding_box {
     V minv, maxv;  // Per-component vectors sorted so mins[ foo ] <= maxs[ foo ] is always true
     V minp, maxp;  // Padded bounding box values to calculate if point is within a specified distance to bounding box in any dimension
 
-    bounding_box()                           : 
-        b1( { (T)(-1), (T)(-1) } ), b2( { (T)1, (T)1 } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }  
+    bounding_box()                           :
+        b1( { (T)(-1), (T)(-1) } ), b2( { (T)1, (T)1 } ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
 
     bounding_box( const V& v )               :
         b1( 0 ), b2( v ), minv( linalg::min( 0, v ) ), maxv( linalg::max( 0, v ) ), minp( minv ), maxp( maxv ) { }
 
-    bounding_box( const V& v1, const V& v2 ) : 
+    bounding_box( const V& v1, const V& v2 ) :
         b1( v1 ), b2( v2 ), minv( linalg::min( v1, v2 ) ), maxv( linalg::max( v1, v2 ) ), minp( minv ), maxp( maxv ) { }
 
     bounding_box( const V& v, const T& size ) :
         b1( v - size ), b2( v + size ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
-           
+
     // copy+conversion constructor
     template< class U > bounding_box( const bounding_box< U, M >& bbc ) :
         b1( bbc.b1 ), b2( bbc.b2 ), minv( linalg::min( b1, b2 ) ), maxv( linalg::max( b1, b2 ) ), minp( minv ), maxp( maxv ) { }
@@ -173,6 +173,46 @@ template< class T, int M > struct bounding_box {
     // Linear map from one bounding box to another
     template< class U, class W > V bb_map( const linalg::vec< U, M >& in, const bounding_box< W, M >& target ) const
     { return ( V )linalg::cmul( ( vec2f )( in - target.minv ), ( vec2f )( maxv - minv ) ) / ( V )( target.maxv - target.minv ) + minv; }
+
+
+    template< class U, class W > // U = input vec type, W = target box type
+    linalg::vec< W, M > bb_map_inv( const linalg::vec< U, M >& in, const bounding_box< W, M >& target ) const {
+        // Calculate the dimensions (size) of this box (type T)
+        linalg::vec< T, M > this_size = this->maxv - this->minv;
+        // Avoid division by zero, handle potential int vs float differences
+        for(int i = 0; i < M; ++i) {
+            // Use epsilon only if T is a floating point type
+            T epsilon = std::is_floating_point<T>::value ? (T)1e-9 : (T)0;
+            if (std::abs(this_size[i]) <= epsilon) {
+                this_size[i] = (T)1;
+            }
+        }
+
+        // Calculate the dimensions (size) of the target box (type W)
+        linalg::vec< W, M > target_size = target.maxv - target.minv;
+
+        // Calculate offset of 'in' (type U) relative to this->minv (type T)
+        // Use auto for deduced type, likely needs float intermediate if mixing int/float
+        auto offset_in_this = in - this->minv;
+
+        // Calculate normalized position within 'this' box (using float intermediate)
+        linalg::vec< float, M > norm_pos = (linalg::vec< float, M >)offset_in_this / (linalg::vec< float, M >)this_size;
+
+        // Scale normalized position by target size
+        linalg::vec< float, M > mapped_offset = linalg::cmul(norm_pos, (linalg::vec< float, M >)target_size);
+
+        // Final result is target_min (type W) + mapped_offset (float, needs cast to W)
+        // Cast intermediate float result back to target vector type W
+        return linalg::vec< W, M >( (linalg::vec< float, M >)target.minv + mapped_offset );
+    }
+
+
+    template< class U, class W > // U = input box type, W = target coord system type
+   bounding_box< W, M > map_box_inv( const bounding_box< U, M >& in_box, const bounding_box< W, M >& target_coords ) const {
+        linalg::vec< W, M > mapped_b1 = bb_map_inv( in_box.b1, target_coords );
+        linalg::vec< W, M > mapped_b2 = bb_map_inv( in_box.b2, target_coords );
+        return bounding_box< W, M > ( mapped_b1, mapped_b2 );
+    }
 
     // map bounding box from linear space of one box to another
     template< class U, class W > bounding_box< T, M > map_box( const bounding_box< U, M >& in, const bounding_box< W, M >& target ) const

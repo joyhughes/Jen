@@ -153,7 +153,12 @@ public:
 
     T* get_base_ptr() { 
         return &(mip[0][0]);
-    }    
+    }
+
+    std::vector< std::vector< T > > get_mip() {
+        return mip;
+    }
+
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
     auto begin() noexcept             { return mip[ 0 ].begin(); }
@@ -178,7 +183,7 @@ public:
     inline void set( const unsigned int& i, const T& val ) { mip[ 0 ][ i ] = val; }
     const T index( const vec2i& vi, const image_extend& extend = SAMP_SINGLE ) const;
     inline T index( const unsigned int& i ) const { return mip[ 0 ][ i ]; }
-    const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;    
+    const T sample( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;
     // Preserved intersting bug       
     const T sample_tile( const vec2f& v, const bool& smooth = false, const image_extend& extend = SAMP_SINGLE ) const;
     // fixed point sample           

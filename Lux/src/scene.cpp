@@ -37,8 +37,9 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
                 if( el.orientation_lock ) th += el.orientation;
 
                 if( target_buf->has_image() ) {
-//                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
-                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
+                   std::cout << "splat_element: Calling target->splat. Smooth=" << el.smooth
+                   << ", Scale=" << el.scale << ", Rotation=" << th << std::endl;
+                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode );
                 }
             }
             else std::cout << "splat_element() - no image in buffer" << std::endl;
@@ -51,9 +52,10 @@ element_context::element_context( scene& s_init, any_buffer_pair_ptr& buf_init )
 
 // splats any element onto any image
 void element::render( any_buffer_pair_ptr& target ) { 
-    //std::cout << " element::render\n";
     pixel_type ptype = ( pixel_type )target.index();
-    //std::cout << " pixel type " << ptype << std::endl;
+    std::cout << "element::render: Preparing to splat element. Target type index: " << ptype
+            << ", Element smooth: " << this->smooth
+            << ", scale: " << this->scale << std::endl;
     switch( ( pixel_type )target.index() ) {     // replace with std::visit
         case( PIXEL_FRGB   ): splat_element< frgb   >( std::get< std::shared_ptr< buffer_pair< frgb > > >( target ), *this ); break;
         case( PIXEL_UCOLOR ): splat_element< ucolor >( std::get< std::shared_ptr< buffer_pair< ucolor > > >( target ), *this ); break;
@@ -205,8 +207,13 @@ void effect_list::render( scene& s ) {
             next_element default_next_element;
             cluster default_cluster( default_element, default_next_element );
             element_context context( default_element, default_cluster, s, buf );
+            std::cout << "effect_list::render: Processing effect '" << e << "'" << std::endl;
+            if (s.effects.count(e)) {
+                s.effects[ e ]( buf, context );
+            } else {
+                std::cerr << "  ERROR: Effect '" << e << "' not found in scene effects map!" << std::endl;
+            }
             //std::cout << "about to render effect " << e << " into buffer " << name << std::endl;
-            s.effects[ e ]( buf, context );
             //std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
         }
         rendered = true;
