@@ -356,11 +356,6 @@ const T image< T >::sample( const vec2f& pixel_coord_f, // Input is floating-poi
                             const bool& use_bilinear,    // Renamed: true=bilinear, false=nearest
                             const image_extend& extend ) const
 {
-    // Remove the "why am I here?" log unless needed for specific debugging
-    // std::cout << "sample(vec2f) called with: (" << pixel_coord_f.x << "," << pixel_coord_f.y << ") bilinear=" << use_bilinear << std::endl;
-
-    // REMOVED: vec2f vf = fpbounds.bb_map( v, bounds ); // Input is already in pixel coords
-
     if (use_bilinear) {
         // --- BILINEAR INTERPOLATION ---
         // Get integer and fractional parts relative to floor
@@ -395,28 +390,6 @@ const T image< T >::sample( const vec2f& pixel_coord_f, // Input is floating-poi
         return index( nearest_pixel_i, extend );
     }
 }
-
-// Fixed point version of sample
-
-// template< class T > const T image< T >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const  {
-    // int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
-    // int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
-    // return  blendf(
-    //             blendf(
-    //                 blendf( mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-    //                 blendf( mip[ mip_level + 1 ][ u_index                              + 1 ], mip[ mip_level + 1 ][ u_index                              ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-    //                 ( ( vi.y >> mip_level ) & 0xffff ) / 65536.0f
-    //             ),
-    //             blendf(
-    //                 blendf( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
-    //                 blendf( mip[ mip_level ][ l_index                          + 1 ], mip[ mip_level ][ l_index                          ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
-    //                 ( ( vi.y >> ( mip_level ) ) & 0xffff ) / 65536.0f
-    //             ),
-    //             mip_blend / 65536.0f
-    //         );
-    // ensure we have enough mipmap levels
-// }
-
 
 template<class T> const T image<T>::sample(const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi) const {
     // safety check - if we don't have enough mipmap levels, fallback to the highest available
