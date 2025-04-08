@@ -141,10 +141,17 @@ void orientation_gen_fn::operator () ( element_context& context ) {
     context.el.orientation = *orientation;
 }
 
-void scale_gen_fn::operator () ( element_context& context ) { 
+void scale_gen_fn::operator () ( element_context& context ) {
     scale.val = context.el.scale;
     scale( context );
-    context.el.scale = *scale; 
+    std::cout << "scale_gen_fn: Harness 'scale' value after calling harness operator(): " << *scale << std::endl;
+
+    for(auto const & [name, el_ptr] : context.s.elements) {
+        if (name == "mipmapped_element" || name == "standard_element") {
+            el_ptr->scale = *scale;
+            std::cout << "  Applied scale " << *scale << " to element '" << name << "'" << std::endl;
+        }
+    }
 }
 
 void rotation_gen_fn::operator () ( element_context& context ) { 
@@ -322,19 +329,23 @@ template struct equal_condition< direction4 >;
 template struct equal_condition< direction4_diagonal >;
 template struct equal_condition< direction8 >;
 
-void filter::operator () ( element_context& context ) { 
-    //std::cout << "filter operator ()" << std::endl;
+void filter::operator () ( any_buffer_pair_ptr& buf, element_context& context ) {
+    std::cout << "filter operator ()" << std::endl;
     for( auto& condition : conditions ) {
         //std::cout << "filter condition: " << condition.name << std::endl;
         if( !condition( context ) ) return;
     }
-    for( auto& fn : functions ) fn( context );
+    std::cout << "filter operator (): All conditions passed. Executing functions..." << std::endl;
+    for( auto& fn : functions ) {
+        std::cout << "  Executing filter function: " << fn.name << std::endl; // <<< Add log
+        fn( context );
+    }
 }
 
 void filter::add_function(  const any_gen_fn      &fn ) { functions.push_back( fn ); }
 void filter::add_condition( const any_condition_fn &c ) { conditions.push_back( c ); }
 
-filter::filter() {}
+filter::filter() = default;
 
 void next_element::add_function(  any_gen_fn fn       ) { functions.push_back( fn ); }
 
@@ -355,6 +366,26 @@ bool next_element::operator () ( element_context& context ) {
     el.index++;
     return true; 
 }
+
+void wiggle_gen_fn::operator () ( element_context& context ) {
+    // Evaluate the harnesses to get current parameter values
+    wavelength( context );
+    amplitude( context );
+    phase( context );
+    wiggliness( context );
+
+    // Calculate the wiggle value based *only* on time
+    float wiggle_value = 0.0f;
+    if( *wavelength != 0.0f ) {
+        // Note: Using context.s.time as the driving input
+        wiggle_value = *amplitude * sin( ( context.s.time / *wavelength + *phase + *wiggliness * context.s.time ) * TAU );
+    }
+
+    // Apply the wiggle value to the element's rotation
+    context.el.rotation += wiggle_value * context.s.time_interval;
+
+}
+
 
 next_element::next_element() {}
 

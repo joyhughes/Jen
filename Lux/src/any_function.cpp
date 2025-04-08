@@ -1,4 +1,35 @@
 #include "any_function.hpp"
+#include "scene.hpp"
+#include "next_element.hpp"
+
+bool_function_condition::bool_function_condition(const std::string& source_name) :
+    source_function_name(source_name) {}
+
+bool bool_function_condition::operator()(element_context &context) {
+    if (source_function_name.empty()) {
+        std::cerr << "Warning: bool_function_condition called without a source_function_name set." << std::endl;
+        return false;
+    }
+    // Compiler now has full definitions of element_context, scene, and any_function
+    if (context.s.functions.count(source_function_name)) {
+        any_function &source_func_variant = context.s.functions[source_function_name];
+        if (std::holds_alternative<any_fn<bool> >(source_func_variant)) {
+            any_fn<bool> &bool_fn_wrapper = std::get<any_fn<bool> >(source_func_variant);
+            bool dummy_val = false;
+            return bool_fn_wrapper(dummy_val, context);
+        } else {
+            std::cerr << "Warning: Source function '" << source_function_name
+                    << "' for bool_function_condition is not type any_fn<bool>." << std::endl;
+            return false;
+        }
+    } else {
+        std::cerr << "Warning: Source function '" << source_function_name
+                << "' for bool_function_condition not found in scene." << std::endl;
+        return false;
+    }
+}
+
+
 /*
 template< class T > gen_fn to_gen_fn( std::shared_ptr< T >& ptr ) { return *ptr; }
 gen_fn resolve_gen_fn( any_gen_fn_ptr& any_fn_ptr) {
