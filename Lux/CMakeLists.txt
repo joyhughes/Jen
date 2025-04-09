@@ -60,6 +60,8 @@ src/vector_field.cpp
 src/warp_field.hpp
 src/warp_field.cpp
 src/warp.hpp
+        src/emscripten_utils.cpp
+        src/emscripten_utils.hpp
 )
 
 add_library(common ${COMMON_LIB_SRCS})

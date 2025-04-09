@@ -8,26 +8,35 @@ template< class T > buffer_pair< T >::buffer_pair() {
 template< class T > buffer_pair< T >::buffer_pair( const std::string& filename ) {
     image_pair.first = std::make_unique< image< T > >( filename );
     image_pair.second = NULL;
+    initialize();
 }
 
 template< class T > buffer_pair< T >::buffer_pair( const image< T > &img ) {
     image_pair.first = std::make_unique< image< T > >( img );
     image_pair.second = NULL;
+    initialize();
 }
 
 template< class T > buffer_pair< T >::buffer_pair( vec2i dim ) {
     image_pair.first = std::make_unique< image< T > >( dim );
     image_pair.second = NULL;
+    initialize();
 }
 
-/*
-template< class T > buffer_pair< T >::buffer_pair( const buffer_pair< T >& bp ) {
-    if ( bp.image_pair.first.get() != NULL ) image_pair.first = std::make_unique< image< T > >( *bp.get_image() );
-    else image_pair.first = NULL;
-    if( bp.image_pair.second.get() != NULL ) image_pair.second = std::make_unique< image< T > >( *bp.get_buffer() );
-    else image_pair.second = NULL;
+template< class T > void buffer_pair< T >::initialize() {
+    if (image_pair.first != nullptr) {
+        vec2i d = image_pair.first->get_dim(); // Get dimensions
+        std::cout << "buffer_pair::initialize() called for buffer with dim: ("
+                  << d.x << ", " << d.y << ")" << std::endl; // Log dimensions
+        image_pair.first->use_mip(true);
+        image_pair.first->mip_it();
+        std::cout << "Buffer initialized with "
+                  << image_pair.first->get_mip().size()
+                  << " mipmap levels" << std::endl;
+    } else {
+        std::cout << "buffer_pair::initialize() called but first image is null." << std::endl;
+    }
 }
-*/
 
 template< class T > bool buffer_pair< T >::has_image() {
     return image_pair.first.get() != NULL;
@@ -78,6 +87,17 @@ template< class T > void buffer_pair< T >::reset( vec2i dim ) {
         image_pair.second.reset( NULL );
         swapped = false;
     //}
+}
+
+
+template< class T >
+void buffer_pair<T>::adopt_image(std::unique_ptr<image<T>> img_ptr) {
+    this->image_pair.first = std::move(img_ptr);
+    this->image_pair.second = nullptr;
+    this->swapped = false;
+    if (!this->image_pair.first) {
+        std::cerr << "Warning: adopt_image resulted in a null first image pointer." << std::endl;
+    }
 }
 
 template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp ) { 

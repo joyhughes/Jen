@@ -5,7 +5,8 @@
 #define __UCOLOR_HPP
 
 #include "mask_mode.hpp"
-#include <algorithm>
+#include "algorithm"
+#include "vector"
 typedef unsigned int ucolor;
 
 float af( const ucolor &c );

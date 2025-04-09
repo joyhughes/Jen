@@ -1,0 +1,208 @@
+{
+  "name": "Mipmap Advanced Demo",
+  "title": "Mipmapping vs. No Mipmapping Comparison",
+  "time_interval": 0.016,
+
+  "images": [
+    {
+      "name": "hong_kong",
+      "type": "uimage",
+      "filename": "lux_files/hk_square_512.jpg"
+    }
+  ],
+
+  "elements": [
+    {
+      "name": "mipmapped_element",
+      "image": "hong_kong",
+      "smooth": true,
+      "position": [-0.5, 0.0],
+      "scale": 0.35,
+      "rotation": 0.0
+    },
+    {
+      "name": "standard_element",
+      "image": "hong_kong",
+      "smooth": false,
+      "position": [0.5, 0.0],
+      "scale": 0.35,
+      "rotation": 0.0
+    }
+  ],
+
+  "functions": [
+    {
+      "name": "rotation_control",
+      "type": "slider_float",
+      "label": "Rotation",
+      "description": "Rotate elements to see aliasing differences",
+      "min": 0.0,
+      "max": 360.0,
+      "default_value": 0.0,
+      "step": 1.0
+    },
+    {
+      "name": "scale_control",
+      "type": "slider_float",
+      "label": "Scale",
+      "description": "Scale elements to see level-of-detail transitions",
+      "min": 0.05,
+      "max": 0.8,
+      "default_value": 0.35,
+      "step": 0.01
+    },
+    {
+      "name": "x_position",
+      "type": "slider_float",
+      "label": "X Position",
+      "description": "Move elements horizontally",
+      "min": -0.2,
+      "max": 0.2,
+      "default_value": 0.0,
+      "step": 0.01
+    },
+    {
+      "name": "y_position",
+      "type": "slider_float",
+      "label": "Y Position",
+      "description": "Move elements vertically",
+      "min": -0.2,
+      "max": 0.2,
+      "default_value": 0.0,
+      "step": 0.01
+    },
+    {
+      "name": "texture_selector",
+      "type": "menu_string",
+      "tool": "pull_down",
+      "label": "Texture Type",
+      "description": "Select texture pattern to compare",
+      "items": ["hong_kong", "checkerboard"],
+      "default_choice": 0,
+      "rerender": true
+    },
+    {
+      "name": "auto_rotate",
+      "type": "switch_fn",
+      "label": "Auto-Rotate",
+      "description": "Continuously rotate the elements",
+      "default_value": false
+    },
+    {
+      "name": "is_auto_rotate_active",
+      "type": "bool_function_condition",
+      "source_function_name": "auto_rotate"
+    },
+    {
+      "name": "auto_rotation",
+      "type": "wiggle_gen_fn",
+      "wavelength": {"value": 10.0},
+      "amplitude": {"value": 360.0},
+      "phase": {"value": 0.0},
+      "wiggliness": {"value": 0.1}
+    },
+    {
+      "name": "rotation_updater",
+      "type": "rotation_gen_fn",
+      "r": {"functions": ["rotation_control"]}
+    },
+    {
+      "name": "scale_updater",
+      "type": "scale_gen_fn",
+      "scale": {"functions": ["scale_control"]}
+    },
+    {
+      "name": "position_updater",
+      "type": "position_gen_fn",
+      "position": {
+        "value": [0.0, 0.0]
+      }
+    }
+  ],
+
+  "effects": [
+    {
+      "name": "background",
+      "type": "eff_fill_ucolor",
+      "fill_color": {"ucolor": "202020"}
+    },
+    {
+      "name": "center_divider",
+      "type": "eff_fill_ucolor",
+      "fill_color": {"ucolor": "AAAAAA"},
+      "bounded": true,
+      "bounds": {"minv": [511, 10], "maxv": [513, 502]}
+    },
+    {
+      "name": "left_label",
+      "type": "eff_fill_ucolor",
+      "fill_color": {"ucolor": "44AA44"},
+      "bounded": true,
+      "bounds": {"minv": [200, 20], "maxv": [320, 40]}
+    },
+    {
+      "name": "right_label",
+      "type": "eff_fill_ucolor",
+      "fill_color": {"ucolor": "AA4444"},
+      "bounded": true,
+      "bounds": {"minv": [704, 20], "maxv": [824, 40]}
+    },
+    {
+      "name": "update_transforms",
+      "type": "filter",
+      "functions": ["rotation_updater", "scale_updater", "position_updater"]
+    },
+    {
+      "name": "auto_rotation_effect",
+      "type": "filter",
+      "conditions": ["is_auto_rotate_active"],
+      "functions": ["auto_rotation"]
+    },
+    {
+      "name": "render_smooth",
+      "type": "element",
+      "element_name": "mipmapped_element"
+    },
+    {
+      "name": "render_standard",
+      "type": "element",
+      "element_name": "standard_element"
+    }
+  ],
+
+  "queue": [
+    {
+      "name": "output",
+      "type": "ucolor",
+      "dim": {"value": [1024, 512]},
+      "self_generated": true,
+      "mode": "ephemeral",
+      "effects": [
+        "background",
+        "center_divider",
+        "left_label",
+        "right_label",
+        "update_transforms",
+        "auto_rotation_effect",
+        "render_smooth",
+        "render_standard"
+      ]
+    }
+  ],
+
+  "widget groups": [
+    {
+      "name": "transformation_controls",
+      "label": "Transformation Controls",
+      "description": "Control elements to observe mipmapping effects",
+      "widgets": [
+        "texture_selector",
+        "rotation_control",
+        "scale_control",
+        "x_position",
+        "y_position",
+        "auto_rotate"
+      ]
+    }
+  ]
+}

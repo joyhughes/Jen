@@ -15,6 +15,11 @@
             "name": "Hues",
             "description": "Rotate hue of an image",
             "filename": "lux_files/hue.json"
+        },
+        {
+            "name": "Mipmap Demo",
+            "description": "Mipmap vs No Mipmap Sampling",
+            "filename": "lux_files/mipmap_demo.json"
         }
     ]
 }
