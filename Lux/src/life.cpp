@@ -801,6 +801,8 @@ template< class T > CA_hood rule_funky_sort< T >::operator () ( element_context 
 { 
     direction( context );
     max_diff( context );
+    dafunk_l( context );
+    dafunk_r( context );
     return hood;
     //return HOOD_HOUR; 
     //if( diagonal( direction ) ) return HOOD_HOUR; 
@@ -846,8 +848,8 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
         ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
 
 
-    if( ( ( dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
-    if( ( ( dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
+    if( ( ( *dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
+    if( ( ( *dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
 
     // Rotate result same direction
     if( *direction == D4_RIGHT ) {
@@ -874,6 +876,7 @@ template< class T > CA_hood rule_diagonal_funky_sort< T >::operator () ( element
 { 
     direction( context );
     max_diff( context );
+    dafunk_d( context );
     return hood;
     //return HOOD_HOUR; 
     //if( diagonal( direction ) ) return HOOD_HOUR; 
@@ -919,7 +922,7 @@ template< class T > void rule_diagonal_funky_sort< T >::operator () ( CA< T >& c
         ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
 
 
-    if( ( ( dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
+    if( ( ( *dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
     
     // Rotate result same direction
     if( *direction == D4D_DOWNRIGHT ) {

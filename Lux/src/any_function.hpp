@@ -77,6 +77,15 @@ ANY_FN( int )
 
 typedef std::variant <
     // harness functions
+    std::shared_ptr< identity_funk_factor >,
+    std::shared_ptr< adder_funk_factor >,
+    std::shared_ptr< funk_factor_picker >
+> any_funk_factor_fn_ptr;
+
+ANY_FN( funk_factor )
+
+typedef std::variant <
+    // harness functions
     std::shared_ptr< identity_interval_float >,
     std::shared_ptr< range_slider_float >
 > any_interval_float_fn_ptr;
@@ -153,6 +162,7 @@ typedef std::variant <
 > any_direction4_fn_ptr;
 
 ANY_FN( direction4 )
+
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_direction4_diagonal >,
@@ -309,6 +319,7 @@ struct any_gen_fn {
 typedef std::variant < 
     any_fn< float >,
     any_fn< int >,
+    any_fn< funk_factor >,
     any_fn< interval_float >,
     any_fn< interval_int >,
     any_fn< vec2f >,

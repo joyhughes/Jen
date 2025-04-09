@@ -8,8 +8,10 @@ import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
 import JenDirection8 from './JenDirection8';
 import JenDirection4 from './JenDirection4';
+import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
+import JenFunkyPicker from './JenFunkyPicker';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -85,6 +87,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
             { labelAndDescription }
           </Stack>;
       break;
+      case 'direction_picker_4_diagonal':
+        widgetComponent =           
+          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+            <JenDirection4Diagonal key={ widget.name } json={ widget } />
+            { labelAndDescription }
+          </Stack>;
+      break;
       case 'box_blur_picker':
         height = 30;
         widgetComponent =           
@@ -92,6 +101,13 @@ function WidgetGroup({ panelSize, json, onChange }) {
             <JenBlurPicker key={ widget.name } json={ widget } />
             { labelAndDescription }
           </Stack>;
+      break;
+      case 'funk_factor_picker':
+        height = 160;
+        widgetComponent = <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
+          <JenFunkyPicker key={ widget.name } json={ widget } />
+          { labelAndDescription }
+        </Stack>;
       break;
       case 'custom_blur_picker':
         console.log( "WidgetGroup custom_blur_picker widget=" + JSON.stringify( widget ) );

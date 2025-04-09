@@ -109,7 +109,7 @@ ucolor scene_reader::read_ucolor( const json& j ) {
     return u;
 }
 
-unsigned long long scene_reader::read_ull( const json& j ) { 
+funk_factor scene_reader::read_funk_factor( const json& j ) { 
     std::string s;
     unsigned long long ull;
     j.get_to( s );
@@ -479,6 +479,7 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
     // pickers
+    FN( funk_factor_picker, funk_factor ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( direction_picker_4_diagonal, direction4_diagonal ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
     FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
@@ -608,8 +609,8 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
     RULE( rule_pixel_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) END_RULE()
-    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( hood ) END_RULE()
-    RULE( rule_diagonal_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_d ) READR( hood ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) HARNESSR( dafunk_l ) HARNESSR( dafunk_r ) READR( hood ) END_RULE()
+    RULE( rule_diagonal_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) HARNESSR( dafunk_d ) READR( hood ) END_RULE()
     DEBUG( "CA rule " + name + " complete" )
 }
 
@@ -1016,6 +1017,13 @@ void to_json(nlohmann::json& j, const std::vector<widget_group>& wg_vec) {
     }
 }
 */
+
+std::string ullToHexString(unsigned long long value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << value;
+    return ss.str();
+}
+
 void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{ 
         [&]( const any_fn< bool >& wrapper ) {
@@ -1135,6 +1143,28 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                 }
             }, wrapper.any_fn_ptr);
         },
+        [&]( const any_fn< funk_factor >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< funk_factor_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "funk_factor_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", ullToHexString( fn->value ) },
+                        {"default_value", ullToHexString( fn->default_value ) }
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented funk_factor function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },  
         [&]( const any_fn< interval_int >& wrapper ) {
             std::visit(overloaded{
                 [&]( const std::shared_ptr< range_slider_int >& fn ) {
@@ -1239,6 +1269,28 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
                         {"type", "unimplemented direction4 function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },        
+        [&]( const any_fn< direction4_diagonal >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< direction_picker_4_diagonal >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "direction_picker_4_diagonal"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented direction4_diagonal function"} // Replace with actual type identification if needed
                         // Other placeholder fields...
                     };
                 }

@@ -85,8 +85,15 @@
             "description": "Direction of sort"
         },        
         {
-            "name": "direction_8_funky",
-            "type": "direction_picker_8",
+            "name": "direction_4_funky",
+            "type": "direction_picker_4",
+            "default_value": "down",
+            "label": "Direction",
+            "description": "Direction of funkiness"
+        },        
+        {
+            "name": "direction_4_diagonal",
+            "type": "direction_picker_4_diagonal",
             "default_value": "down_right",
             "label": "Direction",
             "description": "Direction of funkiness"
@@ -160,8 +167,8 @@
             "tool": "pull_down",
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Borg", "Box blur", "Blurriffic" ],
-            "default_choice": 5,
+            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Threadfall", "Borg", "Box blur", "Blurriffic" ],
+            "default_choice": 4,
             "affects_widget_groups": true
         },
         {
@@ -213,13 +220,31 @@
             "b": 7
         },
         {
-            "name": "funk_factor_menu",
-            "type": "menu_int",
-            "tool": "pull_down",
+            "name": "rule_menu_8",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 8
+        },
+        {
+            "name": "dafunk",
+            "type": "funk_factor_picker",
             "label": "Funk Factor",
             "description": "Funk factor is a parameter of the Funky sort rule.",
-            "items": [ "Borg", "Funky Town", "Web" ],
-            "default_choice": 0
+            "default_value": "0xffffffffaa00aa00"
+        },
+        {
+            "name": "left dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Left",
+            "description": "Funk factor for left hand side of sort.",
+            "default_value": "0xffff0000ffff0000"
+        },
+        {
+            "name": "right dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Right",
+            "description": "Funk factor for right hand side of sort.",
+            "default_value": "0xffffffff00000000"
         },
         {
             "name": "blur_picker",
@@ -341,11 +366,25 @@
             {
                 "name": "funky_sort",
                 "type": "rule_funky_sort_ucolor",
-                "direction": { "functions": [ "direction_8_funky" ] },
-                "dafunk_d": "0xffffffffaa00aa00",
-                "dafunk_l": "0x5fc1850e6d728137",
-                "dafunk_r": "0xfa6c916dae77c405",
-                "max_diff": { "functions": [ "max_diff_slider" ] }
+                "direction": { "functions": [ "direction_4_funky" ] },
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_l": { "functions": [ "left dafunk" ] },
+                "dafunk_r": { "functions": [ "right dafunk" ] }
+            }
+        },
+        {
+            "name": "Diagonal funky sort",
+            "type": "CA_ucolor",
+            "edge_block": {   "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "funky_sort",
+                "type": "rule_diagonal_funky_sort_ucolor",
+                "direction": { "functions": [ "direction_4_diagonal" ] },
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_d": { "functions": [ "dafunk" ] }
             }
         },
         {
@@ -385,7 +424,7 @@
         {
             "name": "Rule Chooser",
             "type": "eff_chooser",
-            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Box blur", "Blurriffic" ],
+            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Diagonal funky sort", "Box blur", "Blurriffic" ],
             "choice": { "functions": [ "rule_menu" ] }
         },
         {
@@ -445,16 +484,21 @@
         {
             "name": "funky_sort_group",
             "conditions": [ "rule_menu_5" ],
-            "widgets": [ "direction_8_funky", "max_diff_slider", "bright_block_widget_switch" ]
+            "widgets": [ "direction_4_funky", "max_diff_slider", "bright_block_widget_switch", "left dafunk", "right dafunk" ]
+        },        
+        {
+            "name": "diagonal_funky_sort_group",
+            "conditions": [ "rule_menu_6" ],
+            "widgets": [ "direction_4_diagonal", "max_diff_slider", "bright_block_widget_switch", "dafunk" ]
         },
         {
             "name": "box_blur_group",
-            "conditions": [ "rule_menu_6" ],
+            "conditions": [ "rule_menu_7" ],
             "widgets": [ "max_diff_slider", "bright_block_widget_switch", "blur_picker", "box_blur_bug_switch" ]
         },
         {
             "name": "blurriffic_group",
-            "conditions": [ "rule_menu_7" ],
+            "conditions": [ "rule_menu_8" ],
             "widgets": [ "max_diff_slider", "bright_block_widget_switch", "box_blur_bug_switch", "bb_random_copy_switch", "blur_picker_custom" ]
         }
     ]
