@@ -1,8 +1,22 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Box, useTheme, CircularProgress, Typography, Fade } from "@mui/material";
+import {
+    Box,
+    useTheme,
+    CircularProgress,
+    Typography,
+    Fade,
+    IconButton,
+    Tooltip
+} from "@mui/material";
 import { useMediaQuery } from "@mui/material";
+import {
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    ChevronUp
+} from 'lucide-react';
 
-// Import enhanced components
+// Import components
 import JenControlPanel from "./JenControlPanel.jsx";
 import EnhancedImagePort from "./JenImagePort.jsx";
 
@@ -13,16 +27,26 @@ function JenInterfaceContainer() {
     const [layoutMode, setLayoutMode] = useState("side"); // "side" or "bottom"
     const [imagePortDimensions, setImagePortDimensions] = useState({ width: 0, height: 0 });
     const [controlPanelDimensions, setControlPanelDimensions] = useState({ width: 0, height: 0 });
+    const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
     // Reference to track the last resize time for debouncing
     const lastResizeTime = useRef(0);
 
     // Default panel sizes based on layout mode
     const SIDE_PANEL_WIDTH = 340;
+    const SIDE_PANEL_COLLAPSED_WIDTH = 36; // Width when collapsed
     const BOTTOM_PANEL_HEIGHT = 300;
+    const BOTTOM_PANEL_COLLAPSED_HEIGHT = 36; // Height when collapsed
 
     // Use media query to determine default layout based on screen size
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+
+    // Toggle control panel collapsed state
+    const togglePanelCollapse = () => {
+        setIsPanelCollapsed(!isPanelCollapsed);
+        // Need to recalculate layout after state changes
+        setTimeout(recalculateLayout, 50);
+    };
 
     // Calculate layout based on buffer dimensions and window size
     const recalculateLayout = useCallback(() => {
@@ -47,14 +71,17 @@ function JenInterfaceContainer() {
         const windowRatio = window.innerWidth / window.innerHeight;
 
         // Determine layout mode based on window ratio and buffer ratio
-        // We'll use side panel for wider windows and bottom panel for taller windows
         const newLayoutMode = isSmallScreen || windowRatio < 1.2 ? "bottom" : "side";
         setLayoutMode(newLayoutMode);
+
+        // Get effective panel sizes based on collapse state
+        const effectiveSidePanelWidth = isPanelCollapsed ? SIDE_PANEL_COLLAPSED_WIDTH : SIDE_PANEL_WIDTH;
+        const effectiveBottomPanelHeight = isPanelCollapsed ? BOTTOM_PANEL_COLLAPSED_HEIGHT : BOTTOM_PANEL_HEIGHT;
 
         // Calculate available space based on layout mode
         let availableWidth, availableHeight;
         if (newLayoutMode === "side") {
-            availableWidth = window.innerWidth - SIDE_PANEL_WIDTH;
+            availableWidth = window.innerWidth - effectiveSidePanelWidth;
             availableHeight = window.innerHeight;
 
             // Calculate image port dimensions to fit in available space while maintaining aspect ratio
@@ -78,12 +105,12 @@ function JenInterfaceContainer() {
             });
 
             setControlPanelDimensions({
-                width: SIDE_PANEL_WIDTH,
+                width: effectiveSidePanelWidth,
                 height: window.innerHeight
             });
         } else { // Bottom panel layout
             availableWidth = window.innerWidth;
-            availableHeight = window.innerHeight - BOTTOM_PANEL_HEIGHT;
+            availableHeight = window.innerHeight - effectiveBottomPanelHeight;
 
             // Calculate image port dimensions to fit in available space while maintaining aspect ratio
             let imageWidth, imageHeight;
@@ -107,7 +134,7 @@ function JenInterfaceContainer() {
 
             setControlPanelDimensions({
                 width: window.innerWidth,
-                height: BOTTOM_PANEL_HEIGHT
+                height: effectiveBottomPanelHeight
             });
         }
 
@@ -116,7 +143,7 @@ function JenInterfaceContainer() {
             // Small delay to ensure smooth transition
             setTimeout(() => setLoading(false), 300);
         }
-    }, [moduleReady, loading, isSmallScreen]);
+    }, [moduleReady, loading, isSmallScreen, isPanelCollapsed]);
 
     // Set up resize callback and check for module availability
     useEffect(() => {
@@ -197,10 +224,15 @@ function JenInterfaceContainer() {
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "center",
-                        width: layoutMode === "side" ? `calc(100% - ${SIDE_PANEL_WIDTH}px)` : "100%",
-                        height: layoutMode === "side" ? "100%" : `calc(100% - ${BOTTOM_PANEL_HEIGHT}px)`,
+                        width: layoutMode === "side"
+                            ? `calc(100% - ${isPanelCollapsed ? SIDE_PANEL_COLLAPSED_WIDTH : SIDE_PANEL_WIDTH}px)`
+                            : "100%",
+                        height: layoutMode === "side"
+                            ? "100%"
+                            : `calc(100% - ${isPanelCollapsed ? BOTTOM_PANEL_COLLAPSED_HEIGHT : BOTTOM_PANEL_HEIGHT}px)`,
                         overflow: "hidden",
-                        backgroundColor: theme.palette.background.subtle
+                        backgroundColor: theme.palette.background.subtle,
+                        transition: "all 0.3s ease-in-out"
                     }}
                 >
                     <EnhancedImagePort
@@ -212,18 +244,81 @@ function JenInterfaceContainer() {
                 {/* Control Panel */}
                 <Box
                     sx={{
-                        width: layoutMode === "side" ? SIDE_PANEL_WIDTH : "100%",
-                        height: layoutMode === "side" ? "100%" : BOTTOM_PANEL_HEIGHT,
+                        position: "relative",
+                        width: layoutMode === "side"
+                            ? (isPanelCollapsed ? SIDE_PANEL_COLLAPSED_WIDTH : SIDE_PANEL_WIDTH)
+                            : "100%",
+                        height: layoutMode === "side"
+                            ? "100%"
+                            : (isPanelCollapsed ? BOTTOM_PANEL_COLLAPSED_HEIGHT : BOTTOM_PANEL_HEIGHT),
                         borderLeft: layoutMode === "side" ? `1px solid ${theme.palette.divider}` : "none",
                         borderTop: layoutMode === "bottom" ? `1px solid ${theme.palette.divider}` : "none",
-                        overflow: "hidden"
+                        backgroundColor: theme.palette.background.paper,
+                        overflow: "hidden",
+                        transition: "all 0.3s ease-in-out",
+                        display: "flex",
+                        flexDirection: "column"
                     }}
                 >
-                    <JenControlPanel
-                        dimensions={controlPanelDimensions}
-                        panelSize={layoutMode === "side" ? SIDE_PANEL_WIDTH - 16 : window.innerWidth - 16}
-                        moduleReady={moduleReady}
-                    />
+                    {/* Collapse/Expand Button */}
+                    <Tooltip
+                        title={isPanelCollapsed ? "Expand Panel" : "Collapse Panel"}
+                        placement={layoutMode === "side" ? "left" : "top"}
+                    >
+                        <IconButton
+                            onClick={togglePanelCollapse}
+                            size="small"
+                            sx={{
+                                position: "absolute",
+                                [layoutMode === "side" ? "left" : "top"]: 2,
+                                [layoutMode === "side" ? "top" : "right"]: 2,
+                                backgroundColor: theme.palette.background.paper,
+                                border: `1px solid ${theme.palette.divider}`,
+                                zIndex: 10,
+                                '&:hover': {
+                                    backgroundColor: theme.palette.action.hover
+                                }
+                            }}
+                        >
+                            {layoutMode === "side"
+                                ? (isPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />)
+                                : (isPanelCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />)
+                            }
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Control Panel Content - Only show if not collapsed */}
+                    {!isPanelCollapsed ? (
+                        <JenControlPanel
+                            dimensions={controlPanelDimensions}
+                            panelSize={layoutMode === "side" ? SIDE_PANEL_WIDTH - 16 : window.innerWidth - 16}
+                            moduleReady={moduleReady}
+                        />
+                    ) : (
+                        // If collapsed, show a hint or title in vertical orientation for side mode
+                        layoutMode === "side" && (
+                            <Box
+                                sx={{
+                                    height: '100%',
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                        transform: 'rotate(-90deg)',
+                                        whiteSpace: 'nowrap',
+                                        color: theme.palette.text.secondary
+                                    }}
+                                >
+                                    Controls
+                                </Typography>
+                            </Box>
+                        )
+                    )}
                 </Box>
             </Box>
         </Fade>

@@ -108,7 +108,7 @@ function JenMediaController({ panelSize }) {
             <Typography
                 variant="subtitle2"
                 fontWeight={600}
-                sx={{ mb: 1.5 }}
+                sx={{ mt: 2.5 }}
             >
                 Playback Controls
             </Typography>

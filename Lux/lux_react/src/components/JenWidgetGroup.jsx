@@ -1,26 +1,9 @@
-import React, { useState } from "react";
-import {
-    Stack,
-    Typography,
-    Tooltip,
-    IconButton,
-    Paper,
-    Box,
-    Divider,
-    Collapse,
-    useTheme,
-    alpha
-} from '@mui/material';
-import {
-    ChevronDown,
-    ChevronUp,
-    X as CloseIcon,
-    Plus as AddIcon,
-    Info
-} from 'lucide-react';
+import React, {useState} from "react";
+import {alpha, Box, Collapse, Divider, IconButton, Paper, Stack, Tooltip, Typography, useTheme} from '@mui/material';
+import {ChevronDown, ChevronUp, Info, Plus as AddIcon, X as CloseIcon} from 'lucide-react';
 
 // Import our enhanced components
-import { JenImagePicker } from "./JenImagePicker.jsx";
+import {JenImagePicker} from "./JenImagePicker.jsx";
 import JenSlider from './JenSlider.jsx';
 import JenSwitch from './JenSwitch.jsx';
 import JenDirection8 from './JenDirection8'; // Assuming you'll enhance this later
@@ -148,6 +131,13 @@ const WidgetItemContainer = ({ children, title, description, type }) => {
 function JenWidgetGroup({ panelSize, json, onChange }) {
     const theme = useTheme();
     const [renderCount, setRenderCount] = useState(0);
+
+
+    const needWrapper = (group) => {
+        const need = group && group.widgets.length > 1;
+        console.log('need wrapper: ' + group + ", size: " + group.widgets.length);
+        return need;
+    }
 
     const renderWidget = (name) => {
         let widgetComponent;
@@ -470,17 +460,14 @@ function JenWidgetGroup({ panelSize, json, onChange }) {
         <Box sx={{ p: 1 }}>
             {Object.keys(groupedWidgets).map((groupName, index) => {
                 const group = groupedWidgets[groupName];
-
-                return (
-                    <WidgetGroupContainer
-                        key={`group-${index}`}
-                        title={groupName}
-                        description={group.description}
-                        defaultExpanded={true}
-                    >
-                        {group.widgets.map(renderWidget)}
-                    </WidgetGroupContainer>
-                );
+                return needWrapper(group) ? (<WidgetGroupContainer
+                    key={`group-${index}`}
+                    title={groupName}
+                    description={group.description}
+                    defaultExpanded={true}
+                >
+                    {group.widgets.map(renderWidget)}
+                </WidgetGroupContainer>) : group.widgets.map(renderWidget);
             })}
         </Box>
     );

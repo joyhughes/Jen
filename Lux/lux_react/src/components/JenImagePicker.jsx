@@ -10,9 +10,9 @@ import {
     Divider,
     useTheme
 } from '@mui/material';
-import { PlusSquare, ImagePlus, Check } from 'lucide-react';
+import { PlusSquare, ImagePlus, Check, Upload } from 'lucide-react';
 
-// Import the enhanced ThumbnailItem component
+// Import the thumbnail item component
 import JenThumbnailItem from './JenThumbnailItem.jsx';
 
 // Custom component for the section title with an optional counter
@@ -54,6 +54,7 @@ const SectionTitle = ({ label, count }) => (
 export const JenImagePicker = ({ json, width, onChange }) => {
     const theme = useTheme();
     const fileInputRef = useRef(null);
+    const dropAreaRef = useRef(null);
     const [availableImages, setAvailableImages] = useState(json?.items || []);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
     const [selectedImage, setSelectedImage] = useState(() => {
@@ -63,6 +64,8 @@ export const JenImagePicker = ({ json, width, onChange }) => {
         return items[validIndex] || (items.length > 0 ? items[0] : null);
     });
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dropAreaActive, setDropAreaActive] = useState(false);
 
     // Calculate the grid columns based on width
     const calculateColumns = () => {
@@ -142,6 +145,7 @@ export const JenImagePicker = ({ json, width, onChange }) => {
             console.error(`Failed to process or upload image '${imageName}':`, error);
         } finally {
             setIsUploading(false);
+            setDropAreaActive(false);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -161,28 +165,102 @@ export const JenImagePicker = ({ json, width, onChange }) => {
         fileInputRef.current?.click();
     };
 
+    // Handle drag events
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Only set to false if actually leaving the container
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+
+        if (
+            x <= rect.left ||
+            x >= rect.right ||
+            y <= rect.top ||
+            y >= rect.bottom
+        ) {
+            setIsDragging(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            handleFileUpload(file);
+        }
+    };
+
+    // Set up drag and drop listeners
+    useEffect(() => {
+        const element = dropAreaRef.current;
+        if (!element) return;
+
+        element.addEventListener('dragover', handleDragOver);
+        element.addEventListener('dragenter', handleDragEnter);
+        element.addEventListener('dragleave', handleDragLeave);
+        element.addEventListener('drop', handleDrop);
+
+        return () => {
+            element.removeEventListener('dragover', handleDragOver);
+            element.removeEventListener('dragenter', handleDragEnter);
+            element.removeEventListener('dragleave', handleDragLeave);
+            element.removeEventListener('drop', handleDrop);
+        };
+    }, [dropAreaRef.current]);
+
+    // Main render
     return (
         <Paper
+            ref={dropAreaRef}
             elevation={0}
-            variant="outlined"
             sx={{
                 width: width || '100%',
                 padding: 2,
-                paddingTop: 1,
+                paddingBottom: 3,
+                paddingTop: 0,
                 overflowY: 'auto',
                 maxHeight: 320,
                 borderRadius: 1.5,
-                borderColor: theme.palette.divider,
+                borderColor: isDragging
+                    ? theme.palette.primary.main
+                    : theme.palette.divider,
                 transition: 'all 0.2s ease-in-out',
                 '&:hover': {
-                    borderColor: theme.palette.action.active,
-                }
+                    borderColor: isDragging
+                        ? theme.palette.primary.main
+                        : theme.palette.action.active,
+                },
+                position: 'relative'
             }}
         >
-            <SectionTitle
-                label={json?.label || 'Source Images'}
-                count={availableImages.length}
-            />
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <SectionTitle
+                    label={json?.label || 'Source Images'}
+                    count={availableImages.length}
+                />
+            </Box>
 
             <input
                 ref={fileInputRef}
@@ -201,22 +279,38 @@ export const JenImagePicker = ({ json, width, onChange }) => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         py: 4,
-                        backgroundColor: 'action.hover',
+                        backgroundColor: isDragging
+                            ? `${theme.palette.primary.main}10`
+                            : 'action.hover',
                         borderRadius: 1,
                         border: '1px dashed',
-                        borderColor: 'action.disabled'
+                        borderColor: isDragging
+                            ? theme.palette.primary.main
+                            : 'action.disabled',
+                        transition: 'all 0.2s ease-in-out'
                     }}
                 >
-                    <ImagePlus size={32} color={theme.palette.text.secondary} />
+                    <ImagePlus
+                        size={32}
+                        color={isDragging
+                            ? theme.palette.primary.main
+                            : theme.palette.text.secondary
+                        }
+                    />
                     <Typography
                         variant="body2"
                         sx={{
                             mt: 1.5,
-                            color: 'text.secondary',
+                            color: isDragging
+                                ? theme.palette.primary.main
+                                : 'text.secondary',
                             fontWeight: 500
                         }}
                     >
-                        No images added yet
+                        {isDragging
+                            ? "Drop to upload image"
+                            : "No images added yet"
+                        }
                     </Typography>
                     <Button
                         variant="outlined"
@@ -238,8 +332,59 @@ export const JenImagePicker = ({ json, width, onChange }) => {
                 <Grid
                     container
                     spacing={1}
-                    sx={{ mb: 1 }}
+                    sx={{
+                        mb: 1,
+                        position: 'relative',
+                        // Add overlay effect when dragging
+                        '&::after': isDragging ? {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: `${theme.palette.primary.main}20`,
+                            border: '2px dashed',
+                            borderColor: theme.palette.primary.main,
+                            borderRadius: 1,
+                            zIndex: 10,
+                            pointerEvents: 'none'
+                        } : {}
+                    }}
                 >
+                    {/* Show drop indicator when dragging */}
+                    {isDragging && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                zIndex: 20,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                padding: 2,
+                                borderRadius: 1,
+                                boxShadow: theme.shadows[4],
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <Upload size={24} color={theme.palette.primary.main} />
+                            <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                color="primary.main"
+                                sx={{ mt: 1 }}
+                            >
+                                Drop to upload
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {/* Thumbnails */}
                     {availableImages.map((name) => (
                         <Grid item key={name}>
                             <JenThumbnailItem
@@ -249,6 +394,8 @@ export const JenImagePicker = ({ json, width, onChange }) => {
                             />
                         </Grid>
                     ))}
+
+                    {/* Add button */}
                     <Grid item>
                         <Button
                             variant="outlined"
