@@ -6015,7 +6015,7 @@ var ___cxa_increment_exception_refcount = createExportWrapper('__cxa_increment_e
 var ___get_exception_message = createExportWrapper('__get_exception_message', 3);
 var ___cxa_can_catch = createExportWrapper('__cxa_can_catch', 3);
 var ___cxa_get_exception_ptr = createExportWrapper('__cxa_get_exception_ptr', 1);
-var ___emscripten_embedded_file_data = Module['___emscripten_embedded_file_data'] = 7432544;
+var ___emscripten_embedded_file_data = Module['___emscripten_embedded_file_data'] = 7433324;
 function invoke_iii(index,a1,a2) {
   var sp = stackSave();
   try {

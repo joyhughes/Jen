@@ -480,460 +480,198 @@ void scene_reader::read_function(const json &j) {
     #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = std::get< any_fn< _T_ > >( s.functions[ fn_name ] ); }
 
-        // harness bool functions
-        FN(switch_fn, bool)
-            READ(tool)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
+    // harness bool functions
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
-        // harness float functions
-        //FN( adder_float, float ) HARNESS( r ) END_FN
-        FN(log_fn, float)
-            HARNESS(scale)
-            HARNESS(shift)
-        END_FN
-        FN(time_fn, float)
-        END_FN
-        FN(ratio_float, float)
-            HARNESS(r)
-        END_FN
-        FN(integrator_float, float)
-            HARNESS(delta)
-            HARNESS(scale)
-            READ(val)
-        END_FN
-        GEN_FN(wiggle_gen_fn)
-            HARNESS(wavelength)
-            HARNESS(amplitude)
-            HARNESS(phase)
-            HARNESS(wiggliness)
-        END_GEN_FN
-        FN(slider_float, float)
-            READ(label)
-            READ(description)
-            READ(min)
-            READ(max)
-            READ(default_value)
-            READ(step)
-            fn->value = fn->default_value;
-        END_FN
-        FN(range_slider_float, interval_float)
-            READ(label)
-            READ(description)
-            READ(min)
-            READ(max)
-            READ(default_value)
-            READ(step)
-            fn->value = fn->default_value;
-        END_FN
+    // harness float functions
+    //FN( adder_float, float ) HARNESS( r ) END_FN
+    FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
+    FN( time_fn,     float ) END_FN
+    FN( ratio_float, float ) HARNESS( r ) END_FN
+    FN( integrator_float, float ) HARNESS( delta ) HARNESS( scale ) READ( val ) END_FN
+    GEN_FN(wiggle_gen_fn) HARNESS(wavelength) HARNESS(amplitude)  HARNESS(phase) HARNESS(wiggliness) END_GEN_FN
+    FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
+    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
-        // harness int functions
-        FN(adder_int, int)
-            HARNESS(r)
-        END_FN
-        FN(slider_int, int)
-            READ(label)
-            READ(description)
-            READ(min)
-            READ(max)
-            READ(default_value)
-            READ(step)
-            fn->value = fn->default_value;
-        END_FN
-        FN(range_slider_int, interval_int)
-            READ(label)
-            READ(description)
-            READ(min)
-            READ(max)
-            READ(default_value)
-            READ(step)
-            fn->value = fn->default_value;
-        END_FN
+    // harness int functions
+    FN( adder_int,  int ) HARNESS( r ) END_FN
+    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
-        // special case for menu
-        FN(menu_int, int)
-            READ(label)
-            READ(description)
-            READ(default_choice)
-            READ(tool)
-            READ(affects_widget_groups)
-            READ(rerender)
-            fn->choice = fn->default_choice;
-            if (j.contains("items")) for (std::string item: j["items"]) fn->add_item(item);
-        END_FN
+    // special case for menu
+    FN( menu_int, int )
+        READ( label )
+        READ( description )
+        READ( default_choice )
+        READ( tool )
+        READ( affects_widget_groups )
+        READ( rerender )
+        fn->choice = fn->default_choice;
+        if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
+    END_FN
 
-        FN(menu_string, string)
-            READ(label)
-            READ(description)
-            READ(default_choice)
-            READ(tool)
-            READ(affects_widget_groups)
-            READ(rerender)
-            fn->choice = fn->default_choice;
-            if (j.contains("items")) for (std::string item: j["items"]) fn->add_item(item);
-        END_FN
+   FN( menu_string, string )
+        READ( label )
+        READ( description )
+        READ( default_choice )
+        READ( tool )
+        READ( affects_widget_groups )
+        READ( rerender )
+        fn->choice = fn->default_choice;
+        if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
+    END_FN
 
 
-        // harness vec2f functions
-        FN(adder_vec2f, vec2f)
-            HARNESS(r)
-        END_FN
-        FN(ratio_vec2f, vec2f)
-            HARNESS(r)
-        END_FN
-        FN(mouse_pos_fn, vec2f)
-        END_FN
+    // harness vec2f functions
+    FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
+    FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
+    FN( mouse_pos_fn, vec2f ) END_FN
 
-        // harness vec2i functions
-        FN(adder_vec2i, vec2i)
-            HARNESS(r)
-        END_FN
-        FN(buffer_dim_fn, vec2i)
-            HARNESS(buf_name)
-        END_FN
-        FN(mouse_pix_fn, vec2i)
-        END_FN
+    // harness vec2i functions
+    FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
+    FN( buffer_dim_fn, vec2i ) HARNESS( buf_name ) END_FN
+    FN( mouse_pix_fn, vec2i ) END_FN
 
-        // harness frgb functions
-        FN(adder_frgb, frgb)
-            HARNESS(r)
-        END_FN
+    // harness frgb functions
+    FN( adder_frgb, frgb ) HARNESS( r ) END_FN
 
-        // harness ucolor functions
-        FN(adder_ucolor, ucolor)
-            HARNESS(r)
-        END_FN
+    // harness ucolor functions
+    FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
-        // pickers
-        FN(direction_picker_4, direction4)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
-        FN(direction_picker_4_diagonal, direction4_diagonal)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
-        FN(direction_picker_8, direction8)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
-        FN(multi_direction8_picker, int)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
-        FN(box_blur_picker, box_blur_type)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            fn->value = fn->default_value;
-        END_FN
+    // pickers
+    FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4_diagonal, direction4_diagonal ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( multi_direction8_picker, int )   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( box_blur_picker, box_blur_type ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
-        // special case for custom_blur_picker
-        FN(custom_blur_picker, int)
-            READ(label)
-            READ(description)
-            // create list of pairs of multi_direction8_pickers
-            if (j.contains("pickers")) {
-                for (auto &p: j["pickers"]) {
-                    fn->add_pickers(p[0], p[1]);
-                }
-            } else {
-                fn->add_pickers(17, 17); // default orthogonal box blur
-                fn->add_pickers(68, 68);
+    // special case for custom_blur_picker
+    FN( custom_blur_picker, int )
+        READ( label )
+        READ( description )
+        // create list of pairs of multi_direction8_pickers
+        if( j.contains( "pickers" ) ) {
+            for( auto& p : j[ "pickers" ] ) {
+                fn->add_pickers( p[ 0 ], p[ 1 ] );
             }
-        END_FN
+        }
+        else {
+            fn->add_pickers( 17, 17 ); // default orthogonal box blur
+            fn->add_pickers( 68, 68 );
+        }
+    END_FN
 
-        // harness bool functions
-        FN(random_fn, bool)
-            HARNESS(p)
-        END_FN
-        FN(random_sticky_fn, bool)
-            HARNESS(p_start)
-            HARNESS(p_change_true)
-            HARNESS(p_change_false)
-        END_FN
-        // equality functions
-        FN(equal_float_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_vec2f_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_int_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_vec2i_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_frgb_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_ucolor_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_string_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_bool_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_direction4_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_direction4_diagonal_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        FN(equal_direction8_fn, bool)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
+    // harness bool functions
+    FN( random_fn, bool ) HARNESS( p ) END_FN
+    FN( random_sticky_fn, bool ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
+   // equality functions
+    FN( equal_float_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_vec2f_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_int_fn,        bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_vec2i_fn,      bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_frgb_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_ucolor_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_string_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_bool_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction4_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction4_diagonal_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction8_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
 
 
-        // ui functions
-        FN(switch_fn, bool)
-            READ(tool)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            READ(affects_widget_groups)
-            fn->value = fn->default_value;
-        END_FN
-        // special case for widget switch
-        FN(widget_switch_fn, bool)
-            READ(switcher)
-            READ(widget)
-            READ(label)
-            READ(description)
-        END_FN
+    // ui functions
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
+    // special case for widget switch
+    FN( widget_switch_fn, bool ) READ( switcher ) READ( widget ) READ( label ) READ( description )  END_FN
 
-        // parameter functions
-        FN(index_param_float, float)
-            PARAM(float)
-        END_FN
-        FN(scale_param_float, float)
-            PARAM(float)
-        END_FN
-        FN(time_param_float, float)
-            PARAM(float)
-        END_FN
+    // parameter functions
+    FN( index_param_float, float ) PARAM( float ) END_FN
+    FN( scale_param_float, float ) PARAM( float ) END_FN
+    FN( time_param_float,  float ) PARAM( float ) END_FN
 
-        // single field modifiers
-        GEN_FN(orientation_gen_fn)
-            HARNESS(orientation)
-        END_FN
-        GEN_FN(scale_gen_fn)
-            HARNESS(scale)
-        END_FN
-        GEN_FN(rotation_gen_fn)
-            HARNESS(r)
-        END_FN
-        GEN_FN(position_gen_fn)
-            HARNESS(position)
-        END_FN
+    // single field modifiers
+    GEN_FN( orientation_gen_fn ) HARNESS( orientation ) END_FN
+    GEN_FN( scale_gen_fn       ) HARNESS( scale )       END_FN
+    GEN_FN( rotation_gen_fn    ) HARNESS( r )           END_FN
+    GEN_FN( position_gen_fn    ) HARNESS( position )    END_FN
 
-        // generalized functions (alphabetical order)
-        GEN_FN(advect_element)
-            HARNESS(flow)
-            HARNESS(step)
-            READ(proportional)
-            READ(orientation_sensitive)
-        END_FN
-        GEN_FN(angle_branch)
-            READ(interval)
-            READ(offset)
-            READ(mirror_offset)
-            HARNESS(size_prop)
-            HARNESS(branch_ang)
-            HARNESS(branch_dist)
-        END_FN
-        GEN_FN(curly)
-            HARNESS(curliness)
-        END_FN
-        // position_list should go here - figure out how to work the vector of positions
+    // generalized functions (alphabetical order)
+    GEN_FN( advect_element ) HARNESS( flow ) HARNESS( step ) READ( proportional ) READ( orientation_sensitive ) END_FN
+    GEN_FN( angle_branch ) READ( interval ) READ( offset ) READ( mirror_offset ) HARNESS( size_prop ) HARNESS( branch_ang ) HARNESS( branch_dist ) END_FN
+    GEN_FN( curly ) HARNESS( curliness ) END_FN
+    // position_list should go here - figure out how to work the vector of positions
 
-        // condition functions
-        COND_FN(switch_condition)
-            READ(tool)
-            READ(label)
-            READ(description)
-            READ(default_value)
-            READ(affects_widget_groups)
-            fn->value = fn->default_value;
-        END_FN
-        COND_FN(random_condition)
-            HARNESS(p)
-        END_FN
-        COND_FN(random_sticky_condition)
-            HARNESS(p_start)
-            HARNESS(p_change_true)
-            HARNESS(p_change_false)
-        END_FN
-        // equality conditions
-        COND_FN(equal_float_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_vec2f_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_int_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_vec2i_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_frgb_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_ucolor_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_string_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_bool_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_direction4_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_direction4_diagonal_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
-        COND_FN(equal_direction8_condition)
-            HARNESS(a)
-            HARNESS(b)
-        END_FN
+    // condition functions
+    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
+    COND_FN( random_condition ) HARNESS( p ) END_FN
+    COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
+    // equality conditions
+    COND_FN( equal_float_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_vec2f_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_int_condition )        HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_vec2i_condition )      HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_frgb_condition )       HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_ucolor_condition )     HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_string_condition )     HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_bool_condition )       HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction4_diagonal_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_FN
 }
 
-void scene_reader::read_cluster(const json &j) {
+void scene_reader::read_cluster( const json& j ) {
     std::string name;
-    element root_elem; // initial element in cluster
+    element root_elem;  // initial element in cluster
     std::string root_elem_name;
-    int max_depth; // prevent infinite recursion
-    float min_scale; // approximately one pixel
-    bb2f bounds; // Optionally, cluster will stop generating if it goes out of bounds
+    int max_depth;      // prevent infinite recursion
+    float min_scale;    // approximately one pixel
+    bb2f bounds;        // Optionally, cluster will stop generating if it goes out of bounds
     bool tlc;
 
     // Required fields
-    if (j.contains("name")) j["name"].get_to(name);
-    else
-        ERROR("Cluster name missing\n")
+    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "Cluster name missing\n" )
     // Check for unique name. Future - make sure duplicate clusters refer to the same cluster
-    if (s.clusters.contains(name))
-        ERROR("Cluster name collision\n")
-    if (j.contains("element")) j["element"].get_to(root_elem_name);
-    else
-        ERROR("Cluster root_elem missing\n")
+    if( s.clusters.contains( name ) )   ERROR( "Cluster name collision\n" )
+    if( j.contains( "element" ) )     j[ "element" ].get_to( root_elem_name ); else ERROR( "Cluster root_elem missing\n" )
 
     // create cluster object
-    s.next_elements[name] = std::make_shared<next_element>();
-    s.clusters[name] = std::make_shared<cluster>(*s.elements[root_elem_name], *s.next_elements[name]);
-    cluster &clust = *(s.clusters[name]); // reference to cluster object
-    cluster_elements[name] = root_elem_name;
+    s.next_elements[ name ] = std::make_shared< next_element >();
+    s.clusters[ name ] = std::make_shared< cluster >( *s.elements[ root_elem_name ], *s.next_elements[ name ] );
+    cluster& clust = *(s.clusters[ name ]);   // reference to cluster object
+    cluster_elements[ name ] = root_elem_name;
 
     // optional fields
-    if (j.contains("max_depth")) read_any_harness(j["max_depth"], clust.max_depth);
-    if (j.contains("min_scale")) read_any_harness(j["min_scale"], clust.min_scale);
-    if (j.contains("max_n")) read_any_harness(j["max_n"], clust.max_n);
-    if (j.contains("functions"))
-        for (std::string fname: j["functions"])
-            clust.next_elem.add_function(
-                std::get<any_gen_fn>(s.functions[fname]));
-    if (j.contains("conditions"))
-        for (std::string fname: j["conditions"])
-            clust.next_elem.add_condition(
-                std::get<any_condition_fn>(s.functions[fname]));
+    if( j.contains( "max_depth" ) )  read_any_harness( j[ "max_depth" ], clust.max_depth );
+    if( j.contains( "min_scale" ) )  read_any_harness( j[ "min_scale" ], clust.min_scale );
+    if( j.contains( "max_n" ) )      read_any_harness( j[ "max_n"     ], clust.max_n );
+    if( j.contains( "functions" ) )  for( std::string fname : j[ "functions"  ] ) clust.next_elem.add_function(  std::get< any_gen_fn       >( s.functions[ fname ] ) );
+    if( j.contains( "conditions" ) ) for( std::string fname : j[ "conditions" ] ) clust.next_elem.add_condition( std::get< any_condition_fn >( s.functions[ fname ] ) );
 }
 
-void scene_reader::read_rule(const json &j, std::shared_ptr<CA_ucolor> &ca) {
+void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) {
     std::string name, type;
 
     // Required fields
-    if (j.contains("name")) j["name"].get_to(name);
-    else
-        ERROR("CA rule name missing\n")
-    DEBUG("Reading CA rule " + name);
-    if (j.contains("type")) j["type"].get_to(type);
-    else
-        ERROR("CA rule type missing\n")
+    if( j.contains( "name" ) )          j[ "name" ].get_to( name );  else ERROR( "CA rule name missing\n" )
+    DEBUG( "Reading CA rule " + name );
+    if( j.contains( "type" ) )          j[ "type" ].get_to( type );  else ERROR( "CA rule type missing\n" )
 
-#define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), std::ref( *r ), name ); ca->rule = rule;
-#define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
-#define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
-#define END_RULE()     s.CA_rules[ name ] = rule; }
+    #define RULE( _T_ )    if( type == #_T_ ) {  std::shared_ptr< _T_ > r( new _T_ ); any_rule rule( r, std::ref( *r ), std::ref( *r ), name ); ca->rule = rule;
+    #define HARNESSR( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], r-> _T_ );
+    #define READR( _T_ )    if( j.contains( #_T_ ) ) read( r-> _T_, j[ #_T_ ] );
+    #define END_RULE()     s.CA_rules[ name ] = rule; }
 
-    RULE(rule_life_ucolor)
-        READR(use_threshold)
-        HARNESSR(threshold)
-    END_RULE()
-    RULE(rule_random_copy_ucolor)
-    END_RULE()
-    RULE(rule_random_mix_ucolor)
-    END_RULE()
-    RULE(rule_box_blur_ucolor)
-        HARNESSR(max_diff)
-        HARNESSR(bug_mode)
-        HARNESSR(blur_method)
-        HARNESSR(random_copy)
-        READR(custom_picker)
-    END_RULE()
-    RULE(rule_diffuse_ucolor)
-    END_RULE()
-    RULE(rule_gravitate_ucolor)
-        HARNESSR(direction)
-    END_RULE()
-    RULE(rule_snow_ucolor)
-        HARNESSR(direction)
-    END_RULE()
-    RULE(rule_pixel_sort_ucolor)
-        HARNESSR(direction)
-        HARNESSR(max_diff)
-    END_RULE()
-    RULE(rule_funky_sort_ucolor)
-        HARNESSR(direction)
-        HARNESSR(max_diff)
-        READR(dafunk_l)
-        READR(dafunk_r)
-        READR(hood)
-    END_RULE()
-    RULE(rule_diagonal_funky_sort_ucolor)
-        HARNESSR(direction)
-        HARNESSR(max_diff)
-        READR(dafunk_d)
-        READR(hood)
-    END_RULE()
-    DEBUG("CA rule " + name + " complete")
+    RULE( rule_life_ucolor )       READR( use_threshold ) HARNESSR( threshold ) END_RULE()
+    RULE( rule_random_copy_ucolor ) END_RULE()
+    RULE( rule_random_mix_ucolor )  END_RULE()
+    RULE( rule_box_blur_ucolor ) HARNESSR( max_diff ) HARNESSR( bug_mode ) HARNESSR( blur_method ) HARNESSR( random_copy ) READR( custom_picker ) END_RULE()
+    RULE( rule_diffuse_ucolor)      END_RULE()
+    RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
+    RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
+    RULE( rule_pixel_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( hood ) END_RULE()
+    RULE( rule_diagonal_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_d ) READR( hood ) END_RULE()
+    DEBUG( "CA rule " + name + " complete" )
 }
 
 void scene_reader::read_effect(const json &j) {
@@ -1021,539 +759,254 @@ void scene_reader::read_effect(const json &j) {
 #define READE( _T_ )    if( j.contains( #_T_ ) ) read( e-> _T_, j[ #_T_ ] );
 #define END_EFF()      s.effects[ name ] = eff; }
 
+
+
         // special case for element and cluster effects
-        if (type == "element") {
-            if (j.contains("element_name")) {
+        if( type == "element" ) {
+            if( j.contains( "element_name" ) ) {
                 std::string elem_name;
-                j["element_name"].get_to(elem_name);
-                if (s.elements.contains(elem_name)) {
+                j[ "element_name" ].get_to( elem_name );
+                if( s.elements.contains( elem_name ) ) {
                     //std::shared_ptr< element > e( new element( *s.elements[ elem_name ] ) );
-                    s.effects[name] = any_effect_fn(s.elements[elem_name], std::ref(*(s.elements[elem_name].get())),
-                                                    name);
-                } else
-                    ERROR("element effect not found\n")
-            } else
-                ERROR("element effect missing\n")
+                    s.effects[ name ] = any_effect_fn( s.elements[ elem_name ], std::ref( *( s.elements[ elem_name ].get() ) ), name );
+                }
+                else ERROR( "element effect not found\n" )
+            }
+            else ERROR( "element effect missing\n" )
         }
 
-        if (type == "cluster") {
-            if (j.contains("cluster_name")) {
+        if( type == "cluster" ) {
+            if( j.contains( "cluster_name" ) ) {
                 std::string clust_name;
-                j["cluster_name"].get_to(clust_name);
-                if (s.clusters.contains(clust_name)) {
+                j[ "cluster_name" ].get_to( clust_name );
+                if( s.clusters.contains( clust_name ) ) {
                     //std::shared_ptr< cluster > c( new cluster( *s.clusters[ clust_name ] ) );
-                    s.effects[name] = any_effect_fn(s.clusters[clust_name], std::ref(*(s.clusters[clust_name].get())),
-                                                    name);
-                } else
-                    ERROR("cluster effect not found\n")
-            } else
-                ERROR("cluster effect missing\n")
+                    s.effects[ name ] = any_effect_fn( s.clusters[ clust_name ], std::ref( *( s.clusters[ clust_name ].get() ) ), name );
+                }
+                else ERROR( "cluster effect not found\n" )
+            }
+            else ERROR( "cluster effect missing\n" )
         }
 
         // special case for CA rules
-        EFF(CA_ucolor)
-            if (j.contains("rule")) read_rule(j["rule"], e);
-            if (j.contains("target")) {
-                j["target"].get_to(buf_name);
-                CA_targets[name] = buf_name;
-            }
-            READE(targeted)
-            HARNESSE(p)
-            HARNESSE(edge_block)
-            HARNESSE(alpha_block)
-            HARNESSE(bright_block)
-            HARNESSE(bright_range)
+        EFF( CA_ucolor )
+            if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
+        if( j.contains( "target") ) {
+            j[ "target" ].get_to( buf_name );
+            CA_targets[ name ] = buf_name;
+        }
+        READE( targeted )
+        HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block )
+        HARNESSE( bright_block ) HARNESSE( bright_range )
+    END_EFF()
+
+    // special case for effects running effects
+    EFF( eff_n ) HARNESSE( n )
+    if( j.contains( "eff" ) ) {
+        std::string eff_name;
+        j[ "eff" ].get_to( eff_name );
+        if( s.effects.contains( eff_name ) ) e->eff = s.effects[ eff_name ];
+        else ERROR( "eff_n effect not found\n" )
+    }
+        // else identity effect - should be automatic
         END_EFF()
 
-        // special case for effects running effects
-        EFF(eff_n)
-            HARNESSE(n)
-            if (j.contains("eff")) {
-                std::string eff_name;
-                j["eff"].get_to(eff_name);
-                if (s.effects.contains(eff_name)) e->eff = s.effects[eff_name];
-                else
-                    ERROR("eff_n effect not found\n")
+        EFF( eff_composite )
+        if( j.contains( "effects") )
+        {
+            for( std::string eff_name : j[ "effects" ] ) {
+                if( s.effects.contains( eff_name ) ) e->add_effect( s.effects[ eff_name ] );
+                else ERROR( "eff_composite effect not found\n" )
             }
-            // else identity effect - should be automatic
+        }
+        // else empty effect list - should be automatic
         END_EFF()
 
-        EFF(eff_composite)
-            if (j.contains("effects")) {
-                for (std::string eff_name: j["effects"]) {
-                    if (s.effects.contains(eff_name)) e->add_effect(s.effects[eff_name]);
-                    else
-                        ERROR("eff_composite effect not found\n")
+        EFF( eff_chooser )
+        if( j.contains( "effects") )
+        {
+            for( std::string eff_name : j[ "effects" ] ) {
+                if( s.effects.contains( eff_name ) ) {
+                    e->add_effect( s.effects[ eff_name ] );
+                    DEBUG( "chooser effect " + name + " adding effect " + eff_name )
                 }
+                else ERROR( "eff_chooser effect not found\n" )
             }
-            // else empty effect list - should be automatic
+        }
+        DEBUG( "chooser effect " + name + " has " + std::to_string( e->effects.size() ) + " effects" )
+        // else empty effect list - should be automatic
+        HARNESSE( choice )
         END_EFF()
 
-        EFF(eff_chooser)
-            if (j.contains("effects")) {
-                for (std::string eff_name: j["effects"]) {
-                    if (s.effects.contains(eff_name)) {
-                        e->add_effect(s.effects[eff_name]);
-                        DEBUG("chooser effect " + name + " adding effect " + eff_name)
-                    } else
-                        ERROR("eff_chooser effect not found\n")
-                }
-            }
-            DEBUG("chooser effect " + name + " has " + std::to_string( e->effects.size() ) + " effects")
-            // else empty effect list - should be automatic
-            HARNESSE(choice)
-        END_EFF()
+        EFF( eff_identity ) END_EFF()
+        EFF( eff_fill_frgb )   HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_fill_ucolor ) HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_fill_vec2i )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_fill_vec2f )  HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_fill_int )    HARNESSE( fill_color ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
-        EFF(eff_identity)
-        END_EFF()
-        EFF(eff_fill_frgb)
-            HARNESSE(fill_color)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_fill_ucolor)
-            HARNESSE(fill_color)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_fill_vec2i)
-            HARNESSE(fill_color)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_fill_vec2f)
-            HARNESSE(fill_color)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_fill_int)
-            HARNESSE(fill_color)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
+        EFF( eff_grayscale_frgb )   END_EFF()
+        EFF( eff_grayscale_ucolor ) END_EFF()
 
-        EFF(eff_grayscale_frgb)
-        END_EFF()
-        EFF(eff_grayscale_ucolor)
-        END_EFF()
+        EFF( eff_invert_ucolor )  END_EFF()
+        EFF( eff_invert_frgb )    END_EFF()
 
-        EFF(eff_invert_ucolor)
-        END_EFF()
-        EFF(eff_invert_frgb)
-        END_EFF()
+        EFF( eff_rotate_components_frgb ) HARNESSE( r ) END_EFF()
+        EFF( eff_rotate_components_ucolor ) HARNESSE( r ) END_EFF()
 
-        EFF(eff_rotate_components_frgb)
-            HARNESSE(r)
-        END_EFF()
-        EFF(eff_rotate_components_ucolor)
-            HARNESSE(r)
-        END_EFF()
+        EFF( eff_rgb_to_hsv_frgb )   END_EFF()
+        EFF( eff_rgb_to_hsv_ucolor ) END_EFF()
 
-        EFF(eff_rgb_to_hsv_frgb)
-        END_EFF()
-        EFF(eff_rgb_to_hsv_ucolor)
-        END_EFF()
+        EFF( eff_hsv_to_rgb_frgb )   END_EFF()
+        EFF( eff_hsv_to_rgb_ucolor ) END_EFF()
 
-        EFF(eff_hsv_to_rgb_frgb)
-        END_EFF()
-        EFF(eff_hsv_to_rgb_ucolor)
-        END_EFF()
+        EFF( eff_rotate_hue_frgb )   HARNESSE( offset ) END_EFF()
+        EFF( eff_rotate_hue_ucolor ) HARNESSE( offset ) END_EFF()
 
-        EFF(eff_rotate_hue_frgb)
-            HARNESSE(offset)
-        END_EFF()
-        EFF(eff_rotate_hue_ucolor)
-            HARNESSE(offset)
-        END_EFF()
+        EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+        EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+        EFF( eff_crop_circle_vec2i )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+        EFF( eff_crop_circle_vec2f )  HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
+        EFF( eff_crop_circle_int )    HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
 
-        EFF(eff_crop_circle_frgb)
-            HARNESSE(background)
-            HARNESSE(ramp_width)
-        END_EFF()
-        EFF(eff_crop_circle_ucolor)
-            HARNESSE(background)
-            HARNESSE(ramp_width)
-        END_EFF()
-        EFF(eff_crop_circle_vec2i)
-            HARNESSE(background)
-            HARNESSE(ramp_width)
-        END_EFF()
-        EFF(eff_crop_circle_vec2f)
-            HARNESSE(background)
-            HARNESSE(ramp_width)
-        END_EFF()
-        EFF(eff_crop_circle_int)
-            HARNESSE(background)
-            HARNESSE(ramp_width)
-        END_EFF()
+        EFF( eff_mirror_frgb)   READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+        EFF( eff_mirror_ucolor) READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+        EFF( eff_mirror_vec2i)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+        EFF( eff_mirror_vec2f)  READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
+        EFF( eff_mirror_int)    READE( reflect_x ) READE( reflect_y ) READE( top_to_bottom ) READE( left_to_right ) HARNESSE( center ) READE( extend ) END_EFF()
 
-        EFF(eff_mirror_frgb)
-            READE(reflect_x)
-            READE(reflect_y)
-            READE(top_to_bottom)
-            READE(left_to_right)
-            HARNESSE(center)
-            READE(extend)
-        END_EFF()
-        EFF(eff_mirror_ucolor)
-            READE(reflect_x)
-            READE(reflect_y)
-            READE(top_to_bottom)
-            READE(left_to_right)
-            HARNESSE(center)
-            READE(extend)
-        END_EFF()
-        EFF(eff_mirror_vec2i)
-            READE(reflect_x)
-            READE(reflect_y)
-            READE(top_to_bottom)
-            READE(left_to_right)
-            HARNESSE(center)
-            READE(extend)
-        END_EFF()
-        EFF(eff_mirror_vec2f)
-            READE(reflect_x)
-            READE(reflect_y)
-            READE(top_to_bottom)
-            READE(left_to_right)
-            HARNESSE(center)
-            READE(extend)
-        END_EFF()
-        EFF(eff_mirror_int)
-            READE(reflect_x)
-            READE(reflect_y)
-            READE(top_to_bottom)
-            READE(left_to_right)
-            HARNESSE(center)
-            READE(extend)
-        END_EFF()
+        EFF( eff_turn_frgb )   READE( direction ) END_EFF()
+        EFF( eff_turn_ucolor ) READE( direction ) END_EFF()
+        EFF( eff_turn_vec2i )  READE( direction ) END_EFF()
+        EFF( eff_turn_vec2f )  READE( direction ) END_EFF()
+        EFF( eff_turn_int )    READE( direction ) END_EFF()
 
-        EFF(eff_turn_frgb)
-            READE(direction)
-        END_EFF()
-        EFF(eff_turn_ucolor)
-            READE(direction)
-        END_EFF()
-        EFF(eff_turn_vec2i)
-            READE(direction)
-        END_EFF()
-        EFF(eff_turn_vec2f)
-            READE(direction)
-        END_EFF()
-        EFF(eff_turn_int)
-            READE(direction)
-        END_EFF()
+        EFF( eff_flip_frgb )   READE( flip_x ) READE( flip_y ) END_EFF()
+        EFF( eff_flip_ucolor ) READE( flip_x ) READE( flip_y ) END_EFF()
+        EFF( eff_flip_vec2i )  READE( flip_x ) READE( flip_y ) END_EFF()
+        EFF( eff_flip_vec2f )  READE( flip_x ) READE( flip_y ) END_EFF()
+        EFF( eff_flip_int )    READE( flip_x ) READE( flip_y ) END_EFF()
 
-        EFF(eff_flip_frgb)
-            READE(flip_x)
-            READE(flip_y)
-        END_EFF()
-        EFF(eff_flip_ucolor)
-            READE(flip_x)
-            READE(flip_y)
-        END_EFF()
-        EFF(eff_flip_vec2i)
-            READE(flip_x)
-            READE(flip_y)
-        END_EFF()
-        EFF(eff_flip_vec2f)
-            READE(flip_x)
-            READE(flip_y)
-        END_EFF()
-        EFF(eff_flip_int)
-            READE(flip_x)
-            READE(flip_y)
-        END_EFF()
+        EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_noise_vec2i )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
+        EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
-        EFF(eff_noise_frgb)
-            HARNESSE(a)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_noise_ucolor)
-            HARNESSE(a)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_noise_vec2i)
-            HARNESSE(a)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_noise_vec2f)
-            HARNESSE(a)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
-        EFF(eff_noise_int)
-            HARNESSE(a)
-            READE(bounded)
-            HARNESSE(bounds)
-        END_EFF()
+        EFF( eff_checkerboard_frgb)   HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+        EFF( eff_checkerboard_ucolor) HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+        EFF( eff_checkerboard_vec2i)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+        EFF( eff_checkerboard_vec2f)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+        EFF( eff_checkerboard_int)    HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
 
-        EFF(eff_checkerboard_frgb)
-            HARNESSE(box_size)
-            HARNESSE(c1)
-            HARNESSE(c2)
-        END_EFF()
-        EFF(eff_checkerboard_ucolor)
-            HARNESSE(box_size)
-            HARNESSE(c1)
-            HARNESSE(c2)
-        END_EFF()
-        EFF(eff_checkerboard_vec2i)
-            HARNESSE(box_size)
-            HARNESSE(c1)
-            HARNESSE(c2)
-        END_EFF()
-        EFF(eff_checkerboard_vec2f)
-            HARNESSE(box_size)
-            HARNESSE(c1)
-            HARNESSE(c2)
-        END_EFF()
-        EFF(eff_checkerboard_int)
-            HARNESSE(box_size)
-            HARNESSE(c1)
-            HARNESSE(c2)
-        END_EFF()
+        EFF( eff_vector_warp_frgb )   HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+        EFF( eff_vector_warp_ucolor ) HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+        EFF( eff_vector_warp_vec2i )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+        EFF( eff_vector_warp_vec2f )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
+        EFF( eff_vector_warp_int )    HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
 
-        EFF(eff_vector_warp_frgb)
-            HARNESSE(vf_name)
-            HARNESSE(step)
-            HARNESSE(smooth)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
-        EFF(eff_vector_warp_ucolor)
-            HARNESSE(vf_name)
-            HARNESSE(step)
-            HARNESSE(smooth)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
-        EFF(eff_vector_warp_vec2i)
-            HARNESSE(vf_name)
-            HARNESSE(step)
-            HARNESSE(smooth)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
-        EFF(eff_vector_warp_vec2f)
-            HARNESSE(vf_name)
-            HARNESSE(step)
-            HARNESSE(smooth)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
-        EFF(eff_vector_warp_int)
-            HARNESSE(vf_name)
-            HARNESSE(step)
-            HARNESSE(smooth)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
-
-        EFF(eff_feedback_frgb)
-            HARNESSE(wf_name)
-        END_EFF()
-        EFF(eff_feedback_ucolor)
-            HARNESSE(wf_name)
-        END_EFF()
-        EFF(eff_feedback_vec2i)
-            HARNESSE(wf_name)
-        END_EFF()
-        EFF(eff_feedback_vec2f)
-            HARNESSE(wf_name)
-        END_EFF()
-        EFF(eff_feedback_int)
-            HARNESSE(wf_name)
-        END_EFF()
+        EFF( eff_feedback_frgb )   HARNESSE( wf_name ) END_EFF()
+        EFF( eff_feedback_ucolor ) HARNESSE( wf_name ) END_EFF()
+        EFF( eff_feedback_vec2i )  HARNESSE( wf_name ) END_EFF()
+        EFF( eff_feedback_vec2f )  HARNESSE( wf_name ) END_EFF()
+        EFF( eff_feedback_int )    HARNESSE( wf_name ) END_EFF()
 
         // vector field effects
-        EFF(eff_complement_vec2f)
-        END_EFF()
-        EFF(eff_radial_vec2f)
-        END_EFF()
-        EFF(eff_cartesian_vec2f)
-        END_EFF()
-        EFF(eff_rotate_vectors_vec2f)
-            HARNESSE(angle)
-        END_EFF()
-        EFF(eff_scale_vectors_vec2f)
-            HARNESSE(scale)
-        END_EFF()
-        EFF(eff_normalize_vec2f)
-        END_EFF()
-        EFF(eff_inverse_vec2f)
-            HARNESSE(diameter)
-            HARNESSE(soften)
-        END_EFF()
-        EFF(eff_inverse_square_vec2f)
-            HARNESSE(diameter)
-            HARNESSE(soften)
-        END_EFF()
-        EFF(eff_concentric_vec2f)
-            HARNESSE(center)
-        END_EFF()
-        EFF(eff_rotational_vec2f)
-            HARNESSE(center)
-        END_EFF()
-        EFF(eff_spiral_vec2f)
-            HARNESSE(center)
-            HARNESSE(angle)
-        END_EFF()
-        EFF(eff_fermat_spiral_vec2f)
-            HARNESSE(c)
-        END_EFF()
-        EFF(eff_vortex_vec2f)
-            HARNESSE(diameter)
-            HARNESSE(soften)
-            HARNESSE(intensity)
-            HARNESSE(center_orig)
-            READE(revolving)
-            HARNESSE(velocity)
-            HARNESSE(center_of_revolution)
-        END_EFF()
-        EFF(eff_turbulent_vec2f)
-            HARNESSE(n)
-            HARNESSE(bounds)
-            HARNESSE(scale_factor)
-            HARNESSE(min_diameter)
-            HARNESSE(max_diameter)
-            HARNESSE(min_soften)
-            HARNESSE(max_soften)
-            HARNESSE(min_intensity)
-            HARNESSE(max_intensity)
-            READE(intensity_direction)
-            READE(revolving)
-            HARNESSE(min_velocity)
-            HARNESSE(max_velocity)
-            READE(velocity_direction)
-            HARNESSE(min_orbital_radius)
-            HARNESSE(max_orbital_radius)
-        END_EFF()
-        EFF(eff_kaleidoscope_vec2f)
-            HARNESSE(segments)
-            HARNESSE(levels)
-            HARNESSE(start)
-            HARNESSE(level_start)
-            HARNESSE(spin)
-            HARNESSE(expand)
-            HARNESSE(reflect)
-            HARNESSE(reflect_levels)
-        END_EFF()
-        EFF(eff_radial_tile_vec2f)
-            HARNESSE(segments)
-            HARNESSE(levels)
-            HARNESSE(offset_x)
-            HARNESSE(offset_y)
-            HARNESSE(spin)
-            HARNESSE(expand)
-            HARNESSE(zoom_x)
-            HARNESSE(zoom_y)
-            HARNESSE(reflect_x)
-            HARNESSE(reflect_y)
-        END_EFF()
-        EFF(eff_radial_multiply_vec2f)
-            HARNESSE(segments)
-            HARNESSE(levels)
-            HARNESSE(spin)
-            HARNESSE(expand)
-            HARNESSE(reflect)
-            HARNESSE(reflect_levels)
-        END_EFF()
-        EFF(eff_theta_rotate_vec2f)
-            HARNESSE(angle)
-        END_EFF()
-        EFF(eff_theta_swirl_vec2f)
-            HARNESSE(amount)
-        END_EFF()
-        EFF(eff_theta_rings_vec2f)
-            HARNESSE(n)
-            HARNESSE(swirl)
-            HARNESSE(alternate)
-        END_EFF()
-        EFF(eff_theta_waves_vec2f)
-            HARNESSE(freq)
-            HARNESSE(amp)
-            HARNESSE(phase)
-            HARNESSE(const_amp)
-        END_EFF()
-        EFF(eff_theta_saw_vec2f)
-            HARNESSE(freq)
-            HARNESSE(amp)
-            HARNESSE(phase)
-            HARNESSE(const_amp)
-        END_EFF()
-        EFF(eff_theta_compression_waves_vec2f)
-            HARNESSE(freq)
-            HARNESSE(amp)
-            HARNESSE(phase)
-            HARNESSE(const_amp)
-        END_EFF()
-        EFF(eff_position_fill_vec2f)
-        END_EFF()
+        EFF( eff_complement_vec2f ) END_EFF()
+        EFF( eff_radial_vec2f ) END_EFF()
+        EFF( eff_cartesian_vec2f ) END_EFF()
+        EFF( eff_rotate_vectors_vec2f ) HARNESSE( angle ) END_EFF()
+        EFF( eff_scale_vectors_vec2f ) HARNESSE( scale ) END_EFF()
+        EFF( eff_normalize_vec2f ) END_EFF()
+        EFF( eff_inverse_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) END_EFF()
+        EFF( eff_inverse_square_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) END_EFF()
+        EFF( eff_concentric_vec2f ) HARNESSE( center ) END_EFF()
+        EFF( eff_rotational_vec2f ) HARNESSE( center ) END_EFF()
+        EFF( eff_spiral_vec2f ) HARNESSE( center ) HARNESSE( angle ) END_EFF()
+        EFF( eff_fermat_spiral_vec2f ) HARNESSE( c ) END_EFF()
+        EFF( eff_vortex_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) HARNESSE( intensity ) HARNESSE( center_orig )
+                                READE( revolving ) HARNESSE( velocity ) HARNESSE( center_of_revolution ) END_EFF()
+        EFF( eff_turbulent_vec2f ) HARNESSE( n ) HARNESSE( bounds ) HARNESSE( scale_factor )
+                                   HARNESSE( min_diameter ) HARNESSE( max_diameter )
+                                   HARNESSE( min_soften ) HARNESSE( max_soften )
+                                   HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
+                                   READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
+                                   READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
+        EFF( eff_kaleidoscope_vec2f )   HARNESSE( segments ) HARNESSE( levels )
+                                        HARNESSE( start ) HARNESSE( level_start )
+                                        HARNESSE( spin ) HARNESSE( expand )
+                                        HARNESSE( reflect ) HARNESSE( reflect_levels ) END_EFF()
+        EFF( eff_radial_tile_vec2f  ) HARNESSE( segments )  HARNESSE( levels )
+                                      HARNESSE( offset_x )  HARNESSE( offset_y )
+                                      HARNESSE( spin )      HARNESSE( expand )
+                                      HARNESSE( zoom_x )    HARNESSE( zoom_y )
+                                      HARNESSE( reflect_x ) HARNESSE( reflect_y ) END_EFF()
+        EFF( eff_radial_multiply_vec2f )    HARNESSE( segments ) HARNESSE( levels )
+                                            HARNESSE( spin ) HARNESSE( expand )
+                                            HARNESSE( reflect ) HARNESSE( reflect_levels ) END_EFF()
+        EFF( eff_theta_rotate_vec2f ) HARNESSE( angle ) END_EFF()
+        EFF( eff_theta_swirl_vec2f  ) HARNESSE( amount) END_EFF()
+        EFF( eff_theta_rings_vec2f  ) HARNESSE( n ) HARNESSE( swirl ) HARNESSE( alternate ) END_EFF()
+        EFF( eff_theta_waves_vec2f  ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()
+        EFF( eff_theta_saw_vec2f    ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()
+        EFF( eff_theta_compression_waves_vec2f ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()
+        EFF( eff_position_fill_vec2f ) END_EFF()
 
         // warp field effects
-        EFF(eff_fill_warp_int)
-            HARNESSE(vf_name)
-            HARNESSE(relative)
-            HARNESSE(extend)
-        END_EFF()
+        EFF( eff_fill_warp_int ) HARNESSE( vf_name ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     }
-    DEBUG("Finished reading effect " + name)
+    DEBUG( "Finished reading effect " + name )
 }
 
-void scene_reader::read_queue(const json &j) {
+void scene_reader::read_queue( const json& j ) {
     std::string name = "default";
-    if (j.contains("name")) read(name, j["name"]);
+    if( j.contains( "name"           ) ) read( name,           j[ "name"         ] );
     bool self_generated = false;
-    if (j.contains("self_generated")) read(self_generated, j["self_generated"]);
-    vec2i dim(512, 512);
+    if( j.contains( "self_generated" ) ) read( self_generated, j[ "self_generated" ] );
+    vec2i dim( 512, 512 );
     pixel_type ptype = pixel_type::PIXEL_UCOLOR;
-    if (j.contains("type")) read(ptype, j["type"]);
+    if( j.contains( "type"           ) ) read( ptype,          j[ "type"         ] );
     render_mode rmode = render_mode::MODE_STATIC;
-    if (j.contains("mode")) read(rmode, j["mode"]);
+    if( j.contains( "mode"           ) ) read( rmode,          j[ "mode"         ] );
     float relative_dim = 1.0;
-    if (j.contains("relative_dim")) read(relative_dim, j["relative_dim"]);
-    effect_list elist(name, self_generated, "none", dim, ptype, rmode, relative_dim);
+    if( j.contains( "relative_dim"   ) ) read( relative_dim,   j[ "relative_dim" ] );
+    effect_list elist( name, self_generated, "none", dim, ptype, rmode, relative_dim );
     // DEBUG( "Reading queue " + .name )
-    if (j.contains("effects")) for (std::string eff_name: j["effects"]) elist.effects.push_back(eff_name);;
-    if (j.contains("source")) read_harness(j["source"], elist.source_name);
-    if (j.contains("dim")) read_harness(j["dim"], elist.dim);
+    if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;
+    if( j.contains( "source"       ) ) read_harness( j[ "source" ], elist.source_name );
+    if( j.contains( "dim"          ) ) read_harness( j[ "dim"    ], elist.dim );
 
     // DEBUG( "queue source successfully read " )
-    s.queue.push_back(elist);
-    s.buffers[name] = elist.buf;
+    s.queue.push_back( elist );
+    s.buffers[ name ] = elist.buf;
 }
 
-void scene_reader::read_widget_group(const json &j) {
-    //    std::shared_ptr< widget_group > wg = std::make_shared< widget_group >();
+void scene_reader::read_widget_group( const json& j ) {
+//    std::shared_ptr< widget_group > wg = std::make_shared< widget_group >();
     widget_group wg;
 
-    if (j.contains("name")) read(wg.name, j["name"]);
-    else
-        ERROR("Widget group name missing\n")
-    if (j.contains("label")) read(wg.label, j["label"]);
-    if (j.contains("description")) read(wg.description, j["description"]);
-    if (j.contains("conditions")) for (std::string condition: j["conditions"]) wg.add_condition(condition);
-    if (j.contains("widgets")) for (std::string widget: j["widgets"]) wg.add_widget(widget);
-    s.ui.widget_groups.push_back(wg);
+    if( j.contains( "name" ) ) read( wg.name, j[ "name" ] );
+    else ERROR( "Widget group name missing\n" )
+    if( j.contains( "label" ) ) read( wg.label, j[ "label" ] );
+    if( j.contains( "description" ) ) read( wg.description, j[ "description" ] );
+    if( j.contains( "conditions" ) ) for( std::string condition : j[ "conditions" ] ) wg.add_condition( condition );
+    if( j.contains( "widgets" ) ) for( std::string widget : j[ "widgets" ] ) wg.add_widget( widget );
+    s.ui.widget_groups.push_back( wg );
 }
 
-void to_json(nlohmann::json &j, const interval_int &i) {
+void to_json( nlohmann::json& j, const interval_int& i ) {
     j = nlohmann::json{
         i.min, i.max
     };
 }
 
-void to_json(nlohmann::json &j, const interval_float &i) {
+void to_json( nlohmann::json& j, const interval_float& i ) {
     j = nlohmann::json{
         i.min, i.max
     };
 }
 
-void to_json(nlohmann::json &j, const direction4 &d) {
+void to_json(nlohmann::json& j, const direction4& d ) {
     switch (d) {
         case direction4::D4_UP:
             j = "up";
@@ -1574,7 +1027,7 @@ void to_json(nlohmann::json &j, const direction4 &d) {
     }
 }
 
-void to_json(nlohmann::json &j, const direction4_diagonal &d) {
+void to_json(nlohmann::json& j, const direction4_diagonal& d) {
     switch (d) {
         case direction4_diagonal::D4D_UPRIGHT:
             j = "up_right";
@@ -1595,7 +1048,7 @@ void to_json(nlohmann::json &j, const direction4_diagonal &d) {
     }
 }
 
-void to_json(nlohmann::json &j, const direction8 &d) {
+void to_json(nlohmann::json& j, const direction8& d) {
     switch (d) {
         case direction8::D8_UP:
             j = "up";
@@ -1628,7 +1081,7 @@ void to_json(nlohmann::json &j, const direction8 &d) {
     }
 }
 
-void to_json(nlohmann::json &j, const box_blur_type &b) {
+void to_json( nlohmann::json& j, const box_blur_type& b ) {
     switch (b) {
         case box_blur_type::BB_ORTHOGONAL:
             j = "orthogonal";
@@ -1649,7 +1102,7 @@ void to_json(nlohmann::json &j, const box_blur_type &b) {
     }
 }
 
-void to_json(nlohmann::json &j, const menu_type &m) {
+void to_json( nlohmann::json& j, const menu_type& m ) {
     switch (m) {
         case MENU_PULL_DOWN:
             j = "pull_down";
@@ -1666,8 +1119,7 @@ void to_json(nlohmann::json &j, const menu_type &m) {
             break;
     }
 }
-
-void to_json(nlohmann::json &j, const switch_fn &s) {
+void to_json( nlohmann::json& j, const switch_fn& s) {
     j = nlohmann::json{
         {"label", s.label},
         {"description", s.description},
@@ -1677,13 +1129,13 @@ void to_json(nlohmann::json &j, const switch_fn &s) {
     };
 }
 
-void to_json(nlohmann::json &j, const widget_group &wg) {
+void to_json( nlohmann::json& j, const widget_group& wg ) {
     j = nlohmann::json{
-        {"name", wg.name},
-        {"label", wg.label},
-        {"description", wg.description},
-        {"conditions", wg.conditions},
-        {"widgets", wg.widgets}
+        { "name", wg.name},
+        { "label", wg.label},
+        { "description", wg.description},
+        { "conditions", wg.conditions},
+        { "widgets", wg.widgets}
     };
 }
 
@@ -1696,204 +1148,199 @@ void to_json(nlohmann::json& j, const std::vector<widget_group>& wg_vec) {
     }
 }
 */
-void to_json(nlohmann::json &j, const any_function &af) {
+void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{
-                   [&](const any_fn<bool> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<switch_fn> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "switch_fn"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"value", fn->value},
-                                              {"default_value", fn->default_value},
-                                              {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
-                                              {"affects_widget_groups", fn->affects_widget_groups}
-                                          };
-                                      },
-                                      [&](const std::shared_ptr<widget_switch_fn> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "widget_switch_fn"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"switcher", fn->switcher},
-                                              {"widget", fn->widget}
-                                          };
-                                      },
-                                      [&](const auto &fn) {
-                                          // Placeholder for other types
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "unimplemented bool function"}
-                                              // Replace with actual type identification if needed
-                                              // Other placeholder fields...
-                                          };
-                                      }
-                                  }, wrapper.any_fn_ptr);
-                   },
-                   [&](const any_fn<int> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<slider_int> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "slider_int"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"min", fn->min},
-                                              {"max", fn->max},
-                                              {"default_value", fn->default_value},
-                                              {"step", fn->step},
-                                              {"value", fn->value}
-                                          };
-                                      },
-                                      [&](const std::shared_ptr<menu_int> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "menu_int"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"choice", fn->choice},
-                                              {"default_choice", fn->default_choice},
-                                              {"tool", fn->tool},
-                                              {"items", fn->items},
-                                              {"affects_widget_groups", fn->affects_widget_groups},
-                                              {"rerender", fn->rerender}
-                                          };
-                                      },
-                                      [&](const std::shared_ptr<multi_direction8_picker> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "multi_direction_picker"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"value", fn->value},
-                                              {"default_value", fn->default_value}
-                                          };
-                                      },
-                                      [&](const std::shared_ptr<custom_blur_picker> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "custom_blur_picker"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"pickers", fn->pickers}
-                                          };
-                                      },
-                                      [&](const auto &fn) {
-                                          // Placeholder for other types
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "unimplemented json output for int function"}
-                                              // Replace with actual type identification if needed
-                                              // Other placeholder fields...
-                                          };
-                                      }
-                                  }, wrapper.any_fn_ptr);
-                   },
-                   [&](const any_fn<float> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<slider_float> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "slider_float"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"min", fn->min},
-                                              {"max", fn->max},
-                                              {"default_value", fn->default_value},
-                                              {"step", fn->step},
-                                              {"value", fn->value}
-                                          };
-                                      },
-                                      [&](const auto &fn) {
-                                          // Placeholder for other types
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "unimplemented float function"}
-                                              // Replace with actual type identification if needed
-                                              // Other placeholder fields...
-                                          };
-                                      }
-                                  }, wrapper.any_fn_ptr);
-                   },
-                   [&](const any_fn<interval_int> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<range_slider_int> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "range_slider_int"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"min", fn->min},
-                                              {"max", fn->max},
-                                              {"default_value", fn->default_value},
-                                              {"step", fn->step},
-                                              {"value", fn->value}
-                                          };
-                                      },
-                                      [&](const auto &fn) {
-                                          // Placeholder for other types
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "unimplemented interval_int function"}
-                                              // Replace with actual type identification if needed
-                                              // Other placeholder fields...
-                                          };
-                                      }
-                                  }, wrapper.any_fn_ptr);
-                   },
-                   [&](const any_fn<interval_float> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<range_slider_float> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "range_slider_float"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"min", fn->min},
-                                              {"max", fn->max},
-                                              {"default_value", fn->default_value},
-                                              {"step", fn->step},
-                                              {"value", fn->value}
-                                          };
-                                      },
-                                      [&](const auto &fn) {
-                                          // Placeholder for other types
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "unimplemented interval_float function"}
-                                              // Replace with actual type identification if needed
-                                              // Other placeholder fields...
-                                          };
-                                      }
-                                  }, wrapper.any_fn_ptr);
-                   },
-                   /*
-                   [&]( const any_fn< vec2f >& wrapper ) {
-                   },
-                   [&]( const any_fn< vec2i >& wrapper ) {
-                   },
-                   [&]( const any_fn< frgb >& wrapper ) {
-                   },
-                   [&]( const any_fn< ucolor >& wrapper ) {
-                   },
-                   */
-                   [&](const any_fn<std::string> &wrapper) {
-                       std::visit(overloaded{
-                                      [&](const std::shared_ptr<menu_string> &fn) {
-                                          j = nlohmann::json{
-                                              {"name", wrapper.name},
-                                              {"type", "menu_string"},
-                                              {"label", fn->label},
-                                              {"description", fn->description},
-                                              {"choice", fn->choice},
-                                              {"default_choice", fn->default_choice},
-                                              {"tool", fn->tool},
-                                              {"items", fn->items},
-                                              {"affects_widget_groups", fn->affects_widget_groups},
-                                              {"rerender", fn->rerender}
+        [&]( const any_fn< bool >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< switch_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "switch_fn"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value},
+                        {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
+                        {"affects_widget_groups", fn->affects_widget_groups}
+                    };
+                },
+                [&]( const std::shared_ptr< widget_switch_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "widget_switch_fn"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"switcher", fn->switcher},
+                        {"widget", fn->widget}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented bool function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
+        [&]( const any_fn< int >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< slider_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "slider_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const std::shared_ptr< menu_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "menu_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"choice", fn->choice},
+                        {"default_choice", fn->default_choice},
+                        {"tool", fn->tool},
+                        {"items", fn->items},
+                        {"affects_widget_groups", fn->affects_widget_groups},
+                        {"rerender", fn->rerender}
+                    };
+                },
+                [&]( const std::shared_ptr< multi_direction8_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "multi_direction_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const std::shared_ptr< custom_blur_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "custom_blur_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"pickers", fn->pickers}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented json output for int function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
+        [&]( const any_fn< float >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< slider_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "slider_float"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented float function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
+        [&]( const any_fn< interval_int >& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< range_slider_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "range_slider_int"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented interval_int function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
+        [&]( const any_fn< interval_float >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< range_slider_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "range_slider_float"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"min", fn->min},
+                        {"max", fn->max},
+                        {"default_value", fn->default_value},
+                        {"step", fn->step},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented interval_float function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr );
+        },
+        /*
+        [&]( const any_fn< vec2f >& wrapper ) {
+        },
+        [&]( const any_fn< vec2i >& wrapper ) {
+        },
+        [&]( const any_fn< frgb >& wrapper ) {
+        },
+        [&]( const any_fn< ucolor >& wrapper ) {
+        },
+        */
+        [&]( const any_fn< std::string >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< menu_string >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "menu_string"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"choice", fn->choice},
+                        {"default_choice", fn->default_choice},
+                        {"tool", fn->tool},
+                        {"items", fn->items},
+                        {"affects_widget_groups", fn->affects_widget_groups},
+                        {"rerender", fn->rerender}
 
                                           };
                                       },
