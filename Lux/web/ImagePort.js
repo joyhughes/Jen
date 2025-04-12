@@ -9,7 +9,7 @@ function ImagePort( { ratio, panelSize } ) {
   
   const imagePortRef = React.useRef();
 /*
-  // This useEffect hook will query the dimensions of JenImagePortCanvas and MediaController
+  // This useEffect hook will query the dimensions of ImagePortCanvas and MediaController
   // You need to implement the querying part based on your components
   React.useEffect(() => {
     if (imagePortRef.current) {

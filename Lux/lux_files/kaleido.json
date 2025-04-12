@@ -1,21 +1,21 @@
 {
     "name": "Kaleidoswirl",
     "title": "Kaleidoscopic collage",
-    "images": 
+    "images":
     [
         {
             "type": "uimage",
             "filename": "lux_files/Ada.jpg",
             "name": "Ada"
-        },        
+        },
         {
             "type": "uimage",
             "filename": "lux_files/apples.jpg",
             "name": "Apples"
         },
-        { 
-            "type": "uimage", 
-            "filename": "lux_files/crab_nebula.jpg", 
+        {
+            "type": "uimage",
+            "filename": "lux_files/crab_nebula.jpg",
             "name": "Crab Nebula"
         },
         {
@@ -38,9 +38,9 @@
             "filename": "lux_files/forest.jpg",
             "name": "Forest"
         },
-        { 
-            "type": "uimage", 
-            "filename": "lux_files/hk_square_512.jpg", 
+        {
+            "type": "uimage",
+            "filename": "lux_files/hk_square_512.jpg",
             "name": "Hong Kong"
         },
         {
@@ -65,7 +65,7 @@
             "max": 36,
             "step": 1,
             "default_value": 6
-        },        
+        },
         {
             "name": "level_slider",
             "type": "slider_float",
@@ -75,7 +75,7 @@
             "max": 12,
             "step": 1,
             "default_value": 1
-        },        
+        },
         {
             "name": "level_start_slider",
             "type": "slider_float",
@@ -95,7 +95,7 @@
             "max": 10,
             "step": 1,
             "default_value": 0
-        },        
+        },
         {
             "name": "expand_slider",
             "type": "slider_float",
@@ -131,13 +131,13 @@
             "type": "equal_int_condition",
             "a": { "functions": [ "scope_menu" ] },
             "b": 0
-        },        
+        },
         {
             "name": "scope_menu_1",
             "type": "equal_int_condition",
             "a": { "functions": [ "scope_menu" ] },
             "b": 1
-        },        
+        },
         {
             "name": "scope_menu_2",
             "type": "equal_int_condition",
@@ -165,13 +165,13 @@
             "type": "equal_int_condition",
             "a": { "functions": [ "funky_menu" ] },
             "b": 0
-        },        
+        },
         {
             "name": "funky_menu_1",
             "type": "equal_int_condition",
             "a": { "functions": [ "funky_menu" ] },
             "b": 1
-        },        
+        },
         {
             "name": "funky_menu_2",
             "type": "equal_int_condition",
@@ -225,7 +225,7 @@
             "max": 100,
             "step": 1,
             "default_value": 10
-        },        
+        },
         {
             "name": "freq_slider",
             "type": "slider_float",
@@ -237,7 +237,7 @@
             "default_value": 6.0
         },
         {
-            "name": "amp_slider", 
+            "name": "amp_slider",
             "type": "slider_float",
             "label": "Waviness",
             "description": "Amplitude of the wiggles in the kaleidoscope image",
@@ -269,14 +269,14 @@
             "delta": { "functions": [ "start_slider" ] },
             "scale": 0.1,
             "val": 0
-        },        
+        },
         {
             "name": "level_start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "level_start_slider" ] },
             "scale": 0.001,
             "val": 0
-        },        
+        },
         {
             "name": "expand_integrator",
             "type": "integrator_float",
@@ -304,7 +304,7 @@
             "label": "Reflect",
             "description": "Reflect alternate segments of the kaleidoscope image",
             "default_value": true
-        },        
+        },
         {
             "name": "reflect_level_switch",
             "type": "switch_fn",
@@ -333,7 +333,7 @@
             "name": "position fill",
             "type": "eff_position_fill_vec2f"
         },
-        { 
+        {
             "name": "radial",
             "type": "eff_radial_vec2f"
         },
@@ -368,7 +368,7 @@
             "reflect": { "functions": [ "reflect_switch" ] },
             "reflect_levels": { "functions": [ "reflect_level_switch" ] }
         },
-        { 
+        {
             "name": "radial_multiply_cartesian",
             "type": "eff_composite",
             "effects": [ "radial_multiply", "cartesian" ]
@@ -468,7 +468,7 @@
             "type": "eff_hsv_to_rgb_ucolor"
         }
     ],
-    "queue": 
+    "queue":
     [
         {
             "name": "base radial field",
@@ -482,7 +482,7 @@
             "name": "kaleido_vf",
             "source": "base radial field",
             "type": "vector_field",
-            "mode": "ephemeral",  
+            "mode": "ephemeral",
             "effects": [ "funky chooser", "scope_chooser" ]
         },
         {
@@ -490,14 +490,14 @@
             "self_generated": true,
             "dim": { "functions": [ "source_image_dim" ] },
             "type": "warp_field",
-            "mode": "ephemeral",  
+            "mode": "ephemeral",
             "effects": [ "fill warp field" ]
         },
         {
             "name": "warped_image",
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
-            "mode": "ephemeral",  
+            "mode": "ephemeral",
             "effects": [ "warp image" ]
         }
     ],
