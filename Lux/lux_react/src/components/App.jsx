@@ -5,7 +5,7 @@ import { CssBaseline } from '@mui/material';
 import { JenThemeProvider } from './JenThemeProvider';
 
 // Import main container
-import JenInterfaceContainer from './JenInterfaceContainer.jsx';
+import InterfaceContainer from './InterfaceContainer.jsx';
 
 /**
  * Main App component that serves as the entry point for the Jen application.
@@ -15,7 +15,7 @@ function App() {
     return (
         <JenThemeProvider>
             <CssBaseline />
-            <JenInterfaceContainer />
+            <InterfaceContainer />
         </JenThemeProvider>
     );
 }
