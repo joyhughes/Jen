@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 
-function ImagePortCanvas( { width, height } ) {
+function ImagePortCanvas({ width, height } ) {
   const canvasRef = useRef(null);
   const [isModuleReady, setModuleReady] = useState( false );
- // const [ frameTime, setFrameTime ] = useState( 0 );
+  // const [ frameTime, setFrameTime ] = useState( 0 );
 
   const handleMouseDown = useCallback(() => {
     if (window.module) {
@@ -54,14 +54,14 @@ function ImagePortCanvas( { width, height } ) {
     const imageDataArray = window.module.get_img_data();
     const bufWidth  = window.module.get_buf_width();
     const bufHeight = window.module.get_buf_height();
-    
+
     //let t1, t2, t3, t4;
     //t1 = performance.now();
     //console.log( "updateCanvas get_img_data time = " + (t1 - t0) );
     const imageData = new ImageData(
-      new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
-      bufWidth,
-      bufHeight
+        new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
+        bufWidth,
+        bufHeight
     );
     //t2 = performance.now();
     //console.log( "updateCanvas new ImageData time = " + (t2 - t1) );
@@ -120,6 +120,6 @@ function ImagePortCanvas( { width, height } ) {
   return (
       <canvas ref={canvasRef} width={width} height={height}></canvas>
   );
-} 
+}
 
-export default ImagePortCanvas; 
+export default ImagePortCanvas;

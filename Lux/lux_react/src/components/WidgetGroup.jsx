@@ -49,7 +49,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'menu_string':
         if (widget.tool === 'image') {
           widgetComponent = <ImagePicker json={widget} width={panelSize - 40} onChange={onChange} />;
-          height = 180;
+          height = 220;
         } else {
           widgetComponent = <JenMenu json={widget} width={panelSize - 40} onChange={onChange} />;
         }
