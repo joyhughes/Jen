@@ -33,7 +33,7 @@ function InterfaceContainer() {
     const lastResizeTime = useRef(0);
 
     // Default panel sizes based on layout mode
-    const SIDE_PANEL_WIDTH = 340;
+    const SIDE_PANEL_WIDTH = 280;
     const SIDE_PANEL_COLLAPSED_WIDTH = 36; // Width when collapsed
     const BOTTOM_PANEL_HEIGHT = 300;
     const BOTTOM_PANEL_COLLAPSED_HEIGHT = 36; // Height when collapsed

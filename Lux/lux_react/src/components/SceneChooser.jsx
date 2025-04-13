@@ -163,7 +163,10 @@ function SceneChooser({ width, onChange }) {
     };
 
     return (
-        <Box>
+        <Box sx={{
+            boxSizing: 'border-box',
+            width: '95%'
+        }}>
             <Typography
                 variant="subtitle2"
                 fontWeight={600}

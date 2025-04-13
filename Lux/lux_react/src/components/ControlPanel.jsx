@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from "react";
-import {
-    Box,
-    Paper,
-    Typography,
-    CircularProgress,
-    Divider,
-    Alert,
-    Fade,
-    useTheme
-} from '@mui/material';
-
-// Import enhanced components
-import WidgetGroup from './WidgetGroup.jsx';
-import MediaController from "./MediaController.jsx"; // Assuming you'll enhance this
-import SceneChooser from "./SceneChooser.jsx"; // Assuming you'll enhance this
+import { Box, Paper, Typography, CircularProgress, Divider, Alert, Fade, useMediaQuery, useTheme } from '@mui/material';
+import WidgetGroup from './WidgetGroup';
+import MediaController from "./MediaController";
+import SceneChooser from "./SceneChooser";
 
 function ControlPanel({ dimensions, panelSize, moduleReady }) {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [panelJSON, setPanelJSON] = useState([]);
     const [activeGroups, setActiveGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Determine if panel is horizontal (side) or vertical (bottom)
+    const isHorizontalLayout = dimensions.width < dimensions.height;
+
+    // Determine column width based on device type and panel orientation
+    const columnWidth = isMobile ? dimensions.width - 32 : 280; // More compact columns
 
     // Callback function to handle state changes in widget groups
     const handleWidgetGroupChange = () => {
@@ -38,7 +34,6 @@ function ControlPanel({ dimensions, panelSize, moduleReady }) {
         }
     };
 
-    // Setup the panel by loading JSON from the WebAssembly module
     const setupPanel = () => {
         if (!window.module) return;
 
@@ -57,7 +52,6 @@ function ControlPanel({ dimensions, panelSize, moduleReady }) {
         }
     };
 
-    // Clear the panel state
     const clearPanel = () => {
         setPanelJSON([]);
         setActiveGroups([]);
@@ -99,23 +93,23 @@ function ControlPanel({ dimensions, panelSize, moduleReady }) {
         handleWidgetGroupChange();
     }, [panelJSON]);
 
-    // Loading state when module or panel data is not ready
+    // Loading state
     if (loading) {
         return (
             <Paper
                 sx={{
-                    minWidth: dimensions.width,
-                    minHeight: dimensions.height,
+                    width: dimensions.width,
+                    height: dimensions.height,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
                     flexDirection: 'column',
-                    p: 3
+                    p: 2
                 }}
             >
-                <CircularProgress size={40} sx={{ mb: 2 }} />
-                <Typography variant="body1" color="text.secondary">
-                    Loading control panel...
+                <CircularProgress size={32} sx={{ mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                    Loading controls...
                 </Typography>
             </Paper>
         );
@@ -126,79 +120,104 @@ function ControlPanel({ dimensions, panelSize, moduleReady }) {
         return (
             <Paper
                 sx={{
-                    minWidth: dimensions.width,
-                    minHeight: dimensions.height,
-                    p: 3
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    p: 2
                 }}
             >
-                <Alert
-                    severity="error"
-                    sx={{ mb: 2 }}
-                >
-                    {error}
-                </Alert>
+                <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>
                 <Typography variant="body2" color="text.secondary">
-                    Try refreshing the page or checking the console for more details.
+                    Try refreshing the page.
                 </Typography>
             </Paper>
         );
     }
 
+    const contentWidth = Math.floor(dimensions.width - 32); // Subtract padding
+
+
     return (
         <Paper
             elevation={0}
             sx={{
-                minWidth: dimensions.width,
+                width: columnWidth,
                 height: dimensions.height,
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 0,
-                backgroundColor: theme.palette.background.subtle,
-                overflow: 'hidden', // Hide overflow
+                backgroundColor: theme.palette.background.default,
+                overflow: 'hidden', // Hide overflow for the container
             }}
         >
-            {/* Header section with media controls */}
+            {/* Fixed header sections */}
             <Box
-                sx={{
-                    p: 2,
-                    backgroundColor: theme.palette.background.paper,
-                    borderBottom: '1px solid',
-                    borderColor: theme.palette.divider,
-                }}
-            >
-                <MediaController panelSize={panelSize} />
+
+                 sx={{
+                     p: 1.5,
+                     backgroundColor: theme.palette.background.paper,
+                     borderBottom: '1px solid',
+                     borderColor: theme.palette.divider,
+                     flexShrink: 0
+                 }}
+
+
+            > {/* This prevents the header from shrinking */}
+
+                {/* Media Controls */}
+                <Box
+                    sx={{
+                        width: columnWidth,
+                        flex: '0 0 auto',
+                    }}
+                >
+                    <MediaController panelSize={columnWidth} />
+                </Box>
+
+                {/* Scene Chooser */}
+                <Box
+                    sx={{
+                        width: columnWidth,
+                        flex: '0 0 auto',
+                    }}
+                >
+                    <SceneChooser width={columnWidth} onChange={clearPanel} />
+                </Box>
             </Box>
 
-            {/* Scene chooser section */}
-            <Box
-                sx={{
-                    p: 2,
-                    backgroundColor: theme.palette.background.default,
-                    borderBottom: '1px solid',
-                    borderColor: theme.palette.divider,
-                }}
-            >
-                <SceneChooser width={panelSize - 32} onChange={clearPanel} />
-            </Box>
-
-            {/* Widget groups section with scrolling */}
             <Box
                 sx={{
                     flexGrow: 1,
-                    overflow: 'auto', // Enable scrolling for this section only
+                    overflowY: 'auto', // Always allow vertical scrolling
+                    overflowX: isHorizontalLayout ? 'auto' : 'hidden',
+                    backgroundColor: theme.palette.background.paper,
                     p: 1,
                 }}
             >
                 {activeGroups.length > 0 ? (
-                    <Fade in={true} timeout={300}>
-                        <Box>
+                    <Fade in={true} timeout={200}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flexDirection: isHorizontalLayout ? 'column' : 'row',
+                                flexWrap: isHorizontalLayout ? 'wrap' : 'nowrap',
+                                width: '100%',
+                            }}
+                        >
                             {activeGroups.map((group) => (
-                                <WidgetGroup
+                                <Box
                                     key={group.name}
-                                    panelSize={panelSize}
-                                    json={group}
-                                    onChange={handleWidgetGroupChange}
-                                />
+                                    sx={{
+                                        width: columnWidth,
+                                        flex: '0 0 auto',
+                                    }}
+                                >
+                                    <WidgetGroup
+                                        panelSize={columnWidth}
+                                        json={group}
+                                        onChange={handleWidgetGroupChange}
+                                        isMobile={isMobile}
+                                    />
+                                </Box>
                             ))}
                         </Box>
                     </Fade>
@@ -209,7 +228,7 @@ function ControlPanel({ dimensions, panelSize, moduleReady }) {
                             justifyContent: 'center',
                             alignItems: 'center',
                             height: '100%',
-                            p: 3,
+                            p: 2,
                             textAlign: 'center'
                         }}
                     >

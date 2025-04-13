@@ -81,7 +81,7 @@ const SelectionIndicator = styled(Box)(({ theme }) => ({
 }));
 
 // Functional component for the thumbnail item
-function JenThumbnailItem({ imageName, isSelected, onClick }) {
+function ThumbnailItem({ imageName, isSelected, onClick }) {
     const theme = useTheme();
     const canvasRef = useRef(null);
     const [status, setStatus] = useState('loading'); // 'loading', 'loaded', 'error'
@@ -215,4 +215,4 @@ function JenThumbnailItem({ imageName, isSelected, onClick }) {
     );
 }
 
-export default JenThumbnailItem;
+export default ThumbnailItem;

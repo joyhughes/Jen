@@ -16,7 +16,7 @@ const ThemeContext = createContext({
 export const useThemeContext = () => useContext(ThemeContext);
 
 // The main theme provider component
-export function JenThemeProvider({ children }) {
+export function ThemeProvider({ children }) {
     const [mode, setMode] = useState('dark'); // Default to dark mode
 
     // Theme toggle function

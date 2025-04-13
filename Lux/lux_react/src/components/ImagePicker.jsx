@@ -5,52 +5,21 @@ import {
     Button,
     CircularProgress,
     Paper,
-    Fade,
     Grid,
     Divider,
     useTheme
 } from '@mui/material';
 import { PlusSquare, ImagePlus, Check, Upload } from 'lucide-react';
 
-// Import the thumbnail item component
-import JenThumbnailItem from './JenThumbnailItem.jsx';
+import ThumbnailItem from './ThumbnailItem.jsx';
+import PropTypes from "prop-types";
 
-// Custom component for the section title with an optional counter
-const SectionTitle = ({ label, count }) => (
-    <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        mb: 1.5,
-        mt: 1
-    }}>
-        <Typography
-            variant="subtitle2"
-            sx={{
-                fontWeight: 600,
-                color: 'text.primary',
-                letterSpacing: '0.02em'
-            }}
-        >
-            {label || 'Source Image'}
-        </Typography>
-        {count > 0 && (
-            <Typography
-                variant="caption"
-                sx={{
-                    ml: 1,
-                    bgcolor: 'action.selected',
-                    px: 1,
-                    py: 0.25,
-                    borderRadius: 1,
-                    fontWeight: 500
-                }}
-            >
-                {count}
-            </Typography>
-        )}
-    </Box>
-);
 
+function SectionTitle(props) {
+    return null;
+}
+
+SectionTitle.propTypes = {label: PropTypes.any};
 export const ImagePicker = ({ json, width, onChange }) => {
     const theme = useTheme();
     const fileInputRef = useRef(null);
@@ -253,13 +222,68 @@ export const ImagePicker = ({ json, width, onChange }) => {
         >
             <Box sx={{
                 display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                marginBottom: 2
             }}>
                 <SectionTitle
                     label={json?.label || 'Source Images'}
                     count={availableImages.length}
                 />
+
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                }}>
+                    {/* Add button */}
+                    <Button
+                        variant="outlined"
+                        onClick={handleUploadClick}
+                        disabled={isUploading}
+                        startIcon={isUploading ? <CircularProgress size={16} /> : <PlusSquare size={16} />}
+                        size="small"
+                        sx={{
+                            textTransform: 'none',
+                            borderRadius: 1,
+                            height: 32,
+                            fontSize: '0.75rem',
+                            borderStyle: 'dashed',
+                            flexShrink: 0  // Prevent button from shrinking
+                        }}
+                    >
+                        Add Image
+                    </Button>
+
+                    {/* Selected image label */}
+                    {selectedImage && (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                backgroundColor: 'action.hover',
+                                borderRadius: 1,
+                                py: 0.5,
+                                px: 1,
+                                maxWidth: '120px'  // Limit width to prevent overflow
+                            }}
+                        >
+                            <Check size={14} color={theme.palette.success.main} />
+                            <Typography
+                                variant="caption"
+                                noWrap  // Prevents text wrapping
+                                sx={{
+                                    ml: 0.5,
+                                    color: 'text.secondary',
+                                    fontWeight: 500,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'  // Add ellipsis for long names
+                                }}
+                            >
+                                {selectedImage}
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
             </Box>
 
             <input
@@ -312,20 +336,6 @@ export const ImagePicker = ({ json, width, onChange }) => {
                             : "No images added yet"
                         }
                     </Typography>
-                    <Button
-                        variant="outlined"
-                        onClick={handleUploadClick}
-                        disabled={isUploading}
-                        startIcon={isUploading ? <CircularProgress size={16} /> : null}
-                        sx={{
-                            mt: 2,
-                            textTransform: 'none',
-                            borderRadius: 1,
-                            px: 2
-                        }}
-                    >
-                        Upload first image
-                    </Button>
                 </Box>
             ) : (
                 // Grid layout
@@ -387,7 +397,7 @@ export const ImagePicker = ({ json, width, onChange }) => {
                     {/* Thumbnails */}
                     {availableImages.map((name) => (
                         <Grid item key={name}>
-                            <JenThumbnailItem
+                            <ThumbnailItem
                                 imageName={name}
                                 isSelected={name === selectedImage}
                                 onClick={handleThumbnailClick}
@@ -395,67 +405,8 @@ export const ImagePicker = ({ json, width, onChange }) => {
                         </Grid>
                     ))}
 
-                    {/* Add button */}
-                    <Grid item>
-                        <Button
-                            variant="outlined"
-                            onClick={handleUploadClick}
-                            disabled={isUploading}
-                            sx={{
-                                width: 80,
-                                height: 80,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderColor: 'divider',
-                                color: 'text.secondary',
-                                borderStyle: 'dashed',
-                                borderRadius: 1,
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    backgroundColor: 'action.hover'
-                                }
-                            }}
-                        >
-                            {isUploading ? (
-                                <CircularProgress size={24} color="inherit"/>
-                            ) : (
-                                <>
-                                    <PlusSquare size={24} />
-                                    <Typography variant="caption" sx={{ mt: 0.5 }}>
-                                        Add
-                                    </Typography>
-                                </>
-                            )}
-                        </Button>
-                    </Grid>
+                    {/* Removed the Add button from the grid as it's now at the top */}
                 </Grid>
-            )}
-
-            {selectedImage && (
-                <>
-                    <Divider sx={{ my: 1 }} />
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            mt: 1
-                        }}
-                    >
-                        <Check size={16} color={theme.palette.success.main} />
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                ml: 0.5,
-                                color: 'text.secondary',
-                                fontWeight: 500
-                            }}
-                        >
-                            Selected: <span style={{ color: theme.palette.text.primary }}>{selectedImage}</span>
-                        </Typography>
-                    </Box>
-                </>
             )}
         </Paper>
     );

@@ -2,7 +2,7 @@ import React from 'react';
 import { CssBaseline } from '@mui/material';
 
 // Import theme provider
-import { JenThemeProvider } from './JenThemeProvider';
+import { ThemeProvider } from './ThemeProvider.jsx';
 
 // Import main container
 import InterfaceContainer from './InterfaceContainer.jsx';
@@ -13,10 +13,10 @@ import InterfaceContainer from './InterfaceContainer.jsx';
  */
 function App() {
     return (
-        <JenThemeProvider>
+        <ThemeProvider>
             <CssBaseline />
             <InterfaceContainer />
-        </JenThemeProvider>
+        </ThemeProvider>
     );
 }
 

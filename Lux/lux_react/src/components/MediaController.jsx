@@ -104,7 +104,12 @@ function MediaController({ panelSize }) {
     };
 
     return (
-        <Box>
+        <Box sx={{
+            width: '95%',
+            boxSizing: 'border-box'
+        }}
+
+        >
             <Typography
                 variant="subtitle2"
                 fontWeight={600}
