@@ -37,7 +37,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
     if (!widget) {
       console.error(`No widget found for name: ${name}`);
     }
-    let labelAndDescription =             
+    let labelAndDescription =
       <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
         <Typography variant="subtitle1" component="div">
           {widget.label}
@@ -48,8 +48,8 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'menu_int':
       case 'menu_string':
         if (widget.tool === 'image') {
-          widgetComponent = <ImagePicker json={widget} width={panelSize - 40} onChange={onChange} />;
-          height = 220;
+          widgetComponent = <ImagePicker json={widget} width={panelSize - 40} height={panelSize - 40} onChange={onChange} />;
+          height = 320;
         } else {
           widgetComponent = <JenMenu json={widget} width={panelSize - 40} onChange={onChange} />;
         }
@@ -58,7 +58,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'slider_float':
       case 'range_slider_int':
       case 'range_slider_float':
-        widgetComponent =       
+        widgetComponent =
           <Stack spacing={-0.5} direction="column" alignItems="center">
             { labelAndDescription }
             <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
@@ -67,28 +67,28 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'switch_fn':
       case 'switch_condition':
         height = 30;
-        widgetComponent =           
+        widgetComponent =
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenSwitch key={widget.name} json={widget} size = { "small" } onChange = { onChange } />
             { labelAndDescription }
           </Stack>;
       break;
       case 'direction_picker_8':
-        widgetComponent =           
+        widgetComponent =
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection8 key={widget.name} json={widget} />
             { labelAndDescription }
           </Stack>;
       break;
       case 'direction_picker_4':
-        widgetComponent =           
+        widgetComponent =
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4 key={ widget.name } json={ widget } />
             { labelAndDescription }
           </Stack>;
       break;
       case 'direction_picker_4_diagonal':
-        widgetComponent =           
+        widgetComponent =
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenDirection4Diagonal key={ widget.name } json={ widget } />
             { labelAndDescription }
@@ -96,7 +96,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
       break;
       case 'box_blur_picker':
         height = 30;
-        widgetComponent =           
+        widgetComponent =
           <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
             <JenBlurPicker key={ widget.name } json={ widget } />
             { labelAndDescription }
@@ -153,7 +153,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
           setRenderCount( renderCount + 1 );
         };
 
-        widgetComponent =       
+        widgetComponent =
           <Stack spacing={-0.5} direction="column" alignItems="center">
             { labelAndDescription }
             <Stack spacing={1} direction="column" alignItems="center">
@@ -161,7 +161,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
               <IconButton size="small" onClick={handleAddPicker}>
                 <AddIcon fontSize="small" />
               </IconButton>
-            </Stack>          
+            </Stack>
           </Stack>;
       break;
       case 'widget_switch_fn':
@@ -183,8 +183,8 @@ function WidgetGroup({ panelSize, json, onChange }) {
           case 'slider_int':
           case 'slider_float':
           case 'range_slider_int':
-          case 'range_slider_float':   
-            widgetComponent = 
+          case 'range_slider_float':
+            widgetComponent =
               <Stack spacing={-0.5} direction="column" alignItems="center">
               <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
                 <JenSwitch key={switcher.name} json={switcher} size={"small"} />
@@ -212,7 +212,7 @@ function WidgetGroup({ panelSize, json, onChange }) {
 
   return (
       json.widgets.map( renderWidget )
-  );  
+  );
 }
-  
+
 export default WidgetGroup;
