@@ -37,19 +37,8 @@ export const ImagePicker = ({ json, width, onChange }) => {
     const [dropAreaActive, setDropAreaActive] = useState(false);
     const [menuItems, setMenuItems] = useState(json.items || []);
 
-
-    // Calculate the grid columns based on width
-    const calculateColumns = () => {
-        const baseSize = 88; // Base size of each thumbnail + margins
-        return Math.max(2, Math.floor((width - 32) / baseSize));
-    };
-
-    const [columns, setColumns] = useState(calculateColumns());
-
-    // Update columns when width changes
-    useEffect(() => {
-        setColumns(calculateColumns());
-    }, [width]);
+    // Fixed grid layout with 3 columns
+    const columns = 3;
 
     useEffect(() => {
         const newItems = json?.items || [];
@@ -66,9 +55,6 @@ export const ImagePicker = ({ json, width, onChange }) => {
             setInitialLoadDone(false);
         }
     }, [json]);
-
-
-
 
     const handleFileUpload = async (file) => {
         try {
@@ -180,12 +166,12 @@ export const ImagePicker = ({ json, width, onChange }) => {
             elevation={0}
             sx={{
                 width: width || '100%',
-                marginTop: 5,
-                padding: 2,
-                paddingBottom: 3,
+                marginTop: 1,
+                padding: 1.5,
+                paddingBottom: 2,
                 paddingTop: 0,
                 overflowY: 'auto',
-                maxHeight: 190, // Reduced from 320 to take less space
+                maxHeight: 230, // Fixed height for the 3x3 grid plus header
                 borderRadius: 1.5,
                 borderColor: isDragging
                     ? theme.palette.primary.main
@@ -204,7 +190,12 @@ export const ImagePicker = ({ json, width, onChange }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 2
+                marginBottom: 1,
+                position: 'sticky',
+                top: 0,
+                backgroundColor: '#252525',
+                zIndex: 10,
+                padding: '8px 0'
             }}>
                 <SectionTitle
                     label={json?.label || 'Source Images'}
@@ -214,6 +205,7 @@ export const ImagePicker = ({ json, width, onChange }) => {
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
+                    gap: 1
                 }}>
                     {/* Add button */}
                     <Button
@@ -318,12 +310,12 @@ export const ImagePicker = ({ json, width, onChange }) => {
                     </Typography>
                 </Box>
             ) : (
-                // Grid layout
-                <Grid
-                    container
-                    spacing={1}
+                // Grid layout with fixed 3 columns
+                <Box
                     sx={{
-                        mb: 1,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: 1,
                         position: 'relative',
                         // Add overlay effect when dragging
                         '&::after': isDragging ? {
@@ -376,17 +368,15 @@ export const ImagePicker = ({ json, width, onChange }) => {
 
                     {/* Thumbnails */}
                     {availableImages.map((name) => (
-                        <Grid item key={name}>
+                        <Box key={name} sx={{ display: 'flex', justifyContent: 'center' }}>
                             <ThumbnailItem
                                 imageName={name}
                                 isSelected={name === selectedImage}
                                 onClick={handleThumbnailClick}
                             />
-                        </Grid>
+                        </Box>
                     ))}
-
-                    {/* Removed the Add button from the grid as it's now at the top */}
-                </Grid>
+                </Box>
             )}
         </Paper>
     );

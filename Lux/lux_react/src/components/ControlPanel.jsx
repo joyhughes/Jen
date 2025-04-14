@@ -71,19 +71,27 @@ function ControlPanel( { dimensions, panelSize } ) {
                 overflow: 'auto', // Enable scrolling
             }}
         >
-            <Box
-                sx={{
+            {/*<Box*/}
+            {/*    sx={{*/}
+            {/*        display: 'flex',*/}
+            {/*        flexDirection: 'column',*/}
+            {/*        width: '100%',*/}
+            {/*        height: dimensions.height,*/}
+            {/*        position: 'relative',*/}
+            {/*        zIndex: 0,*/}
+            {/*    }}*/}
+            {/*>*/}
+            <div
+                style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    width: '100%',
-                    height: dimensions.height,
-                    position: 'relative',
-                    zIndex: 0,
+                    flexWrap: 'wrap',
+                    height: dimensions.height, // Restrict height to container's height
                 }}
             >
-                <MediaController panelSize={panelSize} />
-                <Box sx={{ zIndex: 10, position: 'relative' }}>
-                    <SceneChooser width={panelSize} onChange={clearPanel} />
+                <MediaController panelSize={panelSize}/>
+                <Box sx={{zIndex: 10, position: 'relative'}}>
+                    <SceneChooser width={panelSize} onChange={clearPanel}/>
                 </Box>
                 {activeGroups.map((group) => (
                     <WidgetGroup
@@ -93,7 +101,8 @@ function ControlPanel( { dimensions, panelSize } ) {
                         onChange={handleWidgetGroupChange}
                     />
                 ))}
-            </Box>
+            {/*</Box>*/}
+            </div>
         </Paper>
     );
 }
