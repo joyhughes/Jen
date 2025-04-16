@@ -16,6 +16,7 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import {ImagePicker} from "./ImagePicker.jsx";
+import {THUMB_SIZE} from "./ThumbnailItem.jsx";
 
 function WidgetGroup({ panelSize, json, onChange }) {
   const [ renderCount, setRenderCount ] = useState(0);
@@ -48,7 +49,14 @@ function WidgetGroup({ panelSize, json, onChange }) {
       case 'menu_int':
       case 'menu_string':
         if (widget.tool === 'image') {
-          widgetComponent = <ImagePicker json={widget} width={panelSize - 40} height={panelSize - 40} onChange={onChange} />;
+          // Calculate the minimum width needed for the image picker (3 thumbnails with spacing)
+          // THUMB_SIZE * 3 for thumbnails + 24px for padding (12px on each side)
+          const imagePickerWidth = THUMB_SIZE * 3 + 9;
+          widgetComponent = <ImagePicker
+              json={widget}
+              width={imagePickerWidth}
+              onChange={onChange}
+          />;
           height = 320;
         } else {
           widgetComponent = <JenMenu json={widget} width={panelSize - 40} onChange={onChange} />;

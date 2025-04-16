@@ -3,7 +3,7 @@ import { Box, CircularProgress, Typography, Tooltip, Fade } from '@mui/material'
 import { styled, useTheme } from '@mui/material/styles';
 import { AlertTriangle, Check } from 'lucide-react';
 
-export const THUMB_SIZE = 80;
+export const THUMB_SIZE = 64;
 
 // Styled container for each thumbnail
 const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({

@@ -1,7 +1,7 @@
 import InterfaceContainer from "../components/InterfaceContainer";
 
 function Home() {
-  let panelSize = 320; // how to change panelSize?
+  let panelSize = 220; // how to change panelSize?
 
   return (
     <div

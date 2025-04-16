@@ -1,3 +1,4 @@
+// Modified version of your ImagePicker component
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     Box,
@@ -12,13 +13,13 @@ import { PlusSquare, ImagePlus, Check, Upload } from 'lucide-react';
 import ThumbnailItem, {THUMB_SIZE} from './ThumbnailItem.jsx';
 import PropTypes from "prop-types";
 
-
 function SectionTitle(props) {
     return null;
 }
 
 SectionTitle.propTypes = {label: PropTypes.any};
-export const ImagePicker = ({ json, width, onChange, height}) => {
+
+export const ImagePicker = ({ json, width}) => {
     const theme = useTheme();
     const fileInputRef = useRef(null);
     const dropAreaRef = useRef(null);
@@ -36,8 +37,11 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
 
     // Fixed grid layout with 3 columns
     const columns = 3;
-    const containerHeight = 3 * (THUMB_SIZE + 8) + 48 + 24;
 
+    // Calculate the minimum width needed for 3 thumbnails plus minimal gaps
+    // THUMB_SIZE * 3 for the thumbnails + (columns - 1) * 4px for the gaps
+    const gridMinWidth = (THUMB_SIZE * columns) + ((columns - 1) * 4);
+    const containerHeight = THUMB_SIZE * 3 + 75;
 
     useEffect(() => {
         const newItems = json?.items || [];
@@ -163,10 +167,11 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
             ref={dropAreaRef}
             elevation={0}
             sx={{
-                width: width || '100%',
-                padding: 1.5,
-                paddingBottom: 2,
-                paddingTop: 1,
+                width: width || '100%', // Use the specified width or default to 100%
+                minWidth: gridMinWidth + 4, // Add minimal padding to the minimum width
+                padding: 0.5, // Minimal padding
+                paddingBottom: 1,
+                paddingTop: 0.5,
                 height: containerHeight, // Fixed height container
                 borderRadius: 1.5,
                 borderColor: isDragging
@@ -338,10 +343,11 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                     <Box
                         sx={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: 1,
+                            gridTemplateColumns: `repeat(${columns}, ${THUMB_SIZE}px)`, // Fixed width columns
+                            gap: 0.5, // Reduced gap between items
                             position: 'relative',
-                            paddingRight: 0.5, // Small padding for scrollbar
+                            paddingRight: 0.25, // Minimal padding for scrollbar
+                            justifyContent: 'space-between', // Distribute columns evenly
                             // Add overlay effect when dragging
                             '&::after': isDragging ? {
                                 content: '""',
@@ -391,15 +397,14 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                             </Box>
                         )}
 
-                        {/* Thumbnails */}
+                        {/* Thumbnails - direct without extra Box wrapper */}
                         {availableImages.map((name) => (
-                            <Box key={name} sx={{ display: 'flex', justifyContent: 'center' }}>
-                                <ThumbnailItem
-                                    imageName={name}
-                                    isSelected={name === selectedImage}
-                                    onClick={handleThumbnailClick}
-                                />
-                            </Box>
+                            <ThumbnailItem
+                                key={name}
+                                imageName={name}
+                                isSelected={name === selectedImage}
+                                onClick={handleThumbnailClick}
+                            />
                         ))}
                     </Box>
                 )}
