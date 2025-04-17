@@ -15,11 +15,11 @@ function InterfaceContainer({ panelSize }) {
     let imagePortWidth, imagePortHeight;
     let controlPanelWidth, controlPanelHeight;
     let bufWidth, bufHeight;
-    if( window.module ) {
+
+    if (window.module) {
       bufWidth = window.module.get_buf_width();
       bufHeight = window.module.get_buf_height();
-    }
-    else {
+    } else {
       bufWidth = 512;
       bufHeight = 512;
     }
@@ -27,47 +27,48 @@ function InterfaceContainer({ panelSize }) {
 
     windowRatio = window.innerWidth / window.innerHeight;
 
-    if( windowRatio > ratio ) { // panel on right
-      availableWidth = window.innerWidth - parseInt(panelSize, 10);
-      availableHeight = window.innerHeight;
+    if (windowRatio > ratio) { // panel on right
       isRowDirection = false;
-    }
-    else { // panel on bottom
-      availableWidth = window.innerWidth;
-      //availableHeight = window.innerHeight - ( parseInt(panelSize, 10) / ratio );
-      availableHeight = window.innerHeight - ( parseInt(panelSize, 10) );
-      isRowDirection = true;
-    }
 
-    let availableWindowRatio = availableWidth / availableHeight;
-    if ( availableWindowRatio > ratio ) {
-      imagePortHeight = availableHeight; 
-      imagePortWidth = imagePortHeight * ratio;
-    } else {
-      imagePortWidth = availableWidth; 
-      imagePortHeight = imagePortWidth / ratio;
-    }
-
-    if( windowRatio > ratio ) {
-      controlPanelWidth = window.innerWidth - imagePortWidth - 1;
+      // Calculate dimensions for the control panel
+      controlPanelWidth = parseInt(panelSize, 10);
       controlPanelHeight = window.innerHeight;
-    }
-    else {
+
+      // Use all remaining width for the image
+      availableWidth = window.innerWidth - controlPanelWidth;
+      availableHeight = window.innerHeight;
+
+      // Maintain aspect ratio for the image
+      let availableWindowRatio = availableWidth / availableHeight;
+      if (availableWindowRatio > ratio) {
+        imagePortHeight = availableHeight;
+        imagePortWidth = imagePortHeight * ratio;
+      } else {
+        imagePortWidth = availableWidth;
+        imagePortHeight = imagePortWidth / ratio;
+      }
+    } else { // panel on bottom
+      isRowDirection = true;
+
+      // Calculate dimensions for the control panel
+      controlPanelHeight = parseInt(panelSize, 10);
       controlPanelWidth = window.innerWidth;
-      controlPanelHeight = window.innerHeight - imagePortHeight - 1;
+
+      // Use all remaining height for the image
+      availableWidth = window.innerWidth;
+      availableHeight = window.innerHeight - controlPanelHeight;
+
+      // Maintain aspect ratio for the image
+      let availableWindowRatio = availableWidth / availableHeight;
+      if (availableWindowRatio > ratio) {
+        imagePortHeight = availableHeight;
+        imagePortWidth = imagePortHeight * ratio;
+      } else {
+        imagePortWidth = availableWidth;
+        imagePortHeight = imagePortWidth / ratio;
+      }
     }
-    /*
-    console.log( "--------------------------------------" );
-    console.log( "resizeBox: window.innerWidth = " + window.innerWidth + " window.innerHeight = " + window.innerHeight );
-    console.log( "resizeBox: panelSize = " + panelSize );
-    console.log( "resizeBox: bufWidth = " + bufWidth + " bufHeight = " + bufHeight );
-    console.log( "resizeBox: ratio = " + ratio );
-    console.log( "resizeBox: windowRatio = " + windowRatio );
-    console.log( "resizeBox: availableWidth = " + availableWidth + " availableHeight = " + availableHeight );
-    console.log( "resizeBox: availableWindowRatio = " + availableWindowRatio );
-    console.log( "resizeBox: imagePortWidth = " + imagePortWidth + " imagePortHeight = " + imagePortHeight );
-    console.log( "resizeBox: controlPanelWidth = " + controlPanelWidth + " controlPanelHeight = " + controlPanelHeight );
-    */
+
     setImagePortDimensions({ width: imagePortWidth, height: imagePortHeight });
     setControlPanelDimensions({ width: controlPanelWidth, height: controlPanelHeight });
     setIsRowDirection(isRowDirection);

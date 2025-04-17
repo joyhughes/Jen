@@ -10,6 +10,7 @@
 #include "any_image.hpp"
 #include <iostream>
 #include <fstream>
+#include <cassert>
 
 // Inline functions only used in image.cpp
 
@@ -340,41 +341,159 @@ template< class T > const T image< T >::sample_tile ( const vec2f& v, const bool
     else return( index( vi , extend ) ); // quick and dirty sampling of nearest pixel value
 }
 
-template< class T > const T image< T >::sample ( const vec2f& v, const bool& smooth, const image_extend& extend ) const {
-    using namespace linalg;
-    std::cout << "why am I here?" << std::endl;
-    vec2f vf = fpbounds.bb_map( v, bounds );
-    vec2i vi = ( vec2i )vf;
-    if( vf.x < 0.0f ) vi.x -= 1;     // Correct for round towards zero
-    if( vf.y < 0.0f ) vi.y -= 1;
-    if( smooth ) {  // linearly interpolated between neighboring values
-        vec2f rem = vf - ( vec2f )vi;  // Get remainders for interpolation
-        return blendf( blendf ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
-                      blendf ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
- //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ), 
- //                    lerp ( index( { vi.x + 1, vi.y     }, extend ), index( vi ,               extend ), rem.x ), rem.y );
+//template< class T > const T image< T >::sample ( const vec2f& v, const bool& smooth, const image_extend& extend ) const {
+//    using namespace linalg;
+//    std::cout << "why am I here?" << std::endl;
+//    vec2f vf = fpbounds.bb_map( v, bounds );
+//    vec2i vi = ( vec2i )vf;
+//    if( vf.x < 0.0f ) vi.x -= 1;     // Correct for round towards zero
+//    if( vf.y < 0.0f ) vi.y -= 1;
+//    if( smooth ) {  // linearly interpolated between neighboring values
+//        vec2f rem = vf - ( vec2f )vi;  // Get remainders for interpolation
+//        return blendf( blendf ( index( vi ,               extend ), index( { vi.x + 1, vi.y     }, extend ), rem.x ),
+//                      blendf ( index( { vi.x, vi.y + 1}, extend ), index( { vi.x + 1, vi.y + 1 }, extend ), rem.x ), rem.y );
+// //       return lerp( lerp ( index( { vi.x + 1, vi.y + 1 }, extend ), index( { vi.x, vi.y + 1}, extend ), rem.x ),
+// //                    lerp ( index( { vi.x + 1, vi.y     }, extend ), index( vi ,               extend ), rem.x ), rem.y );
+//    }
+//    else return( index( vi, extend ) ); // quick and dirty sampling of nearest pixel value
+//}
+//
+//// Fixed point version of sample
+//
+//template< class T > const T image< T >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const  {
+//    int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
+//    int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
+//    return  blendf(
+//                blendf(
+//                    blendf( mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
+//                    blendf( mip[ mip_level + 1 ][ u_index                              + 1 ], mip[ mip_level + 1 ][ u_index                              ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
+//                    ( ( vi.y >> mip_level ) & 0xffff ) / 65536.0f
+//                ),
+//                blendf(
+//                    blendf( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
+//                    blendf( mip[ mip_level ][ l_index                          + 1 ], mip[ mip_level ][ l_index                          ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
+//                    ( ( vi.y >> ( mip_level ) ) & 0xffff ) / 65536.0f
+//                ),
+//                mip_blend / 65536.0f
+//            );
+//}
+
+
+template< class T >
+const T image< T >::sample( const vec2f& pixel_coord_f, // Input is floating-point pixel coordinate
+                            const bool& use_bilinear,    // Renamed: true=bilinear, false=nearest
+                            const image_extend& extend ) const
+{
+    if (use_bilinear) {
+        // --- BILINEAR INTERPOLATION ---
+        // Get integer and fractional parts relative to floor
+        float x_f = pixel_coord_f.x;
+        float y_f = pixel_coord_f.y;
+        int x_int = static_cast<int>(std::floor(x_f));
+        int y_int = static_cast<int>(std::floor(y_f));
+        float x_frac = x_f - x_int; // Fractional part (0.0 to <1.0)
+        float y_frac = y_f - y_int; // Fractional part (0.0 to <1.0)
+
+        // Get the 4 neighboring pixels using index(vec2i, extend)
+        // index() MUST correctly handle the 'extend' mode for coordinates outside the 0..dim-1 range.
+        T p00 = index( vec2i{x_int,   y_int},   extend );
+        T p10 = index( vec2i{x_int+1, y_int},   extend );
+        T p01 = index( vec2i{x_int,   y_int+1}, extend );
+        T p11 = index( vec2i{x_int+1, y_int+1}, extend );
+
+        // Interpolate horizontally using blendf (which should be lerp)
+        T temp1 = blendf( p00, p10, x_frac );
+        T temp2 = blendf( p01, p11, x_frac );
+
+        // Interpolate vertically using blendf
+        return blendf( temp1, temp2, y_frac );
+        // --- End Bilinear ---
     }
-    else return( index( vi, extend ) ); // quick and dirty sampling of nearest pixel value
+    else {
+        // --- NEAREST NEIGHBOR SAMPLING (Rounding) ---
+        // Round floating-point pixel coordinate to the nearest integer pixel
+        vec2i nearest_pixel_i = { static_cast<int>(std::round(pixel_coord_f.x)),
+                                  static_cast<int>(std::round(pixel_coord_f.y)) };
+
+        return index( nearest_pixel_i, extend );
+    }
 }
 
-// Fixed point version of sample
+template<class T> const T image<T>::sample(const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi) const {
+    // safety check - if we don't have enough mipmap levels, fallback to the highest available
+    assert(mip_level < mip.size() && "Mip level out of bounds for mip vector");
+    assert(mip_level < mip_dim.size() && "Mip level out of bounds for mip_dim vector");
+    if (mip_level +  1 >= mip.size()) {
+        unsigned int safe_level = mip.size() - 1;
 
-template< class T > const T image< T >::sample ( const unsigned int& mip_level, const unsigned int& mip_blend, const vec2i& vi ) const  {
-    int l_index = ( vi.x >> ( 16 + mip_level     ) ) + ( vi.y >> ( 16 + mip_level     ) ) * mip_dim[ mip_level     ].x;
-    int u_index = ( vi.x >> ( 16 + mip_level + 1 ) ) + ( vi.y >> ( 16 + mip_level + 1 ) ) * mip_dim[ mip_level + 1 ].x;
-    return  blendf(
-                blendf(
-                    blendf( mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x + 1 ], mip[ mip_level + 1 ][ u_index + mip_dim[ mip_level + 1 ].x ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-                    blendf( mip[ mip_level + 1 ][ u_index                              + 1 ], mip[ mip_level + 1 ][ u_index                              ], ( ( vi.x >> ( mip_level + 1 ) ) & 0xffff ) / 65536.0f ),
-                    ( ( vi.y >> mip_level ) & 0xffff ) / 65536.0f 
-                ),
-                blendf(
-                    blendf( mip[ mip_level ][ l_index + mip_dim[ mip_level ].x + 1 ], mip[ mip_level ][ l_index + mip_dim[ mip_level ].x ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
-                    blendf( mip[ mip_level ][ l_index                          + 1 ], mip[ mip_level ][ l_index                          ], ( ( vi.x >> mip_level ) & 0xffff ) / 65536.0f ),
-                    ( ( vi.y >> ( mip_level ) ) & 0xffff ) / 65536.0f 
-                ),
-                mip_blend / 65536.0f
-            );
+        // simple bilinear filtering at the highest mipmap level;
+        int x = vi.x >> (16 + safe_level);
+        int y = vi.y >> (16 + safe_level);
+        int width = mip_dim[safe_level].x;
+        int height = mip_dim[safe_level].y;
+
+        // clamp coordinates to valid ranges
+        x = std::min(std::max(0, x), width - 1);
+        y = std::min(std::max(0, y), height - 1);
+
+        // just return the pixel value at the clamped coordinates without interpolation between levels;
+        return mip[safe_level][y  * width + x];
+    }
+
+    // sample with boundary safeguard
+    int width_l = mip_dim[mip_level].x;
+    int height_l = mip_dim[mip_level].y;
+    int width_u = mip_dim[mip_level + 1].x;
+    int height_u = mip_dim[mip_level + 1].y;
+
+    // calculate indices with bound checking
+    int x_l = std::min(std::max(0, vi.x >> (16 + mip_level)), width_l - 1);
+    int y_l = std::min(std::max(0, vi.y >> (16 + mip_level)), height_l - 1);
+    int x_u = std::min(std::max(0, vi.x >> (16 + mip_level + 1)), width_u - 1);
+    int y_u = std::min(std::max(0, vi.y >> (16 + mip_level)), height_u - 1);
+
+    int l_index = y_l * width_l + x_l;
+    int u_index = y_u * width_u + x_u;
+
+    // safe bilinear sampling with boundary check
+    float blend_x_l = (vi.x >> (8 + mip_level) & 0xff) / 255.0f;
+    float blend_y_l = ((vi.y >> (8 + mip_level)) & 0xff) / 255.0f;
+    float blend_x_u = ((vi.x >> (8 + mip_level + 1)) & 0xff) / 255.0f;
+    float blend_y_u = ((vi.y >> (8 + mip_level + 1)) & 0xff) / 255.0f;
+
+    // calculate neighbor indices with boundary clamping
+    int l_x1 = std::min(x_l + 1, width_l - 1);
+    int l_y1 = std::min(y_l + 1, height_l - 1);
+    int u_x1 = std::min(x_u + 1, width_u - 1);
+    int u_y1 = std::min(y_u + 1, height_u - 1);
+
+
+    // Compute indices for all corners
+    int l_index00 = y_l * width_l + x_l;
+    int l_index10 = y_l * width_l + l_x1;
+    int l_index01 = l_y1 * width_l + x_l;
+    int l_index11 = l_y1 * width_l + l_x1;
+
+    int u_index00 = y_u * width_u + x_u;
+    int u_index10 = y_u * width_u + u_x1;
+    int u_index01 = u_y1 * width_u + x_u;
+    int u_index11 = u_y1 * width_u + u_x1;
+
+    // Perform bilinear filtering at both levels
+    T sample_l = blendf(
+                    blendf(mip[mip_level][l_index00], mip[mip_level][l_index10], blend_x_l),
+                    blendf(mip[mip_level][l_index01], mip[mip_level][l_index11], blend_x_l),
+                    blend_y_l
+                );
+
+    T sample_u = blendf(
+                    blendf(mip[mip_level+1][u_index00], mip[mip_level+1][u_index10], blend_x_u),
+                    blendf(mip[mip_level+1][u_index01], mip[mip_level+1][u_index11], blend_x_u),
+                    blend_y_u
+                );
+
+    // Interpolate between mipmap levels
+    return blendf(sample_l, sample_u, mip_blend / 65536.0f);
 }
 
 // Sets to background color everything outside of a centered circle
@@ -663,25 +782,51 @@ template< class T > void image< T >::splat(
         for( int level = 0; level < m.mip.size(); level++ ) {
             std::cout << "m.mip[" << level << "].size() = " << m.mip[ level ].size() << std::endl;
         }
-        // image and mask same size
+//        // image and mask same size
+//        if( m.dim == g.dim ) {
+//            for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
+//                sfix = scfix;
+//                if( ( x >= 0 ) && ( x < dim.x ) ) {
+//                    for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
+//                        if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
+//                            if( smooth ) {
+//                                std::cout << "smooth sample sfix.x = " << sfix.x << " sfix.y = " << sfix.y << std::endl;
+//                                gval = g.sample( mip_level, mip_blend, sfix );
+//                                mval = m.sample( mip_level, mip_blend, sfix );
+//                            }
+//                            else {
+//                                gval = *( g.begin() + (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) );
+//                                mval = *( m.begin() + (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) );
+//                            }
+//                            if( has_tint ) ::apply_mask( base[ y * dim.x + x ], mulc( gval, my_tint ), mval, mmode );
+//                            else ::apply_mask( base[ y * dim.x + x ], gval, mval, mmode );
+//                        }
+//                        sfix += unyfix;
+//                    }
+//                }
+//                scfix += unxfix;
+//            }
+//        }
         if( m.dim == g.dim ) {
             for( int x = sbounds.minv.x; x < sbounds.maxv.x; x++ ) {
                 sfix = scfix;
                 if( ( x >= 0 ) && ( x < dim.x ) ) {
                     for( int y = sbounds.minv.y; y < sbounds.maxv.y; y++ ) {
                         if( ( y >= 0 ) && ( y < dim.y ) && fixbounds.in_bounds( sfix ) ) {
-                            if( smooth ) { 
-                                std::cout << "smooth sample sfix.x = " << sfix.x << " sfix.y = " << sfix.y << std::endl; 
+                            if (smooth && mip_level +1 >= g.mip.size()) {
+                                std::cerr << "Error: Invalid mip_level (" << mip_level << ") calculated in splat for image with " << g.mip.size() << " levels." << std::endl;
+                                mip_level = (g.mip.size() > 1) ? g.mip.size() - 2 : 0;
+                            } else if (smooth ) {
+                                std::cout << "smooth sample sfix.x = " << sfix.x << " sfix.y = " << sfix.y << std::endl;
                                 gval = g.sample( mip_level, mip_blend, sfix );
                                 mval = m.sample( mip_level, mip_blend, sfix );
-                            }
-                            else {
+                            } else {
                                 gval = *( g.begin() + (sfix.y >> 16) * g.dim.x + (sfix.x >> 16) );
                                 mval = *( m.begin() + (sfix.y >> 16) * m.dim.x + (sfix.x >> 16) );
                             }
                             if( has_tint ) ::apply_mask( base[ y * dim.x + x ], mulc( gval, my_tint ), mval, mmode );
                             else ::apply_mask( base[ y * dim.x + x ], gval, mval, mmode );
-                        }                        
+                        }
                         sfix += unyfix;
                     }
                 }
