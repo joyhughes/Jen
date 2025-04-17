@@ -1,110 +1,221 @@
-import React, { useState, useEffect } from "react";
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-
-import WidgetGroup from './WidgetGroup';
-import MediaController from "./MediaController";
+import React, { useState, useEffect, useRef } from "react";
+import {
+    Box,
+    Typography,
+    Collapse,
+    IconButton,
+    useTheme
+} from '@mui/material';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import SceneChooser from "./SceneChooser";
+import WidgetGroup from "./WidgetGroup";
+import { THUMB_SIZE } from "./ThumbnailItem";
 
-function ControlPanel( { dimensions, panelSize } ) {
+function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) {
+    const theme = useTheme();
+    const [panelJSON, setPanelJSON] = useState([]);
+    const [activeGroups, setActiveGroups] = useState([]);
+    const [expandedGroups, setExpandedGroups] = useState({});
+    const [loading, setLoading] = useState(true);
+    const scrollContainerRef = useRef(null);
 
-    const [ panelJSON,     setPanelJSON ]   = useState( [] );
-    const [ activeGroups,  setActiveGroups] = useState( [] );
+    // Toggle group expansion
+    const toggleGroupExpansion = (groupName) => {
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupName]: !prev[groupName]
+        }));
+    };
 
+    // Handle widget group change
     const handleWidgetGroupChange = () => {
+        if (!window.module) return;
+
         const active = panelJSON.filter(group =>
             window.module.is_widget_group_active(group.name)
         );
+
+        // Initialize expanded state for new groups
+        const initialExpandedState = {};
+        active.forEach(group => {
+            if (expandedGroups[group.name] === undefined) {
+                initialExpandedState[group.name] = true;
+            } else {
+                initialExpandedState[group.name] = expandedGroups[group.name];
+            }
+        });
+
         setActiveGroups(active);
+        setExpandedGroups(prev => ({ ...prev, ...initialExpandedState }));
     };
 
+    // Load panel JSON
     const setupPanel = () => {
-        const panelJSONString = window.module.get_panel_JSON();
+        setLoading(true);
+        if (!window.module) {
+            setLoading(false);
+            return;
+        }
 
         try {
+            const panelJSONString = window.module.get_panel_JSON();
             const parsedJSON = JSON.parse(panelJSONString);
             setPanelJSON(parsedJSON);
         } catch (error) {
             console.error("Error parsing panel JSON:", error);
         }
+        setLoading(false);
     };
 
+    // Clear panel when changing scenes
     const clearPanel = () => {
         setPanelJSON([]);
         setActiveGroups([]);
-    }
+        setExpandedGroups({});
+    };
 
     useEffect(() => {
         if (window.module) {
             setupPanel();
-            window.module.set_scene_callback( setupPanel );
+            window.module.set_scene_callback(setupPanel);
         } else {
-            // Poll for the Module to be ready
             const intervalId = setInterval(() => {
                 if (window.module) {
                     setupPanel();
-                    window.module.set_scene_callback( setupPanel );
+                    window.module.set_scene_callback(setupPanel);
                     clearInterval(intervalId);
                 }
-            }, 100); // Check every 100ms
-
+            }, 100);
             return () => clearInterval(intervalId);
         }
-    }, [] );
+    }, []);
 
     useEffect(() => {
         handleWidgetGroupChange();
-    }, [ panelJSON ] );
+    }, [panelJSON]);
+
+    const getGridColumns = () => {
+        const maxColumnWidth = THUMB_SIZE * 3;
+
+        if (isNarrowHeight) {
+            return Math.max(1, Math.floor(dimensions.width / maxColumnWidth));
+        }
+        if (isSmallScreen) {
+            return Math.floor(dimensions.width / maxColumnWidth) || 1;
+        }
+        return Math.max(1, Math.floor(dimensions.width / maxColumnWidth));
+    };
+
 
     return (
-        <Paper
-            elevation={3}
+        <Box
             sx={{
-                minWidth: dimensions.width,
-                minHeight: dimensions.height,
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                flexGrow: 1,
-                alignItems: 'flex-start',
-                alignSelf: 'stretch',
-                overflow: 'auto', // Enable scrolling
+                width: dimensions.width,
+                height: dimensions.height,
+                overflow: 'auto',
+                bgcolor: '#222', // Main background
+                color: 'white',
+                '&::-webkit-scrollbar': {
+                    width: '4px',
+                    height: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                }
             }}
+            ref={scrollContainerRef}
         >
-            {/*<Box*/}
-            {/*    sx={{*/}
-            {/*        display: 'flex',*/}
-            {/*        flexDirection: 'column',*/}
-            {/*        width: '100%',*/}
-            {/*        height: dimensions.height,*/}
-            {/*        position: 'relative',*/}
-            {/*        zIndex: 0,*/}
-            {/*    }}*/}
-            {/*>*/}
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexWrap: 'wrap',
-                    height: dimensions.height, // Restrict height to container's height
-                }}
-            >
-                <MediaController panelSize={panelSize}/>
-                <Box sx={{zIndex: 10, position: 'relative'}}>
-                    <SceneChooser width={panelSize} onChange={clearPanel}/>
+            <Box sx={{ p: 1 }}>
+                <SceneChooser width={THUMB_SIZE * 3} onChange={clearPanel} />
+            </Box>
+
+            {loading ? (
+                <Typography variant="body2" sx={{ p: 2 }}>Loading controls...</Typography>
+            ) : (
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${getGridColumns()}, minmax(0, ${THUMB_SIZE * 3}px))`,
+                        gap: 1,
+                        p: 1, // Apply padding to the grid container itself
+                        gridAutoRows: 'min-content',
+                        justifyContent: 'start', // Keep grid items aligned left
+                    }}
+                >
+
+                    {activeGroups.map((group) => (
+                        <Box
+                            key={group.name}
+                            id={`group-${group.name}`}
+                            sx={{
+                                bgcolor: 'rgba(0,0,0,0.2)',
+                                borderRadius: 1,
+                                overflow: 'visible',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                position: 'relative',
+                                width: '100%',
+                                mb: 1,
+                                transition: 'margin-bottom 0.2s, height 0.2s',
+                                height: 'auto',
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    px: 1,
+                                    py: 0.5,
+                                    bgcolor: 'rgba(0,0,0,0.3)',
+                                    cursor: 'pointer',
+                                }}
+                                onClick={() => toggleGroupExpansion(group.name)}
+                            >
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                        fontWeight: 600,
+                                        fontSize: '0.8rem',
+                                        textTransform: 'uppercase'
+                                    }}
+                                >
+                                    {group.label || group.name}
+                                </Typography>
+                                <IconButton size="small" sx={{ color: 'white', p: 0.25 }}>
+                                    {expandedGroups[group.name] ? (
+                                        <ChevronUp size={14} />
+                                    ) : (
+                                        <ChevronDown size={14} />
+                                    )}
+                                </IconButton>
+                            </Box>
+
+                            <Collapse
+                                in={expandedGroups[group.name] ?? true}
+                                sx={{
+                                    p: 0,
+                                    '&.MuiCollapse-hidden': {
+                                        height: '0 !important',
+                                        minHeight: '0 !important',
+                                        padding: '0 !important',
+                                        margin: '0 !important'
+                                    }
+                                }}
+                            >
+                                <WidgetGroup
+                                    json={group}
+                                    panelSize={THUMB_SIZE * 3}
+                                    onChange={handleWidgetGroupChange}
+                                />
+                            </Collapse>
+                        </Box>
+                    ))}
                 </Box>
-                {activeGroups.map((group) => (
-                    <WidgetGroup
-                        key={group.name}
-                        panelSize={panelSize}
-                        json={group}
-                        onChange={handleWidgetGroupChange}
-                    />
-                ))}
-            {/*</Box>*/}
-            </div>
-        </Paper>
+            )}
+        </Box>
     );
+    // --- CHANGES END HERE ---
 }
 
 export default ControlPanel;

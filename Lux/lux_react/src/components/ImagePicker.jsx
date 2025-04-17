@@ -5,20 +5,14 @@ import {
     Button,
     CircularProgress,
     Paper,
-    useTheme
+    useTheme,
+    Fade
 } from '@mui/material';
-import { PlusSquare, ImagePlus, Check, Upload } from 'lucide-react';
+import { Plus, Upload, Check, ImagePlus } from 'lucide-react';
 
-import ThumbnailItem, {THUMB_SIZE} from './ThumbnailItem.jsx';
-import PropTypes from "prop-types";
+import ThumbnailItem, { THUMB_SIZE } from './ThumbnailItem.jsx';
 
-
-function SectionTitle(props) {
-    return null;
-}
-
-SectionTitle.propTypes = {label: PropTypes.any};
-export const ImagePicker = ({ json, width, onChange, height}) => {
+export const ImagePicker = ({ json }) => {
     const theme = useTheme();
     const fileInputRef = useRef(null);
     const dropAreaRef = useRef(null);
@@ -34,10 +28,8 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
     const [isDragging, setIsDragging] = useState(false);
     const [menuItems, setMenuItems] = useState(json.items || []);
 
-    // Fixed grid layout with 3 columns
-    const columns = 3;
-    const containerHeight = 3 * (THUMB_SIZE + 8) + 48 + 24;
-
+    // Calculate fixed height for 3 rows of thumbnails
+    const fixedContainerHeight = THUMB_SIZE * 3;
 
     useEffect(() => {
         const newItems = json?.items || [];
@@ -56,6 +48,8 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
     }, [json]);
 
     const handleFileUpload = async (file) => {
+        setIsUploading(true);
+
         try {
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -68,18 +62,24 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                     window.module.FS.writeFile(imagePath, uint8Array);
                     window.module.add_image_to_scene(imageName, imagePath);
                     window.module.add_to_menu('source_image_menu', imageName);
+
                     const newItems = [...menuItems];
                     if (!newItems.includes(imageName)) {
                         newItems.push(imageName);
                         setMenuItems(newItems);
                     }
+
                     window.module.update_source_name(imageName);
                     setSelectedImage(imageName);
                 }
+
+                setIsUploading(false);
             };
+
             reader.readAsArrayBuffer(file);
         } catch (error) {
             console.error('Failed to upload image:', error);
+            setIsUploading(false);
         }
     };
 
@@ -157,18 +157,21 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
         };
     }, [dropAreaRef.current]);
 
+    // Calculate total height based on header + fixed thumbnail grid
+    const headerHeight = 28; // Height of the header section
+    const totalHeight = headerHeight + fixedContainerHeight;
+
     // Main render
     return (
         <Paper
             ref={dropAreaRef}
             elevation={0}
             sx={{
-                width: width || '100%',
-                padding: 1.5,
-                paddingBottom: 2,
-                paddingTop: 1,
-                height: containerHeight, // Fixed height container
+                width: THUMB_SIZE * 3, // Exact width of 3 thumbnails
+                height: totalHeight, // Fixed height for 3 rows + header
+                padding: 0, // Remove padding
                 borderRadius: 1.5,
+                border: '1px solid',
                 borderColor: isDragging
                     ? theme.palette.primary.main
                     : theme.palette.divider,
@@ -179,78 +182,72 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                         : theme.palette.action.active,
                 },
                 position: 'relative',
-                backgroundColor: '#252525',
+                backgroundColor: theme.palette.background.paper,
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                overflow: 'hidden', // Prevent content from spilling out
             }}
         >
-            {/* Header section */}
+            {/* Header section - compact but visible */}
             <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 1,
-                padding: '8px 0',
-                flexShrink: 0 // Prevent header from shrinking
+                paddingX: 0.5, // Minimal horizontal padding
+                paddingY: 0.5, // Minimal vertical padding
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                flexShrink: 0, // Prevent header from shrinking
+                height: headerHeight + 'px', // Fixed height for header
             }}>
-                <SectionTitle
-                    label={json?.label || 'Source Images'}
-                    count={availableImages.length}
-                />
-
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1
+                    gap: 0.5 // Reduce gap
                 }}>
-                    {/* Add button */}
+                    {/* Add button - more compact */}
                     <Button
                         variant="outlined"
                         onClick={handleUploadClick}
                         disabled={isUploading}
-                        startIcon={isUploading ? <CircularProgress size={16} /> : <PlusSquare size={16} />}
+                        startIcon={isUploading ? <CircularProgress size={14} /> : <Plus size={14} />}
                         size="small"
                         sx={{
                             textTransform: 'none',
                             borderRadius: 1,
-                            height: 32,
-                            fontSize: '0.75rem',
+                            height: 24, // Smaller height
+                            fontSize: '0.7rem', // Smaller font
                             borderStyle: 'dashed',
                             flexShrink: 0,
-                            borderColor: 'rgba(255, 255, 255, 0.23)',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            '&:hover': {
-                                borderColor: 'rgba(255, 255, 255, 0.4)',
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                            }
+                            py: 0,
+                            px: 0.5, // Reduce padding
                         }}
                     >
-                        Add Image
+                        Add
                     </Button>
 
-                    {/* Selected image label */}
+                    {/* Selected image label - more compact */}
                     {selectedImage && (
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
                                 borderRadius: 1,
-                                py: 0.5,
-                                px: 1,
-                                maxWidth: '120px'
+                                py: 0.2, // Reduce padding
+                                px: 0.5, // Reduce padding
+                                maxWidth: '80px', // Reduce max width
+                                bgcolor: theme.palette.action.selected
                             }}
                         >
-                            <Check size={14} color={theme.palette.success.main} />
+                            <Check size={12} color={theme.palette.success.main} />
                             <Typography
                                 variant="caption"
                                 noWrap
                                 sx={{
-                                    ml: 0.5,
-                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    ml: 0.2, // Reduce margin
                                     fontWeight: 500,
                                     overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
+                                    textOverflow: 'ellipsis',
+                                    fontSize: '0.65rem' // Smaller font
                                 }}
                             >
                                 {selectedImage}
@@ -268,80 +265,81 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                 style={{ display: 'none' }}
             />
 
-            {/* Scrollable content container */}
+            {/* Scrollable content container - fixed height for 3 rows */}
             <Box sx={{
-                overflowY: 'auto',
+                overflowY: 'auto', // Enable vertical scrolling
                 overflowX: 'hidden',
-                flexGrow: 1, // Fill remaining height
+                height: fixedContainerHeight, // Fixed height for 3 rows of thumbnails
+                width: THUMB_SIZE * 3, // Exact width
                 // Custom scrollbar styling
                 '&::-webkit-scrollbar': {
-                    width: '4px', // Thinner scrollbar
+                    width: '3px', // Thinner scrollbar
                 },
                 '&::-webkit-scrollbar-track': {
-                    background: 'rgba(255, 255, 255, 0.05)', // Subtle track
-                    borderRadius: '2px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '1px',
                 },
                 '&::-webkit-scrollbar-thumb': {
-                    background: 'rgba(255, 255, 255, 0.2)', // Subtle thumb
-                    borderRadius: '2px',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '1px',
                     '&:hover': {
-                        background: 'rgba(255, 255, 255, 0.3)', // Slightly lighter on hover
+                        background: 'rgba(255, 255, 255, 0.3)',
                     },
                 },
             }}>
                 {availableImages.length === 0 ? (
-                    // Empty state
+                    // Empty state - sized to fit 3 rows
                     <Box
                         sx={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            py: 4,
+                            height: fixedContainerHeight,
                             backgroundColor: isDragging
                                 ? `${theme.palette.primary.main}10`
-                                : 'rgba(255, 255, 255, 0.04)', // More harmonious with dark mode
+                                : theme.palette.action.hover,
                             borderRadius: 1,
                             border: '1px dashed',
                             borderColor: isDragging
                                 ? theme.palette.primary.main
-                                : 'rgba(255, 255, 255, 0.1)', // More harmonious with dark mode
+                                : theme.palette.divider,
                             transition: 'all 0.2s ease-in-out',
-                            height: '100%'
                         }}
                     >
                         <ImagePlus
-                            size={32}
+                            size={24} // Smaller icon
                             color={isDragging
                                 ? theme.palette.primary.main
-                                : 'rgba(255, 255, 255, 0.5)' // More harmonious with dark mode
+                                : theme.palette.text.secondary
                             }
                         />
                         <Typography
                             variant="body2"
                             sx={{
-                                mt: 1.5,
+                                mt: 1,
                                 color: isDragging
                                     ? theme.palette.primary.main
-                                    : 'rgba(255, 255, 255, 0.7)', // More harmonious with dark mode
-                                fontWeight: 500
+                                    : theme.palette.text.secondary,
+                                fontWeight: 500,
+                                fontSize: '0.7rem' // Smaller font
                             }}
                         >
                             {isDragging
-                                ? "Drop to upload image"
-                                : "No images added yet"
+                                ? "Drop image"
+                                : "No images"
                             }
                         </Typography>
                     </Box>
                 ) : (
-                    // Grid layout with fixed 3 columns
+                    // Grid layout with fixed 3 columns - always showing 3 columns, vertical scroll for more rows
                     <Box
                         sx={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: 1,
+                            gridTemplateColumns: `repeat(3, ${THUMB_SIZE}px)`, // Exact size columns
+                            gap: 0, // No gap between thumbnails
                             position: 'relative',
-                            paddingRight: 0.5, // Small padding for scrollbar
+                            width: THUMB_SIZE * 3, // Ensure full width
                             // Add overlay effect when dragging
                             '&::after': isDragging ? {
                                 content: '""',
@@ -350,7 +348,7 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                backgroundColor: `${theme.palette.primary.main}20`,
+                                backgroundColor: `${theme.palette.primary.main}10`,
                                 border: '2px dashed',
                                 borderColor: theme.palette.primary.main,
                                 borderRadius: 1,
@@ -361,39 +359,48 @@ export const ImagePicker = ({ json, width, onChange, height}) => {
                     >
                         {/* Show drop indicator when dragging */}
                         {isDragging && (
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    zIndex: 20,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    backgroundColor: 'rgba(30, 30, 30, 0.9)', // More harmonious with dark mode
-                                    padding: 2,
-                                    borderRadius: 1,
-                                    boxShadow: theme.shadows[4],
-                                    pointerEvents: 'none'
-                                }}
-                            >
-                                <Upload size={24} color={theme.palette.primary.main} />
-                                <Typography
-                                    variant="body2"
-                                    fontWeight={500}
-                                    color="primary.main"
-                                    sx={{ mt: 1 }}
+                            <Fade in={isDragging}>
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 20,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backgroundColor: 'rgba(28, 28, 30, 0.85)',
+                                        padding: 1, // Reduce padding
+                                        borderRadius: 1,
+                                        boxShadow: theme.shadows[4],
+                                        pointerEvents: 'none'
+                                    }}
                                 >
-                                    Drop to upload
-                                </Typography>
-                            </Box>
+                                    <Upload size={20} color={theme.palette.primary.main} />
+                                    <Typography
+                                        variant="caption" // Smaller variant
+                                        fontWeight={500}
+                                        color="primary.main"
+                                        sx={{ mt: 0.5 }}
+                                    >
+                                        Drop to upload
+                                    </Typography>
+                                </Box>
+                            </Fade>
                         )}
 
                         {/* Thumbnails */}
                         {availableImages.map((name) => (
-                            <Box key={name} sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <Box key={name} sx={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                width: THUMB_SIZE, // Exact width
+                                height: THUMB_SIZE, // Exact height
+                                padding: 0, // No padding
+                                margin: 0, // No margin
+                            }}>
                                 <ThumbnailItem
                                     imageName={name}
                                     isSelected={name === selectedImage}

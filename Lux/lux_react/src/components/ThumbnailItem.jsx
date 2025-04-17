@@ -3,7 +3,7 @@ import { Box, CircularProgress, Typography, Tooltip, Fade } from '@mui/material'
 import { styled, useTheme } from '@mui/material/styles';
 import { AlertTriangle, Check } from 'lucide-react';
 
-export const THUMB_SIZE = 80;
+export const THUMB_SIZE = 64; // Slightly smaller for better fit
 
 // Styled container for each thumbnail
 const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({
@@ -15,16 +15,16 @@ const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({
     cursor: 'pointer',
     transition: 'all 0.2s ease-in-out',
     boxShadow: selected
-        ? `0 0 0 2px ${theme.palette.primary.main}, 0 3px 6px rgba(0,0,0,0.1)`
-        : '0 1px 3px rgba(0,0,0,0.08)',
+        ? `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[2]}`
+        : theme.shadows[1],
     '&:hover': {
         transform: 'translateY(-2px)',
         boxShadow: selected
-            ? `0 0 0 2px ${theme.palette.primary.main}, 0 6px 10px rgba(0,0,0,0.15)`
-            : '0 4px 8px rgba(0,0,0,0.12)'
+            ? `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`
+            : theme.shadows[3]
     },
     '&:active': {
-        transform: 'translateY(0)',
+        transform: 'scale(0.98)',
     }
 }));
 
@@ -37,9 +37,9 @@ const CanvasWrapper = styled(Box)({
     justifyContent: 'center',
     '& canvas': {
         display: 'block',
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
     },
 });
 
@@ -55,8 +55,9 @@ const StatusOverlay = styled(Box)(({ theme, status }) => ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: status === 'error'
-        ? 'rgba(180, 0, 0, 0.75)'
-        : 'rgba(0, 0, 0, 0.6)',
+        ? 'rgba(211, 47, 47, 0.75)'
+        : 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(2px)',
     color: 'white',
     textAlign: 'center',
     zIndex: 2,
@@ -65,18 +66,18 @@ const StatusOverlay = styled(Box)(({ theme, status }) => ({
 // Selection indicator
 const SelectionIndicator = styled(Box)(({ theme }) => ({
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 16,
-    height: 16,
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
     borderRadius: '50%',
     backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
+    color: theme.palette.common.white,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3,
-    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+    boxShadow: theme.shadows[2],
 }));
 
 // Functional component for the thumbnail item
@@ -121,12 +122,13 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
             }
 
             const imageData = new ImageData(rgbaPixelData, THUMB_SIZE, THUMB_SIZE);
-            const ctx = canvasRef.current.getContext('2d');
+            const ctx = canvasRef.current.getContext('2d', { alpha: false });
 
             if (!ctx) {
                 throw new Error("Could not get canvas context");
             }
 
+            // Create and render the bitmap
             const imageBitmap = await createImageBitmap(imageData);
             ctx.clearRect(0, 0, THUMB_SIZE, THUMB_SIZE);
             ctx.drawImage(imageBitmap, 0, 0, THUMB_SIZE, THUMB_SIZE);
@@ -141,15 +143,16 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
             if (canvasRef.current) {
                 const ctx = canvasRef.current.getContext('2d');
                 if (ctx) {
-                    ctx.fillStyle = '#500';
+                    ctx.fillStyle = theme.palette.error.dark;
                     ctx.fillRect(0, 0, THUMB_SIZE, THUMB_SIZE);
                 }
             }
         }
-    }, [imageName]);
+    }, [imageName, theme.palette.error.dark]);
 
     // Initialize thumbnail on mount or imageName change
     useEffect(() => {
+        // Small delay to avoid blocking the UI thread
         const timer = setTimeout(() => {
             drawThumbnail();
         }, 50);
@@ -167,6 +170,8 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
             open={tooltipOpen}
             onOpen={() => setTooltipOpen(true)}
             onClose={() => setTooltipOpen(false)}
+            enterDelay={700}
+            leaveDelay={100}
         >
             <ThumbnailContainer
                 selected={isSelected}
@@ -194,7 +199,7 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
                 {/* Error overlay */}
                 {status === 'error' && (
                     <StatusOverlay status="error">
-                        <AlertTriangle size={20} />
+                        <AlertTriangle size={18} />
                         <Typography variant="caption" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
                             Error
                         </Typography>

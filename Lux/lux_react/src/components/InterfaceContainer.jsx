@@ -1,147 +1,134 @@
-import {Box} from "@mui/material";
 import React, { useEffect, useState, useCallback } from "react";
+import { Box, useMediaQuery } from "@mui/material";
 import ControlPanel from "./ControlPanel";
 import ImagePort from "./ImagePort";
 
 function InterfaceContainer({ panelSize }) {
-  const [moduleReady, setModuleReady] = useState(false);
-  const [isRowDirection, setIsRowDirection] = useState(true);
-  const [imagePortDimensions, setImagePortDimensions] = useState({ width: 0, height: 0 });
-  const [controlPanelDimensions, setControlPanelDimensions] = useState({ width: 0, height: 0 });
+    const isSmallScreen = useMediaQuery('(max-width:600px)');
+    const isNarrowHeight = useMediaQuery('(max-height:500px)');
+    const [moduleReady, setModuleReady] = useState(false);
+    const [imagePortDimensions, setImagePortDimensions] = useState({ width: 0, height: 0 });
+    const [controlPanelDimensions, setControlPanelDimensions] = useState({ width: 0, height: 0 });
 
-  const resizeBox = useCallback(() => {
-    let windowRatio, isRowDirection;
-    let availableWidth, availableHeight;
-    let imagePortWidth, imagePortHeight;
-    let controlPanelWidth, controlPanelHeight;
-    let bufWidth, bufHeight;
-    if( window.module ) {
-      bufWidth = window.module.get_buf_width();
-      bufHeight = window.module.get_buf_height();
-    }
-    else {
-      bufWidth = 512;
-      bufHeight = 512;
-    }
-    let ratio = bufWidth / bufHeight;
+    const resizeBox = useCallback(() => {
+        let bufWidth = 512;
+        let bufHeight = 512;
 
-    windowRatio = window.innerWidth / window.innerHeight;
-
-    if( windowRatio > ratio ) { // panel on right
-      availableWidth = window.innerWidth - parseInt(panelSize, 10);
-      availableHeight = window.innerHeight;
-      isRowDirection = false;
-    }
-    else { // panel on bottom
-      availableWidth = window.innerWidth;
-      //availableHeight = window.innerHeight - ( parseInt(panelSize, 10) / ratio );
-      availableHeight = window.innerHeight - ( parseInt(panelSize, 10) );
-      isRowDirection = true;
-    }
-
-    let availableWindowRatio = availableWidth / availableHeight;
-    if ( availableWindowRatio > ratio ) {
-      imagePortHeight = availableHeight; 
-      imagePortWidth = imagePortHeight * ratio;
-    } else {
-      imagePortWidth = availableWidth; 
-      imagePortHeight = imagePortWidth / ratio;
-    }
-
-    if( windowRatio > ratio ) {
-      controlPanelWidth = window.innerWidth - imagePortWidth - 1;
-      controlPanelHeight = window.innerHeight;
-    }
-    else {
-      controlPanelWidth = window.innerWidth;
-      controlPanelHeight = window.innerHeight - imagePortHeight - 1;
-    }
-    /*
-    console.log( "--------------------------------------" );
-    console.log( "resizeBox: window.innerWidth = " + window.innerWidth + " window.innerHeight = " + window.innerHeight );
-    console.log( "resizeBox: panelSize = " + panelSize );
-    console.log( "resizeBox: bufWidth = " + bufWidth + " bufHeight = " + bufHeight );
-    console.log( "resizeBox: ratio = " + ratio );
-    console.log( "resizeBox: windowRatio = " + windowRatio );
-    console.log( "resizeBox: availableWidth = " + availableWidth + " availableHeight = " + availableHeight );
-    console.log( "resizeBox: availableWindowRatio = " + availableWindowRatio );
-    console.log( "resizeBox: imagePortWidth = " + imagePortWidth + " imagePortHeight = " + imagePortHeight );
-    console.log( "resizeBox: controlPanelWidth = " + controlPanelWidth + " controlPanelHeight = " + controlPanelHeight );
-    */
-    setImagePortDimensions({ width: imagePortWidth, height: imagePortHeight });
-    setControlPanelDimensions({ width: controlPanelWidth, height: controlPanelHeight });
-    setIsRowDirection(isRowDirection);
-  }, [moduleReady, panelSize]);
-
-  // Accesses C++ module to get callback for resizing image
-  useEffect(() => {
-    console.log( "InterfaceContainer useEffect" );
-    if (window.module) {
-      window.module.set_resize_callback(resizeBox);
-      setModuleReady(true);
-    } else {
-      // Poll for the Module to be ready
-      const intervalId = setInterval(() => {
         if (window.module) {
-          clearInterval(intervalId);
-          window.module.set_resize_callback(resizeBox);
-          setModuleReady(true);
+            bufWidth = window.module.get_buf_width();
+            bufHeight = window.module.get_buf_height();
         }
-      }, 100); // Check every 100ms
 
-      return () => clearInterval(intervalId);
-    }
-  }, [resizeBox]);
+        const ratio = bufWidth / bufHeight;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
 
-  // resize container
-  useEffect(() => {
-    window.addEventListener("resize", resizeBox);
-    resizeBox();
-    return () => window.removeEventListener("resize", resizeBox);
-  }, [panelSize]);
-/*
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        flexWrap: "wrap",
-        width: "100vw",
-        height: "100vh",
-        top: 0,
-        left: 0,
-        justifyContent: "center",
-      }}
-    >
-      
-      <ImagePort dimensions={imagePortDimensions} />
+        // Narrow height layout - image left, controls use remaining space
+        if (isNarrowHeight && !isSmallScreen) {
+            const imageWidth = Math.min(windowHeight * ratio, windowWidth * 0.5);
+            const imageHeight = imageWidth / ratio;
 
-      <ControlPanel dimensions={controlPanelDimensions} panelSize={panelSize} />
+            setImagePortDimensions({
+                width: imageWidth,
+                height: imageHeight
+            });
 
-    </Box>
-  );
-*/
-return (
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: isRowDirection ? "row" : "column",
-      flexWrap: "wrap",
-      width: "100vw",
-      height: "100vh",
-      top: 0,
-      left: 0,
-      justifyContent: "center",
-    }}
-  >
-    
-    <ImagePort dimensions={imagePortDimensions} />
+            setControlPanelDimensions({
+                width: windowWidth - imageWidth,
+                height: windowHeight
+            });
+        }
+        // Small screen (mobile) - image on top, controls below
+        else if (isSmallScreen) {
+            const imageWidth = windowWidth;
+            const imageHeight = Math.min(imageWidth / ratio, windowHeight * 0.5);
 
-    <ControlPanel dimensions={controlPanelDimensions} panelSize={panelSize} />
+            setImagePortDimensions({
+                width: imageWidth,
+                height: imageHeight
+            });
 
-  </Box>
-);
+            setControlPanelDimensions({
+                width: windowWidth,
+                height: windowHeight - imageHeight
+            });
+        }
+        // Normal desktop layout - image left, controls right
+        else {
+            const controlWidth = Math.min(430, windowWidth * 0.4);
+            const availableWidth = windowWidth - controlWidth;
+            const imageHeight = Math.min(availableWidth / ratio, windowHeight) + 120;
+            const imageWidth = imageHeight * ratio;
 
+            setImagePortDimensions({
+                width: imageWidth,
+                height: imageHeight
+            });
+
+            setControlPanelDimensions({
+                width: windowWidth - imageWidth,
+                height: windowHeight
+            });
+        }
+    }, [isSmallScreen, isNarrowHeight]);
+
+    // Set up resize callback
+    useEffect(() => {
+        if (window.module) {
+            window.module.set_resize_callback(resizeBox);
+            setModuleReady(true);
+        } else {
+            const intervalId = setInterval(() => {
+                if (window.module) {
+                    clearInterval(intervalId);
+                    window.module.set_resize_callback(resizeBox);
+                    setModuleReady(true);
+                }
+            }, 100);
+            return () => clearInterval(intervalId);
+        }
+    }, [resizeBox]);
+
+    // Handle window resize
+    useEffect(() => {
+        window.addEventListener("resize", resizeBox);
+        resizeBox();
+        return () => window.removeEventListener("resize", resizeBox);
+    }, [resizeBox]);
+
+    return (
+        <Box
+            sx={{
+                display: "flex",
+                flexDirection: isSmallScreen ? "column" : "row",
+                width: "100vw",
+                height: "100vh",
+                overflow: "hidden",
+                justifyContent: "flex-start"
+            }}
+        >
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: isSmallScreen ? '100%' : imagePortDimensions.width,
+                height: isSmallScreen ? 'auto' : '100%',
+                backgroundColor: '#222',
+            }}>
+                <ImagePort
+                    dimensions={imagePortDimensions}
+                    moduleReady={moduleReady}
+                />
+            </Box>
+
+            <ControlPanel
+                dimensions={controlPanelDimensions}
+                panelSize={panelSize}
+                isSmallScreen={isSmallScreen}
+                isNarrowHeight={isNarrowHeight}
+            />
+        </Box>
+    );
 }
 
 export default InterfaceContainer;

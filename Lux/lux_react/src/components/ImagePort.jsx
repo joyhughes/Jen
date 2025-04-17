@@ -3,12 +3,11 @@ import {
     Box,
     Paper,
     Typography,
-    CircularProgress,
     Fade,
     IconButton,
     Tooltip,
-    Zoom,
-    useTheme
+    useTheme,
+    Zoom
 } from '@mui/material';
 import {
     Maximize2,
@@ -17,10 +16,12 @@ import {
     RotateCw,
     Download,
     RefreshCw,
-    Info
+    Info,
+    X
 } from 'lucide-react';
 
 import ImagePortCanvas from './ImagePortCanvas.jsx';
+import MediaController from "./MediaController.jsx";
 
 function ImagePort({ dimensions, moduleReady }) {
     const theme = useTheme();
@@ -34,8 +35,8 @@ function ImagePort({ dimensions, moduleReady }) {
         fps: '60',
         frameCount: '0'
     });
+    const [showMediaControls, setShowMediaControls] = useState(false);
 
-    // Track mouse movement to show/hide controls
     const mouseTimerRef = useRef(null);
 
     // Update image information periodically if functions are available
@@ -46,7 +47,6 @@ function ImagePort({ dimensions, moduleReady }) {
             const info = {};
 
             try {
-                // These are hypothetical functions your module might provide
                 if (typeof window.module.get_buf_width === 'function' &&
                     typeof window.module.get_buf_height === 'function') {
                     const width = window.module.get_buf_width();
@@ -61,14 +61,12 @@ function ImagePort({ dimensions, moduleReady }) {
                 if (typeof window.module.get_fps === 'function') {
                     info.fps = window.module.get_fps().toFixed(1);
                 } else {
-                    // Fallback if get_fps doesn't exist
                     info.fps = '60.0';
                 }
 
                 if (typeof window.module.get_frame_count === 'function') {
                     info.frameCount = window.module.get_frame_count().toString();
                 } else {
-                    // Fallback if get_frame_count doesn't exist
                     const frameCountElement = document.querySelector('.frame-count');
                     if (frameCountElement) {
                         info.frameCount = frameCountElement.textContent.trim();
@@ -87,6 +85,27 @@ function ImagePort({ dimensions, moduleReady }) {
 
         return () => clearInterval(intervalId);
     }, [moduleReady]);
+
+
+    const handleMouseEnter = () => {
+        setShowMediaControls(true);
+    };
+
+
+    const handleMouseLeave = () => {
+        if (!mouseTimerRef.current) {
+            setShowMediaControls(false);
+        }
+    };
+
+
+    useEffect(() => {
+        return () => {
+            if (mouseTimerRef.current) {
+                clearTimeout(mouseTimerRef.current);
+            }
+        };
+    }, []);
 
     // Handle mouse movement to show/hide controls
     const handleMouseMove = () => {
@@ -156,7 +175,7 @@ function ImagePort({ dimensions, moduleReady }) {
         };
     }, []);
 
-    // Zoom in/out functions
+    // Image manipulation functions
     const handleZoomIn = () => {
         if (window.module && typeof window.module.zoom_in === 'function') {
             window.module.zoom_in();
@@ -169,21 +188,18 @@ function ImagePort({ dimensions, moduleReady }) {
         }
     };
 
-    // Rotation function
     const handleRotate = () => {
         if (window.module && typeof window.module.rotate_view === 'function') {
             window.module.rotate_view();
         }
     };
 
-    // Screenshot/export function
     const handleScreenshot = () => {
         if (window.module && typeof window.module.take_screenshot === 'function') {
             window.module.take_screenshot();
         }
     };
 
-    // Reset view function
     const handleResetView = () => {
         if (window.module && typeof window.module.reset_view === 'function') {
             window.module.reset_view();
@@ -195,6 +211,8 @@ function ImagePort({ dimensions, moduleReady }) {
         setShowInfo(!showInfo);
     };
 
+
+
     return (
         <Paper
             ref={imagePortRef}
@@ -202,19 +220,17 @@ function ImagePort({ dimensions, moduleReady }) {
             sx={{
                 width: dimensions.width,
                 height: dimensions.height,
-                borderRadius: 2,
+                borderRadius: isFullscreen ? 0 : 2,
                 overflow: 'hidden',
                 position: 'relative',
-                boxShadow: theme.shadows[4],
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                backgroundColor: 'rgba(18, 18, 18, 0.8)',
+                boxShadow: isFullscreen ? 'none' : theme.shadows[8],
                 transition: 'all 0.3s ease-in-out',
-                '&:hover': {
-                    boxShadow: theme.shadows[8]
-                }
             }}
             onMouseMove={handleMouseMove}
-        >
-            {/* Use your existing ImagePortCanvas component */}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}>
+            {/* Canvas Container */}
             <Box
                 sx={{
                     width: '100%',
@@ -222,16 +238,19 @@ function ImagePort({ dimensions, moduleReady }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    overflow: 'hidden'
-                }}
-            >
-                <ImagePortCanvas
-                    width={dimensions.width}
-                    height={dimensions.height}
-                />
+                    overflow: 'hidden',
+                }}>
+                <ImagePortCanvas width={dimensions.width} height={dimensions.height} />
             </Box>
 
-            {/* Floating controls */}
+            {/* Floating Media Controls - appears at bottom when hovering */}
+            <Fade in={showMediaControls}>
+                <Box>
+                    <MediaController isOverlay={true} />
+                </Box>
+            </Fade>
+
+            {/* Floating Controls - existing side controls */}
             <Fade in={showControls}>
                 <Box
                     sx={{
@@ -241,78 +260,95 @@ function ImagePort({ dimensions, moduleReady }) {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1,
-                        zIndex: 10
-                    }}
-                >
+                        zIndex: 100,
+                    }}>
                     <Paper
-                        elevation={3}
+                        elevation={4}
                         sx={{
-                            borderRadius: 5,
+                            borderRadius: '12px',
                             overflow: 'hidden',
-                            backgroundColor: 'rgba(33, 33, 33, 0.75)',
+                            backgroundColor: 'rgba(28, 28, 30, 0.85)',
                             backdropFilter: 'blur(8px)',
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', flexDirection: 'column', p: 0.5 }}>
+                        }}>
+                        <Box sx={{display: 'flex', flexDirection: 'column', p: 0.75}}>
                             <Tooltip title="Toggle fullscreen" placement="left" arrow>
                                 <IconButton
                                     onClick={toggleFullscreen}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <Maximize2 size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    {isFullscreen ? <X size={16} /> : <Maximize2 size={16} />}
                                 </IconButton>
                             </Tooltip>
 
                             <Tooltip title="Zoom in" placement="left" arrow>
                                 <IconButton
                                     onClick={handleZoomIn}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <ZoomIn size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    <ZoomIn size={16} />
                                 </IconButton>
                             </Tooltip>
 
                             <Tooltip title="Zoom out" placement="left" arrow>
                                 <IconButton
                                     onClick={handleZoomOut}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <ZoomOut size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    <ZoomOut size={16} />
                                 </IconButton>
                             </Tooltip>
 
                             <Tooltip title="Rotate view" placement="left" arrow>
                                 <IconButton
                                     onClick={handleRotate}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <RotateCw size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    <RotateCw size={16} />
                                 </IconButton>
                             </Tooltip>
 
                             <Tooltip title="Reset view" placement="left" arrow>
                                 <IconButton
                                     onClick={handleResetView}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <RefreshCw size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    <RefreshCw size={16} />
                                 </IconButton>
                             </Tooltip>
 
-                            <Box sx={{ mx: 0.5, my: 0.25, height: '1px', bgcolor: 'rgba(255, 255, 255, 0.2)' }} />
+                            <Box
+                                sx={{
+                                    mx: 0.5,
+                                    my: 0.25,
+                                    height: '1px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                                }}
+                            />
 
                             <Tooltip title="Take screenshot" placement="left" arrow>
                                 <IconButton
                                     onClick={handleScreenshot}
-                                    sx={{ color: 'white', '&:hover': { color: theme.palette.primary.light } }}
-                                    size="small"
-                                >
-                                    <Download size={18} />
+                                    sx={{
+                                        'color': 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
+                                    }}
+                                    size="small">
+                                    <Download size={16} />
                                 </IconButton>
                             </Tooltip>
 
@@ -320,12 +356,11 @@ function ImagePort({ dimensions, moduleReady }) {
                                 <IconButton
                                     onClick={toggleInfo}
                                     sx={{
-                                        color: showInfo ? theme.palette.primary.main : 'white',
-                                        '&:hover': { color: theme.palette.primary.light }
+                                        'color': showInfo ? theme.palette.primary.main : 'white',
+                                        '&:hover': {color: theme.palette.primary.light},
                                     }}
-                                    size="small"
-                                >
-                                    <Info size={18} />
+                                    size="small">
+                                    <Info size={16} />
                                 </IconButton>
                             </Tooltip>
                         </Box>
@@ -336,57 +371,61 @@ function ImagePort({ dimensions, moduleReady }) {
             {/* Info panel */}
             <Zoom in={showInfo}>
                 <Paper
-                    elevation={3}
+                    elevation={4}
                     sx={{
                         position: 'absolute',
                         bottom: 16,
                         left: 16,
-                        borderRadius: 1,
-                        p: 1.5,
-                        backgroundColor: 'rgba(33, 33, 33, 0.75)',
-                        backdropFilter: 'blur(8px)',
+                        borderRadius: 1.5,
+                        p: 1.75,
+                        backgroundColor: 'rgba(28, 28, 30, 0.85)',
+                        backdropFilter: 'blur(10px)',
                         color: 'white',
                         zIndex: 10,
-                        maxWidth: 200
+                        maxWidth: 200,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
                     }}
                 >
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: theme.palette.primary.light }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: theme.palette.primary.light, fontWeight: 600 }}>
                         Render Information
                     </Typography>
 
-                    <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px' }}>
                         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             Resolution:
                         </Typography>
-                        <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
                             {imageInfo.resolution}
                         </Typography>
 
                         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             Render time:
                         </Typography>
-                        <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
                             {imageInfo.renderTime}
                         </Typography>
 
                         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             FPS:
                         </Typography>
-                        <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
                             {imageInfo.fps}
                         </Typography>
 
                         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             Frame:
                         </Typography>
-                        <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
                             {imageInfo.frameCount}
                         </Typography>
                     </Box>
                 </Paper>
+
+
             </Zoom>
         </Paper>
-    );
+    )
+
 }
 
 export default ImagePort;
