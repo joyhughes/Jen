@@ -1,7 +1,8 @@
 import InterfaceContainer from "../components/InterfaceContainer";
+import {THUMB_SIZE} from "../components/ThumbnailItem.jsx";
 
 function Home() {
-  let panelSize = 220; // how to change panelSize?
+  let panelSize = THUMB_SIZE * 3; // how to change panelSize?
 
   return (
     <div

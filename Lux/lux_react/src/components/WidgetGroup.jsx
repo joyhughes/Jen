@@ -51,10 +51,9 @@ function WidgetGroup({ panelSize, json, onChange }) {
         if (widget.tool === 'image') {
           // Calculate the minimum width needed for the image picker (3 thumbnails with spacing)
           // THUMB_SIZE * 3 for thumbnails + 24px for padding (12px on each side)
-          const imagePickerWidth = THUMB_SIZE * 3 + 9;
           widgetComponent = <ImagePicker
               json={widget}
-              width={imagePickerWidth}
+              width={panelSize}
               onChange={onChange}
           />;
           height = 320;

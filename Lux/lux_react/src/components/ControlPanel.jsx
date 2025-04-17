@@ -60,7 +60,7 @@ function ControlPanel( { dimensions, panelSize } ) {
         <Paper
             elevation={3}
             sx={{
-                minWidth: dimensions.width,
+                minWidth: panelSize,
                 minHeight: dimensions.height,
                 display: 'flex',
                 flexDirection: 'row',

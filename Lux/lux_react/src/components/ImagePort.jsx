@@ -210,7 +210,9 @@ function ImagePort({ dimensions, moduleReady }) {
                 transition: 'all 0.3s ease-in-out',
                 '&:hover': {
                     boxShadow: theme.shadows[8]
-                }
+                },
+                margin: 0,
+                padding: 0,
             }}
             onMouseMove={handleMouseMove}
         >
@@ -222,7 +224,9 @@ function ImagePort({ dimensions, moduleReady }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    margin: 0,
+                    padding: 0,
                 }}
             >
                 <ImagePortCanvas
