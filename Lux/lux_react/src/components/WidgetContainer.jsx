@@ -5,19 +5,21 @@ import IconButton from '@mui/material/IconButton';
 import InfoIcon from '@mui/icons-material/Info';
 import { useTheme } from '@mui/material/styles';
 
-const WidgetContainer = ({ description = '', panelSize, height = 60, children }) => {
+const WidgetContainer = ({ description = '', panelSize, height = 60, children, sx = {} }) => {
     const theme = useTheme();
 
     return (
-        <Paper 
-            elevation={3} 
-            sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                width: panelSize, 
+        <Paper
+            elevation={3}
+            sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: panelSize,
                 height: height,
-                position: 'relative'
+                position: 'relative',
+                marginBottom: 2,
+                ...sx
             }}
         >
             {description && (

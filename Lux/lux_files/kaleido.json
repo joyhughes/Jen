@@ -505,7 +505,11 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "source_image_menu", "scope_menu", "funky_menu" ]
+            "widgets": [ "scope_menu", "funky_menu" ]
+        },
+        {
+            "name": "source_image_group",
+            "widgets": [ "source_image_menu" ]
         },
         {
             "name": "none_group",
