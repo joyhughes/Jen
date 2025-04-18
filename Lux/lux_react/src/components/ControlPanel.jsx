@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import {
     Box,
     Typography,
-    Collapse,
     IconButton,
     useTheme
 } from '@mui/material';
@@ -94,7 +93,30 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
         handleWidgetGroupChange();
     }, [panelJSON]);
 
-    // Render widget groups in a single container
+    // Get layout style based on device and screen dimensions
+    const getLayoutStyle = () => {
+        if (isNarrowHeight && !isSmallScreen) {
+            // Horizontal layout for narrow height
+            return {
+                display: 'flex',
+                flexWrap: 'wrap',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 1
+            };
+        }
+
+        // Default vertical layout with auto-wrapping columns
+        return {
+            display: 'flex',
+            flexWrap: 'wrap',
+            flexDirection: 'column',
+            alignContent: 'flex-start',
+            height: dimensions.height,
+            gap: 1
+        };
+    };
+
     return (
         <Box
             sx={{
@@ -120,7 +142,10 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
             {loading ? (
                 <Typography variant="body2" sx={{ p: 2 }}>Loading controls...</Typography>
             ) : (
-                <Box sx={{ p: 1 }}>
+                <Box sx={{
+                    ...getLayoutStyle(),
+                    p: 1
+                }}>
                     {activeGroups.map((group) => (
                         <Box
                             key={group.name}
@@ -129,12 +154,9 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
                                 bgcolor: 'rgba(0,0,0,0.2)',
                                 borderRadius: 1,
                                 overflow: 'hidden',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                position: 'relative',
                                 width: THUMB_SIZE * 3,
-                                mb: 1,
-                                minHeight: expandedGroups[group.name] ? 'auto' : 'unset',
+                                mb: 0,
+                                flexShrink: 0
                             }}
                         >
                             <Box
@@ -168,16 +190,15 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
                                 </IconButton>
                             </Box>
 
-                            <Collapse
-                                in={expandedGroups[group.name] ?? true}
-                                timeout="auto"
-                            >
-                                <WidgetGroup
-                                    json={group}
-                                    panelSize={panelSize}
-                                    onChange={handleWidgetGroupChange}
-                                />
-                            </Collapse>
+                            {expandedGroups[group.name] !== false && (
+                                <Box>
+                                    <WidgetGroup
+                                        json={group}
+                                        panelSize={panelSize}
+                                        onChange={handleWidgetGroupChange}
+                                    />
+                                </Box>
+                            )}
                         </Box>
                     ))}
                 </Box>

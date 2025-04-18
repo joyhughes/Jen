@@ -52,7 +52,6 @@ function WidgetGroup({ json, panelSize, onChange }) {
             case 'menu_string':
                 return (
                     <Box key={widget.name} sx={{ mb: 1 }}>
-                        {labelElement}
                         <ImagePicker
                             json={widget}
                             panelSize={THUMB_SIZE * 3}
