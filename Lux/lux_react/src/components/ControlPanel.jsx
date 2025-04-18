@@ -94,26 +94,14 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
         handleWidgetGroupChange();
     }, [panelJSON]);
 
-    const getGridColumns = () => {
-        const maxColumnWidth = THUMB_SIZE * 3;
-
-        if (isNarrowHeight) {
-            return Math.max(1, Math.floor(dimensions.width / maxColumnWidth));
-        }
-        if (isSmallScreen) {
-            return Math.floor(dimensions.width / maxColumnWidth) || 1;
-        }
-        return Math.max(1, Math.floor(dimensions.width / maxColumnWidth));
-    };
-
-
+    // Render widget groups in a single container
     return (
         <Box
             sx={{
                 width: dimensions.width,
                 height: dimensions.height,
                 overflow: 'auto',
-                bgcolor: '#222', // Main background
+                bgcolor: '#222',
                 color: 'white',
                 '&::-webkit-scrollbar': {
                     width: '4px',
@@ -132,17 +120,7 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
             {loading ? (
                 <Typography variant="body2" sx={{ p: 2 }}>Loading controls...</Typography>
             ) : (
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${getGridColumns()}, minmax(0, ${THUMB_SIZE * 3}px))`,
-                        gap: 1,
-                        p: 1, // Apply padding to the grid container itself
-                        gridAutoRows: 'min-content',
-                        justifyContent: 'start', // Keep grid items aligned left
-                    }}
-                >
-
+                <Box sx={{ p: 1 }}>
                     {activeGroups.map((group) => (
                         <Box
                             key={group.name}
@@ -150,14 +128,13 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
                             sx={{
                                 bgcolor: 'rgba(0,0,0,0.2)',
                                 borderRadius: 1,
-                                overflow: 'visible',
+                                overflow: 'hidden',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 position: 'relative',
-                                width: '100%',
+                                width: THUMB_SIZE * 3,
                                 mb: 1,
-                                transition: 'margin-bottom 0.2s, height 0.2s',
-                                height: 'auto',
+                                minHeight: expandedGroups[group.name] ? 'auto' : 'unset',
                             }}
                         >
                             <Box
@@ -193,19 +170,11 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
 
                             <Collapse
                                 in={expandedGroups[group.name] ?? true}
-                                sx={{
-                                    p: 0,
-                                    '&.MuiCollapse-hidden': {
-                                        height: '0 !important',
-                                        minHeight: '0 !important',
-                                        padding: '0 !important',
-                                        margin: '0 !important'
-                                    }
-                                }}
+                                timeout="auto"
                             >
                                 <WidgetGroup
                                     json={group}
-                                    panelSize={THUMB_SIZE * 3}
+                                    panelSize={panelSize}
                                     onChange={handleWidgetGroupChange}
                                 />
                             </Collapse>
@@ -215,7 +184,6 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
             )}
         </Box>
     );
-    // --- CHANGES END HERE ---
 }
 
 export default ControlPanel;

@@ -45,7 +45,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
             case 'menu_int':
                 return (
                     <Box key={widget.name} sx={{ mb: 1 }}>
-                        <JenMenu json={widget} onChange={onChange} width={panelSize - 8} />
+                        <JenMenu json={widget} onChange={onChange} width={panelSize - 8}/>
                     </Box>
                 );
 
@@ -245,7 +245,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
     };
 
     return (
-        <Box sx={{ px: 0.5, pt: 0.5, pb: 1 }}>
+        <Box sx={{ px: 0.5, pt: 0.5, pb: 1}}>
             {json.widgets.map(renderWidget)}
         </Box>
     );

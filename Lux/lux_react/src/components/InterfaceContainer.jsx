@@ -57,7 +57,7 @@ function InterfaceContainer({ panelSize }) {
         else {
             const controlWidth = Math.min(430, windowWidth * 0.4);
             const availableWidth = windowWidth - controlWidth;
-            const imageHeight = Math.min(availableWidth / ratio, windowHeight) + 120;
+            const imageHeight = Math.min(availableWidth / ratio, windowHeight);
             const imageWidth = imageHeight * ratio;
 
             setImagePortDimensions({
