@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import WidgetGroup from '../WidgetGroup';
 import MasonryImagePicker from '../MasonryImagePicker';
 
@@ -13,6 +15,56 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
         selectedGroup: null
     });
 
+    const containerRef = useRef(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const theme = useTheme();
+    const isWideLayout = useMediaQuery(theme.breakpoints.up('md'));
+    const controlsRef = useRef(null);
+    const [controlsWidth, setControlsWidth] = useState(0);
+
+    // Monitor the overall container width
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                setContainerWidth(entry.contentRect.width);
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => {
+            if (containerRef.current) {
+                resizeObserver.unobserve(containerRef.current);
+            }
+        };
+    }, []);
+
+    // Monitor the controls area width separately
+    useEffect(() => {
+        if (!controlsRef.current) return;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                setControlsWidth(entry.contentRect.width);
+            }
+        });
+
+        resizeObserver.observe(controlsRef.current);
+
+        return () => {
+            if (controlsRef.current) {
+                resizeObserver.unobserve(controlsRef.current);
+            }
+        };
+    }, []);
+
+    // Log panel size and measured width for debugging
+    useEffect(() => {
+        console.log(`SourceImagePane: Panel size ${panelSize}px, Container width ${containerWidth}px, Controls width ${controlsWidth}px, Wide layout: ${isWideLayout}`);
+    }, [panelSize, containerWidth, controlsWidth, isWideLayout]);
+
     // Look for any source-related group name
     const sourceImageGroup = activeGroups.find(group =>
         group.name === 'SOURCE_IMAGE_GROUP' ||
@@ -22,12 +74,9 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
         group.name.toLowerCase().includes('image')
     );
 
-    // Collect debug information on initial render
+    // Collect debug information
     useEffect(() => {
         if (window.module) {
-            // Log all groups for debugging
-            console.log('All active groups:', activeGroups);
-
             // Extract useful debug info
             const groupInfo = activeGroups.map(group => ({
                 name: group.name,
@@ -100,73 +149,89 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
         widgets: nonImagePickerWidgets
     } : null;
 
-    // Log extra debugging information
-    useEffect(() => {
-        if (imagePickerJson) {
-            console.log('Image Picker JSON found:', imagePickerJson);
-        } else {
-            console.log('No Image Picker JSON found');
-            console.log('Debug Info:', debugInfo);
-        }
-    }, [imagePickerJson, debugInfo]);
+    // Dynamically determine the best layout based on container width
+    // For wider screens, prefer side-by-side layout
+    // Calculate the split ratio based on content
+    const shouldUseSideBySide = isWideLayout && containerWidth > 600;
+
+    // Calculate the optimal split ratio based on content
+    // Give more space to whichever side has more widgets
+    const getLayoutRatio = () => {
+        // Default to 50/50 split
+        if (!customSourceImageGroup || !imagePickerJson) return 0.5;
+
+        // Count widgets to determine space distribution
+        const widgetCount = customSourceImageGroup.widgets.length;
+        const imageCount = imagePickerJson.items?.length || 0;
+
+        // Adjust ratio based on content (min 0.35, max 0.65)
+        const ratio = (widgetCount > imageCount * 2) ? 0.65 :
+            (imageCount > widgetCount * 2) ? 0.35 : 0.5;
+
+        return ratio;
+    };
+
+    const controlsRatio = getLayoutRatio();
+    const imageRatio = 1 - controlsRatio;
 
     return (
         <Box
+            ref={containerRef}
             sx={{
                 display: 'flex',
-                flexDirection: 'column',
+                flexDirection: shouldUseSideBySide ? 'row' : 'column',
                 padding: 1,
                 height: '100%',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                gap: 2,
+                width: '100%'
             }}
         >
-            {/* Debug Information */}
-            {(!sourceImageGroup || !imagePickerJson) && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                    <Typography variant="body2">Debug Info:</Typography>
-                    <Typography variant="caption" component="div">
-                        Groups found: {debugInfo.groups.length}<br />
-                        Image widgets found: {debugInfo.imageWidgets.length}<br />
-                        Selected group: {debugInfo.selectedGroup || 'None'}
-                    </Typography>
-                </Alert>
-            )}
-
-            {/* Show error if no image picker is found but source image group exists */}
-            {sourceImageGroup && !imagePickerJson && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                    Source image group found, but no image picker widget detected.
-                </Alert>
-            )}
-
-            {/* MasonryImagePicker component */}
+            {/* Image Picker Section */}
             {imagePickerJson && (
-                <MasonryImagePicker
-                    json={imagePickerJson}
-                    width={panelSize - 16} // Account for padding
-                    onChange={onWidgetGroupChange}
-                />
+                <Box
+                    sx={{
+                        flex: shouldUseSideBySide ? `0 0 ${imageRatio * 100}%` : '1 0 auto',
+                        width: shouldUseSideBySide ? `${imageRatio * 100}%` : '100%',
+                    }}
+                >
+                    <MasonryImagePicker
+                        json={imagePickerJson}
+                        width="100%"
+                        onChange={onWidgetGroupChange}
+                    />
+                </Box>
             )}
 
-            {/* Effect list section */}
+            {/* Effect Controls Section */}
             {customSourceImageGroup && customSourceImageGroup.widgets.length > 0 && (
-                <>
-                    <Divider sx={{ my: 2 }} />
-
+                <Box
+                    ref={controlsRef}
+                    sx={{
+                        flex: shouldUseSideBySide ? `0 0 ${controlsRatio * 100}%` : '1 0 auto',
+                        width: shouldUseSideBySide ? `${controlsRatio * 100}%` : '100%',
+                    }}
+                >
                     <Typography variant="subtitle1" sx={{ mb: 1 }}>
                         Effect Controls
                     </Typography>
 
                     <WidgetGroup
                         key={customSourceImageGroup.name}
-                        panelSize={panelSize}
+                        panelSize={controlsWidth || (shouldUseSideBySide ? containerWidth * controlsRatio : containerWidth)}
                         json={customSourceImageGroup}
                         onChange={onWidgetGroupChange}
                     />
-                </>
+                </Box>
             )}
 
-            {/* Show when no source image group is found */}
+            {/* Show errors and empty states */}
+            {sourceImageGroup && !imagePickerJson && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                    Source image group found, but no image picker widget detected.
+                </Alert>
+            )}
+
             {!sourceImageGroup && (
                 <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                     <Typography>

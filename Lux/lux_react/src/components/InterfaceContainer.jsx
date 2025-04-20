@@ -1,5 +1,5 @@
 import {Box} from "@mui/material";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import ControlPanel from "./ControlPanel";
 import ImagePort from "./ImagePort";
 
@@ -9,12 +9,25 @@ function InterfaceContainer({ panelSize }) {
   const [imagePortDimensions, setImagePortDimensions] = useState({ width: 0, height: 0 });
   const [controlPanelDimensions, setControlPanelDimensions] = useState({ width: 0, height: 0 });
   const [activePane, setActivePane] = useState("home");
+  const containerRef = useRef(null);
 
-  // Calculate maximum panel width to prevent it from taking over the screen
-  const getMaxPanelWidth = () => {
-    // Limit control panel to at most 30% of screen width on desktop
-    // and 100% when below the image (on mobile)
-    return isRowDirection ? window.innerWidth : Math.min(panelSize, window.innerWidth * 0.3);
+  // Calculate optimal panel width based on available space
+  const getOptimalPanelWidth = (totalWidth, imageWidth) => {
+    // Calculate available space after accounting for the image
+    const availableSpace = totalWidth - imageWidth;
+
+    // Use as much space as available, with a minimum width of panelSize
+    // But ensure we don't go below panelSize or a reasonable minimum (300px)
+    const minPanelWidth = Math.max(panelSize, 300);
+
+    // If we have plenty of space, use it (up to 50% of screen width)
+    if (availableSpace > minPanelWidth) {
+      // Use available space, but cap at 50% of total width to prevent control panel domination
+      return Math.min(availableSpace, totalWidth * 0.5);
+    }
+
+    // Otherwise use the minimum panel width, but don't exceed 30% of screen in cramped situations
+    return Math.min(minPanelWidth, totalWidth * 0.3);
   };
 
   const resizeBox = useCallback(() => {
@@ -39,27 +52,30 @@ function InterfaceContainer({ panelSize }) {
     if (windowRatio > 1.2) { // Wider screens - panel on right
       isRowDirection = false;
 
-      // Limit control panel width
-      const maxPanelWidth = Math.min(panelSize, window.innerWidth * 0.3);
-
-      // Calculate available space for image port
-      availableWidth = window.innerWidth - maxPanelWidth;
+      // Step 1: First calculate image dimensions based on available height
       availableHeight = window.innerHeight;
 
-      // Calculate image port dimensions to maintain aspect ratio
-      if ((availableWidth / availableHeight) > ratio) {
-        // Height constrained
-        imagePortHeight = availableHeight;
-        imagePortWidth = imagePortHeight * ratio;
-      } else {
-        // Width constrained
-        imagePortWidth = availableWidth;
+      // Calculate image dimensions to maintain aspect ratio, prioritizing height first
+      imagePortHeight = availableHeight;
+      imagePortWidth = imagePortHeight * ratio;
+
+      // If image width would be too large, recalculate based on a reasonable width
+      const maxImageWidth = window.innerWidth * 0.7; // Image shouldn't take more than 70% of width
+      if (imagePortWidth > maxImageWidth) {
+        imagePortWidth = maxImageWidth;
         imagePortHeight = imagePortWidth / ratio;
       }
 
-      // Set control panel dimensions
-      controlPanelWidth = maxPanelWidth;
+      // Step 2: Now determine control panel width based on remaining space
+      controlPanelWidth = getOptimalPanelWidth(window.innerWidth, imagePortWidth);
       controlPanelHeight = window.innerHeight;
+
+      // Step 3: Make final adjustment to image width if needed
+      if (imagePortWidth + controlPanelWidth > window.innerWidth) {
+        // Reduce image width to fit available space
+        imagePortWidth = window.innerWidth - controlPanelWidth;
+        imagePortHeight = imagePortWidth / ratio;
+      }
     } else { // Taller/square screens - panel on bottom
       isRowDirection = true;
 
@@ -81,7 +97,7 @@ function InterfaceContainer({ panelSize }) {
         imagePortHeight = imagePortWidth / ratio;
       }
 
-      // Set control panel dimensions
+      // Set control panel dimensions - use full width in row direction
       controlPanelWidth = window.innerWidth;
       controlPanelHeight = maxPanelHeight;
     }
@@ -90,6 +106,8 @@ function InterfaceContainer({ panelSize }) {
     setImagePortDimensions({ width: imagePortWidth, height: imagePortHeight });
     setControlPanelDimensions({ width: controlPanelWidth, height: controlPanelHeight });
     setIsRowDirection(isRowDirection);
+
+    console.log(`Layout: ${isRowDirection ? 'Row' : 'Column'}, Image: ${Math.round(imagePortWidth)}x${Math.round(imagePortHeight)}, Panel: ${Math.round(controlPanelWidth)}x${Math.round(controlPanelHeight)}`);
   }, [panelSize]);
 
   // Set up resize callback when module is ready
@@ -127,6 +145,7 @@ function InterfaceContainer({ panelSize }) {
 
   return (
       <Box
+          ref={containerRef}
           sx={{
             display: "flex",
             flexDirection: isRowDirection ? "column" : "row",

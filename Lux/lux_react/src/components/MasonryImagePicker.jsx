@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Divider, Alert } from '@mui/material';
+import { Box, Typography, CircularProgress, Divider, Alert, useTheme } from '@mui/material';
 import { ImagePlus } from 'lucide-react';
 import ThumbnailItem from './ThumbnailItem';
+import Masonry from 'react-masonry-css';
 import './MasonryImagePicker.css';
 
 export const MasonryImagePicker = ({ json, width, onChange }) => {
@@ -13,27 +14,76 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
     const [newImageName, setNewImageName] = useState(null);
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
+    const containerRef = useRef(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const theme = useTheme();
+
+    // The thumbnail size is 64px, and we'll add consistent spacing
+    const THUMB_SIZE = 64;
+    const THUMB_SPACING = 8;
+    // Each thumbnail needs this much space with its margins
+    const TOTAL_THUMB_WIDTH = THUMB_SIZE + (THUMB_SPACING * 2);
+
+    // Use ResizeObserver to detect actual width changes
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const width = entry.contentRect.width;
+                if (width > 0) {
+                    setContainerWidth(width);
+                }
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => {
+            if (containerRef.current) {
+                resizeObserver.unobserve(containerRef.current);
+            }
+        };
+    }, []);
+
+    // Calculate breakpoints for image grid - ensuring we fit as many as possible
+    const getBreakpointColumns = () => {
+        // If we have the actual container width, use it, otherwise use the provided width or a default
+        const availableWidth = containerWidth || (typeof width === 'number' ? width : 400);
+
+        // Calculate how many thumbnails can fit in a row based on available width
+        // Ensure at least 2 thumbnails per row
+        const maxColumns = Math.max(2, Math.floor(availableWidth / TOTAL_THUMB_WIDTH));
+
+        // Create a breakpoint object that fits as many thumbnails as possible
+        const breakpoints = {
+            default: maxColumns,         // Default to maximum possible thumbnails per row
+            1200: Math.min(maxColumns, 6), // Large screens: up to 6 thumbnails per row
+            900: Math.min(maxColumns, 5),  // Medium-large screens: up to 5 thumbnails per row
+            600: Math.min(maxColumns, 4),  // Medium screens: up to 4 thumbnails per row
+            450: Math.min(maxColumns, 3),  // Small screens: up to 3 thumbnails per row
+            300: 2                        // Very small screens: 2 thumbnails per row
+        };
+
+        console.log(`ImagePicker: Available width ${availableWidth}px, max columns: ${maxColumns}`);
+        return breakpoints;
+    };
 
     // Log the incoming JSON for debugging
     useEffect(() => {
         console.log('MasonryImagePicker received JSON:', json);
     }, [json]);
 
-    // Set up selected image and menu items based on json
     useEffect(() => {
         try {
             if (json) {
-                // Handle different formats to extract items
                 let items = [];
 
                 if (json.items && Array.isArray(json.items)) {
-                    // Standard format
                     items = json.items;
                 } else if (json.menu && Array.isArray(json.menu)) {
-                    // Alternative format
                     items = json.menu;
                 } else if (typeof json.menu === 'string') {
-                    // Menu name format - need to fetch items from module
                     try {
                         if (window.module && window.module.get_menu_items) {
                             const menuItemsStr = window.module.get_menu_items(json.menu);
@@ -47,7 +97,6 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
                 setMenuItems(items);
                 console.log('Extracted menu items:', items);
 
-                // Set initially selected image
                 let selectedIdx = -1;
 
                 if (json.choice !== undefined && Number.isInteger(json.choice)) {
@@ -131,12 +180,10 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
         }
     };
 
-    // Handle image selection
     const handleImageSelect = (imageName) => {
         console.log('Image selected:', imageName);
         setSelectedImage(imageName);
 
-        // Update the selected image in the C++ backend
         if (window.module) {
             window.module.update_source_name(imageName);
             onChange(imageName);
@@ -144,28 +191,29 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
     };
 
     return (
-        <Box sx={{ width: width || '100%' }}>
+        <Box sx={{ width: width || '100%' }} ref={containerRef}>
             <Typography variant="subtitle1" gutterBottom>
                 Source Images
             </Typography>
 
+            {/* Error message */}
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                     {error}
                 </Alert>
             )}
 
-            {/* Thumbnails grid */}
+            {/* Image grid using flex-based grid for consistent spacing */}
             {isInitializing ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                     <CircularProgress size={24} />
                 </Box>
             ) : menuItems.length > 0 ? (
-                <Box className="thumbnails-container">
+                <Box className="image-grid-container">
                     {menuItems.map((imageName) => (
                         <Box
                             key={imageName}
-                            className={newImageName === imageName ? 'new-thumbnail' : ''}
+                            className={`image-grid-item ${newImageName === imageName ? 'new-image' : ''}`}
                         >
                             <ThumbnailItem
                                 imageName={imageName}
