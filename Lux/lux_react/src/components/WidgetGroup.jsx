@@ -9,8 +9,7 @@ import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import JenFunkyPicker from './JenFunkyPicker';
-import { ImagePicker } from "./ImagePicker";
-import { THUMB_SIZE } from "./ThumbnailItem";
+import MasonryImagePicker from './MasonryImagePicker';
 import { Plus, X } from 'lucide-react';
 
 function WidgetGroup({ json, panelSize, onChange }) {
@@ -45,18 +44,29 @@ function WidgetGroup({ json, panelSize, onChange }) {
             case 'menu_int':
                 return (
                     <Box key={widget.name} sx={{ mb: 1 }}>
+                        {labelElement}
                         <JenMenu json={widget} onChange={onChange} width={panelSize - 8}/>
                     </Box>
                 );
 
             case 'menu_string':
+                // Use MasonryImagePicker for image selection
+                if (widget.tool === 'image') {
+                    return (
+                        <Box key={widget.name} sx={{ mb: 1 }}>
+                            <MasonryImagePicker
+                                json={widget}
+                                width={panelSize - 8}
+                                onChange={onChange}
+                            />
+                        </Box>
+                    );
+                }
+                // Use regular menu for other string menus
                 return (
                     <Box key={widget.name} sx={{ mb: 1 }}>
-                        <ImagePicker
-                            json={widget}
-                            panelSize={THUMB_SIZE * 3}
-                            onChange={onChange}
-                        />
+                        {labelElement}
+                        <JenMenu json={widget} onChange={onChange} width={panelSize - 8}/>
                     </Box>
                 );
 

@@ -1,74 +1,21 @@
-.masonry-grid {
+.thumbnails-container {
     display: flex;
-    width: 100%;
-    margin-left: -8px; /* Adjust for the gutter */
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-.masonry-grid-column {
-    padding-left: 8px; /* Gutter size */
-    background-clip: padding-box;
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
-.image-item {
-    position: relative;
-    margin-bottom: 8px;
-    break-inside: avoid;
-}
-
-.image-item.selected {
-    border: 2px solid #1976d2; /* Primary color */
-    box-shadow: 0 0 8px rgba(25, 118, 210, 0.4);
-}
-
-.image-item:hover {
-    transform: translateY(-2px);
-    transition: transform 0.2s ease;
-}
-
-.image-name {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.upload-zone {
-    margin-top: 16px;
-    padding: 16px;
-    border: 2px dashed #ccc;
-    border-radius: 4px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.upload-zone:hover,
-.upload-zone.dragging {
-    border-color: #1976d2;
-    background-color: rgba(25, 118, 210, 0.04);
+.new-thumbnail {
+    animation: fadeIn 0.3s ease-out;
 }
 
 @media (max-width: 600px) {
-    .masonry-grid {
-        margin-left: -4px;
-    }
-
-    .masonry-grid-column {
-        padding-left: 4px;
-    }
-
-    .image-item {
-        margin-bottom: 8px;
-    }
-
-    .upload-zone {
-        padding: 24px;
+    .thumbnails-container {
+        gap: 6px;
     }
 }
