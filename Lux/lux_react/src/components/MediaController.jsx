@@ -14,7 +14,6 @@ import {
     Pause
 } from 'lucide-react';
 
-// Add a prop to specify when it's being used as an overlay
 function MediaController({ isOverlay = false }) {
     const theme = useTheme();
     const [isRunning, setIsRunning] = useState(true);

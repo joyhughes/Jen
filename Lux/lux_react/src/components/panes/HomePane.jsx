@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
+import {Tooltip} from "@mui/material";
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
     const containerRef = useRef(null);
@@ -90,13 +91,12 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
+            <Tooltip title={"Use the tabs above to switch between source, target images and brush."}
+                     placement={"bottom-start"}>
             <Typography variant="h6" gutterBottom>
                 Control Panel
             </Typography>
-            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                Use the tabs above to switch between source image, target, and brush controls.
-            </Typography>
-
+            </Tooltip>
             <Divider sx={{ mb: 2 }} />
 
             {nonImageGroups.length > 0 ? (

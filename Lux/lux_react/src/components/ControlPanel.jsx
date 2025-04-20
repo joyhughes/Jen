@@ -106,12 +106,13 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 maxWidth: dimensions.width
             }}
         >
-            <MediaController panelSize={panelSize} />
 
             <TabNavigation
                 activePane={activePane}
                 onPaneChange={onPaneChange}
             />
+
+            <MediaController panelSize={panelSize} />
 
             <Box
                 sx={{
