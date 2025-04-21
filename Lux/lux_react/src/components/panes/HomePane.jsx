@@ -91,12 +91,6 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
-            <Tooltip title={"Use the tabs above to switch between source, target images and brush."}
-                     placement={"bottom-start"}>
-            <Typography variant="h6" gutterBottom>
-                Control Panel
-            </Typography>
-            </Tooltip>
             <Divider sx={{ mb: 2 }} />
 
             {nonImageGroups.length > 0 ? (
