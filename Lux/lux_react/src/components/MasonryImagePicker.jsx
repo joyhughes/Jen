@@ -3,7 +3,7 @@ import { Box, Typography, CircularProgress, Divider, Alert, useTheme } from '@mu
 import { ImagePlus } from 'lucide-react';
 import ThumbnailItem from './ThumbnailItem';
 import Masonry from 'react-masonry-css';
-import './MasonryImagePicker.css';
+import '../styles/MasonryImagePicker.css';
 
 export const MasonryImagePicker = ({ json, width, onChange }) => {
     const [menuItems, setMenuItems] = useState([]);
