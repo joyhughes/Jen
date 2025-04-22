@@ -1,76 +1,40 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-    Box,
-    Typography,
-    IconButton,
-    useTheme
-} from '@mui/material';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import SceneChooser from "./SceneChooser";
-import WidgetGroup from "./WidgetGroup";
-import { THUMB_SIZE } from "./ThumbnailItem";
+import React, { useState, useEffect } from "react";
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
 
-function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) {
-    const theme = useTheme();
+import MediaController from "./MediaController";
+import TabNavigation from "./TabNavigation";
+import HomePane from "./panes/HomePane";
+import SourceImagePane from "./panes/SourceImagePane";
+import TargetImagePane from "./panes/TargetImagePane";
+import BrushPane from "./panes/BrushPane";
+import { SceneChooserPane } from "./panes/SceneChooserPane";
+
+function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [panelJSON, setPanelJSON] = useState([]);
     const [activeGroups, setActiveGroups] = useState([]);
-    const [expandedGroups, setExpandedGroups] = useState({});
-    const [loading, setLoading] = useState(true);
-    const scrollContainerRef = useRef(null);
 
-    // Toggle group expansion
-    const toggleGroupExpansion = (groupName) => {
-        setExpandedGroups(prev => ({
-            ...prev,
-            [groupName]: !prev[groupName]
-        }));
-    };
-
-    // Handle widget group change
     const handleWidgetGroupChange = () => {
-        if (!window.module) return;
-
-        const active = panelJSON.filter(group =>
-            window.module.is_widget_group_active(group.name)
-        );
-
-        // Initialize expanded state for new groups
-        const initialExpandedState = {};
-        active.forEach(group => {
-            if (expandedGroups[group.name] === undefined) {
-                initialExpandedState[group.name] = true;
-            } else {
-                initialExpandedState[group.name] = expandedGroups[group.name];
-            }
-        });
-
-        setActiveGroups(active);
-        setExpandedGroups(prev => ({ ...prev, ...initialExpandedState }));
+        // Fetch active widget groups from WebAssembly
+        if (window.module && panelJSON) {
+            const active = panelJSON.filter(group =>
+                window.module.is_widget_group_active(group.name)
+            );
+            setActiveGroups(active);
+        }
     };
 
-    // Load panel JSON
     const setupPanel = () => {
-        setLoading(true);
-        if (!window.module) {
-            setLoading(false);
-            return;
-        }
-
-        try {
+        if (window.module) {
             const panelJSONString = window.module.get_panel_JSON();
-            const parsedJSON = JSON.parse(panelJSONString);
-            setPanelJSON(parsedJSON);
-        } catch (error) {
-            console.error("Error parsing panel JSON:", error);
-        }
-        setLoading(false);
-    };
 
-    // Clear panel when changing scenes
-    const clearPanel = () => {
-        setPanelJSON([]);
-        setActiveGroups([]);
-        setExpandedGroups({});
+            try {
+                const parsedJSON = JSON.parse(panelJSONString);
+                setPanelJSON(parsedJSON);
+            } catch (error) {
+                console.error("Error parsing panel JSON:", error);
+            }
+        }
     };
 
     useEffect(() => {
@@ -78,6 +42,7 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
             setupPanel();
             window.module.set_scene_callback(setupPanel);
         } else {
+            // Poll for the Module to be ready
             const intervalId = setInterval(() => {
                 if (window.module) {
                     setupPanel();
@@ -85,6 +50,7 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
                     clearInterval(intervalId);
                 }
             }, 100);
+
             return () => clearInterval(intervalId);
         }
     }, []);
@@ -93,117 +59,61 @@ function ControlPanel({ dimensions, panelSize, isSmallScreen, isNarrowHeight }) 
         handleWidgetGroupChange();
     }, [panelJSON]);
 
-    // Get layout style based on device and screen dimensions
-    const getLayoutStyle = () => {
-        if (isNarrowHeight && !isSmallScreen) {
-            // Horizontal layout for narrow height
-            return {
-                display: 'flex',
-                flexWrap: 'wrap',
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 1
-            };
-        }
-
-        // Default vertical layout with auto-wrapping columns
-        return {
-            display: 'flex',
-            flexWrap: 'wrap',
-            flexDirection: 'column',
-            alignContent: 'flex-start',
-            height: dimensions.height,
-            gap: 1
+    const renderActivePane = () => {
+        const commonProps = {
+            dimensions,
+            panelSize,
+            panelJSON,
+            activeGroups,
+            onWidgetGroupChange: handleWidgetGroupChange
         };
+
+        switch (activePane) {
+            case "home":
+                return <HomePane {...commonProps} />;
+            case "scenes":
+                return <SceneChooserPane />;
+            case "source":
+                return <SourceImagePane {...commonProps} />;
+            case "target":
+                return <TargetImagePane {...commonProps} />;
+            case "brush":
+                return <BrushPane {...commonProps} />;
+            default:
+                return <HomePane {...commonProps} />;
+        }
     };
 
     return (
-        <Box
+        <Paper
+            elevation={3}
             sx={{
-                width: dimensions.width,
-                height: dimensions.height,
-                overflow: 'auto',
-                bgcolor: '#222',
-                color: 'white',
-                '&::-webkit-scrollbar': {
-                    width: '4px',
-                    height: '4px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                }
+                minWidth: dimensions.width,
+                minHeight: dimensions.height,
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1,
+                alignSelf: 'stretch',
+                overflow: 'hidden',
+                maxWidth: dimensions.width
             }}
-            ref={scrollContainerRef}
         >
-            <Box sx={{ p: 1 }}>
-                <SceneChooser width={THUMB_SIZE * 3} onChange={clearPanel} />
+            <TabNavigation
+                activePane={activePane}
+                onPaneChange={onPaneChange}
+            />
+
+            <MediaController panelSize={panelSize} />
+
+            <Box
+                sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                }}
+            >
+                {renderActivePane()}
             </Box>
-
-            {loading ? (
-                <Typography variant="body2" sx={{ p: 2 }}>Loading controls...</Typography>
-            ) : (
-                <Box sx={{
-                    ...getLayoutStyle(),
-                    p: 1
-                }}>
-                    {activeGroups.map((group) => (
-                        <Box
-                            key={group.name}
-                            id={`group-${group.name}`}
-                            sx={{
-                                bgcolor: 'rgba(0,0,0,0.2)',
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                width: THUMB_SIZE * 3,
-                                mb: 0,
-                                flexShrink: 0
-                            }}
-                        >
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    px: 1,
-                                    py: 0.5,
-                                    bgcolor: 'rgba(0,0,0,0.3)',
-                                    cursor: 'pointer',
-                                }}
-                                onClick={() => toggleGroupExpansion(group.name)}
-                            >
-                                <Typography
-                                    variant="subtitle2"
-                                    sx={{
-                                        fontWeight: 600,
-                                        fontSize: '0.8rem',
-                                        textTransform: 'uppercase'
-                                    }}
-                                >
-                                    {group.label || group.name}
-                                </Typography>
-                                <IconButton size="small" sx={{ color: 'white', p: 0.25 }}>
-                                    {expandedGroups[group.name] ? (
-                                        <ChevronUp size={14} />
-                                    ) : (
-                                        <ChevronDown size={14} />
-                                    )}
-                                </IconButton>
-                            </Box>
-
-                            {expandedGroups[group.name] !== false && (
-                                <Box>
-                                    <WidgetGroup
-                                        json={group}
-                                        panelSize={panelSize}
-                                        onChange={handleWidgetGroupChange}
-                                    />
-                                </Box>
-                            )}
-                        </Box>
-                    ))}
-                </Box>
-            )}
-        </Box>
+        </Paper>
     );
 }
 

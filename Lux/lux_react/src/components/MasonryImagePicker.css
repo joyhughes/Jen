@@ -1,0 +1,78 @@
+/* MasonryImagePicker.css */
+
+/* Widget Masonry Layout Styles */
+.widget-masonry-grid {
+    display: flex;
+    width: 100%;
+    margin-left: -8px; /* Gutter size offset */
+}
+
+.widget-masonry-column {
+    padding-left: 8px; /* Gutter size */
+    background-clip: padding-box;
+}
+
+.widget-item {
+    margin-bottom: 8px;
+}
+
+/* Image Grid Layout - Using flexbox for consistent spacing */
+.image-grid-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Consistent spacing between items */
+    margin-bottom: 16px;
+}
+
+.image-grid-item {
+    /* No margins needed as we're using gap for spacing */
+    display: flex;
+}
+
+/* Animation for newly added images */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.new-image {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive adjustments - match gaps for widgets and images */
+@media (min-width: 600px) {
+    .widget-masonry-grid {
+        margin-left: -12px;
+    }
+
+    .widget-masonry-column {
+        padding-left: 12px;
+    }
+
+    .widget-item {
+        margin-bottom: 12px;
+    }
+
+    .image-grid-container {
+        gap: 12px;
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 599px) {
+    .widget-masonry-grid {
+        margin-left: -8px;
+    }
+
+    .widget-masonry-column {
+        padding-left: 8px;
+    }
+
+    .widget-item {
+        margin-bottom: 8px;
+    }
+
+    .image-grid-container {
+        gap: 8px;
+    }
+}

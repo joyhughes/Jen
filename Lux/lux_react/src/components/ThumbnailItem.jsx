@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Box, CircularProgress, Typography, Tooltip, Fade } from '@mui/material';
-import { styled, useTheme } from '@mui/material/styles';
-import { AlertTriangle, Check } from 'lucide-react';
+import { styled } from '@mui/material/styles';
+import { AlertTriangle, Check, Info } from 'lucide-react';
+import ThumbnailCanvas from "./ThumbnailCanvas.jsx";
 
-export const THUMB_SIZE = 64; // Slightly smaller for better fit
+export const THUMB_SIZE = 64; // Thumbnail size
 
-// Styled container for each thumbnail
 const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({
     position: 'relative',
     width: THUMB_SIZE,
@@ -28,21 +28,6 @@ const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({
     }
 }));
 
-// Canvas wrapper with consistent styling
-const CanvasWrapper = styled(Box)({
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    '& canvas': {
-        display: 'block',
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-    },
-});
-
 // Overlay for loading/error states
 const StatusOverlay = styled(Box)(({ theme, status }) => ({
     position: 'absolute',
@@ -56,7 +41,9 @@ const StatusOverlay = styled(Box)(({ theme, status }) => ({
     justifyContent: 'center',
     backgroundColor: status === 'error'
         ? 'rgba(211, 47, 47, 0.75)'
-        : 'rgba(0, 0, 0, 0.5)',
+        : status === 'debug'
+            ? 'rgba(25, 118, 210, 0.75)'
+            : 'rgba(0, 0, 0, 0.5)',
     backdropFilter: 'blur(2px)',
     color: 'white',
     textAlign: 'center',
@@ -80,91 +67,35 @@ const SelectionIndicator = styled(Box)(({ theme }) => ({
     boxShadow: theme.shadows[2],
 }));
 
-// Functional component for the thumbnail item
 function ThumbnailItem({ imageName, isSelected, onClick }) {
-    const theme = useTheme();
-    const canvasRef = useRef(null);
-    const [status, setStatus] = useState('loading'); // 'loading', 'loaded', 'error'
+    const [status, setStatus] = useState('loading'); // 'loading', 'loaded', 'error', 'debug'
     const [tooltipOpen, setTooltipOpen] = useState(false);
 
-    // Function to draw the thumbnail
-    const drawThumbnail = useCallback(async () => {
-        if (!window.module || !canvasRef.current) return;
 
-        setStatus('loading');
-        let pixelDataVal = null;
 
-        try {
-            pixelDataVal = window.module.get_thumbnail(imageName, THUMB_SIZE, THUMB_SIZE);
-            const bufferLength = pixelDataVal?.byteLength;
-
-            if (!bufferLength || bufferLength !== THUMB_SIZE * THUMB_SIZE * 4) {
-                console.error(`Thumbnail Error (${imageName}): Invalid pixel data length: ${bufferLength}`);
-                setStatus('error');
-                return;
-            }
-
-            // Get clamped array view
-            const pixelData = new Uint8ClampedArray(pixelDataVal.buffer, pixelDataVal.byteOffset, bufferLength);
-
-            // Swizzle BGRA to RGBA (assuming C++ format is 0xAARRGGBB)
-            const rgbaPixelData = new Uint8ClampedArray(bufferLength);
-            for (let i = 0; i < bufferLength; i += 4) {
-                const r_val = pixelData[i];
-                const g_val = pixelData[i + 1];
-                const b_val = pixelData[i + 2];
-
-                // Write in RGBA order for ImageData
-                rgbaPixelData[i] = r_val;
-                rgbaPixelData[i + 1] = g_val;
-                rgbaPixelData[i + 2] = b_val;
-                rgbaPixelData[i + 3] = 255;
-            }
-
-            const imageData = new ImageData(rgbaPixelData, THUMB_SIZE, THUMB_SIZE);
-            const ctx = canvasRef.current.getContext('2d', { alpha: false });
-
-            if (!ctx) {
-                throw new Error("Could not get canvas context");
-            }
-
-            // Create and render the bitmap
-            const imageBitmap = await createImageBitmap(imageData);
-            ctx.clearRect(0, 0, THUMB_SIZE, THUMB_SIZE);
-            ctx.drawImage(imageBitmap, 0, 0, THUMB_SIZE, THUMB_SIZE);
-            imageBitmap.close();
-
-            setStatus('loaded');
-        } catch (err) {
-            console.error(`Thumbnail Error (${imageName}):`, err);
-            setStatus('error');
-
-            // Draw error state
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = theme.palette.error.dark;
-                    ctx.fillRect(0, 0, THUMB_SIZE, THUMB_SIZE);
-                }
-            }
-        }
-    }, [imageName, theme.palette.error.dark]);
-
-    // Initialize thumbnail on mount or imageName change
-    useEffect(() => {
-        // Small delay to avoid blocking the UI thread
-        const timer = setTimeout(() => {
-            drawThumbnail();
-        }, 50);
-        return () => clearTimeout(timer);
-    }, [drawThumbnail]);
-
-    // Get filename for display (strip path if present)
     const displayName = imageName.split('/').pop();
+
+    const handleClick = () => {
+        if (onClick) onClick(imageName);
+    };
 
     return (
         <Tooltip
-            title={displayName}
+            title={
+                <Box>
+                    <Typography variant="body2">{displayName}</Typography>
+                    {status === 'error' && (
+                        <Typography variant="caption" color="error">
+                            Error: {debugMessage}
+                        </Typography>
+                    )}
+                    {status === 'debug' && (
+                        <Typography variant="caption">
+                            Debug: {debugMessage}
+                        </Typography>
+                    )}
+                </Box>
+            }
             placement="top"
             arrow
             open={tooltipOpen}
@@ -175,17 +106,19 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
         >
             <ThumbnailContainer
                 selected={isSelected}
-                onClick={() => onClick(imageName)}
+                onClick={handleClick}
                 onMouseEnter={() => setTooltipOpen(true)}
                 onMouseLeave={() => setTooltipOpen(false)}
+                onTouchStart={() => setTooltipOpen(true)} // Better touch device support
+                onTouchEnd={() => setTooltipOpen(false)}  // Better touch device support
             >
-                <CanvasWrapper>
-                    <canvas
-                        ref={canvasRef}
-                        width={THUMB_SIZE}
-                        height={THUMB_SIZE}
-                    />
-                </CanvasWrapper>
+                <ThumbnailCanvas
+                    imageName={imageName}
+                    width={THUMB_SIZE}
+                    height={THUMB_SIZE}
+                    setStatus={setStatus}
+
+                />
 
                 {/* Loading overlay */}
                 {status === 'loading' && (
@@ -206,8 +139,18 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
                     </StatusOverlay>
                 )}
 
+                {/* Debug overlay */}
+                {status === 'debug' && (
+                    <StatusOverlay status="debug">
+                        <Info size={18} />
+                        <Typography variant="caption" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
+                            Debug
+                        </Typography>
+                    </StatusOverlay>
+                )}
+
                 {/* Selection indicator */}
-                {isSelected && status === 'loaded' && (
+                {isSelected && (
                     <Fade in={true}>
                         <SelectionIndicator>
                             <Check size={12} />

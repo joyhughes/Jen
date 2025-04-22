@@ -1,5 +1,6 @@
-import React from "react";
-import { Box, Typography, IconButton } from '@mui/material';
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Typography, IconButton, useTheme } from '@mui/material';
+import Masonry from 'react-masonry-css';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
@@ -9,14 +10,65 @@ import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import JenFunkyPicker from './JenFunkyPicker';
-import { ImagePicker } from "./ImagePicker";
-import { THUMB_SIZE } from "./ThumbnailItem";
+import MasonryImagePicker from './MasonryImagePicker';
 import { Plus, X } from 'lucide-react';
 
-function WidgetGroup({ json, panelSize, onChange }) {
-    const [renderCount, setRenderCount] = React.useState(0);
+function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false }) {
+    const [renderCount, setRenderCount] = useState(0);
+    const [widgetElements, setWidgetElements] = useState([]);
+    const containerRef = useRef(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const theme = useTheme();
 
-    const renderWidget = (name) => {
+    const getBreakpointColumns = () => {
+        // If we have the actual container width, use it, otherwise use panelSize
+        const availableWidth = containerWidth || panelSize || 400;
+
+        // More aggressively create columns - minimum width reduced to 192px
+        const MIN_COLUMN_WIDTH = 192;
+
+        // Calculate how many columns can fit, ensuring at least 1
+        const maxColumns = Math.max(1, Math.floor(availableWidth / MIN_COLUMN_WIDTH));
+
+        // Create breakpoint object for Masonry
+        const breakpointCols = {};
+
+        // Set default to maximum possible columns to use all available space
+        breakpointCols.default = maxColumns;
+
+        // Add breakpoints for common screen sizes
+        if (maxColumns > 3) breakpointCols[768] = 3; // Medium screens max 3 columns
+        if (maxColumns > 2) breakpointCols[576] = 2; // Small screens max 2 columns
+        breakpointCols[400] = 1; // Very small screens use 1 column
+
+        console.log(`WidgetGroup: Available width ${availableWidth}px, columns: ${maxColumns}`);
+        return breakpointCols;
+    };
+
+    // Use ResizeObserver to detect actual width changes
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const width = entry.contentRect.width;
+                if (width > 0) {
+                    setContainerWidth(width);
+                }
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => {
+            if (containerRef.current) {
+                resizeObserver.unobserve(containerRef.current);
+            }
+        };
+    }, []);
+
+    // Create widget element for a given widget name
+    const createWidgetElement = (name) => {
         let widget;
         try {
             const widgetJSON = window.module.get_widget_JSON(name);
@@ -27,13 +79,17 @@ function WidgetGroup({ json, panelSize, onChange }) {
             return null;
         }
 
+        // Skip image widgets if disabled
+        if (disableImageWidgets && widget.tool === 'image') {
+            return null;
+        }
+
         const labelElement = (
             <Typography
-                variant="body2"
                 sx={{
                     fontWeight: 500,
                     color: 'white',
-                    fontSize: '0.8rem',
+                    fontSize: '1rem',
                     mb: 0.5
                 }}
             >
@@ -44,19 +100,29 @@ function WidgetGroup({ json, panelSize, onChange }) {
         switch (widget.type) {
             case 'menu_int':
                 return (
-                    <Box key={widget.name} sx={{ mb: 1 }}>
-                        <JenMenu json={widget} onChange={onChange} width={panelSize - 8}/>
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        <JenMenu json={widget} onChange={onChange} width="100%" />
                     </Box>
                 );
 
             case 'menu_string':
+                // Use MasonryImagePicker for image selection
+                if (widget.tool === 'image' && !disableImageWidgets) {
+                    return (
+                        <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                            <MasonryImagePicker
+                                json={widget}
+                                width="100%"
+                                onChange={onChange}
+                            />
+                        </Box>
+                    );
+                }
+                // Use regular menu for other string menus
                 return (
-                    <Box key={widget.name} sx={{ mb: 1 }}>
-                        <ImagePicker
-                            json={widget}
-                            panelSize={THUMB_SIZE * 3}
-                            onChange={onChange}
-                        />
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        {labelElement}
+                        <JenMenu json={widget} onChange={onChange} width="100%" />
                     </Box>
                 );
 
@@ -65,16 +131,16 @@ function WidgetGroup({ json, panelSize, onChange }) {
             case 'range_slider_int':
             case 'range_slider_float':
                 return (
-                    <Box key={widget.name} sx={{ mb: 1 }}>
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                         {labelElement}
-                        <JenSlider json={widget} width={panelSize - 8} />
+                        <JenSlider json={widget} width="100%" />
                     </Box>
                 );
 
             case 'switch_fn':
             case 'switch_condition':
                 return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
                         <JenSwitch json={widget} onChange={onChange} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
@@ -82,7 +148,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             case 'direction_picker_8':
                 return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
                         <JenDirection8 json={widget} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
@@ -90,7 +156,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             case 'direction_picker_4':
                 return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
                         <JenDirection4 json={widget} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
@@ -98,7 +164,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             case 'direction_picker_4_diagonal':
                 return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
                         <JenDirection4Diagonal json={widget} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
@@ -106,7 +172,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             case 'box_blur_picker':
                 return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
                         <JenBlurPicker json={widget} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
@@ -114,9 +180,9 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             case 'funk_factor_picker':
                 return (
-                    <Box key={widget.name} sx={{ width: '100%', mb: 1 }}>
-                        <Box sx={{ mt: 0.5 }}>
-                            <JenFunkyPicker key={widget.name} json={widget} />
+                    <Box key={widget.name} sx={{width: '100%', mb: 1}}>
+                        <Box sx={{mt: 0.5}}>
+                            <JenFunkyPicker key={widget.name} json={widget}/>
                         </Box>
                     </Box>
                 );
@@ -219,13 +285,13 @@ function WidgetGroup({ json, panelSize, onChange }) {
                                 <JenSwitch key={switcher.name} json={switcher} onChange={onChange} />
                                 <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                             </Box>
-                            <JenSlider key={wsWidget.name} json={wsWidget} width={panelSize - 8} />
+                            <JenSlider key={wsWidget.name} json={wsWidget} width="100%" />
                         </Box>
                     );
                 }
 
                 return (
-                    <Box key={widget.name} sx={{ mb: 1 }}>
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                         <Typography variant="caption" color="text.secondary">
                             Unsupported widget_switch_fn type: {wsWidget.type}
                         </Typography>
@@ -234,7 +300,7 @@ function WidgetGroup({ json, panelSize, onChange }) {
 
             default:
                 return (
-                    <Box key={widget.name} sx={{ mb: 1 }}>
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                         <Typography variant="caption" color="text.secondary">
                             Unknown widget type: {widget.type}
                         </Typography>
@@ -243,9 +309,45 @@ function WidgetGroup({ json, panelSize, onChange }) {
         }
     };
 
+    // Create widget elements on initial render and when dependencies change
+    useEffect(() => {
+        if (json && json.widgets) {
+            const elements = json.widgets
+                .map(createWidgetElement)
+                .filter(el => el !== null);
+            setWidgetElements(elements);
+        }
+    }, [json, panelSize, disableImageWidgets, renderCount]);
+
+    // If no widgets, don't render anything
+    if (widgetElements.length === 0) {
+        return null;
+    }
+
     return (
-        <Box sx={{ px: 0.5, pt: 0.5, pb: 1}}>
-            {json.widgets.map(renderWidget)}
+        <Box
+            ref={containerRef}
+            sx={{
+                width: '100%',
+                px: 0.5,
+                pt: 0.5,
+                pb: 1,
+                // Force the container to expand to full width
+                display: 'flex',
+                flexDirection: 'column'
+            }}
+        >
+            <Masonry
+                breakpointCols={getBreakpointColumns()}
+                className="widget-masonry-grid"
+                columnClassName="widget-masonry-column"
+            >
+                {widgetElements.map((element, index) => (
+                    <div key={`widget-item-${index}`} className="widget-item">
+                        {element}
+                    </div>
+                ))}
+            </Masonry>
         </Box>
     );
 }

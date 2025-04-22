@@ -243,12 +243,6 @@ function ImagePort({ dimensions, moduleReady }) {
                 <ImagePortCanvas width={dimensions.width} height={dimensions.height} />
             </Box>
 
-            {/* Floating Media Controls - appears at bottom when hovering */}
-            <Fade in={showMediaControls}>
-                <Box>
-                    <MediaController isOverlay={true} />
-                </Box>
-            </Fade>
 
             {/* Floating Controls - existing side controls */}
             <Fade in={showControls}>
