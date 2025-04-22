@@ -1,4 +1,3 @@
-
 //#include <SDL.h>
 #include "scene.hpp"
 #include "scene_io.hpp"
@@ -12,9 +11,14 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include "emscripten_utils.hpp"
+
 
 //#include <chrono>
 //#include <thread>
+
+#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+#define ERROR( msg ) throw std::runtime_error( msg );
 
 using namespace emscripten;
 
@@ -69,25 +73,74 @@ bool is_swapped() {
     return global_context->buf->is_swapped();
 }
 
-val get_thumbnail( std::string name, int width, int height) {
-    uimage img( vec2i{ width, height } );
+val get_thumbnail(std::string name, int width, int height) {
+    // create temporal target thumbnail image
+    auto thumb_img_ptr = std::make_unique<uimage >(vec2i{width, height});
+    if (!thumb_img_ptr) {
+        std::cerr << "Failed to create thumbnail image" << std::endl;
+        // return an empty view to JS
+        return emscripten::val(emscripten::typed_memory_view(0, static_cast<unsigned char *>(nullptr)));
+    }
+
+    uimage thumb_img = *thumb_img_ptr;
+    unsigned char *buffer = (unsigned char *) thumb_img.get_base_ptr();
+    size_t buffer_length = width * height * 4;
     bool drawn = false;
-    unsigned char* buffer = (unsigned char* )img.get_base_ptr();
-    size_t buffer_length = width * height * 4; // Assuming 4 bytes per pixel (RGBA)
 
-    if( global_context->s->buffers.contains( name ) ) {
-        // make sure buffer contains uimage buffer pair
-        if( std::holds_alternative< ubuf_ptr >( global_context->s->buffers[ name ] ) )
-            img.splat( std::get< ubuf_ptr >( global_context->s->buffers[ name ] )->get_image() );
-            drawn = true;
-    }
-    // gray out if not drawn
-    if( !drawn ) {
-        img.fill( 0xff080808 );
+    // find source buffer and validate
+    if (global_context && global_context->s && global_context->s->buffers.count(name)) {
+        any_buffer_pair_ptr &source_buf_variant = global_context->s->buffers[name];
+        if (std::holds_alternative<ubuf_ptr>(source_buf_variant)) {
+            ubuf_ptr &source_buf_pair_ptr = std::get<ubuf_ptr>(source_buf_variant);
+            if (source_buf_pair_ptr && source_buf_pair_ptr->has_image()) {
+                image<ucolor> &source_image = source_buf_pair_ptr->get_image();
+                if (source_image.get_dim().x > 0 && source_image.get_dim().y > 0) {
+                    // define splat parameters
+                    bool thumb_smooth = false;
+                    vec2f thumb_center = vec2f(0, 0);
+                    float thumb_scale = 1.0f;
+                    float thumb_delta = 0.0f;
+                    std::optional<std::reference_wrapper<image<ucolor> > > thumb_mask = std::nullopt;
+                    std::optional<ucolor> thumb_tint = std::nullopt;
+                    mask_mode thumb_mode = MASK_NOEFFECT;
+                    // call splat
+                    try {
+                        thumb_img.splat(source_image, thumb_smooth, thumb_center, thumb_scale, thumb_delta, thumb_mask,
+                                        thumb_tint, thumb_mode);
+                        drawn = true;
+
+                        if (drawn && width > 0 && height > 0) {
+                            int x = 0;
+                            int y = 0;
+                            unsigned int pixel_index = y * thumb_img.get_dim().x + x;
+                            if (pixel_index < thumb_img.size()) { // Use size() method you added
+                                ucolor first_pixel_value = thumb_img.index(pixel_index); // <<< Use index(i)
+                                unsigned char* first_pixel_bytes = reinterpret_cast<unsigned char*>(&first_pixel_value);
+                                DEBUG("get_thumbnail: First pixel value (hex): " + ucolor_to_hex_string(first_pixel_value)); // Add hex log if possible
+                                DEBUG("get_thumbnail: First pixel bytes (memory): [" +
+                                      std::to_string(first_pixel_bytes[0]) + ", " + // Byte 0 (Lowest address)
+                                      std::to_string(first_pixel_bytes[1]) + ", " + // Byte 1
+                                      std::to_string(first_pixel_bytes[2]) + ", " + // Byte 2
+                                      std::to_string(first_pixel_bytes[3]) + "]");  // Byte 3 (Highest address)
+                            } else {
+                                DEBUG("get_thumbnail: Calculated pixel index out of bounds!");
+                            }
+                        }
+                    } catch (const std::exception &e) {
+                        std::cerr << "Error during splat operation: " << e.what() << std::endl;
+                    } catch (...) {
+                        std::cerr << "Unknown error during splat operation" << std::endl;
+                    }
+                }
+            }
+        }
     }
 
-    // Create a typed memory view at the specified memory location.
-    return val(typed_memory_view(buffer_length, buffer));
+    if (!drawn) {
+        std::cerr << "Failed to draw thumbnail" << std::endl;
+        thumb_img.fill(0xff808080); // gray placeholder
+    }
+    return emscripten::val(typed_memory_view(buffer_length, buffer));
 }
 
 void set_frame_callback(val callback) {
@@ -410,23 +463,39 @@ void add_image_to_scene(std::string name, std::string filepath) {
     }
 }
 
+
 void update_source_name(std::string name) {
-    try {
-        std::cout << "Updating source to: " << name << std::endl;
+    DEBUG("C++ update_source_name: Request to switch to '" + name + "'");
+    if (!global_context || !global_context->s) return;
 
-        if (!global_context->s->buffers.contains(name)) {
-            std::cerr << "Source buffer not found: " << name << std::endl;
-            return;
+    // validate the buffer exists
+    if (!global_context->s->buffers.count(name) || !std::holds_alternative<
+            ubuf_ptr>(global_context->s->buffers[name])) {
+        std::cerr << "ERROR: update_source_name - Invalid or non-ucolor source name: " << name << std::endl;
+        return;
+            }
+
+    // update the menu function
+    std::string menu_func_name = "source_image_menu";
+    if (global_context->s->functions.count(menu_func_name)) {
+        try {
+            auto menu = global_context->s->get_fn_ptr<std::string, menu_string>(menu_func_name);
+            menu->choose(name); // update menu choice
+
+            if (menu->rerender) {
+                global_context->s->restart(); // full start if menu causes structural change
+                DEBUG("  Source updated via menu, restarting scene.");
+            } else {
+                global_context->s->ui.displayed = false;
+                DEBUG("  Source updated via menu, flagging redraw.");
+            }
+        } catch (const std::exception &e) {
+            std::cerr << "Warning: Failed to update menu '" << menu_func_name << "': " << e.what() << std::endl;
         }
-
-        for (auto& q : global_context->s->queue) {
-            q.rendered = false;
-        }
-
-        global_context->s->restart();
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error in update_source_name: " << e.what() << std::endl;
+    } else {
+        std::cerr << "Warning: update_source_name - menu '" << menu_func_name << "' not found. Flagging redraw." <<
+                std::endl;
+        global_context->s->ui.displayed = false;
     }
 }
 

@@ -8,24 +8,8 @@
 #include <fstream>
 #include <sstream>
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-void emscripten_message( std::string msg ) {
-    msg = "console.log('" + msg + "');";
-    emscripten_run_script( msg.c_str() );
-}
-
-void emscripten_error( std::string msg ) {
-    emscripten_message( msg );
-    exit( 0 );
-}
-
-#define DEBUG( msg ) emscripten_message( msg );
-#define ERROR( msg ) emscripten_error( msg ); 
-#else
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
 #define ERROR( msg ) throw std::runtime_error( msg );
-#endif
 
 using json = nlohmann::json;
 using string = std::string;

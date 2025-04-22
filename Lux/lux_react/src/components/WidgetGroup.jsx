@@ -1,8 +1,6 @@
-import React, { useState } from "react";
-import WidgetContainer from './WidgetContainer';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Tooltip from '@mui/material/Tooltip';
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Typography, IconButton, useTheme } from '@mui/material';
+import Masonry from 'react-masonry-css';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
@@ -12,207 +10,346 @@ import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import JenFunkyPicker from './JenFunkyPicker';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import AddIcon from '@mui/icons-material/Add';
-import {ImagePicker} from "./ImagePicker.jsx";
+import MasonryImagePicker from './MasonryImagePicker';
+import { Plus, X } from 'lucide-react';
 
-function WidgetGroup({ panelSize, json, onChange }) {
-  const [ renderCount, setRenderCount ] = useState(0);
+function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false }) {
+    const [renderCount, setRenderCount] = useState(0);
+    const [widgetElements, setWidgetElements] = useState([]);
+    const containerRef = useRef(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const theme = useTheme();
 
-  const renderWidget = ( name ) => {  // name of widget
-    let widgetComponent;
-    let widget;
-    let height = 60;
+    const getBreakpointColumns = () => {
+        // If we have the actual container width, use it, otherwise use panelSize
+        const availableWidth = containerWidth || panelSize || 400;
 
-    const widgetJSON = window.module.get_widget_JSON( name );
+        // More aggressively create columns - minimum width reduced to 192px
+        const MIN_COLUMN_WIDTH = 192;
 
-    try {
-      widget = JSON.parse( widgetJSON );
-    } catch (error) {
-      console.error("renderWidget Error parsing JSON:", error);
-      // Handle the error appropriately
-    }
+        // Calculate how many columns can fit, ensuring at least 1
+        const maxColumns = Math.max(1, Math.floor(availableWidth / MIN_COLUMN_WIDTH));
 
-    if (!widget) {
-      console.error(`No widget found for name: ${name}`);
-    }
-    let labelAndDescription =             
-      <Tooltip title={widget.description ?? ''} placement="top" disableInteractive >
-        <Typography variant="subtitle1" component="div">
-          {widget.label}
-        </Typography>
-      </Tooltip>;
+        // Create breakpoint object for Masonry
+        const breakpointCols = {};
 
-    switch ( widget.type ) {
-      case 'menu_int':
-      case 'menu_string':
-        if (widget.tool === 'image') {
-          widgetComponent = <ImagePicker json={widget} width={panelSize - 40} onChange={onChange} />;
-          height = 180;
-        } else {
-          widgetComponent = <JenMenu json={widget} width={panelSize - 40} onChange={onChange} />;
-        }
-        break;
-      case 'slider_int':
-      case 'slider_float':
-      case 'range_slider_int':
-      case 'range_slider_float':
-        widgetComponent =       
-          <Stack spacing={-0.5} direction="column" alignItems="center">
-            { labelAndDescription }
-            <JenSlider key = { widget.name } json = { widget } width = { panelSize - 75 } />
-          </Stack>;
-      break;
-      case 'switch_fn':
-      case 'switch_condition':
-        height = 30;
-        widgetComponent =           
-          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-            <JenSwitch key={widget.name} json={widget} size = { "small" } onChange = { onChange } />
-            { labelAndDescription }
-          </Stack>;
-      break;
-      case 'direction_picker_8':
-        widgetComponent =           
-          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-            <JenDirection8 key={widget.name} json={widget} />
-            { labelAndDescription }
-          </Stack>;
-      break;
-      case 'direction_picker_4':
-        widgetComponent =           
-          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-            <JenDirection4 key={ widget.name } json={ widget } />
-            { labelAndDescription }
-          </Stack>;
-      break;
-      case 'direction_picker_4_diagonal':
-        widgetComponent =           
-          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-            <JenDirection4Diagonal key={ widget.name } json={ widget } />
-            { labelAndDescription }
-          </Stack>;
-      break;
-      case 'box_blur_picker':
-        height = 30;
-        widgetComponent =           
-          <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-            <JenBlurPicker key={ widget.name } json={ widget } />
-            { labelAndDescription }
-          </Stack>;
-      break;
-      case 'funk_factor_picker':
-        height = 160;
-        widgetComponent = <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-          <JenFunkyPicker key={ widget.name } json={ widget } />
-          { labelAndDescription }
-        </Stack>;
-      break;
-      case 'custom_blur_picker':
-        console.log( "WidgetGroup custom_blur_picker widget=" + JSON.stringify( widget ) );
-        height = 40 + widget.pickers.length * 70;
-        const pickerElements = [];
-        for (let i = 0; i < widget.pickers.length; i++) {
+        // Set default to maximum possible columns to use all available space
+        breakpointCols.default = maxColumns;
 
-          const handleClose = () => {
-            // Call the close handler with widget.name and row index
-            window.module.remove_custom_blur_pickers(widget.name, i);
-            setRenderCount( renderCount + 1 );
-          };
+        // Add breakpoints for common screen sizes
+        if (maxColumns > 3) breakpointCols[768] = 3; // Medium screens max 3 columns
+        if (maxColumns > 2) breakpointCols[576] = 2; // Small screens max 2 columns
+        breakpointCols[400] = 1; // Very small screens use 1 column
 
-          const picker = widget.pickers[i];
-          const element = (
-            <React.Fragment key={i}>
-              <Stack spacing={1} direction="row" alignItems="center">
-                <JenMultiDirection8
-                  name={widget.name}
-                  value={picker[0]}
-                  code={i}
-                  key={ i + renderCount * 256 }
-                />
-                <JenMultiDirection8
-                  name={widget.name}
-                  value={picker[1]}
-                  code={i + 128}
-                  key={ i + 128 + renderCount * 256 }
+        console.log(`WidgetGroup: Available width ${availableWidth}px, columns: ${maxColumns}`);
+        return breakpointCols;
+    };
 
-                />
-                <IconButton size="small" onClick={handleClose}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Stack>
-            </React.Fragment>
-          );
-          pickerElements.push(element);
-        }
+    // Use ResizeObserver to detect actual width changes
+    useEffect(() => {
+        if (!containerRef.current) return;
 
-        const handleAddPicker = () => {
-          // Call the add handler with widget.name
-          window.module.add_custom_blur_pickers(widget.name);
-          setRenderCount( renderCount + 1 );
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const width = entry.contentRect.width;
+                if (width > 0) {
+                    setContainerWidth(width);
+                }
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+
+        return () => {
+            if (containerRef.current) {
+                resizeObserver.unobserve(containerRef.current);
+            }
         };
+    }, []);
 
-        widgetComponent =       
-          <Stack spacing={-0.5} direction="column" alignItems="center">
-            { labelAndDescription }
-            <Stack spacing={1} direction="column" alignItems="center">
-              {pickerElements}
-              <IconButton size="small" onClick={handleAddPicker}>
-                <AddIcon fontSize="small" />
-              </IconButton>
-            </Stack>          
-          </Stack>;
-      break;
-      case 'widget_switch_fn':
-        let ws_widget;
-        const ws_widgetJSON = window.module.get_widget_JSON( widget.widget );
+    // Create widget element for a given widget name
+    const createWidgetElement = (name) => {
+        let widget;
         try {
-          ws_widget = JSON.parse( ws_widgetJSON );
+            const widgetJSON = window.module.get_widget_JSON(name);
+            widget = JSON.parse(widgetJSON);
+            if (!widget) return null;
         } catch (error) {
-          console.error("Error parsing JSON:", error);
+            console.error("Error parsing widget JSON:", error);
+            return null;
         }
-        const switcherJSON = window.module.get_widget_JSON( widget.switcher );
-        let switcher;
-        try {
-          switcher = JSON.parse( switcherJSON );
-        } catch (error) {
-          console.error("Error parsing JSON:", error);
+
+        // Skip image widgets if disabled
+        if (disableImageWidgets && widget.tool === 'image') {
+            return null;
         }
-        switch( ws_widget.type ) {
-          case 'slider_int':
-          case 'slider_float':
-          case 'range_slider_int':
-          case 'range_slider_float':   
-            widgetComponent = 
-              <Stack spacing={-0.5} direction="column" alignItems="center">
-              <Stack spacing={1} direction="row" alignItems="center" sx={{ width: '100%', paddingLeft: '0px' }}>
-                <JenSwitch key={switcher.name} json={switcher} size={"small"} />
-                { labelAndDescription }
-              </Stack>
-              <JenSlider key={ws_widget.name} json={ws_widget} width={panelSize - 75} />
-            </Stack>;
-          break;
-          default:
-            widgetComponent = <div key={ ws_widget.name }>Widget Switch - Unknown widget type: { ws_widget.type }</div>;
-          break;
+
+        const labelElement = (
+            <Typography
+                sx={{
+                    fontWeight: 500,
+                    color: 'white',
+                    fontSize: '1rem',
+                    mb: 0.5
+                }}
+            >
+                {widget.label}
+            </Typography>
+        );
+
+        switch (widget.type) {
+            case 'menu_int':
+                return (
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        <JenMenu json={widget} onChange={onChange} width="100%" />
+                    </Box>
+                );
+
+            case 'menu_string':
+                // Use MasonryImagePicker for image selection
+                if (widget.tool === 'image' && !disableImageWidgets) {
+                    return (
+                        <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                            <MasonryImagePicker
+                                json={widget}
+                                width="100%"
+                                onChange={onChange}
+                            />
+                        </Box>
+                    );
+                }
+                // Use regular menu for other string menus
+                return (
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        {labelElement}
+                        <JenMenu json={widget} onChange={onChange} width="100%" />
+                    </Box>
+                );
+
+            case 'slider_int':
+            case 'slider_float':
+            case 'range_slider_int':
+            case 'range_slider_float':
+                return (
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        {labelElement}
+                        <JenSlider json={widget} width="100%" />
+                    </Box>
+                );
+
+            case 'switch_fn':
+            case 'switch_condition':
+                return (
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                        <JenSwitch json={widget} onChange={onChange} />
+                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                    </Box>
+                );
+
+            case 'direction_picker_8':
+                return (
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                        <JenDirection8 json={widget} />
+                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                    </Box>
+                );
+
+            case 'direction_picker_4':
+                return (
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                        <JenDirection4 json={widget} />
+                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                    </Box>
+                );
+
+            case 'direction_picker_4_diagonal':
+                return (
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                        <JenDirection4Diagonal json={widget} />
+                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                    </Box>
+                );
+
+            case 'box_blur_picker':
+                return (
+                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                        <JenBlurPicker json={widget} />
+                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                    </Box>
+                );
+
+            case 'funk_factor_picker':
+                return (
+                    <Box key={widget.name} sx={{width: '100%', mb: 1}}>
+                        <Box sx={{mt: 0.5}}>
+                            <JenFunkyPicker key={widget.name} json={widget}/>
+                        </Box>
+                    </Box>
+                );
+
+            case 'custom_blur_picker':
+                // Handle multi-picker component with add/remove functionality
+                const pickerElements = [];
+
+                for (let i = 0; i < widget.pickers.length; i++) {
+                    const handleClose = () => {
+                        window.module.remove_custom_blur_pickers(widget.name, i);
+                        setRenderCount(renderCount + 1);
+                    };
+
+                    const picker = widget.pickers[i];
+
+                    pickerElements.push(
+                        <Box
+                            key={`picker-${i}-${renderCount}`}
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                mb: 0.5,
+                                p: 0.5,
+                                border: `1px solid rgba(255, 255, 255, 0.1)`,
+                                borderRadius: 1,
+                                bgcolor: 'rgba(0, 0, 0, 0.2)'
+                            }}
+                        >
+                            <JenMultiDirection8
+                                name={widget.name}
+                                value={picker[0]}
+                                code={i}
+                                key={`dir1-${i}-${renderCount}`}
+                            />
+                            <JenMultiDirection8
+                                name={widget.name}
+                                value={picker[1]}
+                                code={i + 128}
+                                key={`dir2-${i}-${renderCount}`}
+                            />
+                            <IconButton size="small" onClick={handleClose} sx={{ p: 0.2, color: 'white' }}>
+                                <X size={12} />
+                            </IconButton>
+                        </Box>
+                    );
+                }
+
+                const handleAddPicker = () => {
+                    window.module.add_custom_blur_pickers(widget.name);
+                    setRenderCount(renderCount + 1);
+                };
+
+                return (
+                    <Box key={widget.name} sx={{ width: '100%', mb: 1 }}>
+                        <Box sx={{ mb: 0.5 }}>
+                            {labelElement}
+                        </Box>
+
+                        {pickerElements}
+
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
+                            <IconButton
+                                size="small"
+                                onClick={handleAddPicker}
+                                sx={{
+                                    border: `1px dashed rgba(255, 255, 255, 0.3)`,
+                                    borderRadius: 1,
+                                    p: 0.3,
+                                    color: 'white'
+                                }}
+                            >
+                                <Plus size={12} />
+                            </IconButton>
+                        </Box>
+                    </Box>
+                );
+
+            case 'widget_switch_fn':
+                // Handle widget with a switch
+                let wsWidget, switcher;
+
+                try {
+                    const wsWidgetJSON = window.module.get_widget_JSON(widget.widget);
+                    wsWidget = JSON.parse(wsWidgetJSON);
+
+                    const switcherJSON = window.module.get_widget_JSON(widget.switcher);
+                    switcher = JSON.parse(switcherJSON);
+                } catch (error) {
+                    console.error("Error parsing widget_switch_fn JSON:", error);
+                    return null;
+                }
+
+                // Only handle slider types for now
+                if (wsWidget.type.includes('slider_')) {
+                    return (
+                        <Box key={widget.name} sx={{ width: '100%', mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <JenSwitch key={switcher.name} json={switcher} onChange={onChange} />
+                                <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
+                            </Box>
+                            <JenSlider key={wsWidget.name} json={wsWidget} width="100%" />
+                        </Box>
+                    );
+                }
+
+                return (
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        <Typography variant="caption" color="text.secondary">
+                            Unsupported widget_switch_fn type: {wsWidget.type}
+                        </Typography>
+                    </Box>
+                );
+
+            default:
+                return (
+                    <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
+                        <Typography variant="caption" color="text.secondary">
+                            Unknown widget type: {widget.type}
+                        </Typography>
+                    </Box>
+                );
         }
-      break;
-      default:
-        widgetComponent = <div key={ widget.name }>Unknown widget type: { widget.type }</div>;
-        break;
+    };
+
+    // Create widget elements on initial render and when dependencies change
+    useEffect(() => {
+        if (json && json.widgets) {
+            const elements = json.widgets
+                .map(createWidgetElement)
+                .filter(el => el !== null);
+            setWidgetElements(elements);
+        }
+    }, [json, panelSize, disableImageWidgets, renderCount]);
+
+    // If no widgets, don't render anything
+    if (widgetElements.length === 0) {
+        return null;
     }
 
     return (
-      <WidgetContainer key = { widget.name } panelSize = { panelSize } height = { height } >
-        { widgetComponent }
-      </WidgetContainer>
+        <Box
+            ref={containerRef}
+            sx={{
+                width: '100%',
+                px: 0.5,
+                pt: 0.5,
+                pb: 1,
+                // Force the container to expand to full width
+                display: 'flex',
+                flexDirection: 'column'
+            }}
+        >
+            <Masonry
+                breakpointCols={getBreakpointColumns()}
+                className="widget-masonry-grid"
+                columnClassName="widget-masonry-column"
+            >
+                {widgetElements.map((element, index) => (
+                    <div key={`widget-item-${index}`} className="widget-item">
+                        {element}
+                    </div>
+                ))}
+            </Masonry>
+        </Box>
     );
-  };
-
-  return (
-      json.widgets.map( renderWidget )
-  );  
 }
-  
+
 export default WidgetGroup;

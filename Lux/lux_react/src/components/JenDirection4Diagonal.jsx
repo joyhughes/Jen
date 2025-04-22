@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import Button from '@mui/material/Button';
-import Grid from '@mui/material/Grid';
+import React, { useState, useEffect } from 'react';
+import { Box, Button, useTheme, Tooltip } from '@mui/material';
+import {
+    ArrowUpLeft,
+    ArrowUpRight,
+    ArrowDownLeft,
+    ArrowDownRight
+} from 'lucide-react';
 
-const directionToNumber4Diagonal = (directionString) => {
+// Mapping from direction string to internal numeric representation
+const directionToNumber = (directionString) => {
     const mapping = {
         "up_right": 0,
         "down_right": 1,
@@ -10,43 +16,94 @@ const directionToNumber4Diagonal = (directionString) => {
         "up_left": 3
     };
 
-    return mapping[directionString] ?? -1; // Return -1 if directionString is not in mapping
+    return mapping[directionString] ?? 0; // Default to "up_right"
 };
 
-function JenDirection4Diagonal( { json } ) {
-    const [ direction, setDirection ] = useState( directionToNumber4Diagonal( json.value ?? "down" ) );
+// Component for 4-directional diagonal picker
+function JenDirection4Diagonal({ json }) {
+    const theme = useTheme();
+    const [direction, setDirection] = useState(() =>
+        directionToNumber(json?.value ?? "up_right")
+    );
 
-    const handleDirectionChange = ( newDirection ) => {
-        setDirection( newDirection );
-        window.module.pick_direction4_diagonal( json.name, newDirection );
+    // Update module state when direction changes
+    const handleDirectionChange = (newDirection) => {
+        setDirection(newDirection);
+
+        if (window.module) {
+            window.module.pick_direction4_diagonal(json.name, newDirection);
+        }
     };
 
-    const renderDirectionButton = ( dirValue, label ) => {
+    // Direction button component with tooltips
+    const DirectionButton = ({ value, icon, label }) => {
+        const isSelected = direction === value;
+
         return (
-            <Button
-                variant={ direction === dirValue ? "contained" : "outlined" }
-                onClick={ () => handleDirectionChange( dirValue ) }
-                style={{ minWidth: '20px', height: '20px', padding: '0px' }}
-            >
-                {label}
-            </Button>
+            <Tooltip title={label} arrow placement="top">
+                <Button
+                    variant={isSelected ? "contained" : "outlined"}
+                    onClick={() => handleDirectionChange(value)}
+                    sx={{
+                        minWidth: 36,
+                        width: 36,
+                        height: 36,
+                        padding: 0,
+                        borderColor: isSelected ? 'transparent' : theme.palette.divider,
+                        color: isSelected ? 'white' : theme.palette.text.secondary,
+                        boxShadow: isSelected ? 2 : 0,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                            backgroundColor: isSelected
+                                ? theme.palette.primary.main
+                                : theme.palette.action.hover,
+                            borderColor: isSelected
+                                ? 'transparent'
+                                : theme.palette.primary.light,
+                        }
+                    }}
+                >
+                    {icon}
+                </Button>
+            </Tooltip>
         );
     };
 
     return (
-        <Grid container spacing={0} style={{ width: '60px' }}>
-            <Grid item xs={4}>{renderDirectionButton(3, '↖')}</Grid>
-            <Grid item xs={4}></Grid>
-            <Grid item xs={4}>{renderDirectionButton(0, '↗')}</Grid>
+        <Box sx={{ display: 'inline-flex', flexDirection: 'column' }}>
+            {/* Top row */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <DirectionButton
+                    value={3}
+                    icon={<ArrowUpLeft size={16} />}
+                    label="Up-Left"
+                />
+                <Box sx={{ width: 36 }} />
+                <DirectionButton
+                    value={0}
+                    icon={<ArrowUpRight size={16} />}
+                    label="Up-Right"
+                />
+            </Box>
 
-            <Grid item xs={4}></Grid>
-            <Grid item xs={4}><div style={{ height: '20px' }}></div></Grid>
-            <Grid item xs={4}></Grid>
+            {/* Empty middle row for visual balance */}
+            <Box sx={{ height: 36 }} />
 
-            <Grid item xs={4}>{renderDirectionButton(2, '↙')}</Grid>
-            <Grid item xs={4}></Grid>
-            <Grid item xs={4}>{renderDirectionButton(1, '↘')}</Grid>
-        </Grid>
+            {/* Bottom row */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <DirectionButton
+                    value={2}
+                    icon={<ArrowDownLeft size={16} />}
+                    label="Down-Left"
+                />
+                <Box sx={{ width: 36 }} />
+                <DirectionButton
+                    value={1}
+                    icon={<ArrowDownRight size={16} />}
+                    label="Down-Right"
+                />
+            </Box>
+        </Box>
     );
 }
 
