@@ -1,7 +1,7 @@
 {
-    "name": "test hue change",
+    "name": "hues",
     "title": "Hues",
-    "images": 
+    "images":
     [
         {
             "type": "uimage",

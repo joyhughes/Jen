@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Box, CircularProgress, Typography, Tooltip, Fade } from '@mui/material';
-import { styled, useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import { AlertTriangle, Check, Info } from 'lucide-react';
+import ThumbnailCanvas from "./ThumbnailCanvas.jsx";
 
 export const THUMB_SIZE = 64; // Thumbnail size
 
@@ -26,21 +27,6 @@ const ThumbnailContainer = styled(Box)(({ theme, selected }) => ({
         transform: 'scale(0.98)',
     }
 }));
-
-// Canvas wrapper with consistent styling
-const CanvasWrapper = styled(Box)({
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    '& canvas': {
-        display: 'block',
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-    },
-});
 
 // Overlay for loading/error states
 const StatusOverlay = styled(Box)(({ theme, status }) => ({
@@ -81,173 +67,14 @@ const SelectionIndicator = styled(Box)(({ theme }) => ({
     boxShadow: theme.shadows[2],
 }));
 
-// Generate a color based on the image name for placeholders
-const getPlaceholderColor = (imageName) => {
-    let hash = 0;
-    for (let i = 0; i < imageName.length; i++) {
-        hash = imageName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const c = (hash & 0x00FFFFFF)
-        .toString(16)
-        .toUpperCase()
-        .padStart(6, '0');
-    return `#${c}`;
-};
-
-// Functional component for the thumbnail item
 function ThumbnailItem({ imageName, isSelected, onClick }) {
-    const theme = useTheme();
-    const canvasRef = useRef(null);
     const [status, setStatus] = useState('loading'); // 'loading', 'loaded', 'error', 'debug'
     const [tooltipOpen, setTooltipOpen] = useState(false);
-    const [retryCount, setRetryCount] = useState(0);
-    const [debugMessage, setDebugMessage] = useState('');
 
-    // Draw placeholder while loading or if there's an error
-    const drawPlaceholder = useCallback(() => {
-        if (!canvasRef.current) return;
 
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
 
-        // Fill with a color based on the image name
-        const color = getPlaceholderColor(imageName);
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, THUMB_SIZE, THUMB_SIZE);
-
-        // Add text
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        // Truncate long names
-        let displayName = imageName.split('/').pop();
-        if (displayName.length > 10) {
-            displayName = displayName.substring(0, 8) + '...';
-        }
-
-        ctx.fillText(displayName, THUMB_SIZE / 2, THUMB_SIZE / 2);
-    }, [imageName]);
-
-    // Function to draw the thumbnail
-    const drawThumbnail = useCallback(async () => {
-        if (!canvasRef.current) return;
-
-        setStatus('loading');
-        let pixelDataVal = null;
-
-        // Draw initial placeholder
-        drawPlaceholder();
-
-        // Check if WebAssembly module is available
-        if (!window.module) {
-            console.error('WebAssembly module not available');
-            setDebugMessage('Module not loaded');
-            setStatus('debug');
-            return;
-        }
-
-        // Check if get_thumbnail function exists
-        if (typeof window.module.get_thumbnail !== 'function') {
-            console.error('get_thumbnail function not available in WebAssembly module');
-            setDebugMessage('No thumbnail API');
-            setStatus('debug');
-            return;
-        }
-
-        try {
-            // Get thumbnail from WebAssembly module
-            pixelDataVal = window.module.get_thumbnail(imageName, THUMB_SIZE, THUMB_SIZE);
-
-            // Check if we got valid data
-            if (!pixelDataVal) {
-                throw new Error('No pixel data returned');
-            }
-
-            const bufferLength = pixelDataVal.byteLength;
-
-            // Validate buffer length
-            if (!bufferLength || bufferLength !== THUMB_SIZE * THUMB_SIZE * 4) {
-                console.error(`Thumbnail Error (${imageName}): Invalid pixel data length: ${bufferLength}`);
-
-                setDebugMessage(`Invalid data: ${bufferLength} bytes`);
-                setStatus('debug');
-
-                // If it's the first try, retry once
-                if (retryCount === 0) {
-                    setRetryCount(1);
-                    setTimeout(() => drawThumbnail(), 500);
-                }
-                return;
-            }
-
-            // Get clamped array view
-            const pixelData = new Uint8ClampedArray(pixelDataVal.buffer, pixelDataVal.byteOffset, bufferLength);
-
-            // Swizzle format if needed (assuming BGRA to RGBA)
-            const rgbaPixelData = new Uint8ClampedArray(bufferLength);
-            for (let i = 0; i < bufferLength; i += 4) {
-                // Check the pattern of first few pixels to detect format
-                if (i < 20) {
-                    console.log(`Pixel ${i/4}: R=${pixelData[i]}, G=${pixelData[i+1]}, B=${pixelData[i+2]}, A=${pixelData[i+3]}`);
-                }
-
-                // Copy data (might need to swap R and B if colors look wrong)
-                rgbaPixelData[i] = pixelData[i];       // R
-                rgbaPixelData[i + 1] = pixelData[i + 1]; // G
-                rgbaPixelData[i + 2] = pixelData[i + 2]; // B
-                rgbaPixelData[i + 3] = 255;              // A (force full opacity)
-            }
-
-            // Create ImageData and get context
-            const imageData = new ImageData(rgbaPixelData, THUMB_SIZE, THUMB_SIZE);
-            const ctx = canvasRef.current.getContext('2d', { alpha: false });
-
-            if (!ctx) {
-                throw new Error("Could not get canvas context");
-            }
-
-            // Create and render the bitmap
-            const imageBitmap = await createImageBitmap(imageData);
-            ctx.clearRect(0, 0, THUMB_SIZE, THUMB_SIZE);
-            ctx.drawImage(imageBitmap, 0, 0, THUMB_SIZE, THUMB_SIZE);
-            imageBitmap.close();
-
-            setStatus('loaded');
-        } catch (err) {
-            console.error(`Thumbnail Error (${imageName}):`, err);
-
-            // If it's the first try, retry once
-            if (retryCount === 0) {
-                setRetryCount(1);
-                setTimeout(() => drawThumbnail(), 500);
-                return;
-            }
-
-            setDebugMessage(err.message);
-            setStatus('error');
-            drawPlaceholder();
-        }
-    }, [imageName, retryCount, drawPlaceholder]);
-
-    // Initialize thumbnail on mount or when imageName changes
-    useEffect(() => {
-        console.log(`Initializing thumbnail for ${imageName}, selected: ${isSelected}`);
-        setRetryCount(0); // Reset retry count when imageName changes
-
-        // Small delay to avoid blocking the UI thread during initial load
-        const timer = setTimeout(() => {
-            drawThumbnail();
-        }, 50);
-
-        return () => clearTimeout(timer);
-    }, [drawThumbnail, imageName]);
-
-    // Get filename for display (strip path if present)
     const displayName = imageName.split('/').pop();
 
-    // Handle click with debounce to prevent double-clicks
     const handleClick = () => {
         if (onClick) onClick(imageName);
     };
@@ -285,13 +112,13 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
                 onTouchStart={() => setTooltipOpen(true)} // Better touch device support
                 onTouchEnd={() => setTooltipOpen(false)}  // Better touch device support
             >
-                <CanvasWrapper>
-                    <canvas
-                        ref={canvasRef}
-                        width={THUMB_SIZE}
-                        height={THUMB_SIZE}
-                    />
-                </CanvasWrapper>
+                <ThumbnailCanvas
+                    imageName={imageName}
+                    width={THUMB_SIZE}
+                    height={THUMB_SIZE}
+                    setStatus={setStatus}
+
+                />
 
                 {/* Loading overlay */}
                 {status === 'loading' && (

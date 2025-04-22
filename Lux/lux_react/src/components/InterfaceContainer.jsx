@@ -1,7 +1,9 @@
 import {Box} from "@mui/material";
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import ControlPanel from "./ControlPanel";
 import ImagePort from "./ImagePort";
+import {SceneProvider} from './SceneContext';
+
 
 function InterfaceContainer({ panelSize }) {
   const [moduleReady, setModuleReady] = useState(false);
@@ -144,6 +146,7 @@ function InterfaceContainer({ panelSize }) {
   };
 
   return (
+      <SceneProvider>
       <Box
           ref={containerRef}
           sx={{
@@ -178,6 +181,7 @@ function InterfaceContainer({ panelSize }) {
             onPaneChange={handlePaneChange}
         />
       </Box>
+      </SceneProvider>
   );
 }
 

@@ -8,17 +8,12 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
+import {SceneChooser} from "./SceneChooser.jsx";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [panelJSON, setPanelJSON] = useState([]);
-
-    // State to store which widget groups should be displayed
     const [activeGroups, setActiveGroups] = useState([]);
 
-    // No longer define activePane state here - it comes from props
-    // const [activePane, setActivePane] = useState("home");
-
-    // Callback function to handle state changes in widget groups
     const handleWidgetGroupChange = () => {
         // Fetch active widget groups from WebAssembly
         const active = panelJSON.filter(group =>
@@ -27,7 +22,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         setActiveGroups(active);
     };
 
-    // Load the panel configuration from WebAssembly
     const setupPanel = () => {
         const panelJSONString = window.module.get_panel_JSON();
 
@@ -37,12 +31,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         } catch (error) {
             console.error("Error parsing panel JSON:", error);
         }
-    };
-
-    // Reset panel state
-    const clearPanel = () => {
-        setPanelJSON([]);
-        setActiveGroups([]);
     };
 
     useEffect(() => {
@@ -57,7 +45,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     window.module.set_scene_callback(setupPanel);
                     clearInterval(intervalId);
                 }
-            }, 100); // Check every 100ms
+            }, 100);
 
             return () => clearInterval(intervalId);
         }
@@ -90,8 +78,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
     };
 
-    console.log("ControlPanel rendering with activePane:", activePane);
-
     return (
         <Paper
             elevation={3}
@@ -106,6 +92,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 maxWidth: dimensions.width
             }}
         >
+            <Box sx={{ p: 1, borderColor: 'divider' }}>
+                <SceneChooser width="100%" />
+            </Box>
 
             <TabNavigation
                 activePane={activePane}

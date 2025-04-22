@@ -1,123 +1,176 @@
-import React, { useState, useEffect } from "react";
+import React, {useState} from "react";
 import {
-    Select,
-    MenuItem,
-    InputLabel,
-    FormControl,
     Box,
-    Typography,
-    Paper,
-    useTheme
-} from '@mui/material';
-import { BookOpen } from 'lucide-react';
-import {THUMB_SIZE} from "./ThumbnailItem.jsx";
+    CircularProgress,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    MenuItem,
+    Select,
+    Typography
+} from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import {Close} from "@mui/icons-material";
+import {useScene} from "./SceneContext.jsx";
+import {BookOpen} from "lucide-react";
+import ThumbnailCanvas from "./ThumbnailCanvas.jsx";
 
-function SceneChooser({ width, onChange }) {
-    const theme = useTheme();
-    const [sceneListJSON, setSceneListJSON] = useState({ scenes: [] });
-    const [selectedMenuChoice, setSelectedMenuChoice] = useState(0);
+export function SceneChooser() {
+    const {scenes, currentSceneIndex, changeScene, isLoading} = useScene();
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [status, setStatus] = useState('loading')
 
-    // Handle scene selection
-    const handleMenuChange = (event) => {
-        onChange();
-        window.module.load_scene(sceneListJSON.scenes[event.target.value].filename);
-        setSelectedMenuChoice(event.target.value);
-    };
+    const currentScene = scenes[currentSceneIndex] || {name: "kaleidoswirl"};
 
-    // Load scene list
-    const setupSceneList = () => {
-        const sceneListJSONString = window.module.get_scene_list_JSON();
-        try {
-            const parsedJSON = JSON.parse(sceneListJSONString);
-            setSceneListJSON(parsedJSON);
-        } catch (error) {
-            console.error("Error parsing scene list JSON:", error);
-        }
-    };
-
-    // Initialize on mount
-    useEffect(() => {
-        if (window.module) {
-            setupSceneList();
+    const getIconImagePath = (scene) => {
+        console.log('scene now: ' + JSON.stringify(scene));
+        if (scene) {
+            return scene.name.toLowerCase().split(" ").join("_") + ".jpeg";
         } else {
-            // Poll for the Module to be ready
-            const intervalId = setInterval(() => {
-                if (window.module) {
-                    setupSceneList();
-                    clearInterval(intervalId);
-                }
-            }, 100);
-
-            return () => clearInterval(intervalId);
+            return '';
         }
-    }, []);
+    }
+
 
     return (
-        <Paper
-            elevation={0}
-            sx={{
-                p: 0.75,
-                borderRadius: 1,
-                border: `1px solid ${theme.palette.divider}`,
-                bgcolor: theme.palette.background.paper,
-                width: width,
-                mb: 0.5
-            }}
-        >
-            <Box sx={{ mb: 0.5 }}>
-                <Typography
-                    variant="caption"
-                    component="div"
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        fontWeight: 600
-                    }}
-                >
-                    <BookOpen size={12} />
-                    Scene Selection
-                </Typography>
-            </Box>
+        <>
+            <Paper sx={{p: 1, borderRadius: 1}}>
+                <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5}}>
+                    <Typography variant="body2" fontWeight="bold" sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                        <BookOpen size={16}/>
+                        Scene Selection
+                    </Typography>
+                    <Box>
+                        {isLoading && <CircularProgress size={16} sx={{mr: 1}}/>}
+                        <IconButton size="small" onClick={() => setGalleryOpen(true)}>
+                            <Grid size={16}/>
+                        </IconButton>
+                    </Box>
+                </Box>
 
-            <FormControl
-                fullWidth
-                size="small"
-                variant="outlined"
-                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' } }}
-            >
-                <InputLabel id="scene-select-label" sx={{ fontSize: '0.8rem' }}>Scene</InputLabel>
                 <Select
-                    labelId="scene-select-label"
-                    id="scene-select"
-                    value={selectedMenuChoice}
-                    label="Scene"
-                    onChange={handleMenuChange}
-                    MenuProps={{
-                        PaperProps: {
-                            style: {
-                                maxHeight: 300,
-                                width: Math.min(width, THUMB_SIZE * 3) - 20,
-                            },
-                            elevation: 3,
-                        },
-                    }}
-                >
-                    {sceneListJSON && sceneListJSON.scenes ? (
-                        sceneListJSON.scenes.map((scene, index) => (
-                            <MenuItem key={index} value={index}>
-                                {scene.name}
-                            </MenuItem>
-                        ))
-                    ) : (
-                        <MenuItem value="">
-                            <em>Loading...</em>
-                        </MenuItem>
+                    value={currentSceneIndex}
+                    onChange={(e) => changeScene(e.target.value)}
+                    fullWidth
+                    size="small"
+                    renderValue={() => (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                                sx={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '4px',
+                                    overflow: 'hidden',
+                                    bgcolor: 'rgba(0,0,0,0.2)'
+                                }}
+                            >
+                                <img
+                                    src={`../../public/assets/images/${getIconImagePath(currentScene)}`}
+                                    alt=""
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { e.target.style.display = 'none' }}
+                                />
+                            </Box>
+                            <Typography variant="body2" noWrap>
+                                {currentScene.name}
+                            </Typography>
+                        </Box>
                     )}
+                >
+                    {scenes.map((scene, index) => (
+                        <MenuItem key={index} value={index}>
+                            <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                                <Box
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '4px',
+                                        overflow: 'hidden',
+                                        bgcolor: 'rgba(0,0,0,0.2)'
+                                    }}
+                                >
+                                    <img
+                                        src={`../../public/assets/images/${getIconImagePath(scene)}`}
+                                        alt=""
+                                        style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none'
+                                        }}
+                                    />
+                                </Box>
+                                {scene.name}
+                            </Box>
+                        </MenuItem>
+                    ))}
                 </Select>
-            </FormControl>
-        </Paper>
+            </Paper>
+
+            {/* Gallery Dialog */}
+            <Dialog
+                open={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>
+                    Scene Gallery
+                    <IconButton
+                        onClick={() => setGalleryOpen(false)}
+                        sx={{position: 'absolute', right: 8, top: 8}}
+                    >
+                        <Close/>
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2}>
+                        {scenes.map((scene, index) => (
+                            <Grid item xs={6} sm={4} md={3} key={index}>
+                                <Paper
+                                    elevation={1}
+                                    sx={{
+                                        p: 1,
+                                        cursor: 'pointer',
+                                        border: index === currentSceneIndex ? '2px solid #4f8cff' : '1px solid rgba(0,0,0,0.1)',
+                                        bgcolor: index === currentSceneIndex ? 'rgba(79,140,255,0.1)' : 'background.paper',
+                                        '&:hover': {transform: 'scale(1.02)', boxShadow: 2},
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onClick={() => {
+                                        changeScene(index);
+                                        setGalleryOpen(false);
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            width: '100%',
+                                            paddingTop: '100%',
+                                            position: 'relative',
+                                            mb: 1,
+                                            borderRadius: 1,
+                                            overflow: 'hidden',
+                                            bgcolor: 'rgba(0,0,0,0.2)'
+                                        }}
+                                    >
+                                        <img
+                                            src={`../../public/assets/images/${getIconImagePath(scene)}`}
+                                            alt=""
+                                            style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                            onError={(e) => {
+                                                e.target.style.display = 'none'
+                                            }}
+                                        />
+                                    </Box>
+                                    <Typography variant="body2" align="center">
+                                        {scene.name}
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
-
-export default SceneChooser;

@@ -192,10 +192,6 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
 
     return (
         <Box sx={{ width: width || '100%' }} ref={containerRef}>
-            <Typography variant="subtitle1" gutterBottom>
-                Source Images
-            </Typography>
-
             {/* Error message */}
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
