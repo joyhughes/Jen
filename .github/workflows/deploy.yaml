@@ -31,6 +31,10 @@ jobs:
         run: npm ci
         working-directory: ./Lux/lux_react
       
+      - name: Clean existing dist folder
+        run: rm -rf dist
+        working-directory: ./Lux/lux_react
+      
       - name: Build the project
         run: npm run build
         working-directory: ./Lux/lux_react
