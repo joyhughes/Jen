@@ -25,13 +25,15 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: './package-lock.json'
+          cache-dependency-path: './Lux/lux_react/package-lock.json'
       
       - name: Install dependencies
         run: npm ci
+        working-directory: ./Lux/lux_react
       
       - name: Build the project
         run: npm run build
+        working-directory: ./Lux/lux_react
         env:
           NODE_ENV: production
       
@@ -39,6 +41,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./Lux/lux_react/dist
           force_orphan: true
           commit_message: "Deploy: ${{ github.event.head_commit.message }}"
