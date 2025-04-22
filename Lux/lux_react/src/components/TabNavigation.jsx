@@ -1,9 +1,10 @@
 import React from 'react';
 import { Box, Tab, Tabs, Tooltip } from '@mui/material';
-import { FaHome } from 'react-icons/fa';  // Home icon from Font Awesome
-import { BiImageAlt } from 'react-icons/bi';  // Source image icon from Boxicons
-import { FaBullseye } from 'react-icons/fa';  // Target/bullseye icon from Font Awesome
-import { BsBrush } from 'react-icons/bs';  // Brush icon from Bootstrap Icons
+import { FaHome } from 'react-icons/fa';
+import { BiImageAlt } from 'react-icons/bi';
+import { FaBullseye } from 'react-icons/fa';
+import { BsBrush } from 'react-icons/bs';
+import { BsCollectionPlay } from 'react-icons/bs';
 
 function TabNavigation({ activePane, onPaneChange }) {
     const handleChange = (event, newValue) => {
@@ -42,6 +43,20 @@ function TabNavigation({ activePane, onPaneChange }) {
                     }}
                     aria-label="Home"
                     title="Home"
+                />
+
+                <Tab
+                    icon={<BsCollectionPlay style={iconStyle} />}
+                    value="scenes"
+                    sx={{
+                        minHeight: '50px',
+                        '&.Mui-selected': {
+                            color: 'primary.main',
+                            background: 'rgba(25, 118, 210, 0.08)'
+                        }
+                    }}
+                    aria-label="Scenes"
+                    title="Scenes"
                 />
 
                 <Tab

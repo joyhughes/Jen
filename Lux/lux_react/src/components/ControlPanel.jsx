@@ -8,7 +8,7 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
-import {SceneChooser} from "./SceneChooser.jsx";
+import { SceneChooserPane } from "./panes/SceneChooserPane";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [panelJSON, setPanelJSON] = useState([]);
@@ -16,20 +16,24 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
 
     const handleWidgetGroupChange = () => {
         // Fetch active widget groups from WebAssembly
-        const active = panelJSON.filter(group =>
-            window.module.is_widget_group_active(group.name)
-        );
-        setActiveGroups(active);
+        if (window.module && panelJSON) {
+            const active = panelJSON.filter(group =>
+                window.module.is_widget_group_active(group.name)
+            );
+            setActiveGroups(active);
+        }
     };
 
     const setupPanel = () => {
-        const panelJSONString = window.module.get_panel_JSON();
+        if (window.module) {
+            const panelJSONString = window.module.get_panel_JSON();
 
-        try {
-            const parsedJSON = JSON.parse(panelJSONString);
-            setPanelJSON(parsedJSON);
-        } catch (error) {
-            console.error("Error parsing panel JSON:", error);
+            try {
+                const parsedJSON = JSON.parse(panelJSONString);
+                setPanelJSON(parsedJSON);
+            } catch (error) {
+                console.error("Error parsing panel JSON:", error);
+            }
         }
     };
 
@@ -67,6 +71,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         switch (activePane) {
             case "home":
                 return <HomePane {...commonProps} />;
+            case "scenes":
+                return <SceneChooserPane />;
             case "source":
                 return <SourceImagePane {...commonProps} />;
             case "target":
@@ -92,10 +98,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 maxWidth: dimensions.width
             }}
         >
-            <Box sx={{ p: 1, borderColor: 'divider' }}>
-                <SceneChooser width="100%" />
-            </Box>
-
             <TabNavigation
                 activePane={activePane}
                 onPaneChange={onPaneChange}

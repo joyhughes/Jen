@@ -86,11 +86,10 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
 
         const labelElement = (
             <Typography
-                variant="body2"
                 sx={{
                     fontWeight: 500,
                     color: 'white',
-                    fontSize: '0.8rem',
+                    fontSize: '1rem',
                     mb: 0.5
                 }}
             >
