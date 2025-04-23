@@ -67,12 +67,7 @@ jobs:
         working-directory: ./Lux/lux_react
 
       - name: Add .nojekyll file
-        run: touch ./Lux/lux_react/dist/.nojekyll
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true # Enable GitHub Pages during the workflow
+        run: touch ./Lux/lux_react/dist/.nojekyl
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
