@@ -76,5 +76,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: /tmp/gh-pages-deploy
+          cname: joyhughes.github.io
           force_orphan: true
           commit_message: "Deploy: ${{ github.event.head_commit.message }} [timestamp: $(date +%s)]"
