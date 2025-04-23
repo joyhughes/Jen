@@ -20,6 +20,9 @@ jobs:
         with:
           fetch-depth: 0
       
+      - name: Print repository structure
+        run: find . -type d -not -path "*/node_modules/*" -not -path "*/\.*" | sort
+      
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -51,15 +54,27 @@ jobs:
         run: touch dist/.nojekyll
         working-directory: ./Lux/lux_react
       
-      # Debug step to verify files
       - name: List files in dist directory
-        run: ls -la dist
+        run: find ./dist -type f | sort
         working-directory: ./Lux/lux_react
       
+      # Create a temporary directory to copy files to
+      - name: Create tmp directory
+        run: mkdir -p /tmp/gh-pages-deploy
+      
+      # Copy the dist directory to the tmp directory
+      - name: Copy dist files to tmp directory
+        run: cp -R ./Lux/lux_react/dist/* /tmp/gh-pages-deploy/
+      
+      # Verify the files were copied correctly
+      - name: List files in tmp directory
+        run: find /tmp/gh-pages-deploy -type f | sort
+      
+      # Deploy using the tmp directory
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./Lux/lux_react/dist
+          publish_dir: /tmp/gh-pages-deploy
           force_orphan: true
           commit_message: "Deploy: ${{ github.event.head_commit.message }} [timestamp: $(date +%s)]"
