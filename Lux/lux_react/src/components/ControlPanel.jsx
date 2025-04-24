@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -10,7 +10,8 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
-import { SceneChooserPane } from "./panes/SceneChooserPane";
+import {SceneChooserPane} from "./panes/SceneChooserPane";
+import {PaneContext} from "./panes/PaneContext.jsx";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [panelJSON, setPanelJSON] = useState([]);
@@ -20,6 +21,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const setupAttempts = useRef(0);
     const maxSetupAttempts = 10;
     const loadingTimeoutRef = useRef(null);
+    const previousPaneRef = useRef(activePane);
+
+
+    useEffect(() => {
+        console.log(`Pane changed from ${previousPaneRef.current} to ${activePane}`);
+        if (activePane === "home" && previousPaneRef.current !== "home"){
+            console.log("Navigated to home pane, triggering widget reload");
+            handleWidgetGroupChange();
+        }
+    }, [activePane])
 
     const handleWidgetGroupChange = () => {
         if (!window.module) {
@@ -123,6 +134,10 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     window.module.set_scene_callback(() => {
                         console.log("Scene callback triggered");
                         setupPanel(true);
+
+                        setTimeout(() => {
+                            handleWidgetGroupChange()
+                        }, 100)
                     });
                 } else {
                     // If setup failed but we haven't exceeded max attempts, try again
@@ -186,6 +201,12 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
     }, [isInitialized, activeGroups.length, isLoading]);
 
+
+    const paneContextValue = {
+        activePane,
+        setActivePane: onPaneChange
+    }
+
     const renderActivePane = () => {
         const commonProps = {
             dimensions,
@@ -200,7 +221,11 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             case "home":
                 return <HomePane {...commonProps} />;
             case "scenes":
-                return <SceneChooserPane />;
+                return (
+                    <PaneContext.Provider value={paneContextValue}>
+                        <SceneChooserPane />
+                    </PaneContext.Provider>
+                );
             case "source":
                 return <SourceImagePane {...commonProps} />;
             case "target":
