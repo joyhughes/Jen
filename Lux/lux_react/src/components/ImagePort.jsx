@@ -249,8 +249,8 @@ function ImagePort({ dimensions, moduleReady }) {
                 <Box
                     sx={{
                         position: 'absolute',
-                        top: 16,
-                        right: 16,
+                        bottom: 16,
+                        left: 16,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1,
@@ -274,87 +274,6 @@ function ImagePort({ dimensions, moduleReady }) {
                                     }}
                                     size="small">
                                     {isFullscreen ? <X size={16} /> : <Maximize2 size={16} />}
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Zoom in" placement="left" arrow>
-                                <IconButton
-                                    onClick={handleZoomIn}
-                                    sx={{
-                                        'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <ZoomIn size={16} />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Zoom out" placement="left" arrow>
-                                <IconButton
-                                    onClick={handleZoomOut}
-                                    sx={{
-                                        'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <ZoomOut size={16} />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Rotate view" placement="left" arrow>
-                                <IconButton
-                                    onClick={handleRotate}
-                                    sx={{
-                                        'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <RotateCw size={16} />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Reset view" placement="left" arrow>
-                                <IconButton
-                                    onClick={handleResetView}
-                                    sx={{
-                                        'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <RefreshCw size={16} />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Box
-                                sx={{
-                                    mx: 0.5,
-                                    my: 0.25,
-                                    height: '1px',
-                                    bgcolor: 'rgba(255, 255, 255, 0.2)',
-                                }}
-                            />
-
-                            <Tooltip title="Take screenshot" placement="left" arrow>
-                                <IconButton
-                                    onClick={handleScreenshot}
-                                    sx={{
-                                        'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <Download size={16} />
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Show info" placement="left" arrow>
-                                <IconButton
-                                    onClick={toggleInfo}
-                                    sx={{
-                                        'color': showInfo ? theme.palette.primary.main : 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
-                                    }}
-                                    size="small">
-                                    <Info size={16} />
                                 </IconButton>
                             </Tooltip>
                         </Box>

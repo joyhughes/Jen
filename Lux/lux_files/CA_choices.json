@@ -454,7 +454,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "source_image_menu", "rule_menu", "edge_block_switch" ]
+            "widgets": [ "rule_menu", "edge_block_switch" ]
         },
         {
             "name": "diffuse_group",

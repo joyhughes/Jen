@@ -9,16 +9,15 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/system';
 
-// Styled input for better aesthetics
-const StyledInput = styled(Input)(({ theme }) => ({
-    width: 50,
+const StyledInput = styled(Input)(({ theme, valueLength }) => ({
+    width: `${Math.max(50, 42 + (valueLength > 2 ? (valueLength - 2) * 8 : 0))}px`,
     height: 32,
     padding: '0px 8px',
     fontSize: '0.875rem',
-    fontFamily: 'monospace',
+    fontFamily: 'Roboto, Arial, sans-serif', // Ensure consistent font
     borderRadius: theme.shape.borderRadius,
     backgroundColor: theme.palette.action.hover,
-    transition: theme.transitions.create(['background-color', 'box-shadow']),
+    transition: theme.transitions.create(['background-color', 'box-shadow', 'width']),
     '&:hover': {
         backgroundColor: theme.palette.action.selected,
     },
@@ -82,14 +81,12 @@ const StyledSlider = styled(Slider)(({ theme }) => ({
 
 function JenSlider({ json }) {
     const theme = useTheme();
-    const [value, setValue] = useState(json.value ?? json.min ?? 0);
+    const [value, setValue] = useState(json.default_value ?? json.min ?? 0);
     const [minFocus, setMinFocus] = useState(true);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Determine if slider is a range type
     const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
 
-    // Format value for display based on type
     const formatDisplayValue = (val) => {
         if (json.type === 'slider_int' || json.type === 'range_slider_int') {
             return parseInt(val);
@@ -98,13 +95,26 @@ function JenSlider({ json }) {
         }
     };
 
-    // Format value for module based on type
     const formatModuleValue = (val) => {
         if (json.type === 'slider_int' || json.type === 'range_slider_int') {
             return parseInt(val);
         } else {
             return parseFloat(val);
         }
+    };
+
+    const getDisplayValue = () => {
+        if (isRange) {
+            return formatDisplayValue(minFocus ? value[0] : value[1]);
+        } else {
+            return formatDisplayValue(value);
+        }
+    };
+
+    // Get length of the display value for dynamic input width
+    const getValueLength = () => {
+        const displayVal = getDisplayValue();
+        return displayVal ? displayVal.toString().length : 1;
     };
 
     const handleSliderChange = (event, newValue) => {
@@ -158,6 +168,13 @@ function JenSlider({ json }) {
         }
     }, [isDragging]);
 
+    // Sync with default value from JSON on component mount
+    useEffect(() => {
+        if (json) {
+            setValue(json.default_value !== undefined ? json.default_value : (json.min ?? 0));
+        }
+    }, [json]);
+
     return (
         <Box
             sx={{
@@ -192,8 +209,9 @@ function JenSlider({ json }) {
                 />
 
                 <StyledInput
-                    value={isRange ? formatDisplayValue(minFocus ? value[0] : value[1]) : formatDisplayValue(value)}
+                    value={getDisplayValue()}
                     onChange={handleInputChange}
+                    valueLength={getValueLength()}
                     type="number"
                     inputProps={{
                         min: json.min,
@@ -221,6 +239,7 @@ function JenSlider({ json }) {
                             fontWeight: minFocus ? 600 : 400,
                             cursor: 'pointer',
                             transition: 'color 0.2s',
+                            fontFamily: 'Roboto, Arial, sans-serif',
                             '&:hover': {
                                 color: theme.palette.primary.main
                             }
@@ -237,6 +256,7 @@ function JenSlider({ json }) {
                             fontWeight: !minFocus ? 600 : 400,
                             cursor: 'pointer',
                             transition: 'color 0.2s',
+                            fontFamily: 'Roboto, Arial, sans-serif',
                             '&:hover': {
                                 color: theme.palette.primary.main
                             }

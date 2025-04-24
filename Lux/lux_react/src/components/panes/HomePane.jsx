@@ -4,7 +4,6 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
-import {Tooltip} from "@mui/material";
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
     const containerRef = useRef(null);

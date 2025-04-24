@@ -22,7 +22,10 @@ export function SceneChooserPane() {
     const theme = useTheme();
     const isWideLayout = useMediaQuery(theme.breakpoints.up('md'));
 
-    // Monitor container width for responsive layout
+    const getBasePath = () => {
+        return import.meta.env.DEV ? '/assets/images/' : './assets/images/';
+    };
+
     useEffect(() => {
         if (!containerRef.current) return;
 
@@ -103,6 +106,7 @@ export function SceneChooserPane() {
                     <Grid container spacing={1.5}>
                         {scenes.map((scene, index) => {
                             const isSelected = index === selectedIndex;
+                            const imagePath = `${getBasePath()}${getIconImagePath(scene)}`;
 
                             return (
                                 <Grid item xs={3} sm={4} md={3} lg={6/getColumnCount()} key={index}>
@@ -133,14 +137,14 @@ export function SceneChooserPane() {
                                             <Box
                                                 sx={{
                                                     width: '100%',
-                                                    paddingTop: '100%', // Square aspect ratio
+                                                    paddingTop: '100%',
                                                     position: 'relative',
                                                     bgcolor: 'rgba(0,0,0,0.1)',
                                                     overflow: 'hidden'
                                                 }}
                                             >
                                                 <img
-                                                    src={`../../public/assets/images/${getIconImagePath(scene)}`}
+                                                    src={imagePath}
                                                     alt={scene.name}
                                                     style={{
                                                         position: 'absolute',
@@ -152,6 +156,25 @@ export function SceneChooserPane() {
                                                     }}
                                                     onError={(e) => {
                                                         e.target.style.display = 'none';
+
+                                                        const parent = e.target.parentElement;
+                                                        if (parent) {
+                                                            const fallback = document.createElement('div');
+                                                            fallback.style.position = 'absolute';
+                                                            fallback.style.top = '0';
+                                                            fallback.style.left = '0';
+                                                            fallback.style.width = '100%';
+                                                            fallback.style.height = '100%';
+                                                            fallback.style.display = 'flex';
+                                                            fallback.style.alignItems = 'center';
+                                                            fallback.style.justifyContent = 'center';
+                                                            fallback.style.backgroundColor = theme.palette.primary.light;
+                                                            fallback.style.color = theme.palette.primary.contrastText;
+                                                            fallback.style.fontSize = '2rem';
+                                                            fallback.style.fontWeight = 'bold';
+                                                            fallback.textContent = scene.name.charAt(0).toUpperCase();
+                                                            parent.appendChild(fallback);
+                                                        }
                                                     }}
                                                 />
                                             </Box>
@@ -170,7 +193,8 @@ export function SceneChooserPane() {
                                                     sx={{
                                                         width: '100%',
                                                         overflow: 'hidden',
-                                                        textOverflow: 'ellipsis'
+                                                        textOverflow: 'ellipsis',
+                                                        fontFamily: 'Roboto, Arial, sans-serif'
                                                     }}
                                                 >
                                                     {scene.name}

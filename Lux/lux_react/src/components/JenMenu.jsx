@@ -16,12 +16,13 @@ import {
 import { CheckCircle } from 'lucide-react';
 import { styled } from '@mui/system';
 
-// Styled Select component for better aesthetics
 const StyledSelect = styled(Select)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
+    fontFamily: 'Roboto, Arial, sans-serif', // Ensure consistent font family
     '& .MuiSelect-select': {
         paddingTop: 10,
         paddingBottom: 10,
+        fontFamily: 'Roboto, Arial, sans-serif', // Apply font to selected text
     },
     '&.MuiOutlinedInput-root': {
         '& fieldset': {
@@ -36,7 +37,6 @@ const StyledSelect = styled(Select)(({ theme }) => ({
     },
 }));
 
-// Styled Radio component
 const StyledRadio = styled(Radio)(({ theme }) => ({
     padding: 8,
     '&.Mui-checked': {
@@ -45,6 +45,20 @@ const StyledRadio = styled(Radio)(({ theme }) => ({
     '& .MuiSvgIcon-root': {
         fontSize: 20,
     },
+}));
+
+const StyledTypography = styled(Typography)(({ theme }) => ({
+    fontFamily: 'Roboto, Arial, sans-serif',
+}));
+
+const StyledInputLabel = styled(InputLabel)(({ theme }) => ({
+    fontFamily: 'Roboto, Arial, sans-serif',
+}));
+
+const StyledFormControlLabel = styled(FormControlLabel)(({ theme }) => ({
+    '& .MuiFormControlLabel-label': {
+        fontFamily: 'Roboto, Arial, sans-serif',
+    }
 }));
 
 function JenMenu({ json, onChange }) {
@@ -66,7 +80,6 @@ function JenMenu({ json, onChange }) {
         }
     };
 
-    // For pull-down or image menu types
     const renderPullDown = () => {
         return (
             <FormControl
@@ -75,7 +88,7 @@ function JenMenu({ json, onChange }) {
                 variant="outlined"
                 sx={{ minWidth: 120 }}
             >
-                <InputLabel id={`menu-label-${json.name}`}>{json.label}</InputLabel>
+                <StyledInputLabel id={`menu-label-${json.name}`}>{json.label}</StyledInputLabel>
                 <StyledSelect
                     labelId={`menu-label-${json.name}`}
                     value={selectedMenuChoice}
@@ -86,6 +99,7 @@ function JenMenu({ json, onChange }) {
                             style: {
                                 maxHeight: 300,
                                 overflowY: 'auto',
+                                fontFamily: 'Roboto, Arial, sans-serif', // Apply font to menu container
                             },
                             elevation: 3,
                         },
@@ -103,7 +117,8 @@ function JenMenu({ json, onChange }) {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5,
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            fontFamily: 'Roboto, Arial, sans-serif' // Apply font to rendered value
                         }}>
                             {internalItems[selected]}
                         </Box>
@@ -118,7 +133,8 @@ function JenMenu({ json, onChange }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 1,
-                                px: 2
+                                px: 2,
+                                fontFamily: 'Roboto, Arial, sans-serif' // Apply font to menu items
                             }}
                         >
                             {index === selectedMenuChoice && (
@@ -127,7 +143,7 @@ function JenMenu({ json, onChange }) {
                                     color={theme.palette.primary.main}
                                 />
                             )}
-                            <Typography
+                            <StyledTypography
                                 variant="body2"
                                 sx={{
                                     ml: index === selectedMenuChoice ? 0 : 3.5,
@@ -137,7 +153,7 @@ function JenMenu({ json, onChange }) {
                                 }}
                             >
                                 {choice}
-                            </Typography>
+                            </StyledTypography>
                         </MenuItem>
                     ))}
                 </StyledSelect>
@@ -145,11 +161,10 @@ function JenMenu({ json, onChange }) {
         );
     };
 
-    // For radio button menu type
     const renderRadio = () => {
         return (
             <Box sx={{ width: '100%' }}>
-                <Typography
+                <StyledTypography
                     variant="body2"
                     sx={{
                         mb: 1,
@@ -158,19 +173,19 @@ function JenMenu({ json, onChange }) {
                     }}
                 >
                     {json.label}
-                </Typography>
+                </StyledTypography>
                 <RadioGroup
                     value={selectedMenuChoice}
                     onChange={handleMenuChange}
                     sx={{ pl: 1 }}
                 >
                     {internalItems.map((choice, index) => (
-                        <FormControlLabel
+                        <StyledFormControlLabel
                             key={index}
                             value={index}
                             control={<StyledRadio />}
                             label={
-                                <Typography
+                                <StyledTypography
                                     variant="body2"
                                     sx={{
                                         color: index === selectedMenuChoice ?
@@ -179,7 +194,7 @@ function JenMenu({ json, onChange }) {
                                     }}
                                 >
                                     {choice}
-                                </Typography>
+                                </StyledTypography>
                             }
                             sx={{
                                 mb: 0.5,
@@ -195,7 +210,6 @@ function JenMenu({ json, onChange }) {
         );
     };
 
-    // Determine which rendering method to use
     const renderMenu = () => {
         if (json.tool === 'pull_down' || json.tool === 'image') {
             return renderPullDown();
@@ -203,14 +217,13 @@ function JenMenu({ json, onChange }) {
             return renderRadio();
         } else {
             return (
-                <Typography color="error" variant="caption">
+                <StyledTypography color="error" variant="caption">
                     Unknown menu type: {json.tool}
-                </Typography>
+                </StyledTypography>
             );
         }
     };
 
-    // Observe changes to menu items
     useEffect(() => {
         setInternalItems(json.items || []);
     }, [json.items]);
