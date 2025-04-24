@@ -232,7 +232,7 @@ function MediaController({ isOverlay = false }) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center', // Center controls
-        p: 1,
+        p: 0.5,
         borderRadius: 2,
         bgcolor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,

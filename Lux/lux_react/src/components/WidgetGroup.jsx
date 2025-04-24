@@ -68,6 +68,7 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
     }, []);
 
     // Create widget element for a given widget name
+    // Fixed version of createWidgetElement function
     const createWidgetElement = (name) => {
         let widget;
         try {
@@ -90,7 +91,8 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                     fontWeight: 500,
                     color: 'white',
                     fontSize: '1rem',
-                    mb: 0.5
+                    mb: 0.5,
+                    fontFamily: 'Roboto, Arial, sans-serif' // Ensure consistent font
                 }}
             >
                 {widget.label}
@@ -101,12 +103,11 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
             case 'menu_int':
                 return (
                     <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
-                        <JenMenu json={widget} onChange={onChange} width="100%" />
+                        <JenMenu json={widget} onChange={onChange} width="100px"  />
                     </Box>
                 );
 
             case 'menu_string':
-                // Use MasonryImagePicker for image selection
                 if (widget.tool === 'image' && !disableImageWidgets) {
                     return (
                         <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
@@ -118,7 +119,6 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                         </Box>
                     );
                 }
-                // Use regular menu for other string menus
                 return (
                     <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                         {labelElement}

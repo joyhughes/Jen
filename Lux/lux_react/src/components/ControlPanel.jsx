@@ -15,22 +15,28 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [activeGroups, setActiveGroups] = useState([]);
 
     const handleWidgetGroupChange = () => {
-        // Fetch active widget groups from WebAssembly
         if (window.module && panelJSON) {
+            console.log("Updating active widget groups...");
             const active = panelJSON.filter(group =>
                 window.module.is_widget_group_active(group.name)
             );
+            console.log("Active groups:", active.map(g => g.name).join(", "));
             setActiveGroups(active);
         }
     };
 
     const setupPanel = () => {
         if (window.module) {
+            console.log("Setting up panel...");
             const panelJSONString = window.module.get_panel_JSON();
 
             try {
                 const parsedJSON = JSON.parse(panelJSONString);
                 setPanelJSON(parsedJSON);
+
+                setTimeout(() => {
+                    handleWidgetGroupChange();
+                }, 0);
             } catch (error) {
                 console.error("Error parsing panel JSON:", error);
             }
@@ -42,7 +48,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             setupPanel();
             window.module.set_scene_callback(setupPanel);
         } else {
-            // Poll for the Module to be ready
             const intervalId = setInterval(() => {
                 if (window.module) {
                     setupPanel();
@@ -58,6 +63,12 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     useEffect(() => {
         handleWidgetGroupChange();
     }, [panelJSON]);
+
+    useEffect(() => {
+        if (activePane === "home") {
+            handleWidgetGroupChange();
+        }
+    }, [activePane]);
 
     const renderActivePane = () => {
         const commonProps = {
