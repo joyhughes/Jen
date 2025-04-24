@@ -1,25 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-    Box,
-    IconButton,
-    Tooltip,
-    Divider,
-    useTheme,
-    useMediaQuery,
-    Snackbar,
-    Alert,
-    Paper
-} from '@mui/material';
-import {
-    RotateCcw,
-    SkipForward,
-    Play,
-    Pause,
-    Camera,
-    Video,
-    VideoOff,
-    Save
-} from 'lucide-react';
+import React, {useEffect, useRef, useState} from 'react';
+import {Alert, Box, Divider, IconButton, Paper, Snackbar, Tooltip, useMediaQuery, useTheme} from '@mui/material';
+import {Camera, Pause, Play, RotateCcw, Save, SkipForward, Video, VideoOff} from 'lucide-react';
 
 function MediaController({ isOverlay = false }) {
     const theme = useTheme();
@@ -30,6 +11,9 @@ function MediaController({ isOverlay = false }) {
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const recordingInterval = useRef(null);
     const recordingFrames = useRef([]);
+
+    const isIOS = useRef(/iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = useRef(/Android/.test(navigator.userAgent));
 
     // Cleanup recording interval on unmount
     useEffect(() => {
@@ -62,28 +46,47 @@ function MediaController({ isOverlay = false }) {
         }
     };
 
-    const handleSnapshot = () => {
+    const handleSnapshot = async () => {
         try {
-            // Get canvas element
             const canvas = document.querySelector('canvas');
             if (!canvas) {
-                showNotification('Canvas not found', 'error');
-                return;
+                showNotification("Cannot not found", "error");
             }
+            const filename = `jen-snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
 
-            // Convert canvas to data URL and trigger download
             const dataUrl = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = `jen-snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-            link.href = dataUrl;
-            link.click();
 
-            showNotification('Snapshot saved', 'success');
+            const isMobileDevice = isIOS.current || isAndroid.current;
+            if (isMobileDevice && navigator.share) {
+                try {
+                    // convert raw data to blob for sharing
+                    const blob = await (await fetch(dataUrl)).blob();
+                    const file = new File([blob], filename, { type: 'image/png' });
+                    await navigator.share({
+                        title: "Jen Snapshot",
+                        files: [file]
+                    })
+                } catch (error) {
+                    console.warn('Share failed, falling back to download:', shareError);
+                    downloadImage(dataUrl, filename);
+                }
+            } else {
+                downloadImage(dataUrl, filename);
+            }
         } catch (error) {
             console.error('Error taking snapshot:', error);
             showNotification('Failed to save snapshot', 'error');
         }
     };
+
+
+    const downloadImage = (dataUrl, fileName) => {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        link.click();
+        showNotification("Snapshot saved", "success");
+    }
 
     const handleToggleRecording = () => {
         if (isRecording) {
