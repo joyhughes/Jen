@@ -106,6 +106,10 @@
         {
             "name": "home_group",
             "widgets": [ "hue_slider" ]
+        },
+        {
+            "name": "source_image_group",
+            "widgets": [ "source_image_menu" ]
         }
     ]
 }

@@ -457,6 +457,10 @@
             "widgets": [ "rule_menu", "edge_block_switch" ]
         },
         {
+            "name": "source_image_group",
+            "widgets": [ "source_image_menu" ]
+        },
+        {
             "name": "diffuse_group",
             "conditions": [ "rule_menu_0" ],
             "widgets": [ "bright_block_widget_switch" ]
