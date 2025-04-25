@@ -13,9 +13,12 @@ import {
 } from "@mui/material";
 import { BookOpen, Info } from "lucide-react";
 import { useScene } from "../SceneContext.jsx";
+import { usePane } from "../panes/PaneContext.jsx"; // Correct import path based on your file structure
+
 
 export function SceneChooserPane() {
     const { scenes, currentSceneIndex, changeScene, isLoading } = useScene();
+    const { setActivePane } = usePane(); // Get the setActivePane function from context
     const [selectedIndex, setSelectedIndex] = useState(currentSceneIndex);
     const [containerWidth, setContainerWidth] = useState(0);
     const containerRef = useRef(null);
@@ -50,8 +53,14 @@ export function SceneChooserPane() {
     }, [currentSceneIndex]);
 
     const handleSceneSelect = (index) => {
+        console.log(`Scene selected: ${index}`);
         setSelectedIndex(index);
         changeScene(index);
+
+        setTimeout(() => {
+            setActivePane("home"); // Navigate to home pane using the context
+            console.log("Navigating to home pane after scene selection");
+        }, 100);
     };
 
     const getIconImagePath = (scene) => {
