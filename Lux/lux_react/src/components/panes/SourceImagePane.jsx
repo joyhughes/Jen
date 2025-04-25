@@ -7,8 +7,10 @@ import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import WidgetGroup from '../WidgetGroup';
 import MasonryImagePicker from '../MasonryImagePicker';
+import {usePane} from "./PaneContext.jsx";
 
 function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+    const { setActivePane } = usePane();
     const [debugInfo, setDebugInfo] = useState({
         groups: [],
         imageWidgets: [],
@@ -196,6 +198,7 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                     }}
                 >
                     <MasonryImagePicker
+                        setActivePane={setActivePane}
                         json={imagePickerJson}
                         width="100%"
                         onChange={onWidgetGroupChange}

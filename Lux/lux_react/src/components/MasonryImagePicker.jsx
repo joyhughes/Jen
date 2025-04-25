@@ -5,7 +5,7 @@ import ThumbnailItem from './ThumbnailItem';
 import Masonry from 'react-masonry-css';
 import '../styles/MasonryImagePicker.css';
 
-export const MasonryImagePicker = ({ json, width, onChange }) => {
+export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => {
     const [menuItems, setMenuItems] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
     const [isDragging, setIsDragging] = useState(false);
@@ -173,6 +173,11 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
                 setIsLoading(false);
             };
             reader.readAsArrayBuffer(file);
+
+            setTimeout(() => {
+                setActivePane("home");
+                console.log("Navigating to home pane after image uploading");
+            }, 100)
         } catch (error) {
             console.error('Failed to upload image:', error);
             setError('Failed to upload image: ' + error.message);
@@ -188,6 +193,10 @@ export const MasonryImagePicker = ({ json, width, onChange }) => {
             window.module.update_source_name(imageName);
             onChange(imageName);
         }
+        setTimeout(() => {
+            setActivePane("home");
+            console.log("Navigating to home pane after image selection");
+        }, 100);
     };
 
     return (

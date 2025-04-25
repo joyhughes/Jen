@@ -227,7 +227,11 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     </PaneContext.Provider>
                 );
             case "source":
-                return <SourceImagePane {...commonProps} />;
+                return (
+                    <PaneContext.Provider value={paneContextValue}>
+                        <SourceImagePane {...commonProps}/>
+                    </PaneContext.Provider>
+                )
             case "target":
                 return <TargetImagePane {...commonProps} />;
             case "brush":
