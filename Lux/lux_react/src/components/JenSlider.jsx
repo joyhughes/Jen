@@ -16,8 +16,8 @@ const StyledInput = styled(Input, {
     shouldForwardProp: (prop) => prop !== 'valueLength' && prop !== 'isMobile'
 })(({ theme, valueLength, isMobile }) => ({
     width: isMobile
-        ? `${Math.max(42, 36 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`
-        : `${Math.max(40, 32 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`,
+        ? `${Math.max(38, 36 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`
+        : `${Math.max(38, 32 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`,
     height: isMobile ? 32 : 28,
     padding: '0px 4px',
     fontSize: isMobile ? '0.9rem' : '0.8rem',
@@ -98,10 +98,10 @@ const ValueButton = styled(IconButton, {
         backgroundColor: theme.palette.action.selected,
     },
     // Smaller buttons
-    width: isMobile ? 28 : 24,
-    height: isMobile ? 28 : 24,
-    minWidth: isMobile ? 28 : 24,
-    minHeight: isMobile ? 28 : 24,
+    width: isMobile ? 16 : 16,
+    height: isMobile ? 16 : 16,
+    minWidth: isMobile ? 16 :16,
+    minHeight: isMobile ? 16 : 16,
 }));
 
 function JenSlider({ json, width }) {
@@ -361,8 +361,8 @@ function JenSlider({ json, width }) {
                 />
 
                 <Stack
-                    direction="column"  // <<< change to vertical stack
-                    spacing={0.25}       // tight vertical spacing
+                    direction="column"
+                    spacing={0.25}
                     alignItems="center"
                     sx={{
                         flexBasis: isMobile ? "auto" : "15%",
@@ -379,6 +379,28 @@ function JenSlider({ json, width }) {
                         <ChevronUp size={isMobile ? 16 : 14} />
                     </ValueButton>
 
+
+
+                    {/* Decrement button at bottom */}
+                    <ValueButton
+                        size="small"
+                        onClick={handleDecrement}
+                        isMobile={isMobile}
+                    >
+                        <ChevronDown size={isMobile ? 16 : 14} />
+                    </ValueButton>
+                </Stack>
+
+                <Stack
+                    direction="column"
+                    spacing={0.25}
+                    alignItems="center"
+                    sx={{
+                        flexBasis: isMobile ? "auto" : "15%",
+                        flexShrink: 0,
+                        justifyContent: "center",
+                    }}
+                >
                     {/* Input field in the middle */}
                     <StyledInput
                         value={getDisplayValue()}
@@ -397,15 +419,6 @@ function JenSlider({ json, width }) {
                             my: 0.5, // margin vertical to separate buttons
                         }}
                     />
-
-                    {/* Decrement button at bottom */}
-                    <ValueButton
-                        size="small"
-                        onClick={handleDecrement}
-                        isMobile={isMobile}
-                    >
-                        <ChevronDown size={isMobile ? 16 : 14} />
-                    </ValueButton>
                 </Stack>
             </Stack>
 
