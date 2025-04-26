@@ -364,14 +364,6 @@ function JenSlider({ json, width }) {
                         justifyContent: "flex-end"
                     }}
                 >
-                    {/* Decrement button */}
-                    <ValueButton
-                        size="small"
-                        onClick={handleDecrement}
-                        isMobile={isMobile}
-                    >
-                        <ChevronDown size={isMobile ? 16 : 14} />
-                    </ValueButton>
 
                     {/* Input field */}
                     <StyledInput
@@ -389,14 +381,6 @@ function JenSlider({ json, width }) {
                         isMobile={isMobile}
                     />
 
-                    {/* Increment button */}
-                    <ValueButton
-                        size="small"
-                        onClick={handleIncrement}
-                        isMobile={isMobile}
-                    >
-                        <ChevronUp size={isMobile ? 16 : 14} />
-                    </ValueButton>
                 </Stack>
             </Stack>
 
