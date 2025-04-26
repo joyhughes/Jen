@@ -119,7 +119,14 @@ function JenSlider({ json, width }) {
         if (json.type === 'slider_int' || json.type === 'range_slider_int') {
             return parseInt(val);
         } else {
-            return parseFloat(val).toFixed(1);
+            const rounded = parseFloat(val).toFixed(1);
+            const split = rounded.split(".");
+            const lastDigit = split[split.length - 1];
+            if(lastDigit === '0') {
+                return rounded.substring(0, rounded.indexOf("."));
+            } else {
+                return rounded;
+            }
         }
     };
 
@@ -354,18 +361,25 @@ function JenSlider({ json, width }) {
                 />
 
                 <Stack
-                    direction="row"
-                    spacing={0.25} // Tighter spacing
+                    direction="column"  // <<< change to vertical stack
+                    spacing={0.25}       // tight vertical spacing
                     alignItems="center"
-                    // Contain the controls in a smaller area
                     sx={{
-                        flexBasis: "15%",
+                        flexBasis: isMobile ? "auto" : "15%",
                         flexShrink: 0,
-                        justifyContent: "flex-end"
+                        justifyContent: "center",
                     }}
                 >
+                    {/* Increment button on top */}
+                    <ValueButton
+                        size="small"
+                        onClick={handleIncrement}
+                        isMobile={isMobile}
+                    >
+                        <ChevronUp size={isMobile ? 16 : 14} />
+                    </ValueButton>
 
-                    {/* Input field */}
+                    {/* Input field in the middle */}
                     <StyledInput
                         value={getDisplayValue()}
                         onChange={handleInputChange}
@@ -379,8 +393,19 @@ function JenSlider({ json, width }) {
                         }}
                         disableUnderline
                         isMobile={isMobile}
+                        sx={{
+                            my: 0.5, // margin vertical to separate buttons
+                        }}
                     />
 
+                    {/* Decrement button at bottom */}
+                    <ValueButton
+                        size="small"
+                        onClick={handleDecrement}
+                        isMobile={isMobile}
+                    >
+                        <ChevronDown size={isMobile ? 16 : 14} />
+                    </ValueButton>
                 </Stack>
             </Stack>
 
