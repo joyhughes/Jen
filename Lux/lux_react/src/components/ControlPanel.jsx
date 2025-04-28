@@ -19,7 +19,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const setupAttempts = useRef(0);
-    const maxSetupAttempts = 10;
+    const maxSetupAttempts = 30;
     const loadingTimeoutRef = useRef(null);
     const previousPaneRef = useRef(activePane);
 
@@ -227,7 +227,11 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     </PaneContext.Provider>
                 );
             case "source":
-                return <SourceImagePane {...commonProps} />;
+                return (
+                    <PaneContext.Provider value={paneContextValue}>
+                        <SourceImagePane {...commonProps}/>
+                    </PaneContext.Provider>
+                )
             case "target":
                 return <TargetImagePane {...commonProps} />;
             case "brush":

@@ -13,8 +13,17 @@ import {
 } from "@mui/material";
 import { BookOpen, Info } from "lucide-react";
 import { useScene } from "../SceneContext.jsx";
-import { usePane } from "../panes/PaneContext.jsx"; // Correct import path based on your file structure
+import { usePane } from "./PaneContext.jsx";
 
+const calculateFontSize = (name) => {
+    if (!name) return '0.875rem';
+
+    const length = name.length;
+    if (length > 20) return '0.675rem';
+    if (length > 15) return '0.75rem';
+    if (length > 10) return '0.825rem';
+    return '0.875rem';
+};
 
 export function SceneChooserPane() {
     const { scenes, currentSceneIndex, changeScene, isLoading } = useScene();
@@ -47,7 +56,6 @@ export function SceneChooserPane() {
         };
     }, []);
 
-    // Keep local state in sync with context
     useEffect(() => {
         setSelectedIndex(currentSceneIndex);
     }, [currentSceneIndex]);
@@ -58,7 +66,7 @@ export function SceneChooserPane() {
         changeScene(index);
 
         setTimeout(() => {
-            setActivePane("home"); // Navigate to home pane using the context
+            setActivePane("home");
             console.log("Navigating to home pane after scene selection");
         }, 100);
     };
@@ -116,9 +124,10 @@ export function SceneChooserPane() {
                         {scenes.map((scene, index) => {
                             const isSelected = index === selectedIndex;
                             const imagePath = `${getBasePath()}${getIconImagePath(scene)}`;
+                            const fontSize = calculateFontSize(scene.name);
 
                             return (
-                                <Grid item xs={3} sm={4} md={3} lg={6/getColumnCount()} key={index}>
+                                <Grid item xs={6} sm={4} md={3} lg={6/getColumnCount()} key={index}>
                                     <Tooltip
                                         title={scene.description || scene.name}
                                         placement="top"
@@ -193,17 +202,23 @@ export function SceneChooserPane() {
                                                 flexGrow: 1,
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center'
+                                                justifyContent: 'center',
+                                                height: '2.5rem'  // Fixed height for text container
                                             }}>
                                                 <Typography
                                                     variant="body2"
                                                     fontWeight={isSelected ? 'medium' : 'normal'}
-                                                    noWrap
                                                     sx={{
                                                         width: '100%',
+                                                        fontFamily: 'Roboto, Arial, sans-serif',
+                                                        fontSize: fontSize,
+                                                        lineHeight: 1.2,
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: 'vertical',
                                                         overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        fontFamily: 'Roboto, Arial, sans-serif'
+                                                        wordBreak: 'break-word',
+                                                        hyphens: 'auto'
                                                     }}
                                                 >
                                                     {scene.name}
