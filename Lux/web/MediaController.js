@@ -1,12 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ButtonGroup, Button, Tooltip } from '@mui/material';
 import RestartIcon from '@mui/icons-material/Replay'; // This is just an example icon for "restart"
 import FrameIcon from '@mui/icons-material/SkipNext'; // This is an example icon for "advance one frame"
 import PlayPauseIcon from '@mui/icons-material/PlayArrow'; // This is an example icon for "play"
 import PauseIcon from '@mui/icons-material/Pause'; // This is an example icon for "pause"
+import VideocamIcon from '@mui/icons-material/Videocam';
+import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 
 const MediaController = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const workerRef = useRef(null);
+
+  const startRecording = async () => {
+    if (!workerRef.current) {
+      workerRef.current = new Worker('/workers/videoEncodingWorker.js');
+    }
+
+    const options = {
+      width: 946,  // Match your canvas size
+      height: 532,
+      fps: 30,
+      bitrate: 2000000,
+      codec: 'libvpx',  // Use VP8 codec
+      format: 'webm',   // Use WebM format
+      preset: 'realtime'
+    };
+
+    workerRef.current.postMessage({
+      type: 'startRecording',
+      options
+    });
+
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'stopRecording' });
+      setIsRecording(false);
+    }
+  };
 
   return (
     <ButtonGroup 
@@ -34,6 +68,12 @@ const MediaController = () => {
       <Tooltip title={isPlaying ? "Pause" : "Play"}>
         <Button onClick={() => setIsPlaying(!isPlaying)}>
           {isPlaying ? <PauseIcon /> : <PlayPauseIcon />}
+        </Button>
+      </Tooltip>
+
+      <Tooltip title={isRecording ? "Stop Recording" : "Start Recording"}>
+        <Button onClick={isRecording ? stopRecording : startRecording}>
+          {isRecording ? <VideocamOffIcon /> : <VideocamIcon />}
         </Button>
       </Tooltip>
     </ButtonGroup>
