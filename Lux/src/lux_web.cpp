@@ -49,9 +49,9 @@ val get_buf1() {
     //std::cout << "get_img_data() buffer length: " << buffer_length << std::endl;
     // Create a typed memory view at the specified memory location.
     return val(typed_memory_view(buffer_length, buffer));
-} 
+}
 
-val get_img_data() { return get_buf1(); } 
+val get_img_data() { return get_buf1(); }
 
 val get_buf2() {
     uimage& img = (uimage &)(global_context->buf->get_buffer());
@@ -151,14 +151,14 @@ void set_frame_callback(val callback) {
     global_context->frame_callback = [callback]() mutable {
         callback();
     };
-    global_context->frame_callback_ready = true; 
+    global_context->frame_callback_ready = true;
 }
 
 void set_resize_callback(val callback) {
     global_context->resize_callback = [callback]() mutable {
         callback();
     };
-    global_context->resize_callback_ready = true; 
+    global_context->resize_callback_ready = true;
 }
 
 void set_scene_callback(val callback) {
@@ -215,9 +215,9 @@ void render_and_display( void *arg )
             global_context->s->ui.mouse_click = false;
             return;
         }
-        
+
         global_context->frame_callback();
-        
+
         if( running || advance || !displayed ) {
             global_context->s->render();
         }
@@ -251,7 +251,7 @@ void advance_frame() {
 void mouse_move( int x, int y, int width, int height ) {
     UI& ui = global_context->s->ui;
     ui.mouse_pixel = vec2i( { x * ui.canvas_bounds.width() / width, y * ui.canvas_bounds.height() / height } );
-} 
+}
 
 void mouse_down( bool down ) {
     global_context->s->ui.mouse_down = down;
@@ -284,7 +284,7 @@ void set_slider_value( std::string name, float value ) {
 
 void set_range_slider_value( std::string name, float value_min, float value_max ) {
     // std::cout << "set_range_slider_value: " << name << " " << value_min << " " << value_max << std::endl;
-    if( global_context->s->functions.contains( name ) ) { 
+    if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
             global_context->s->get_fn_ptr< interval_float, range_slider_float >( name )->value = interval_float( value_min, value_max );
@@ -331,7 +331,7 @@ void handle_switch_value( std::string name, bool value ) {
             auto sw = global_context->s->get_fn_ptr< bool, switch_fn >( name );
             sw->value = value;
             return;
-        } 
+        }
         else if( std::holds_alternative< any_condition_fn >( fn ) ) {
             auto& sw = std::get< std::shared_ptr< switch_condition > >( std::get< any_condition_fn >( fn ).my_condition_fn );
             sw->value = value;
@@ -533,7 +533,73 @@ void add_to_menu(std::string menu_name, std::string item) {
     }
 }
 
-int main(int argc, char** argv) { 
+
+bool stop_recording() {
+    if (!global_context || !global_context->video_recorder || !global_context->video_recorder->is_recording) return false;
+
+    global_context->is_recording = false;
+    return global_context->video_recorder->stop_recording();
+}
+
+
+bool is_recording() {
+    return global_context && global_context->is_recording();
+}
+
+int get_recorded_frame_count() {
+    if(!global_context || !global_context->video_recorder) {
+        return 0;
+    }
+    return global_context->video_recorder->get_frame_count();
+}
+
+std::string get_recording_state() {
+    if (!global_context || !global_context->video_recorder) return "not_initialized";
+    switch (global_context->video_recorder->get_state()) {
+        case RecordingState::IDLE: return "idle";
+        case RecordingState::RECORDING: return "recording";
+        case RecordingState::ENCODING: return "encoding";
+        case RecordingState::ERROR: return "error";
+        default: return "unknown";
+    }
+}
+
+std::string get_recording_error() {
+    if (!global_context || !global_context->video_recorder) return "";
+    return global_context->video_recorder->get_error();
+}
+
+bool start_recording(int width, int height, int fps, int bitrate, std::string codec, std::string format, std::string preset) {
+    if (!global_context || !global_context->video_recorder) {
+        return false;
+    }
+    if (global_context->is_recording) {
+        stop_recording();
+    }
+
+    RecordingOptions options;
+    options.width = width;
+    options.height = height;
+    options.fps = fps;
+    options.bitrate = bitrate;
+    options.codec = codec;
+    options.format = format;
+    options.preset = preset;
+
+    // start recording
+    bool success = global_context->video_recorder->start_recording(options);
+    if (success) {
+        global_context->is_recording = true;
+        return true;
+    }
+
+    return false;
+}
+
+
+
+
+int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
     vec2i dim( { 512, 512 } );  // original sin
@@ -545,10 +611,10 @@ int main(int argc, char** argv) {
     global_context->s = std::make_unique< scene >( filename );
     global_context->video_recorder = std::make_unique<VideoRecorder>();
     global_context->is_recording = false;
-    //scene s( "lux_files/kaleido.json" ); 
-    //scene s( "lux_files/CA_choices.json" ); 
-    //scene s( "lux_files/nebula_brush.json" ); 
-    //scene s(    //scene s( "diffuser_files/diffuser_brush.json" ); 
+    //scene s( "lux_files/kaleido.json" );
+    //scene s( "lux_files/CA_choices.json" );
+    //scene s( "lux_files/nebula_brush.json" );
+    //scene s(    //scene s( "diffuser_files/diffuser_brush.json" );
     //scene s( "moon_files/galaxy_moon.json" );
     emscripten_run_script("console.log('scene loaded');");
 
@@ -556,7 +622,7 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     global_context->s->set_output_buffer( any_buf );
     global_context->s->ui.canvas_bounds = bb2i( dim );
-    //SDL_Init(SDL_INIT_VIDEO); 
+    //SDL_Init(SDL_INIT_VIDEO);
     //SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
     // pack context
@@ -583,7 +649,7 @@ int main(int argc, char** argv) {
 
   return 0;
 }
- 
+
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback",  &set_frame_callback );
     function( "set_resize_callback", &set_resize_callback );
@@ -635,4 +701,11 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_image_to_scene", &add_image_to_scene);
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
+
+    function("start_recording", &start_recording);
+    function("stop_recording", &stop_recording);
+    function("is_recording", &is_recording);
+    function("get_recorded_frame_count", &get_recorded_frame_count);
+    function("get_recording_state", &get_recording_state);
+    function("get_recording_error", &get_recording_error);
 }
