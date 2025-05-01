@@ -12,6 +12,7 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include "emscripten_utils.hpp"
+#include "video_recorder.hpp"
 
 
 //#include <chrono>
@@ -33,6 +34,9 @@ struct frame_context {
   std::shared_ptr< buffer_pair< ucolor > > buf;
   vec2i buf_dim;
   nlohmann::json scene_list;
+
+  std::unique_ptr<VideoRecorder> video_recorder;
+  bool is_recording;
 };
 
 frame_context *global_context;
@@ -194,6 +198,17 @@ void render_and_display( void *arg )
             global_context->s->ui.canvas_bounds = bb2i( dim );
             if( global_context->resize_callback_ready ) global_context->resize_callback();
             displayed = false;
+        }
+
+        if (global_context->is_recording && displayed) {
+            uimage& img = (uimage &)(global_context->buf->get_image());
+
+            // add frame to recording
+            if (!global_context->video_recorder->add_frame(img)) {
+                std::cerr << "Failed to add frame to recording: " <<
+                     global_context->video_recorder->get_error() << std::endl;
+                global_context->is_recording = false;
+            }
         }
 
         if( !running && !advance && displayed ) {
@@ -528,6 +543,8 @@ int main(int argc, char** argv) {
     global_context->scene_list = json::parse( load_file_as_string( "lux_files/scenes.json" ) );
     global_context->scene_list[ "scenes" ][ 0 ][ "filename" ].get_to( filename );
     global_context->s = std::make_unique< scene >( filename );
+    global_context->video_recorder = std::make_unique<VideoRecorder>();
+    global_context->is_recording = false;
     //scene s( "lux_files/kaleido.json" ); 
     //scene s( "lux_files/CA_choices.json" ); 
     //scene s( "lux_files/nebula_brush.json" ); 
