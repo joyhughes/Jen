@@ -63,19 +63,7 @@ val get_buf2() {
     return val(typed_memory_view(buffer_length, buffer));
 }
 
-int get_buf_width() {
-    uimage& img = (uimage &)(global_context->buf->get_image());
-    return img.get_dim().x;
-}
 
-int get_buf_height() {
-    uimage& img = (uimage &)(global_context->buf->get_image());
-    return img.get_dim().y;
-}
-
-bool is_swapped() {
-    return global_context->buf->is_swapped();
-}
 
 val get_thumbnail(std::string name, int width, int height) {
     // create temporal target thumbnail image
@@ -147,6 +135,32 @@ val get_thumbnail(std::string name, int width, int height) {
     return emscripten::val(typed_memory_view(buffer_length, buffer));
 }
 
+
+val get_recording_data() {
+    std::string filename = "recording." + global_context->video_recorder->get_options().format;
+
+    // open the file
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        std::cerr << "Fail to open the recording file " << std::endl;
+        return val::null();
+    }
+
+    // get the file size
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // read file into buffer
+    std::vector<uint8_t> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        std::cerr << "Fail to read recording file" << std::endl;
+        return val::null();
+    }
+
+    // returns as typed memory view
+    return val(typed_memory_view(buffer.size(), buffer.data()));
+}
+
 void set_frame_callback(val callback) {
     global_context->frame_callback = [callback]() mutable {
         callback();
@@ -166,6 +180,21 @@ void set_scene_callback(val callback) {
         callback();
     };
     global_context->scene_callback_ready = true;
+}
+
+
+int get_buf_width() {
+    uimage& img = (uimage &)(global_context->buf->get_image());
+    return img.get_dim().x;
+}
+
+int get_buf_height() {
+    uimage& img = (uimage &)(global_context->buf->get_image());
+    return img.get_dim().y;
+}
+
+bool is_swapped() {
+    return global_context->buf->is_swapped();
 }
 
 void bitmaps_ready() {
@@ -708,4 +737,5 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("get_recorded_frame_count", &get_recorded_frame_count);
     function("get_recording_state", &get_recording_state);
     function("get_recording_error", &get_recording_error);
+    function("get_recording_data", &get_recording_data);
 }
