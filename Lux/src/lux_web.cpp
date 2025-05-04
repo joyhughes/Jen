@@ -340,7 +340,6 @@ void pick_funk_factor( std::string name, std::string value ) {
 void pick_ucolor( std::string name, ucolor value ) {
     auto picker = global_context->s->get_fn_ptr< ucolor, ucolor_picker >( name );
     picker->value = value;
-    std::cout << "pick_ucolor: " << name << " value " << value << " picker " << picker->value << std::endl;
 }
 
 void pick_direction4( std::string name, int value ) {

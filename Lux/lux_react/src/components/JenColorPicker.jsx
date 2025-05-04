@@ -32,13 +32,29 @@ function JenColorPicker({ json }) {
 
     // Render a single bit cell
     const renderCell = (index) => {
+        // Determine the color based on the row
+        let cellColor;
+        if (index >= 16) {
+            // First row (red shades)
+            const intensity = Math.floor(((index - 16) / 8) * 255); // Scale intensity
+            cellColor = (0xff << 24) | (intensity << 16); // ARGB format
+        } else if (index >= 8) {
+            // Second row (green shades)
+            const intensity = Math.floor(((index - 8) / 8) * 255); // Scale intensity
+            cellColor = (0xff << 24) | (intensity << 8); // ARGB format
+        } else {
+            // Third row (blue shades)
+            const intensity = Math.floor((index / 8) * 255); // Scale intensity
+            cellColor = (0xff << 24) | intensity; // ARGB format
+        }
+    
         const isBitSet = (color & (1 << index)) !== 0;
         const row = Math.floor(index / 8);
         const col = index % 8;
-
+    
         // Create a tooltip label with row/column info
         const tooltipLabel = `Cell (${row}, ${col})`;
-
+    
         return (
             <ButtonBase
                 onClick={() => setBit(index)}
@@ -50,9 +66,7 @@ function JenColorPicker({ json }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isBitSet
-                        ? theme.palette.primary.main
-                        : theme.palette.action.hover,
+                    backgroundColor: `rgba(${(cellColor >> 16) & 0xff}, ${(cellColor >> 8) & 0xff}, ${cellColor & 0xff}, 1)`,
                     transition: 'all 0.15s ease',
                     border: `1px solid ${isBitSet
                         ? theme.palette.primary.dark
