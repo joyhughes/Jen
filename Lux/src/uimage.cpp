@@ -42,6 +42,12 @@ template<> void uimage::rotate_hue( const float& h ) {
     mip_utd = false;
 }
 
+template<> void uimage::bit_plane( const ucolor& q ) {
+    auto& base = mip[ 0 ];
+    for( auto& c : base ) { c = ::bit_plane( c, q ); }
+    mip_utd = false;
+}
+
 template<> void uimage::load( const std::string& filename ) {
     reset();
     image_loader loader( filename );

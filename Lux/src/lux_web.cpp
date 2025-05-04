@@ -337,6 +337,12 @@ void pick_funk_factor( std::string name, std::string value ) {
     picker->value = std::stoull(value, nullptr, 16); // value passed as hexidecimal string
 }
 
+void pick_ucolor( std::string name, ucolor value ) {
+    auto picker = global_context->s->get_fn_ptr< ucolor, ucolor_picker >( name );
+    picker->value = value;
+    std::cout << "pick_ucolor: " << name << " value " << value << " picker " << picker->value << std::endl;
+}
+
 void pick_direction4( std::string name, int value ) {
     auto picker = global_context->s->get_fn_ptr< direction4, direction_picker_4 >( name );
     picker->value = ( direction4 )value;
@@ -602,6 +608,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "handle_menu_choice",         &handle_menu_choice );
     function( "handle_switch_value",        &handle_switch_value );
     function( "pick_funk_factor",           &pick_funk_factor );
+    function( "pick_ucolor",                &pick_ucolor );
     function( "pick_direction8",            &pick_direction8 );
     function( "pick_direction4",            &pick_direction4 );
     function( "pick_direction4_diagonal",   &pick_direction4_diagonal );
@@ -618,4 +625,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_image_to_scene", &add_image_to_scene);
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
-}
+} 

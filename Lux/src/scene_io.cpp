@@ -463,12 +463,13 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
     // pickers
-    FN( funk_factor_picker, funk_factor ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( direction_picker_4_diagonal, direction4_diagonal ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( multi_direction8_picker, int )   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( box_blur_picker, box_blur_type ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( ucolor_picker, ucolor )                             READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( funk_factor_picker, funk_factor )                   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4, direction4 )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4_diagonal, direction4_diagonal )  READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_8, direction8 )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( multi_direction8_picker, int )                      READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( box_blur_picker, box_blur_type )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
     // special case for custom_blur_picker
     FN( custom_blur_picker, int ) 
@@ -715,6 +716,8 @@ void scene_reader::read_effect( const json& j ) {
 
     EFF( eff_rotate_hue_frgb )   HARNESSE( offset ) END_EFF()
     EFF( eff_rotate_hue_ucolor ) HARNESSE( offset ) END_EFF()
+
+    EFF( eff_bit_plane_ucolor ) HARNESSE( bit_mask ) END_EFF()
 
     EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
     EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
@@ -1008,6 +1011,12 @@ std::string ullToHexString(unsigned long long value) {
     return ss.str();
 }
 
+std::string ulToHexString(unsigned long value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << value;
+    return ss.str();
+}
+
 void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{ 
         [&]( const any_fn< bool >& wrapper ) {
@@ -1206,9 +1215,29 @@ void to_json( nlohmann::json& j, const any_function& af ) {
         },
         [&]( const any_fn< frgb >& wrapper ) {
         },
-        [&]( const any_fn< ucolor >& wrapper ) {
-        },
         */
+        [&]( const any_fn< ucolor >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< ucolor_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "ucolor_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", ulToHexString( fn->value ) },
+                        {"default_value", ulToHexString( fn->default_value ) }
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented ucolor function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
         [&]( const any_fn< std::string >& wrapper ) {
             std::visit( overloaded {
                 [&]( const std::shared_ptr< menu_string >& fn ) {

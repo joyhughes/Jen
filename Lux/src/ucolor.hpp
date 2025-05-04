@@ -7,6 +7,7 @@
 #include "mask_mode.hpp"
 #include "algorithm"
 #include "vector"
+#include <iostream>
 typedef unsigned int ucolor;
 
 float af( const ucolor &c );
@@ -163,4 +164,32 @@ static inline ucolor rotate_hue( const ucolor& c, const unsigned int& r )
 {
    return ( ( ( c & 0x00ff0000 ) + r ) & 0x00ff0000 ) | ( c & 0xff00ffff );
 }
+
+static inline ucolor bit_plane( const ucolor& c, const ucolor& q)
+{
+   ucolor m = c & q;
+   //std::cout << "c: " << std::hex << c << " m: " << std::hex << m << std::endl;
+   ucolor out = c & 0xff000000;
+   unsigned int count =  ((m & 0x00800000) >> 23 ) + ((m & 0x00400000) >> 22 ) + ((m & 0x00200000) >> 21) + ((m & 0x00100000) >> 20) +
+                         ((m & 0x00080000) >> 19 ) + ((m & 0x00040000) >> 18 ) + ((m & 0x00020000) >> 17) + ((m & 0x00010000) >> 16);
+   unsigned int qcount = ((q & 0x00800000) >> 23 ) + ((q & 0x00400000) >> 22 ) + ((q & 0x00200000) >> 21) + ((q & 0x00100000) >> 20) +
+                         ((q & 0x00080000) >> 19 ) + ((q & 0x00040000) >> 18 ) + ((q & 0x00020000) >> 17) + ((q & 0x00010000) >> 16);
+   if( qcount ) out += ( 0x00ff0000 * count / qcount ) & 0x00ff0000;
+   //std::cout << "red: " << std::hex << out << " " << " count " << count << " qcount " << qcount << std::endl;
+   count =  ((m & 0x00008000) >> 15 ) + ((m & 0x00004000) >> 14 ) + ((m & 0x00002000) >> 13) + ((m & 0x00001000) >> 12) +
+            ((m & 0x00000800) >> 11 ) + ((m & 0x00000400) >> 10 ) + ((m & 0x00000200) >>  9) + ((m & 0x00000100) >>  8);
+   qcount = ((q & 0x00008000) >> 15 ) + ((q & 0x00004000) >> 14 ) + ((q & 0x00002000) >> 13) + ((q & 0x00001000) >> 12) +
+            ((q & 0x00000800) >> 11 ) + ((q & 0x00000400) >> 10 ) + ((q & 0x00000200) >>  9) + ((q & 0x00000100) >>  8);
+   if( qcount ) out += ( 0x0000ff00 * count / qcount ) & 0x0000ff00;
+   //std::cout << "green: " << std::hex << out << " " << " count " << count << " qcount " << qcount << std::endl;
+   count =  ((m & 0x00000080) >> 7 ) + ((m & 0x00000040) >> 6 ) + ((m & 0x00000020) >> 5 ) + ((m & 0x00000010) >> 4 ) +
+            ((m & 0x00000008) >> 3 ) + ((m & 0x00000004) >> 2 ) + ((m & 0x00000002) >> 1 ) +  (m & 0x00000001);
+   qcount = ((q & 0x00000080) >> 7 ) + ((q & 0x00000040) >> 6 ) + ((q & 0x00000020) >> 5 ) + ((q & 0x00000010) >> 4 ) +
+            ((q & 0x00000008) >> 3 ) + ((q & 0x00000004) >> 2 ) + ((q & 0x00000002) >> 1 ) +  (q & 0x00000001);
+   if( qcount ) out += ( 0x000000ff * count / qcount ) & 0x000000ff;
+   //std::cout << "blue: " << std::hex << out << " " << " count " << count << " qcount " << qcount << std::endl;
+   //std::cout << "out: " << std::hex << ( c & 0xff000000 ) + out << std::endl;
+   return out;
+}
+
 #endif // __UCOLOR_HPP

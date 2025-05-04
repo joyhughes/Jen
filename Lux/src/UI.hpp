@@ -166,6 +166,7 @@ typedef menu menu_string;
 template< class T > struct picker {
     std::string label, description;
     T value, default_value;
+    //picker_type tool;
 
     T operator () ( T& val, element_context& context ); 
 
@@ -181,6 +182,7 @@ template< class T > struct picker {
                         default_value( default_value_init ) {}
 };
 
+typedef picker< ucolor > ucolor_picker;
 typedef picker< funk_factor > funk_factor_picker;
 typedef picker< direction4 > direction_picker_4;
 typedef picker< direction4_diagonal > direction_picker_4_diagonal;

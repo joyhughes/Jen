@@ -10,6 +10,7 @@ import JenDirection4Diagonal from './JenDirection4Diagonal';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import JenFunkyPicker from './JenFunkyPicker';
+import JenColorPicker from './JenColorPicker';
 import MasonryImagePicker from './MasonryImagePicker';
 import { Plus, X } from 'lucide-react';
 
@@ -183,6 +184,15 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                     <Box key={widget.name} sx={{width: '100%', mb: 1}}>
                         <Box sx={{mt: 0.5}}>
                             <JenFunkyPicker key={widget.name} json={widget}/>
+                        </Box>
+                    </Box>
+                );
+
+            case 'ucolor_picker':
+                return (
+                    <Box key={widget.name} sx={{ width: '100%', mb: 1 }}>
+                        <Box sx={{ mt: 0.5 }}>
+                            <JenColorPicker key={widget.name} json={widget} /> 
                         </Box>
                     </Box>
                 );

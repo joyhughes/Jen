@@ -225,6 +225,7 @@ public:
     void rgb_to_hsv();
     void hsv_to_rgb();
     void rotate_hue( const float& h );
+    void bit_plane( const ucolor& q );
     // fill warp field or offset field values based on vector field - fields should be same size
     void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
     template< class U > inline void advect( int index, image< U >& in, image< U > out ) {} // advect one pixel (warp field and offset field)

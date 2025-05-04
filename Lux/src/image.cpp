@@ -704,6 +704,7 @@ template< class T > void image< T >::constrain() {}
 template< class T > void image< T >::invert() {}
 template< class T > void image< T >::rgb_to_hsv() {}
 template< class T > void image< T >::hsv_to_rgb() {}
+template< class T > void image< T >::bit_plane( const ucolor& q ) {}
 template< class T > void image< T >::rotate_hue( const float& h ) {}
 template< class T > void image< T >::rotate_components( const int& r ) {}
 template< class T > void image< T >::clamp( float minc, float maxc ) {}
