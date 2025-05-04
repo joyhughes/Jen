@@ -16,8 +16,12 @@
         {
             "name": "Hues",
             "description": "Rotate hue of an image",
-            "filename": "lux_files/hue.json",
-            "liveCamera": false
+            "filename": "lux_files/hue.json"
+        },
+        {
+            "name": "Bit Plane",
+            "description": "Bit plane manipulation of an image",
+            "filename": "lux_files/bit_plane.json"
         }
     ]
 }
