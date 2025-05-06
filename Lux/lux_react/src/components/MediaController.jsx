@@ -8,18 +8,68 @@ function MediaController({ isOverlay = false }) {
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
     const [isRunning, setIsRunning] = useState(true);
     const [isRecording, setIsRecording] = useState(false);
+    const [recordingState, setRecordingState] = useState('idle');
+    const [recordedFrames, setRecordedFrames] = useState(0);
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-    const recordingInterval = useRef(null);
-    const recordingFrames = useRef([]);
 
+    const recordingCheckInterval = useRef(null);
     const isIOS = useRef(/iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = useRef(/Android/.test(navigator.userAgent));
+
+    // Check if WASM module is ready and has recording functions
+    const hasRecordingFeature = () => {
+        return window.module &&
+            typeof window.module.start_recording === 'function' &&
+            typeof window.module.stop_recording === 'function';
+    };
+
+    // Poll recording status from C++ when recording is active
+    useEffect(() => {
+        if (isRecording && hasRecordingFeature()) {
+            // Set up interval to check recording status
+            recordingCheckInterval.current = setInterval(() => {
+                if (window.module) {
+                    // Update recording state from C++
+                    const state = window.module.get_recording_state();
+                    setRecordingState(state);
+
+                    // Update frame count
+                    const frames = window.module.get_recorded_frame_count();
+                    setRecordedFrames(frames);
+
+                    // If recording ended or errored out, update UI
+                    if (state === 'error') {
+                        const errorMsg = window.module.get_recording_error();
+                        showNotification(`Recording error: ${errorMsg}`, 'error');
+                        setIsRecording(false);
+                        clearInterval(recordingCheckInterval.current);
+                    } else if (state === 'idle' && isRecording) {
+                        // Recording stopped but we didn't trigger it
+                        showNotification('Recording stopped unexpectedly', 'warning');
+                        setIsRecording(false);
+                        clearInterval(recordingCheckInterval.current);
+                    }
+                }
+            }, 500); // Check every half second
+
+            return () => {
+                if (recordingCheckInterval.current) {
+                    clearInterval(recordingCheckInterval.current);
+                    recordingCheckInterval.current = null;
+                }
+            };
+        }
+    }, [isRecording]);
 
     // Cleanup recording interval on unmount
     useEffect(() => {
         return () => {
-            if (recordingInterval.current) {
-                clearInterval(recordingInterval.current);
+            if (recordingCheckInterval.current) {
+                clearInterval(recordingCheckInterval.current);
+            }
+            // Make sure to stop any active recording when component unmounts
+            if (hasRecordingFeature() && window.module.is_recording()) {
+                window.module.stop_recording();
             }
         };
     }, []);
@@ -50,7 +100,8 @@ function MediaController({ isOverlay = false }) {
         try {
             const canvas = document.querySelector('canvas');
             if (!canvas) {
-                showNotification("Cannot not found", "error");
+                showNotification("Canvas not found", "error");
+                return;
             }
             const filename = `jen-snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
 
@@ -65,8 +116,8 @@ function MediaController({ isOverlay = false }) {
                     await navigator.share({
                         title: "Jen Snapshot",
                         files: [file]
-                    })
-                } catch (error) {
+                    });
+                } catch (shareError) {
                     console.warn('Share failed, falling back to download:', shareError);
                     downloadImage(dataUrl, filename);
                 }
@@ -79,16 +130,20 @@ function MediaController({ isOverlay = false }) {
         }
     };
 
-
     const downloadImage = (dataUrl, fileName) => {
         const link = document.createElement('a');
         link.download = fileName;
         link.href = dataUrl;
         link.click();
         showNotification("Snapshot saved", "success");
-    }
+    };
 
     const handleToggleRecording = () => {
+        if (!hasRecordingFeature()) {
+            showNotification('Recording feature not available', 'error');
+            return;
+        }
+
         if (isRecording) {
             stopRecording();
         } else {
@@ -97,92 +152,147 @@ function MediaController({ isOverlay = false }) {
     };
 
     const startRecording = () => {
-        if (!window.module) return;
+        if (!hasRecordingFeature()) return;
 
-        // Clear any previous recording data
-        recordingFrames.current = [];
-
-        // Set up interval to capture frames
-        recordingInterval.current = setInterval(() => {
+        try {
+            // Get current canvas dimensions
             const canvas = document.querySelector('canvas');
-            if (canvas) {
-                recordingFrames.current.push(canvas.toDataURL('image/png'));
+            if (!canvas) {
+                showNotification("Canvas not found for recording", "error");
+                return;
             }
-        }, 100); // Capture 10 frames per second
 
-        setIsRecording(true);
-        showNotification('Recording started', 'info');
+            // Print WASM module methods to check if they're properly exposed
+            console.log("Available module methods:", Object.keys(window.module).filter(key => typeof window.module[key] === 'function'));
+
+            // Log recording functions specifically
+            console.log("Recording functions:", {
+                start_recording: typeof window.module.start_recording,
+                stop_recording: typeof window.module.stop_recording,
+                is_recording: typeof window.module.is_recording,
+                get_recording_state: typeof window.module.get_recording_state
+            });
+
+            const width = 512;
+            const height = 512;
+            const fps = 30;
+            const bitrate = 2000000;
+            const codec = "libx264";
+            const format = "mp4";
+            const preset = "medium";
+
+            console.log("Starting recording with params:", {
+                width, height, fps, bitrate, codec, format, preset
+            });
+
+            try {
+                const success = window.module.start_recording(width, height, fps, bitrate, codec, format, preset);
+                console.log("Recording start result:", success);
+
+                if (success) {
+                    setIsRecording(true);
+                    setRecordingState('recording');
+                    setRecordedFrames(0);
+                    showNotification('Recording started', 'info');
+                } else {
+                    const errorMsg = window.module.get_recording_error ? window.module.get_recording_error() : "Unknown error";
+                    showNotification(`Failed to start recording: ${errorMsg}`, 'error');
+                }
+            } catch (wasmError) {
+                console.error("WASM specific error:", wasmError);
+                showNotification(`WASM error: ${wasmError.message || wasmError}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error in startRecording function:', error);
+            showNotification(`Recording error: ${error.message || error}`, 'error');
+        }
     };
 
     const stopRecording = async () => {
-        if (recordingInterval.current) {
-            clearInterval(recordingInterval.current);
-            recordingInterval.current = null;
-        }
-
-        if (recordingFrames.current.length === 0) {
-            setIsRecording(false);
-            showNotification('No frames recorded', 'warning');
-            return;
-        }
+        if (!hasRecordingFeature() || !isRecording) return;
 
         try {
-            // Convert frames to video using canvas
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const firstImg = new Image();
+            setRecordingState('encoding');
+            showNotification('Processing video...', 'info');
 
-            // Set canvas dimensions based on first frame
-            await new Promise(resolve => {
-                firstImg.onload = resolve;
-                firstImg.src = recordingFrames.current[0];
-            });
+            // Stop recording via WASM
+            const success = window.module.stop_recording();
+            console.log("Stop recording result:", success);
 
-            canvas.width = firstImg.width;
-            canvas.height = firstImg.height;
+            if (success) {
+                // Wait for encoding to complete (up to 5 seconds)
+                let encodingCompleted = false;
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                    const state = window.module.get_recording_state();
+                    console.log(`Encoding check ${i+1}/20: State = ${state}`);
+                    if (state === 'idle') {
+                        encodingCompleted = true;
+                        break;
+                    }
+                }
 
-            // Create video stream
-            const stream = canvas.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                if (encodingCompleted) {
+                    try {
+                        // Save the video file
+                        const videoData = window.module.get_recording_data();
+                        console.log("Video data received:", videoData ? "Yes (with data)" : "No (null)");
 
-            const chunks = [];
-            recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.download = `jen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
-                link.href = url;
-                link.click();
+                        if (videoData) {
+                            // Determine MIME type based on current format
+                            let mimeType = 'video/webm';
+                            let extension = 'webm';
 
-                showNotification('Video saved', 'success');
-            };
+                            // If we can get the options, use the format from there
+                            if (window.module.get_options && typeof window.module.get_options === 'function') {
+                                const options = window.module.get_options();
+                                if (options && options.format) {
+                                    if (options.format === 'mpeg') {
+                                        mimeType = 'video/mpeg';
+                                        extension = 'mpg';
+                                    } else if (options.format === 'mp4') {
+                                        mimeType = 'video/mp4';
+                                        extension = 'mp4';
+                                    } else {
+                                        mimeType = `video/${options.format}`;
+                                        extension = options.format;
+                                    }
+                                }
+                            }
 
-            // Start recording
-            recorder.start();
-
-            // Draw each frame to the canvas
-            for (let i = 0; i < recordingFrames.current.length; i++) {
-                const img = new Image();
-                await new Promise(resolve => {
-                    img.onload = resolve;
-                    img.src = recordingFrames.current[i];
-                });
-                ctx.drawImage(img, 0, 0);
-
-                // Add a small delay to ensure frames are captured
-                await new Promise(resolve => setTimeout(resolve, 30));
+                            console.log(`Creating blob with MIME type: ${mimeType}`);
+                            const blob = new Blob([videoData], { type: mimeType });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.download = `jen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${extension}`;
+                            link.href = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                            showNotification(`Video saved (${recordedFrames} frames)`, 'success');
+                        } else {
+                            console.error("No video data returned from get_recording_data()");
+                            showNotification('No video data available', 'error');
+                        }
+                    } catch (dataError) {
+                        console.error("Error processing video data:", dataError);
+                        showNotification(`Error processing video: ${dataError.message || dataError}`, 'error');
+                    }
+                } else {
+                    console.error("Video encoding timed out - state never reached 'idle'");
+                    showNotification('Video encoding timed out', 'error');
+                }
+            } else {
+                const errorMsg = window.module.get_recording_error ? window.module.get_recording_error() : "Unknown error";
+                console.error("Failed to stop recording:", errorMsg);
+                showNotification(`Failed to stop recording: ${errorMsg}`, 'error');
             }
-
-            // Stop recording
-            recorder.stop();
-
         } catch (error) {
-            console.error('Error creating video:', error);
-            showNotification('Failed to create video', 'error');
+            console.error('Error stopping recording:', error);
+            showNotification('Failed to process video', 'error');
+        } finally {
+            setIsRecording(false);
+            setRecordingState('idle');
         }
-
-        setIsRecording(false);
     };
 
     const handleSaveScene = () => {
@@ -195,7 +305,7 @@ function MediaController({ isOverlay = false }) {
                 link.download = `jen-scene-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
                 link.href = url;
                 link.click();
-
+                URL.revokeObjectURL(url);
                 showNotification('Scene saved', 'success');
             } else {
                 throw new Error('Scene saving not supported');
@@ -275,6 +385,39 @@ function MediaController({ isOverlay = false }) {
         },
     };
 
+    // Define recording button styles based on state
+    const getRecordingButtonStyles = () => {
+        if (!isRecording) return buttonStyles;
+
+        // For recording state
+        if (recordingState === 'encoding') {
+            // Yellow for encoding
+            return {
+                ...buttonStyles,
+                color: theme.palette.warning.main,
+                '&:hover': {
+                    bgcolor: theme.palette.warning.main + '1A',
+                }
+            };
+        } else {
+            // Red for active recording
+            return {
+                ...buttonStyles,
+                color: theme.palette.error.main,
+                '&:hover': {
+                    bgcolor: theme.palette.error.main + '1A',
+                }
+            };
+        }
+    };
+
+    // Get recording button tooltip based on state
+    const getRecordingTooltip = () => {
+        if (!isRecording) return "Start Recording";
+        if (recordingState === 'encoding') return "Encoding... Please wait";
+        return `Stop Recording (${recordedFrames} frames)`;
+    };
+
     return (
         <Paper elevation={isOverlay ? 0 : 3} sx={containerStyles}>
             <Box sx={{
@@ -333,20 +476,17 @@ function MediaController({ isOverlay = false }) {
                     </IconButton>
                 </Tooltip>
 
-                <Tooltip title={isRecording ? "Stop Recording" : "Start Recording"} arrow>
-                    <IconButton
-                        onClick={handleToggleRecording}
-                        sx={isRecording ? {
-                            ...activeButtonStyles,
-                            color: theme.palette.error.main,
-                            '&:hover': {
-                                bgcolor: theme.palette.error.main + '1A',
-                            }
-                        } : buttonStyles}
-                        size="medium"
-                    >
-                        {isRecording ? <VideoOff size={iconSize} /> : <Video size={iconSize} />}
-                    </IconButton>
+                <Tooltip title={getRecordingTooltip()} arrow>
+                    <span> {/* Wrapper to allow tooltip on disabled button */}
+                        <IconButton
+                            onClick={handleToggleRecording}
+                            sx={getRecordingButtonStyles()}
+                            size="medium"
+                            disabled={recordingState === 'encoding'}
+                        >
+                            {isRecording ? <VideoOff size={iconSize} /> : <Video size={iconSize} />}
+                        </IconButton>
+                    </span>
                 </Tooltip>
 
                 <Tooltip title="Save Scene" arrow>

@@ -4,7 +4,6 @@
 #include "string"
 #include "vector"
 #include "memory"
-#include "functional"
 #include "image.hpp"
 #include "uimage.hpp"
 
@@ -15,6 +14,10 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/opt.h>
 }
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 enum class RecordingState {
     IDLE,
@@ -29,7 +32,7 @@ struct RecordingOptions {
     int fps = 30;
     int bitrate = 2000000; // 2 Mbps
     std::string codec = "libx264";
-    std::string format = "mp4";
+    std::string format = "webm";   // Default to WebM container
     std::string preset = "medium";
 };
 
@@ -38,18 +41,21 @@ private:
     RecordingState state;
     RecordingOptions options;
     std::string error_message;
+    std::string temp_filename;  // Filename in virtual filesystem
 
-    // ffmpeg context
+    // FFmpeg context
     AVFormatContext* format_context;
     AVCodecContext* codec_context;
     AVStream* video_stream;
     SwsContext* sws_context;
 
-    // ffmpeg frame management
-    std::vector<uint8_t> frame_buffer;
+    // FFmpeg frame management
     AVFrame* frame;
     AVFrame* tmp_frame;
     int frame_count;
+
+    // Buffer for final output
+    std::vector<uint8_t> output_buffer;
 
     bool initialize_video();
     void cleanup();
@@ -60,17 +66,20 @@ public:
 
     bool start_recording(const RecordingOptions& opts);
     bool stop_recording();
-    bool is_recording() const { return state == RecordingState::RECORDING; }
-    RecordingState get_state() const { return state; }
-    std::string get_error() const { return error_message; }
-
-    // frame capture
     bool add_frame(const uimage& img);
 
-    // utils
+    // Utility functions
+    bool validate_format_codec();
+    bool initialize_from_image(const uimage& img);
+    bool start_recording_adaptive(const uimage& first_frame, const RecordingOptions& base_opts);
+    bool are_dimensions_valid(int width, int height);
+
+    // Getters
+    RecordingState get_state() const { return state; }
+    std::string get_error() const { return error_message; }
     int get_frame_count() const { return frame_count; }
     RecordingOptions get_options() const { return options; }
+    const std::vector<uint8_t>& get_output_buffer() const { return output_buffer; }
 };
-
 
 #endif
