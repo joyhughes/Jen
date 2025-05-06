@@ -1,0 +1,14 @@
+prefix=/Users/namvdo/Desktop/rnd/temp/Jen/Lux/external/build
+exec_prefix=${prefix}
+libdir=/Users/namvdo/Desktop/rnd/temp/Jen/Lux/external/build/lib
+includedir=/Users/namvdo/Desktop/rnd/temp/Jen/Lux/external/build/include
+
+Name: libswresample
+Description: FFmpeg audio resampling library
+Version: 5.3.100
+Requires: libavutil >= 59.39.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lswresample -lm
+Libs.private: 
+Cflags: -I${includedir}

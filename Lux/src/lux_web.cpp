@@ -137,27 +137,21 @@ val get_thumbnail(std::string name, int width, int height) {
 
 
 val get_recording_data() {
-    std::string filename = "recording." + global_context->video_recorder->get_options().format;
+   // check if video recorder exists and has the data
+    if (!global_context || !global_context->video_recorder) {
+        std::cerr << "Video recorder not initialized" << std::endl;
+        return val::null();
+    }
+    // get the output buffer directly from the VideoRecorder
+    const std::vector<uint8_t>& buffer = global_context->video_recorder->get_output_buffer();
 
-    // open the file
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        std::cerr << "Fail to open the recording file " << std::endl;
+    // check if the buffer is empty
+    if (buffer.empty()) {
+        std::cerr << "Recording buffer is empty" << std::endl;
         return val::null();
     }
 
-    // get the file size
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    // read file into buffer
-    std::vector<uint8_t> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        std::cerr << "Fail to read recording file" << std::endl;
-        return val::null();
-    }
-
-    // returns as typed memory view
+    // return the buffer value as a typed memory view
     return val(typed_memory_view(buffer.size(), buffer.data()));
 }
 
@@ -564,7 +558,7 @@ void add_to_menu(std::string menu_name, std::string item) {
 
 
 bool stop_recording() {
-    if (!global_context || !global_context->video_recorder || !global_context->video_recorder->is_recording) return false;
+    if (!global_context || !global_context->video_recorder || !global_context->is_recording) return false;
 
     global_context->is_recording = false;
     return global_context->video_recorder->stop_recording();
@@ -572,7 +566,7 @@ bool stop_recording() {
 
 
 bool is_recording() {
-    return global_context && global_context->is_recording();
+    return global_context && global_context->is_recording;
 }
 
 int get_recorded_frame_count() {
@@ -625,6 +619,33 @@ bool start_recording(int width, int height, int fps, int bitrate, std::string co
     return false;
 }
 
+
+
+bool start_recording_adaptive(int fps = 24, int bitrate = 1500000, std::string codec = "libx264", std::string format = "mp4", std::string preset = "realtime") {
+    // Check if we have a valid context and video recorder
+    if (!global_context || !global_context->video_recorder) {
+        std::cerr << "Error: Video recorder not initialized" << std::endl;
+        return false;
+    }
+
+    // Get the current image from the buffer
+    uimage& img = (uimage &)(global_context->buf->get_image());
+    if (img.get_dim().x <= 0 || img.get_dim().y <= 0) {
+        std::cerr << "Error: Invalid image dimensions" << std::endl;
+        return false;
+    }
+
+    RecordingOptions options;
+    options.fps = fps;                // Lower fps for better performance
+    options.bitrate = bitrate;       // 1.5 Mbps - good balance
+    options.codec = codec;        // VP8 codec for browser compatibility
+    options.format = format;         // WebM container for web use
+    options.preset = preset;     // Focus on speed over quality
+
+    global_context->is_recording = true;
+
+    return global_context->video_recorder->start_recording_adaptive(img, options);
+}
 
 
 
@@ -731,7 +752,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
 
-    function("start_recording", &start_recording);
+    function("start_recording_adaptive", &start_recording_adaptive);
     function("stop_recording", &stop_recording);
     function("is_recording", &is_recording);
     function("get_recorded_frame_count", &get_recorded_frame_count);

@@ -170,6 +170,13 @@ bool VideoRecorder::add_frame(const uimage &img) {
         return false;
     }
 
+    static int frame_counter = 0;
+    if (frame_count > 10) {
+        if(++frame_counter % 2 == 0) {
+            return true;
+        }
+    }
+
     bool need_resize = img.get_dim().x != options.width || img.get_dim().y != options.height;
     if (need_resize && frame_count == 0) {
         DEBUG("Input image dimensions (" + std::to_string(img.get_dim().x) + "x" +
@@ -177,7 +184,6 @@ bool VideoRecorder::add_frame(const uimage &img) {
             std::to_string(options.width) + "x" + std::to_string(options.height) +
             "). Using scaling.");
     }
-
     const unsigned char *img_data = (const unsigned char *)img.get_base_ptr();
     if (need_resize) {
         // Scale the image to the target dimensions
@@ -393,13 +399,13 @@ void VideoRecorder::cleanup() {
 
 bool VideoRecorder::validate_format_codec() {
     // WebM works with VP8/VP9
-    if (options.format == "webm") {
-        if (options.codec != "libvpx" && options.codec != "libvpx-vp9") {
-            options.codec = "libvpx"; // Default to VP8 for WebM
-            DEBUG("WebM format selected, switching codec to VP8");
-        }
-        return true;
-    }
+    // if (options.format == "webm") {
+    //     if (options.codec != "libvpx" && options.codec != "libvpx-vp9") {
+    //         options.codec = "libvpx"; // Default to VP8 for WebM
+    //         DEBUG("WebM format selected, switching codec to VP8");
+    //     }
+    //     return true;
+    // }
 
     // MP4 works with H.264/H.265
     if (options.format == "mp4") {
@@ -453,25 +459,45 @@ bool VideoRecorder::initialize_from_image(const uimage &img) {
     return initialize_video();
 }
 
-bool VideoRecorder::start_recording_adaptive(const uimage &first_frame, const RecordingOptions &base_opts) {
+bool VideoRecorder::start_recording_adaptive(const uimage &first_frame, const RecordingOptions& base_opts) {
     if (state == RecordingState::RECORDING) {
         stop_recording();
     }
 
     options = base_opts;
 
-    // Update dimensions based on first frame
-    options.width = first_frame.get_dim().x;
-    options.height = first_frame.get_dim().y;
+    // get dimensions from the first frame
+    int orig_width = first_frame.get_dim().x;
+    int orig_height = first_frame.get_dim().y;
 
-    // Ensure dimensions are even
+    // max dim
+    int MAX_DIM = 720;
+    double aspect_ratio = (double) orig_width / orig_height;
+    // Scale down if needed while preserving aspect ratio
+    if (orig_width > MAX_DIM || orig_height > MAX_DIM) {
+        if (orig_width >= orig_height) {
+            // Landscape orientation
+            options.width = MAX_DIM;
+            options.height = (int)(MAX_DIM / aspect_ratio);
+        } else {
+            // Portrait orientation
+            options.height = MAX_DIM;
+            options.width = (int)(MAX_DIM * aspect_ratio);
+        }
+    } else {
+        // Use original dimensions if small enough
+        options.width = orig_width;
+        options.height = orig_height;
+    }
+
+    // Ensure dimensions are even numbers (required by most codecs)
     options.width = options.width % 2 == 0 ? options.width : options.width - 1;
     options.height = options.height % 2 == 0 ? options.height : options.height - 1;
 
     frame_count = 0;
-
     DEBUG("Adaptive recording starting with dimensions: " +
-        std::to_string(options.width) + "x" + std::to_string(options.height));
+        std::to_string(options.width) + "x" + std::to_string(options.height) +
+        " (source: " + std::to_string(orig_width) + "x" + std::to_string(orig_height) + ")");
 
     // Clear previous output buffer
     output_buffer.clear();

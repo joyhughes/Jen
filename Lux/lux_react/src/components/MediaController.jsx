@@ -19,7 +19,7 @@ function MediaController({ isOverlay = false }) {
     // Check if WASM module is ready and has recording functions
     const hasRecordingFeature = () => {
         return window.module &&
-            typeof window.module.start_recording === 'function' &&
+            typeof window.module.start_recording_adaptive === 'function' &&
             typeof window.module.stop_recording === 'function';
     };
 
@@ -186,7 +186,7 @@ function MediaController({ isOverlay = false }) {
             });
 
             try {
-                const success = window.module.start_recording(width, height, fps, bitrate, codec, format, preset);
+                const success = window.module.start_recording_adaptive(fps, bitrate, codec, format, preset);
                 console.log("Recording start result:", success);
 
                 if (success) {

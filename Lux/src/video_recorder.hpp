@@ -29,11 +29,11 @@ enum class RecordingState {
 struct RecordingOptions {
     int width = 512;
     int height = 512;
-    int fps = 30;
-    int bitrate = 2000000; // 2 Mbps
+    int fps = 24;
+    int bitrate = 1500000; // 2 Mbps
     std::string codec = "libx264";
-    std::string format = "webm";   // Default to WebM container
-    std::string preset = "medium";
+    std::string format = "mp4";   // Default to WebM container
+    std::string preset = "realtime";
 };
 
 class VideoRecorder {

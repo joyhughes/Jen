@@ -49,7 +49,7 @@ if [ ! -d "${FFMPEG_DIR}" ]; then
 else
   cd ${FFMPEG_DIR}
 fi
-
+export EM_PKG_CONFIG_PATH="${INSTALL_DIR}/lib/pkgconfig"
 # Configure FFmpeg with minimal features
 emconfigure ./configure \
   --prefix="${INSTALL_DIR}" \
@@ -84,8 +84,6 @@ emconfigure ./configure \
   --enable-protocol=file \
   --enable-libx264 \
   --disable-debug \
-  --extra-cflags="-I${INSTALL_DIR}/include -DEMSCRIPTEN" \
-  --extra-ldflags="-L${INSTALL_DIR}/lib" \
   --extra-cxxflags="-std=c++11"
 
 # Build and install
