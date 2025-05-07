@@ -167,7 +167,7 @@ function MediaController({ isOverlay = false }) {
 
             // Log recording functions specifically
             console.log("Recording functions:", {
-                start_recording: typeof window.module.start_recording,
+                start_recording: typeof window.module.start_recording_adaptive,
                 stop_recording: typeof window.module.stop_recording,
                 is_recording: typeof window.module.is_recording,
                 get_recording_state: typeof window.module.get_recording_state
@@ -176,10 +176,10 @@ function MediaController({ isOverlay = false }) {
             const width = 512;
             const height = 512;
             const fps = 30;
-            const bitrate = 2000000;
-            const codec = "libx264";
-            const format = "mp4";
-            const preset = "medium";
+            const bitrate = 1500000;
+            const codec = "libvpx-vp8";
+            const format = "webm";
+            const preset = "realtime";
 
             console.log("Starting recording with params:", {
                 width, height, fps, bitrate, codec, format, preset

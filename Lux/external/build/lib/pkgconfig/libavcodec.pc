@@ -9,6 +9,6 @@ Version: 61.19.101
 Requires: libavutil >= 59.39.100
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavcodec -pthread -lm -L/Users/namvdo/Desktop/rnd/temp/Jen/Lux/external/build/lib -lx264 -lm
+Libs: -L${libdir}  -lavcodec -L/Users/namvdo/Desktop/rnd/temp/Jen/Lux/external/build/lib -lvpx -lm -pthread -lm
 Libs.private: 
 Cflags: -I${includedir}

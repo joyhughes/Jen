@@ -31,9 +31,15 @@ struct RecordingOptions {
     int height = 512;
     int fps = 24;
     int bitrate = 1500000; // 2 Mbps
-    std::string codec = "libx264";
-    std::string format = "mp4";   // Default to WebM container
+    std::string codec = "libvpx-vp8";
+    std::string format = "webm";   // Default to WebM container
     std::string preset = "realtime";
+
+    int cpu_used = 9;
+    bool realtime_encode = true;
+    int quality = 30; // CRF value (0-63, higher = lower quality but faster)
+    int threads = 2;
+
 };
 
 class VideoRecorder {
@@ -53,12 +59,17 @@ private:
     AVFrame* frame;
     AVFrame* tmp_frame;
     int frame_count;
+    int skip_counter;
 
     // Buffer for final output
     std::vector<uint8_t> output_buffer;
 
     bool initialize_video();
     void cleanup();
+    void set_vp8_options();
+    bool setup_optimized_conversion();
+    bool setup_frames_and_conversion();
+    void list_available_encoders();
 
 public:
     VideoRecorder();
@@ -80,6 +91,7 @@ public:
     int get_frame_count() const { return frame_count; }
     RecordingOptions get_options() const { return options; }
     const std::vector<uint8_t>& get_output_buffer() const { return output_buffer; }
+
 };
 
 #endif

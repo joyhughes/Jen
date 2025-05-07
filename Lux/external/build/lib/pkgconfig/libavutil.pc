@@ -9,6 +9,6 @@ Version: 59.39.100
 Requires: 
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavutil -pthread -lm
+Libs: -L${libdir}  -lavutil -pthread -lm -lX11
 Libs.private: 
 Cflags: -I${includedir}

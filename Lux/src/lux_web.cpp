@@ -198,22 +198,19 @@ void bitmaps_ready() {
 // used as emscripten main loop
 void render_and_display( void *arg )
 {
+    static auto last_render_time = std::chrono::steady_clock::now();
     bool &running = global_context->s->ui.running;
     bool &advance = global_context->s->ui.advance;
     bool &displayed = global_context->s->ui.displayed;
-    //using namespace std::this_thread;     // sleep_for, sleep_until
-    //using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
-    //using std::chrono::system_clock;
-
-    //sleep_until(system_clock::now() + 1s);
-    //emscripten_run_script("console.log('render and display');");
+    if (global_context->is_recording) {
+        auto current_time = std::chrono::steady_clock::now();
+        auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_render_time).count();
+        if (elapsed_time < 41) {
+            return;
+        }
+        last_render_time = current_time;
+    }
     if( global_context->frame_callback_ready ) {
-        //emscripten_run_script("console.log('callback and bitmaps ready');");
-
-        // Check for dirty buffers (e.g. after source image change)
-        //for( auto q : global_context->s->queue ) if( !q.rendered ) displayed = false;
-
-        // Check for buffer resize (e.g. after source image change)
         vec2i dim = global_context->buf->get_image().get_dim();
         if( dim != global_context->buf_dim ) {
             std::cout << "resize buffer: " << dim.x << " " << dim.y << std::endl;
@@ -224,14 +221,18 @@ void render_and_display( void *arg )
         }
 
         if (global_context->is_recording && displayed) {
-            uimage& img = (uimage &)(global_context->buf->get_image());
+            static int frame_counter = 0;
+            frame_counter++;
 
-            // add frame to recording
-            if (!global_context->video_recorder->add_frame(img)) {
-                std::cerr << "Failed to add frame to recording: " <<
-                     global_context->video_recorder->get_error() << std::endl;
-                global_context->is_recording = false;
+            if (frame_counter <= 10 || frame_counter % 2 == 0) {
+                uimage& img = (uimage&) (global_context->buf->get_image());
+                if (!global_context->video_recorder->add_frame(img)) {
+                    std::cerr << "Failed to add frame to recording: " <<
+                        global_context->video_recorder->get_error() << std::endl;
+                    global_context->is_recording = false;
+                }
             }
+
         }
 
         if( !running && !advance && displayed ) {
@@ -248,10 +249,6 @@ void render_and_display( void *arg )
         global_context->s->ui.mouse_click = false;
         displayed = true;
         advance = false;
-    }
-    else {
-        //if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
-        //else emscripten_run_script("console.log('bitmaps not ready');");
     }
 }
 
@@ -620,8 +617,8 @@ bool start_recording(int width, int height, int fps, int bitrate, std::string co
 }
 
 
-
-bool start_recording_adaptive(int fps = 24, int bitrate = 1500000, std::string codec = "libx264", std::string format = "mp4", std::string preset = "realtime") {
+bool start_recording_adaptive(int fps = 24, int bitrate = 1500000, std::string codec = "libvpx",
+                              std::string format = "webm", std::string preset = "realtime") {
     // Check if we have a valid context and video recorder
     if (!global_context || !global_context->video_recorder) {
         std::cerr << "Error: Video recorder not initialized" << std::endl;
@@ -629,18 +626,18 @@ bool start_recording_adaptive(int fps = 24, int bitrate = 1500000, std::string c
     }
 
     // Get the current image from the buffer
-    uimage& img = (uimage &)(global_context->buf->get_image());
+    uimage &img = (uimage &) (global_context->buf->get_image());
     if (img.get_dim().x <= 0 || img.get_dim().y <= 0) {
         std::cerr << "Error: Invalid image dimensions" << std::endl;
         return false;
     }
 
     RecordingOptions options;
-    options.fps = fps;                // Lower fps for better performance
-    options.bitrate = bitrate;       // 1.5 Mbps - good balance
-    options.codec = codec;        // VP8 codec for browser compatibility
-    options.format = format;         // WebM container for web use
-    options.preset = preset;     // Focus on speed over quality
+    options.fps = fps; // Lower fps for better performance
+    options.bitrate = bitrate; // 1.5 Mbps - good balance
+    options.codec = codec; // VP8 codec for browser compatibility
+    options.format = format; // WebM container for web use
+    options.preset = preset; // Focus on speed over quality
 
     global_context->is_recording = true;
 
