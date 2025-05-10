@@ -122,6 +122,7 @@ function JenColorPicker({ json }) {
                                 py: 0.5,
                                 borderRadius: 1,
                                 fontSize: '0.75rem',
+                                fontFamily: 'Roboto, sans-serif', // Explicitly set font to Roboto
                                 color: theme.palette.text.secondary,
                                 backgroundColor: theme.palette.action.hover,
                                 '&:hover': {
