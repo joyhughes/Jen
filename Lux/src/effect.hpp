@@ -123,6 +123,16 @@ template< class T > struct eff_rotate_hue {
 typedef eff_rotate_hue< frgb > eff_rotate_hue_frgb;
 typedef eff_rotate_hue< ucolor > eff_rotate_hue_ucolor;
 
+template< class T > struct eff_bit_plane {
+    harness< ucolor > bit_mask;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_bit_plane( ucolor bit_mask_init = 0xFFFFFFFF ) : bit_mask( bit_mask_init ) {}
+};
+
+typedef eff_bit_plane< ucolor > eff_bit_plane_ucolor;
+
 template< class T > struct eff_crop_circle {
     harness< T > background;
     harness< float > ramp_width;

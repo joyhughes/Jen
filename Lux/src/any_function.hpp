@@ -131,7 +131,8 @@ ANY_FN( frgb )
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_ucolor >,
-    std::shared_ptr< adder_ucolor >
+    std::shared_ptr< adder_ucolor >,
+    std::shared_ptr< ucolor_picker >
 > any_ucolor_fn_ptr;
 
 ANY_FN( ucolor )

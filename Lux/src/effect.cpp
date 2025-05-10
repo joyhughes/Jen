@@ -135,6 +135,18 @@ template< class T > void eff_rotate_hue< T >::operator () ( any_buffer_pair_ptr&
 template class eff_rotate_hue< frgb >;
 template class eff_rotate_hue< ucolor >;
 
+template< class T > void eff_bit_plane< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_bit_plane: no image in buffer" );
+        bit_mask( context );
+        buf_ptr->get_image().bit_plane( *bit_mask );
+    }
+}
+
+template class eff_bit_plane< ucolor >;
+
 template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
