@@ -77,48 +77,59 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
 
         return true;
     });
+         return (
+           <Box
+             ref={containerRef}
+             sx={{
+               display: 'flex',
+               flexDirection: 'column',
+               padding: 1,
+               height: '100%',
+               overflowY: 'auto',
+               width: '100%'
+             }}
+           >
+             <Divider sx={{ mb: 2 }} />
+    
 
-    return (
-        <Box
-            ref={containerRef}
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                padding: 1,
-                height: '100%',
-                overflowY: 'auto',
-                width: '100%'
-            }}
-        >
-            <Divider sx={{ mb: 2 }} />
-
-            {nonImageGroups.length > 0 ? (
-                <Masonry
-                    breakpointCols={getBreakpointColumns()}
+           {nonImageGroups.length > 0 ? (
+              // First compute the breakpoints & panelWidth once
+              (() => {
+                const breakpoints = getBreakpointColumns();
+                const panelWidth = (containerWidth || panelSize) / breakpoints.default;
+                // Flatten all of the widgets in all of your groups:
+                const singletonWidgets = nonImageGroups.flatMap(group =>
+                  group.widgets.map(widgetName => (
+                    <WidgetGroup
+                      key={widgetName}
+                      json={{ widgets: [widgetName] }}
+                      panelSize={panelWidth}
+                      onChange={onWidgetGroupChange}
+                      disableImageWidgets={true}
+                    />
+                  ))
+                );
+    
+                return (
+                  <Masonry
+                    breakpointCols={breakpoints}
                     className="widget-masonry-grid"
                     columnClassName="widget-masonry-column"
-                >
-                    {nonImageGroups.map((group) => (
-                        <div key={group.name} className="widget-item">
-                            <WidgetGroup
-                                key={group.name}
-                                panelSize={containerWidth / getBreakpointColumns().default}
-                                json={group}
-                                onChange={onWidgetGroupChange}
-                                disableImageWidgets={true}
-                            />
-                        </div>
-                    ))}
-                </Masonry>
+                  >
+                    {singletonWidgets}
+                  </Masonry>
+                );
+              })()
             ) : (
-                <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                    <Typography>
-                        No active widget groups available. Select a scene to begin.
-                    </Typography>
-                </Box>
-            )}
-        </Box>
-    );
+               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                 <Typography>
+                   No active widget groups available. Select a scene to begin.
+                 </Typography>
+               </Box>
+             )}
+           </Box>
+         );
+    
 }
 
 export default HomePane;

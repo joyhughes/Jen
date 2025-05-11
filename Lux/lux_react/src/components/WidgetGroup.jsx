@@ -335,30 +335,11 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
     }
 
     return (
-        <Box
-            ref={containerRef}
-            sx={{
-                width: '100%',
-                px: 0.5,
-                pt: 0.5,
-                pb: 1,
-                // Force the container to expand to full width
-                display: 'flex',
-                flexDirection: 'column'
-            }}
-        >
-            <Masonry
-                breakpointCols={getBreakpointColumns()}
-                className="widget-masonry-grid"
-                columnClassName="widget-masonry-column"
-            >
-                {widgetElements.map((element, index) => (
+        widgetElements.map((element, index) => (
                     <div key={`widget-item-${index}`} className="widget-item">
                         {element}
                     </div>
-                ))}
-            </Masonry>
-        </Box>
+                ))
     );
 }
 
