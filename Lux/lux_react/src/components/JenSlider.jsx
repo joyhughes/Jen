@@ -174,7 +174,6 @@ function JenSlider({ json, width }) {
 
     const handleInputChange = (event) => {
         let newValue = event.target.value === '' ? 0 : Number(event.target.value);
-        newValue = Math.max(json.min, Math.min(json.max, newValue));
 
         if (isRange) {
             const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
@@ -200,7 +199,7 @@ function JenSlider({ json, width }) {
         if (isRange) {
             const currentVal = minFocus ? value[0] : value[1];
             const step = json.step || 1;
-            let newVal = Math.min(json.max, currentVal + step);
+            let newVal = currentVal + step;
 
             if (json.type === 'range_slider_int') {
                 newVal = Math.floor(newVal);
@@ -218,7 +217,7 @@ function JenSlider({ json, width }) {
             }
         } else {
             const step = json.step || 1;
-            let newVal = Math.min(json.max, value + step);
+            let newVal =  value + step;
 
             if (json.type === 'slider_int') {
                 newVal = Math.floor(newVal);
@@ -236,7 +235,7 @@ function JenSlider({ json, width }) {
         if (isRange) {
             const currentVal = minFocus ? value[0] : value[1];
             const step = json.step || 1;
-            let newVal = Math.max(json.min, currentVal - step);
+            let newVal = currentVal - step;
 
             if (json.type === 'range_slider_int') {
                 newVal = Math.floor(newVal);
@@ -254,7 +253,7 @@ function JenSlider({ json, width }) {
             }
         } else {
             const step = json.step || 1;
-            let newVal = Math.max(json.min, value - step);
+            let newVal = value - step;
 
             if (json.type === 'slider_int') {
                 newVal = Math.floor(newVal);
