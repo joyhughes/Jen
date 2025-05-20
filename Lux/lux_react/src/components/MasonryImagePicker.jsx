@@ -4,6 +4,7 @@ import { ImagePlus } from 'lucide-react';
 import ThumbnailItem from './ThumbnailItem';
 import Masonry from 'react-masonry-css';
 import '../styles/MasonryImagePicker.css';
+import { ControlPanelContext } from './InterfaceContainer';
 
 export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => {
     const [menuItems, setMenuItems] = useState([]);
@@ -17,6 +18,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
     const theme = useTheme();
+    const { sliderValues } = React.useContext(ControlPanelContext);
 
     // The thumbnail size is 64px, and we'll add consistent spacing
     const THUMB_SIZE = 64;
@@ -185,11 +187,12 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         }
     };
 
-    const handleImageSelect = (imageName) => {
+    const handleImageSelect = async (imageName) => {
         console.log('Image selected:', imageName);
         setSelectedImage(imageName);
 
         if (window.module) {
+            // Update the image
             window.module.update_source_name(imageName);
             onChange(imageName);
         }
