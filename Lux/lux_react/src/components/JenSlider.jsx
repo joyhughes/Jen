@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/system';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ControlPanelContext } from './InterfaceContainer';
 
 const StyledInput = styled(Input, {
     shouldForwardProp: (prop) => prop !== 'valueLength' && prop !== 'isMobile'
@@ -45,7 +46,6 @@ const StyledInput = styled(Input, {
     },
 }));
 
-// Optimized slider with better size ratios
 const StyledSlider = styled(Slider, {
     shouldForwardProp: (prop) => prop !== 'isMobile'
 })(({ theme, isMobile }) => ({
@@ -87,7 +87,6 @@ const StyledSlider = styled(Slider, {
     },
 }));
 
-// Smaller increment/decrement buttons to save space
 const ValueButton = styled(IconButton, {
     shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'valueLength'
 })(({ theme, isMobile }) => ({
@@ -97,10 +96,9 @@ const ValueButton = styled(IconButton, {
     '&:hover': {
         backgroundColor: theme.palette.action.selected,
     },
-    // Smaller buttons
     width: isMobile ? 16 : 16,
     height: isMobile ? 16 : 16,
-    minWidth: isMobile ? 16 :16,
+    minWidth: isMobile ? 16 : 16,
     minHeight: isMobile ? 16 : 16,
 }));
 
@@ -112,6 +110,7 @@ function JenSlider({ json, width }) {
     const [isDragging, setIsDragging] = useState(false);
     const [showValueLabel, setShowValueLabel] = useState(false);
     const touchTimer = useRef(null);
+    const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
 
     const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
 
@@ -155,21 +154,9 @@ function JenSlider({ json, width }) {
         if (isRange) {
             if (value[0] !== newValue[0]) setMinFocus(true);
             else if (value[1] !== newValue[1]) setMinFocus(false);
-
-            if (window.module) {
-                window.module.set_range_slider_value(
-                    json.name,
-                    formatModuleValue(newValue[0]),
-                    formatModuleValue(newValue[1])
-                );
-            }
-        } else {
-            if (window.module) {
-                window.module.set_slider_value(json.name, formatModuleValue(newValue));
-            }
         }
-        console.log("new value now bro: " + newValue);
         setValue(newValue);
+        onSliderChange(json.name, newValue);
     };
 
     const handleInputChange = (event) => {
@@ -178,20 +165,10 @@ function JenSlider({ json, width }) {
         if (isRange) {
             const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
             setValue(rangeValue);
-
-            if (window.module) {
-                window.module.set_range_slider_value(
-                    json.name,
-                    formatModuleValue(rangeValue[0]),
-                    formatModuleValue(rangeValue[1])
-                );
-            }
+            onSliderChange(json.name, rangeValue);
         } else {
             setValue(newValue);
-
-            if (window.module) {
-                window.module.set_slider_value(json.name, formatModuleValue(newValue));
-            }
+            onSliderChange(json.name, newValue);
         }
     };
 
@@ -207,27 +184,17 @@ function JenSlider({ json, width }) {
 
             const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
             setValue(newValue);
-
-            if (window.module) {
-                window.module.set_range_slider_value(
-                    json.name,
-                    formatModuleValue(newValue[0]),
-                    formatModuleValue(newValue[1])
-                );
-            }
+            onSliderChange(json.name, newValue);
         } else {
             const step = json.step || 1;
-            let newVal =  value + step;
+            let newVal = value + step;
 
             if (json.type === 'slider_int') {
                 newVal = Math.floor(newVal);
             }
 
             setValue(newVal);
-
-            if (window.module) {
-                window.module.set_slider_value(json.name, formatModuleValue(newVal));
-            }
+            onSliderChange(json.name, newVal);
         }
     };
 
@@ -243,14 +210,7 @@ function JenSlider({ json, width }) {
 
             const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
             setValue(newValue);
-
-            if (window.module) {
-                window.module.set_range_slider_value(
-                    json.name,
-                    formatModuleValue(newValue[0]),
-                    formatModuleValue(newValue[1])
-                );
-            }
+            onSliderChange(json.name, newValue);
         } else {
             const step = json.step || 1;
             let newVal = value - step;
@@ -260,10 +220,7 @@ function JenSlider({ json, width }) {
             }
 
             setValue(newVal);
-
-            if (window.module) {
-                window.module.set_slider_value(json.name, formatModuleValue(newVal));
-            }
+            onSliderChange(json.name, newVal);
         }
     };
 
@@ -307,9 +264,14 @@ function JenSlider({ json, width }) {
         }
     }, [isDragging]);
 
+    // Initialize value from context if available
     useEffect(() => {
-        if (json) {
-            setValue(json.default_value !== undefined ? json.default_value : (json.min ?? 0));
+        if (sliderValues[json.name] !== undefined) {
+            setValue(sliderValues[json.name]);
+        } else if (json.default_value !== undefined) {
+            setValue(json.default_value);
+        } else if (json.min !== undefined) {
+            setValue(json.min);
         }
 
         return () => {
@@ -317,24 +279,23 @@ function JenSlider({ json, width }) {
                 clearTimeout(touchTimer.current);
             }
         };
-    }, []);
+    }, [json.name, json.default_value, json.min, sliderValues]);
 
     return (
         <Box
             sx={{
                 width: '100%',
-                // Reduced padding to save space
                 px: 0.5,
                 py: isMobile ? 0.5 : 0.25,
             }}
         >
             <Stack
                 direction="row"
-                spacing={0.5} // Reduced spacing
+                spacing={0.5}
                 alignItems="center"
                 sx={{
                     width: '100%',
-                    mb: isRange ? 0.5 : 0 // Reduced bottom margin
+                    mb: isRange ? 0.5 : 0
                 }}
             >
                 <StyledSlider
@@ -353,10 +314,12 @@ function JenSlider({ json, width }) {
                     ] : undefined}
                     sx={{
                         flexGrow: 1,
-                        // Give more space to the slider
                         flexBasis: "85%",
                     }}
                     isMobile={isMobile}
+                    className="jen-slider"
+                    data-name={json.name}
+                    data-value={value}
                 />
 
                 <Stack
@@ -369,7 +332,6 @@ function JenSlider({ json, width }) {
                         justifyContent: "center",
                     }}
                 >
-                    {/* Increment button on top */}
                     <ValueButton
                         size="small"
                         onClick={handleIncrement}
@@ -378,9 +340,6 @@ function JenSlider({ json, width }) {
                         <ChevronUp size={isMobile ? 16 : 14} />
                     </ValueButton>
 
-
-
-                    {/* Decrement button at bottom */}
                     <ValueButton
                         size="small"
                         onClick={handleDecrement}
@@ -400,7 +359,6 @@ function JenSlider({ json, width }) {
                         justifyContent: "center",
                     }}
                 >
-                    {/* Input field in the middle */}
                     <StyledInput
                         value={getDisplayValue()}
                         onChange={handleInputChange}
@@ -415,7 +373,7 @@ function JenSlider({ json, width }) {
                         disableUnderline
                         isMobile={isMobile}
                         sx={{
-                            my: 0.5, // margin vertical to separate buttons
+                            my: 0.5,
                         }}
                     />
                 </Stack>
@@ -437,9 +395,9 @@ function JenSlider({ json, width }) {
                             fontWeight: minFocus ? 600 : 400,
                             cursor: 'pointer',
                             transition: 'color 0.2s',
-                            fontSize: isMobile ? '0.7rem' : '0.65rem', // Smaller text
+                            fontSize: isMobile ? '0.7rem' : '0.65rem',
                             fontFamily: 'Roboto, Arial, sans-serif',
-                            padding: isMobile ? '4px 2px' : '2px', // Smaller padding
+                            padding: isMobile ? '4px 2px' : '2px',
                             '&:hover': {
                                 color: theme.palette.primary.main
                             }
@@ -456,9 +414,9 @@ function JenSlider({ json, width }) {
                             fontWeight: !minFocus ? 600 : 400,
                             cursor: 'pointer',
                             transition: 'color 0.2s',
-                            fontSize: isMobile ? '0.7rem' : '0.65rem', // Smaller text
+                            fontSize: isMobile ? '0.7rem' : '0.65rem',
                             fontFamily: 'Roboto, Arial, sans-serif',
-                            padding: isMobile ? '4px 2px' : '2px', // Smaller padding
+                            padding: isMobile ? '4px 2px' : '2px',
                             '&:hover': {
                                 color: theme.palette.primary.main
                             }
