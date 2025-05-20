@@ -11,9 +11,38 @@ function MediaController({ isOverlay = false }) {
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const recordingInterval = useRef(null);
     const recordingFrames = useRef([]);
+    const prevStateRef = useRef({ isRunning: true });
 
     const isIOS = useRef(/iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = useRef(/Android/.test(navigator.userAgent));
+
+    // Store state before image change
+    useEffect(() => {
+        if (window.module) {
+            const originalUpdateSourceName = window.module.update_source_name;
+            window.module.update_source_name = function(imageName) {
+                // Store current state
+                prevStateRef.current = {
+                    isRunning: isRunning
+                };
+                // Call original function
+                return originalUpdateSourceName.call(this, imageName);
+            };
+        }
+    }, [isRunning]);
+
+    // Restore state after image change
+    useEffect(() => {
+        if (window.module && prevStateRef.current) {
+            const { isRunning: prevIsRunning } = prevStateRef.current;
+            if (prevIsRunning !== isRunning) {
+                setIsRunning(prevIsRunning);
+                if (window.module.run_pause) {
+                    window.module.run_pause();
+                }
+            }
+        }
+    }, [isRunning]);
 
     // Cleanup recording interval on unmount
     useEffect(() => {
