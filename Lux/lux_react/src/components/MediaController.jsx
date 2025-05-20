@@ -449,7 +449,7 @@ function MediaController({ isOverlay = false }) {
       width,
       height,
       fps: 30, 
-      bitrate: 1000000, // Lower bitrate for mobile
+      bitrate: 2500000, // Lower bitrate for mobile
       codec: 'libvpx',
       format: 'webm',
       preset: 'realtime' // Always use realtime preset for mobile

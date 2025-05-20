@@ -14,7 +14,7 @@ let isProcessingFrames = false;
 // Frame dropping and queue management
 let frameCounter = 0;
 let lastFrameTime = 0;
-const TARGET_FPS = 24; // Lower than 30 for mobile
+const TARGET_FPS = 30; 
 const MIN_FRAME_INTERVAL = 1000 / TARGET_FPS;
 
 // Initialize WASM module

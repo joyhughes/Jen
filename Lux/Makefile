@@ -1,14 +1,106 @@
 MAKEFLAGS += --no-builtin-rules
 
+# Directories
+ROOT_DIR := $(shell pwd)
+EXTERN_BUILD_DIR := $(ROOT_DIR)/external/build
+VPX_DIR := $(ROOT_DIR)/external/vpx
+FFMPEG_DIR := $(ROOT_DIR)/external/FFmpeg
+SRC_DIR := $(ROOT_DIR)/src
+WEB_BUILD_DIR := $(ROOT_DIR)/web_build
+
 # Source files
-CFILES := $(wildcard src/*.cpp)
-FILES := $(patsubst src/%.cpp,web_build/%.o,$(CFILES))
-EXTERN_BUILD_DIR = $(shell pwd)/external/build
+CFILES := $(wildcard $(SRC_DIR)/*.cpp)
+FILES := $(patsubst $(SRC_DIR)/%.cpp,$(WEB_BUILD_DIR)/%.o,$(CFILES))
 
 # FFmpeg configuration
 FFMPEG_CFLAGS = -I$(EXTERN_BUILD_DIR)/include -DUSE_FFMPEG=1
-FFMPEG_LIBS = -L$(EXTERN_BUILD_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264 -lvpx
+FFMPEG_LIBS = -L$(EXTERN_BUILD_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lvpx
 
+# Check if libraries are already built
+CODEC_BUILT := $(shell test -f "$(EXTERN_BUILD_DIR)/lib/libavcodec.a" && test -f "$(EXTERN_BUILD_DIR)/lib/libvpx.a" && echo "yes")
+
+# Main targets
+.PHONY: all clean codec-setup check-dirs
+
+all: check-dirs codec-setup lux_react/src/lux.js
+
+# Create necessary directories
+check-dirs:
+	@mkdir -p $(WEB_BUILD_DIR)
+	@mkdir -p $(EXTERN_BUILD_DIR)
+	@mkdir -p lux_react/src
+
+# Include dependency files
+-include $(FILES:.o=.d)
+
+# Build codecs if not already built
+codec-setup:
+ifeq ($(CODEC_BUILT),)
+	@echo "Building external dependencies..."
+	@bash -c 'set -e; \
+	ROOT_DIR="$(ROOT_DIR)"; \
+	VPX_DIR="$(VPX_DIR)"; \
+	FFMPEG_DIR="$(FFMPEG_DIR)"; \
+	INSTALL_DIR="$(EXTERN_BUILD_DIR)"; \
+	echo "Building VP8 (libvpx) with Emscripten..."; \
+	if [ ! -d "$${VPX_DIR}" ]; then \
+		mkdir -p $$(dirname $${VPX_DIR}); \
+		git clone https://chromium.googlesource.com/webm/libvpx $${VPX_DIR}; \
+	fi; \
+	cd $${VPX_DIR}; \
+	emconfigure ./configure \
+		--prefix="$${INSTALL_DIR}" \
+		--target=generic-gnu \
+		--disable-examples \
+		--disable-docs \
+		--disable-tools \
+		--disable-unit-tests \
+		--disable-vp9 \
+		--enable-vp8 \
+		--enable-static \
+		--disable-shared \
+		--extra-cflags="-O3 -DEMSCRIPTEN"; \
+	emmake make clean; \
+	emmake make -j4; \
+	emmake make install; \
+	echo "Building FFmpeg with VP8/WebM support..."; \
+	if [ ! -d "$${FFMPEG_DIR}" ]; then \
+		mkdir -p $$(dirname $${FFMPEG_DIR}); \
+		git clone https://git.ffmpeg.org/ffmpeg.git $${FFMPEG_DIR}; \
+		cd $${FFMPEG_DIR}; \
+		git checkout release/7.1; \
+	else \
+		cd $${FFMPEG_DIR}; \
+	fi; \
+	make distclean || true; \
+	export PKG_CONFIG_PATH="$${INSTALL_DIR}/lib/pkgconfig:$${PKG_CONFIG_PATH}"; \
+	export EM_PKG_CONFIG_PATH="$${INSTALL_DIR}/lib/pkgconfig:$${EM_PKG_CONFIG_PATH}"; \
+	emconfigure ./configure --prefix=${INSTALL_DIR} \
+		--cc=emcc --cxx=em++ --ar=emar --ranlib=emranlib --nm=emnm \
+		--enable-cross-compile --target-os=none --arch=x86_32 \
+		--disable-x86asm --disable-inline-asm --disable-asm \
+		--disable-stripping --disable-programs --disable-doc \
+		--disable-everything \
+		--enable-avcodec --enable-avformat --enable-avutil \
+		--enable-swscale --enable-swresample \
+		--enable-gpl \
+		--enable-libvpx \
+		--enable-encoder=libvpx_vp8 \
+		--enable-decoder=vp8 \
+		--enable-muxer=webm \
+		--enable-demuxer=webm \
+		--enable-protocol=file \
+		--extra-cflags="-I$${INSTALL_DIR}/include -DEMSCRIPTEN -s WASM=1" \
+		--extra-ldflags="-L$${INSTALL_DIR}/lib" \
+		--extra-cxxflags="-std=c++11"; \
+	emmake make -j4; \
+	emmake make install; \
+	echo "Verifying VP8 encoder support..."; \
+	find "$${INSTALL_DIR}/lib" -name "*.a" | xargs -n1 nm -g 2>/dev/null | grep -i "vpx\|vp8" || echo "Warning: VP8 symbols not found"; \
+	echo "Build completed! Libraries installed in $${INSTALL_DIR}"'
+else
+	@echo "External dependencies already built, skipping."
+endif
 
 all: lux_react/src/lux.js
 
@@ -73,3 +165,7 @@ web_build/%.o: src/%.cpp
 # Clean target
 clean:
 	rm -f web_build/*.o web_build/*.d lux_react/src/lux.js
+
+# Deep clean (removes external dependencies too)
+deep-clean: clean
+	rm -rf $(EXTERN_BUILD_DIR)
