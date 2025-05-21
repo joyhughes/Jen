@@ -47,6 +47,11 @@ function MediaController({ isOverlay = false }) {
   const mediaStreamRef = useRef(null);
   
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    avgProcessingTime: 0,
+    actualFps: 0,
+    queueSize: 0
+  });
 
   // Update ref when state changes
   useEffect(() => {
@@ -177,8 +182,8 @@ function MediaController({ isOverlay = false }) {
           break;
           
         case 'recordingStopped':
-          console.log('[MediaController] Recording stopped response:', message);
-          isRecordingRef.current = false; // Set ref first
+          console.log('[MediaController] Recording stopped with metrics:', message.metrics);
+          isRecordingRef.current = false;
           setIsRecording(false);
           setIsProcessing(false);
           
@@ -241,6 +246,14 @@ function MediaController({ isOverlay = false }) {
                 cleanup();
               }
             }, 5000);
+
+            // Log final metrics
+            if (message.metrics) {
+              console.log(`[MediaController] Final recording metrics:
+                Total duration: ${message.metrics.totalDuration.toFixed(2)}s
+                Total frames: ${message.metrics.totalFrames}
+                Average FPS: ${message.metrics.averageFps.toFixed(2)}`);
+            }
           } else {
             showNotification(`Recording failed: ${message.error || 'Unknown error'}`, 'error');
           }
@@ -249,6 +262,10 @@ function MediaController({ isOverlay = false }) {
         case 'recordingProgress':
           if (typeof message.frameCount === 'number') {
             setFrameCount(message.frameCount);
+            if (message.metrics) {
+              setPerformanceMetrics(message.metrics);
+              console.log('[MediaController] Performance metrics:', message.metrics);
+            }
           }
           break;
 
@@ -707,9 +724,17 @@ function MediaController({ isOverlay = false }) {
           py: 0.2,
           borderRadius: 1,
           fontSize: '0.7rem',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}>
-          REC {formatTime(elapsedTime)} • {frameCount} frames
+          <Box>REC {formatTime(elapsedTime)} • {frameCount} frames</Box>
+          <Box sx={{ fontSize: '0.6rem', opacity: 0.8 }}>
+            FPS: {performanceMetrics.actualFps.toFixed(1)} • 
+            Queue: {performanceMetrics.queueSize} • 
+            Process: {performanceMetrics.avgProcessingTime.toFixed(0)}ms
+          </Box>
         </Box>
       )}
 

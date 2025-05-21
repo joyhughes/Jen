@@ -7,6 +7,9 @@ let isInitialized = false;
 let frameQueue = [];
 let isProcessingFrames = false;
 const MAX_QUEUE_SIZE = 30;
+let recordingStartTime = null;
+let lastFrameTime = null;
+let frameProcessingTimes = [];
 
 // Initialize WASM module
 async function initWasm(wasmUrl) {
@@ -81,6 +84,7 @@ async function processFrameQueue() {
             const batch = frameQueue.splice(0, batchSize);
             
             for (const frame of batch) {
+                const frameStartTime = performance.now();
                 try {
                     const success = CppModule.worker_add_frame(
                         frame.imageData,
@@ -88,14 +92,38 @@ async function processFrameQueue() {
                         frame.height
                     );
                     
+                    const frameEndTime = performance.now();
+                    const processingTime = frameEndTime - frameStartTime;
+                    frameProcessingTimes.push(processingTime);
+                    
                     if (success) {
                         frameCount++;
                         if (frameCount % 30 === 0) {
-                            console.log(`[Worker] Added frame #${frameCount}, queue size: ${frameQueue.length}`);
+                            const avgProcessingTime = frameProcessingTimes.reduce((a, b) => a + b, 0) / frameProcessingTimes.length;
+                            const totalDuration = (performance.now() - recordingStartTime) / 1000;
+                            const actualFps = frameCount / totalDuration;
+                            
+                            console.log(`[Worker] Performance metrics:
+                                Frame #${frameCount}
+                                Queue size: ${frameQueue.length}
+                                Avg processing time: ${avgProcessingTime.toFixed(2)}ms
+                                Total duration: ${totalDuration.toFixed(2)}s
+                                Actual FPS: ${actualFps.toFixed(2)}
+                                Target FPS: 30`);
+                            
                             self.postMessage({ 
                                 type: 'recordingProgress',
-                                frameCount: frameCount
+                                frameCount: frameCount,
+                                metrics: {
+                                    avgProcessingTime,
+                                    totalDuration,
+                                    actualFps,
+                                    queueSize: frameQueue.length
+                                }
                             });
+                            
+                            // Reset metrics for next batch
+                            frameProcessingTimes = [];
                         }
                     } else {
                         console.error('[Worker] Failed to add frame');
@@ -146,6 +174,8 @@ self.onmessage = async (event) => {
                 console.log('[Worker] Starting recording with options:', message.options);
                 recordingInProgress = true;
                 frameCount = 0;
+                recordingStartTime = performance.now();
+                frameProcessingTimes = [];
 
                 // Before starting recording, ensure canvas size matches the image
                 const imageWidth = CppModule.get_buf_width();
@@ -211,7 +241,11 @@ self.onmessage = async (event) => {
                     return;
                 }
 
-                console.log('[Worker] Stopping recording...');
+                const stopTime = performance.now();
+                const totalRecordingDuration = (stopTime - recordingStartTime) / 1000;
+                console.log(`[Worker] Recording stopped after ${totalRecordingDuration.toFixed(2)}s with ${frameCount} frames`);
+                console.log(`[Worker] Average FPS: ${(frameCount / totalRecordingDuration).toFixed(2)}`);
+
                 recordingInProgress = false;
                 
                 // Process any remaining frames
@@ -220,7 +254,14 @@ self.onmessage = async (event) => {
                 }
                 
                 const result = await stopCurrentRecording();
-                self.postMessage(result);
+                self.postMessage({
+                    ...result,
+                    metrics: {
+                        totalDuration: totalRecordingDuration,
+                        totalFrames: frameCount,
+                        averageFps: frameCount / totalRecordingDuration
+                    }
+                });
                 break;
 
             case 'getState':
