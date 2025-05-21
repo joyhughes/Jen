@@ -63,6 +63,7 @@ private:
 
     bool initialize_video();
     void cleanup();
+    bool encode_frame(const uimage &img);
 
 public:
     VideoRecorder();

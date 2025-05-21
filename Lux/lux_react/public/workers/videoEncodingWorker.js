@@ -1,21 +1,12 @@
 // videoEncodingWorker.js - Web Worker for Video Encoding
 
 let CppModule; // To hold the initialized C++ module instance
-let frameSequence = 0; // Track frame sequence for ordering
-let queuedFrames = 0; // Track number of frames in processing queue (JS side)
-const MAX_QUEUE_SIZE = 30;
-let recordingInProgress = false;
-let isInitialized = false; // Track initialization state
-let isRecording = false;
 let frameCount = 0;
+let recordingInProgress = false;
+let isInitialized = false;
 let frameQueue = [];
 let isProcessingFrames = false;
-
-// Frame dropping and queue management
-let frameCounter = 0;
-let lastFrameTime = 0;
-const TARGET_FPS = 30; 
-const MIN_FRAME_INTERVAL = 1000 / TARGET_FPS;
+const MAX_QUEUE_SIZE = 30;
 
 // Initialize WASM module
 async function initWasm(wasmUrl) {
@@ -27,18 +18,28 @@ async function initWasm(wasmUrl) {
     const moduleFactory = await import(wasmUrl);
     console.log('[Worker] Module factory loaded.');
 
-    CppModule = await moduleFactory.default({
+    // Configure module without threading and with imported memory
+    const moduleConfig = {
         print: (text) => console.log('[WASM Print]', text),
         printErr: (text) => console.error('[WASM Error]', text),
         locateFile: (path) => {
             console.log('[Worker] Locating file:', path);
             return wasmUrl.replace('lux.js', path);
-        }
-    });
+        },
+        // Remove wasmMemory configuration to use imported memory
+        importMemory: true
+    };
+
+    try {
+        CppModule = await moduleFactory.default(moduleConfig);
+        console.log('[Worker] Module instance created.');
+    } catch (error) {
+        console.error('[Worker] Failed to initialize module:', error);
+        throw new Error(`Module initialization failed: ${error.message}`);
+    }
 
     const exportedFunctions = Object.keys(CppModule).filter(key => typeof CppModule[key] === 'function');
     console.log('[Worker] Module exports:', exportedFunctions);
-    console.log('[Worker] Module instance created.');
 
     // Verify critical recording functions exist
     const requiredFunctions = [
@@ -68,24 +69,6 @@ function getCppError() {
     return 'Module or get_recording_error not available';
 }
 
-function shouldDropFrame(queueSize) {
-    const now = performance.now();
-    const timeSinceLastFrame = now - lastFrameTime;
-    
-    // Always keep first frame after a gap
-    if (timeSinceLastFrame > MIN_FRAME_INTERVAL * 2) {
-        lastFrameTime = now;
-        return false;
-    }
-
-    // Base drop rate on queue size
-    if (queueSize < 10) return false; // Keep all frames if queue is small
-    
-    // Progressive drop rate
-    const dropRate = Math.min(0.9, 0.1 + (queueSize - 10) * 0.02);
-    return Math.random() < dropRate;
-}
-
 // Process frames in batches
 async function processFrameQueue() {
     if (isProcessingFrames || frameQueue.length === 0) return;
@@ -99,10 +82,6 @@ async function processFrameQueue() {
             
             for (const frame of batch) {
                 try {
-                    // if (shouldDropFrame(frameQueue.length)) {
-                    //     continue; // Drop this frame
-                    // }
-                    
                     const success = CppModule.worker_add_frame(
                         frame.imageData,
                         frame.width,
@@ -113,7 +92,6 @@ async function processFrameQueue() {
                         frameCount++;
                         if (frameCount % 30 === 0) {
                             console.log(`[Worker] Added frame #${frameCount}, queue size: ${frameQueue.length}`);
-                            // Send progress update
                             self.postMessage({ 
                                 type: 'recordingProgress',
                                 frameCount: frameCount
@@ -168,7 +146,6 @@ self.onmessage = async (event) => {
                 console.log('[Worker] Starting recording with options:', message.options);
                 recordingInProgress = true;
                 frameCount = 0;
-                queuedFrames = 0;
 
                 // Before starting recording, ensure canvas size matches the image
                 const imageWidth = CppModule.get_buf_width();
@@ -216,7 +193,6 @@ self.onmessage = async (event) => {
                 //     return; // Drop this frame
                 // }
                 
-                lastFrameTime = performance.now();
                 frameQueue.push({
                     imageData: message.imageData,
                     width: message.width,
@@ -249,7 +225,7 @@ self.onmessage = async (event) => {
 
             case 'getState':
                 if (!CppModule) {
-                    self.postMessage({ type: 'recorderState', state: 'module_not_ready', frameCount: 0, queueSize: queuedFrames });
+                    self.postMessage({ type: 'recorderState', state: 'module_not_ready', frameCount: 0, queueSize: 0 });
                     return;
                 }
 
@@ -262,13 +238,13 @@ self.onmessage = async (event) => {
                         type: 'recorderState',
                         state: state,
                         frameCount: frameCount,
-                        queueSize: queuedFrames,
+                        queueSize: 0,
                         isCppRecording: isCppRecording,
                         isWorkerRecording: recordingInProgress
                     });
                 } catch (e) {
                     console.error('[Worker] Exception during getState:', e);
-                    self.postMessage({ type: 'recorderState', state: 'error_getting_state', frameCount: 0, queueSize: queuedFrames });
+                    self.postMessage({ type: 'recorderState', state: 'error_getting_state', frameCount: 0, queueSize: 0 });
                 }
                 break;
 

@@ -369,34 +369,26 @@ function MediaController({ isOverlay = false }) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(frame, 0, 0);
                 
-                // Get image data instead of sending canvas
+                // Get image data
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // Verify frame data
-                if (!imageData || !imageData.data || imageData.data.length === 0) {
-                    throw new Error('Invalid frame data');
-                }
                 
                 // Send to worker
                 workerRef.current?.postMessage({
                     type: 'addFrame',
                     imageData: imageData.data,
                     width: canvas.width,
-                    height: canvas.height,
-                    timestamp: performance.now()
-                }, [imageData.data.buffer]); // Transfer the buffer ownership
+                    height: canvas.height
+                }, [imageData.data.buffer]);
                 
                 // Schedule next frame
                 requestAnimationFrame(captureLoop);
             })
             .catch(err => {
                 console.error('Frame capture error:', err);
-                // Retry after a short delay
                 setTimeout(captureLoop, 100);
             });
     };
 
-    // Start capture loop
     requestAnimationFrame(captureLoop);
   }, []);
 
@@ -404,20 +396,12 @@ function MediaController({ isOverlay = false }) {
   const startRecording = () => {
     console.log('[MediaController] Starting recording process...');
     
-    if (!workerRef.current) {
-      console.error('[MediaController] Worker not initialized');
-      showNotification('Recording system not ready', 'error');
-      return;
-    }
-
-    // Check if worker is ready
-    if (!isInitializedRef.current) {
-      console.error('[MediaController] Worker not fully initialized');
+    if (!workerRef.current || !isInitializedRef.current) {
+      console.error('[MediaController] Worker not ready');
       showNotification('Recording system not ready', 'error');
       return;
     }
     
-    // Get canvas for dimensions
     const canvas = document.querySelector('canvas');
     if (!canvas) {
       console.error('[MediaController] Canvas not found');
@@ -425,9 +409,8 @@ function MediaController({ isOverlay = false }) {
       return;
     }
 
-    // Set up media stream from canvas
     try {
-      mediaStreamRef.current = canvas.captureStream(30); // 30fps
+      mediaStreamRef.current = canvas.captureStream(30);
       console.log('[MediaController] Media stream set up from canvas');
     } catch (error) {
       console.error('[MediaController] Failed to set up media stream:', error);
@@ -435,33 +418,22 @@ function MediaController({ isOverlay = false }) {
       return;
     }
     
-    // Reset frame counter
-    frameSequenceRef.current = 0;
-    
-    // Get dimensions (ensure even numbers)
     const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
     const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
     
-    console.log('[MediaController] Canvas dimensions:', { width, height });
-    
-    // Create recording options with current dimensions
     const options = {
       width,
       height,
-      fps: 30, 
-      bitrate: 2500000, // Lower bitrate for mobile
+      fps: 30,
+      bitrate: 2500000,
       codec: 'libvpx',
       format: 'webm',
-      preset: 'realtime' // Always use realtime preset for mobile
+      preset: 'realtime'
     };
     
-    // Store options in ref for use in other functions
     recordingOptionsRef.current = options;
     
-    console.log('[MediaController] Sending start recording message with options:', options);
-    
     try {
-      // Send start message to worker
       workerRef.current.postMessage({
         type: 'startRecording',
         options
