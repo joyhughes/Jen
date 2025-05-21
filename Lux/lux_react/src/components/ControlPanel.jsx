@@ -155,8 +155,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 // Module not ready yet, poll for it
                 setupAttempts.current += 1;
 
-                if (setupAttempts.current < 30) { // Allow more attempts for initial module loading
-                    console.log(`Module not ready (attempt ${setupAttempts.current}/30), checking again in 100ms...`);
+                if (setupAttempts.current < maxSetupAttempts) { // Allow more attempts for initial module loading
+                    console.log(`Module not ready (attempt ${setupAttempts.current}/${maxSetupAttempts}), checking again in 100ms...`);
                     setTimeout(initializeModule, 100);
                 } else {
                     console.error("Module not available after maximum attempts");

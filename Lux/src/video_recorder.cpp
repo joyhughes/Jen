@@ -350,8 +350,6 @@ bool VideoRecorder::stop_recording() {
     // Set stream metadata
     av_dict_set(&video_stream->metadata, "language", "und", 0);
     
-    // Write the format metadata
-    format_context->metadata = metadata;
     
     // Write trailer including metadata
     ret = av_write_trailer(format_context);
@@ -408,10 +406,6 @@ bool VideoRecorder::stop_recording() {
 
     // Clean up resources
     cleanup();
-
-    DEBUG("Recording finished: " + std::to_string(frame_count) + " frames, " +
-          std::to_string(output_buffer.size()) + " bytes, " +
-          std::to_string(duration_seconds) + "s duration");
 
     state = RecordingState::IDLE;
     return true;

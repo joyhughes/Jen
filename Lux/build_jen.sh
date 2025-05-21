@@ -111,15 +111,43 @@ build_dependencies() {
   echo "✓ Dependencies built successfully"
 }
 
-# Build the project with exactly the same flags as the Makefile
-build_project() {
-  show_message "Building Project with Exact Makefile Flags"
+
+compile_remaining_files() {
+  show_message "Compiling All Remaining Source Files"
+  for obj_file in "${expected_files[@]}"; do
+    cpp_file="src/${obj_file%.o}.cpp"
+    output_file="web_build/${obj_file}"
+    
+    if [ ! -f "$output_file" ] && [ -f "$cpp_file" ]; then
+      echo "Compiling ${cpp_file}..."
+      em++ -MMD -MP -std=c++20 "$cpp_file" -c -o "$output_file"
+    fi
+  done
+  for file in src/*.cpp; do
+    base_name=$(basename "$file" .cpp)
+    if [ "$base_name" != "life_web" && "$base_name" != "warp" && "$base_name" != "scene" ]; then
+      output_file="web_build/${base_name}.o"
+      if [ ! -f "$output_file" ]; then
+        echo "Compiling $base_name.cpp using generic rule..."
+        em++ -MMD -MP -std=c++20 "$file" -c -o "$output_file"
+      fi
+    fi
+  done
   
-  # FFmpeg configuration - exactly as in Makefile
+  # List all compiled object files for verification
+  echo "Compiled object files in web_build:"
+  ls -la web_build/*.o
+}
+
+# Build the project with 
+build_project() {
+  show_message "Building Project..."
+  
+  # FFmpeg configuration 
   FFMPEG_CFLAGS="-I${EXTERN_BUILD_DIR}/include -DUSE_FFMPEG=1"
   FFMPEG_LIBS="-L${EXTERN_BUILD_DIR}/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lvpx"
   
-  # Files that need FFmpeg flags - exactly as in Makefile
+  # Files that need FFmpeg flags 
   echo "Compiling lux_web.cpp with FFmpeg flags..."
   em++ -O3 -MMD -MP -std=c++20 ${FFMPEG_CFLAGS} src/lux_web.cpp -c -o web_build/lux_web.o
   
@@ -165,6 +193,16 @@ build_project() {
   
   echo "Compiling warp_field.cpp..."
   em++ -O3 -MMD -MP -std=c++20 src/warp_field.cpp -c -o web_build/warp_field.o
+
+  echo "Compiling scene.cpp..."
+  em++ -MMD -MP -std=c++20 src/scene.cpp -c -o web_build/scene.o
+
+
+  echo "Compiling scene_io.cpp..."
+  em++ -MMD -MP -std=c++20 src/scene_io.cpp -c -o web_build/scene_io.o
+
+
+  compile_remaining_files
   
   # Main target - linking with EXACTLY the same flags as the Makefile
   echo "Linking target with exact flags from Makefile..."
@@ -179,7 +217,7 @@ main() {
   show_message "Starting Jen Project Build"
   setup_dirs
   build_dependencies  
-  build_project       
+  build_project
   show_message "All Tasks Completed Successfully!"
 }
 
