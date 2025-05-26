@@ -1,0 +1,115 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+DO NOT GIVE ME HIGH LEVEL ANSWERS, IF I ASK FOR FIX OR EXPLANATION, I WANT ACTUAL CODE OR EXPLANATION!!! I DON'T WANT "Here's how you can blablabla"
+
+Be casual unless otherwise specified
+Be terse
+Suggest solutions that I didn't think about—anticipate my needs
+Treat me as an expert
+Be accurate and thorough
+Give the answer immediately. Provide detailed explanations and restate my query in your own words if necessary after giving the answer
+Consider new technologies and contrarian ideas, not just the conventional wisdom
+You may use high levels of speculation or prediction, just flag it for me
+No moral lectures
+If your content policy is an issue, provide the closest acceptable response and explain the content policy issue afterward
+Cite sources whenever possible at the end, not inline
+No need to mention your knowledge cutoff
+No need to disclose you're an AI
+Please respect my prettier preferences when you provide code.
+Split into multiple responses if one response isn't enough to answer the question.
+
+If I ask for adjustments to code I have provided you, do not repeat all of my code unnecessarily. Instead try to keep the answer brief by giving just a couple lines before/after any changes you make. Multiple code blocks are ok.
+
+WebAssembly Video Recording Architecture for Jen
+This document provides a comprehensive overview of the video recording system architecture for the Jen application, which uses Emscripten to compile C++ (including FFmpeg) to WebAssembly for browser-based video recording.
+System Architecture Overview
+The architecture consists of three main components:
+
+Main Thread (UI): Captures frames from the canvas and sends them to the worker
+Web Worker: Processes frames and handles encoding through WebAssembly
+C++ Backend: Compiled to WebAssembly, uses FFmpeg to encode the video
+
+This separation allows the UI to remain responsive while intensive video encoding happens in the background.
+Key Functions and Their Purposes
+Main Thread Functions
+
+initializeWorker(): Sets up the Web Worker and establishes communication
+startRecording(): Begins the recording process
+startFrameCapture(): Captures frames from the canvas
+stopRecording(): Ends the recording process
+saveRecordedVideo(): Saves the encoded video
+
+Worker Thread Functions
+
+worker_add_frame(imageData, width, height): Processes a new frame for encoding
+stop_recording(): Finalizes the video
+get_recording_state(): Reports current recording status
+get_recording_error(): Retrieves any error messages
+get_recorded_frame_count(): Gets the current frame count
+get_recording_data(): Retrieves the encoded video data
+
+C++ Functions (Called via Emscripten)
+
+worker_add_frame(): Processes frame data and adds it to the VideoRecorder
+stop_recording(): Finalizes the encoding process
+start_recording_adaptive(): Begins recording with adaptive parameters
+get_recording_state(): Reports the current recorder state
+get_recording_error(): Returns the error message if any
+get_recorded_frame_count(): Returns the number of frames processed
+get_recording_data(): Returns the encoded video data
+
+Data Flow
+
+Frame Capture: Canvas frames are captured as ImageData objects in the main thread
+Worker Transfer: ImageData is transferred to the worker thread
+C++ Processing: Worker calls WebAssembly functions to process frames
+FFmpeg Encoding: Frames are accumulated and encoded by FFmpeg
+Video Completion: When recording stops, final video is processed and returned
+Download: Encoded video is sent to the main thread for download/sharing
+
+Memory Management
+Efficient memory management is crucial for this architecture:
+
+Transfer vs. Copying: Frame data is transferred to the worker using transferable objects to avoid copying
+TypedArrays: Efficient binary data is used for communication with WebAssembly
+Frame Queue Management: A queue system handles backpressure when encoding can't keep up
+Adaptive Frame Skipping: Frames are skipped when the system is overloaded
+
+Implementation Details
+C++ to JavaScript Bridge
+The C++ functions need to be exposed to JavaScript. This is done through Emscripten bindings:
+cppEMSCRIPTEN_BINDINGS(my_module) {
+    // Video recording functions
+    function("worker_add_frame", &worker_add_frame);
+    function("stop_recording", &stop_recording);
+    function("start_recording_adaptive", &start_recording_adaptive);
+    function("get_recording_state", &get_recording_state);
+    function("get_recording_error", &get_recording_error);
+    function("get_recorded_frame_count", &get_recorded_frame_count);
+    function("get_recording_data", &get_recording_data);
+    // ... other functions ...
+}
+Handling the TypedArray in C++
+TypedArrays from JavaScript need to be processed in C++:
+cppbool worker_add_frame(val image_data, int width, int height) {
+    // Create a temporary image
+    auto temp_img_ptr = std::make_unique<uimage>(vec2i{width, height});
+    
+    // Copy the data from the TypedArray
+    uint8_t* img_buffer = reinterpret_cast<uint8_t*>(temp_img_ptr->get_base_ptr());
+    for (unsigned int i = 0; i < width * height * 4; ++i) {
+        img_buffer[i] = image_data[i].as<uint8_t>();
+    }
+    
+    // Add frame to recorder
+    return video_recorder->add_frame(*temp_img_ptr);
+}
+Potential Issues and Solutions
+
+Large File Size: The WebAssembly module with FFmpeg can be large. Solution: Optimize build flags.
+Memory Leaks: Improper handling of frame data can cause memory issues. Solution: Ensure proper cleanup.
+Browser Compatibility: Different browsers support WebAssembly differently. Solution: Test across browsers and add fallbacks.
+Performance Bottlenecks: Video encoding is intensive. Solution: Implement adaptive quality based on device performance.

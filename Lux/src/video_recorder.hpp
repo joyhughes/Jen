@@ -9,11 +9,11 @@
 
 extern "C"
 {
-#include "libavcodec/avcodec.h"
-#include "libavformat/avformat.h"
-#include "libavutil/avutil.h"
-#include "libswscale/swscale.h"
-#include "libavutil/opt.h"
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
+#include <libavutil/opt.h>
 }
 
 #ifdef __EMSCRIPTEN__
@@ -35,7 +35,7 @@ struct RecordingOptions
     int fps = 30;
     int bitrate = 2000000; // 2 Mbps
     std::string codec = "libx264";
-    std::string format = "webm"; // Default to WebM container
+    std::string format = "mp4"; // Default to MP4 container
     std::string preset = "medium";
 };
 
@@ -72,6 +72,7 @@ public:
     bool start_recording(const RecordingOptions &opts);
     bool stop_recording();
     bool add_frame(const uimage &img);
+    bool add_frame_rgba(const uint8_t* rgba_data, int width, int height);
 
     // Utility functions
     bool validate_format_codec();

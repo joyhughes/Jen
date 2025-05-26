@@ -1,15 +1,42 @@
 #!/bin/bash
-# Complete Build Script for Jen Project
+# Complete Build Script for Jen Project - H.264/MP4 Version
 # This script builds external dependencies and compiles the project with exact Makefile flags
+# Now with incremental compilation support
 
 # Exit on first error
 set -e
+
+# Activate Emscripten environment if not already active
+if ! command -v em++ &> /dev/null; then
+    echo "Activating Emscripten environment..."
+    if [ -f "$HOME/Documents/emsdk/emsdk_env.sh" ]; then
+        source "$HOME/Documents/emsdk/emsdk_env.sh"
+    elif [ -f "$HOME/emsdk/emsdk_env.sh" ]; then
+        source "$HOME/emsdk/emsdk_env.sh"
+    elif [ -f "/opt/emsdk/emsdk_env.sh" ]; then
+        source "/opt/emsdk/emsdk_env.sh"
+    else
+        echo "❌ Error: Could not find emsdk_env.sh. Please ensure Emscripten is installed and activated."
+        echo "You can activate it manually with: source /path/to/emsdk/emsdk_env.sh"
+        exit 1
+    fi
+    
+    # Verify Emscripten is now available
+    if ! command -v em++ &> /dev/null; then
+        echo "❌ Error: em++ still not found after attempting to activate Emscripten."
+        echo "Please install and activate Emscripten SDK manually."
+        echo "Visit: https://emscripten.org/docs/getting_started/downloads.html"
+        exit 1
+    fi
+fi
+
+echo "✓ Emscripten available: $(em++ --version | head -1)"
 
 # Define directories
 ROOT_DIR=$(pwd)
 EXTERN_DIR="${ROOT_DIR}/external"
 EXTERN_BUILD_DIR="${ROOT_DIR}/external/build"
-VPX_DIR="${EXTERN_DIR}/vpx"
+X264_DIR="${EXTERN_DIR}/x264"
 FFMPEG_DIR="${EXTERN_DIR}/FFmpeg"
 SRC_DIR="${ROOT_DIR}/src"
 WEB_BUILD_DIR="${ROOT_DIR}/web_build"
@@ -28,36 +55,80 @@ setup_dirs() {
   echo "✓ Directories created"
 }
 
-# Build and install FFmpeg and VP8 dependencies
+# Function to check if source file is newer than object file
+needs_compilation() {
+  local src_file="$1"
+  local obj_file="$2"
+  
+  # If object file doesn't exist, need to compile
+  if [ ! -f "$obj_file" ]; then
+    return 0  # true - needs compilation
+  fi
+  
+  # If source file is newer than object file, need to compile
+  if [ "$src_file" -nt "$obj_file" ]; then
+    return 0  # true - needs compilation
+  fi
+  
+  # Check if any header dependencies are newer (simple check for common headers)
+  local src_dir=$(dirname "$src_file")
+  local base_name=$(basename "$src_file" .cpp)
+  local header_file="${src_dir}/${base_name}.hpp"
+  
+  if [ -f "$header_file" ] && [ "$header_file" -nt "$obj_file" ]; then
+    return 0  # true - needs compilation
+  fi
+  
+  return 1  # false - no compilation needed
+}
+
+# Incremental compilation function
+compile_if_needed() {
+  local src_file="$1"
+  local obj_file="$2"
+  local compile_flags="$3"
+  
+  if needs_compilation "$src_file" "$obj_file"; then
+    echo "Compiling $(basename "$src_file")..."
+    em++ $compile_flags "$src_file" -c -o "$obj_file"
+    return 0
+  else
+    echo "Skipping $(basename "$src_file") (up to date)"
+    return 1
+  fi
+}
+
+# Build and install FFmpeg and H.264 dependencies
 build_dependencies() {
-  show_message "Building External Dependencies (FFmpeg and VP8)"
+  show_message "Building External Dependencies (FFmpeg and H.264)"
   
   # Check if libraries already exist
   echo "Checking for existing FFmpeg libraries..."
-  if [ -f "${EXTERN_BUILD_DIR}/lib/libavcodec.a" ] && [ -f "${EXTERN_BUILD_DIR}/lib/libvpx.a" ]; then
-    echo "✓ FFmpeg and VP8 libraries already built"
+  if [ -f "${EXTERN_BUILD_DIR}/lib/libavcodec.a" ] && [ -f "${EXTERN_BUILD_DIR}/lib/libx264.a" ]; then
+    echo "✓ FFmpeg and H.264 libraries already built"
     return 0
   fi
   
-  # Build VP8 (libvpx)
-  echo "Building VP8 (libvpx) with Emscripten..."
-  if [ ! -d "${VPX_DIR}" ]; then
-    mkdir -p "$(dirname "${VPX_DIR}")"
-    git clone https://chromium.googlesource.com/webm/libvpx "${VPX_DIR}"
+  # Build H.264 (libx264)
+  echo "Building H.264 (libx264) with Emscripten..."
+  if [ ! -d "${X264_DIR}" ]; then
+    mkdir -p "$(dirname "${X264_DIR}")"
+    git clone --depth 1 https://code.videolan.org/videolan/x264.git "${X264_DIR}"
   fi
   
-  cd "${VPX_DIR}"
+  cd "${X264_DIR}"
   emconfigure ./configure \
     --prefix="${EXTERN_BUILD_DIR}" \
-    --target=generic-gnu \
-    --disable-examples \
-    --disable-docs \
-    --disable-tools \
-    --disable-unit-tests \
-    --disable-vp9 \
-    --enable-vp8 \
+    --host=x86-linux \
     --enable-static \
     --disable-shared \
+    --disable-opencl \
+    --disable-thread \
+    --disable-asm \
+    --disable-cli \
+    --enable-pic \
+    --bit-depth=8 \
+    --chroma-format=420 \
     --extra-cflags="-O3 -DEMSCRIPTEN -msimd128 -matomics -mbulk-memory -pthread" \
     --extra-cxxflags="-O3 -DEMSCRIPTEN -msimd128 -matomics -mbulk-memory -pthread"
   
@@ -66,7 +137,7 @@ build_dependencies() {
   emmake make install
   
   # Build FFmpeg
-  echo "Building FFmpeg with VP8/WebM support..."
+  echo "Building FFmpeg with H.264/MP4 support..."
   if [ ! -d "${FFMPEG_DIR}" ]; then
     mkdir -p "$(dirname "${FFMPEG_DIR}")"
     git clone https://git.ffmpeg.org/ffmpeg.git "${FFMPEG_DIR}"
@@ -89,11 +160,11 @@ build_dependencies() {
     --enable-avcodec --enable-avformat --enable-avutil \
     --enable-swscale --enable-swresample \
     --enable-gpl \
-    --enable-libvpx \
-    --enable-encoder=libvpx_vp8 \
-    --enable-decoder=vp8 \
-    --enable-muxer=webm \
-    --enable-demuxer=webm \
+    --enable-libx264 \
+    --enable-encoder=libx264 \
+    --enable-decoder=h264 \
+    --enable-muxer=mp4 \
+    --enable-demuxer=mov \
     --enable-protocol=file \
     --extra-cflags="-I${EXTERN_BUILD_DIR}/include -DEMSCRIPTEN -s WASM=1 -msimd128 -matomics -mbulk-memory -pthread" \
     --extra-ldflags="-L${EXTERN_BUILD_DIR}/lib -msimd128 -matomics -mbulk-memory -pthread" \
@@ -112,150 +183,214 @@ build_dependencies() {
   echo "✓ Dependencies built successfully"
 }
 
-
-compile_remaining_files() {
-  show_message "Compiling All Remaining Source Files"
-  for obj_file in "${expected_files[@]}"; do
-    cpp_file="src/${obj_file%.o}.cpp"
-    output_file="web_build/${obj_file}"
-    
-    if [ ! -f "$output_file" ] && [ -f "$cpp_file" ]; then
-      echo "Compiling ${cpp_file}..."
-      em++ -MMD -MP -std=c++20 -msimd128 -matomics -mbulk-memory "$cpp_file" -c -o "$output_file"
+# Build the project with incremental compilation
+build_project() {
+  show_message "Building Project with Incremental Compilation..."
+  
+  # Verify FFmpeg headers are available
+  if [ ! -d "${EXTERN_BUILD_DIR}/include/libavcodec" ]; then
+    echo "❌ FFmpeg headers not found in ${EXTERN_BUILD_DIR}/include"
+    echo "Please run the dependency build first"
+    exit 1
+  fi
+  
+  # FFmpeg configuration flags
+  FFMPEG_CFLAGS="-I${EXTERN_BUILD_DIR}/include -DUSE_FFMPEG=1 -msimd128"
+  FFMPEG_LIBS="-L${EXTERN_BUILD_DIR}/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
+  
+  # Base compilation flags
+  BASE_FLAGS="-O3 -MMD -MP -std=c++20 -msimd128"
+  SIMD_FLAGS="-MMD -MP -std=c++20 -msimd128"
+  
+  # Track compilation status
+  local files_compiled=0
+  local files_skipped=0
+  
+  # Files that need FFmpeg flags
+  echo "Checking FFmpeg-dependent files..."
+  if compile_if_needed "src/lux_web.cpp" "web_build/lux_web.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
+    ((files_compiled++))
+  else
+    ((files_skipped++))
+  fi
+  
+  if compile_if_needed "src/video_recorder.cpp" "web_build/video_recorder.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
+    ((files_compiled++))
+  else
+    ((files_skipped++))
+  fi
+  
+  # Individual file compilation rules - exactly as in Makefile
+  echo "Checking other source files..."
+  
+  # Files with O3 optimization
+  local o3_files=(
+    "effect" "fimage" "frgb" "gamma_lut" "image" "life" 
+    "next_element" "offset_field" "uimage" "ucolor" 
+    "vect2" "vector_field" "warp_field"
+  )
+  
+  for file in "${o3_files[@]}"; do
+    if compile_if_needed "src/${file}.cpp" "web_build/${file}.o" "$BASE_FLAGS"; then
+      ((files_compiled++))
+    else
+      ((files_skipped++))
     fi
   done
-  for file in src/*.cpp; do
-    base_name=$(basename "$file" .cpp)
-    if [ "$base_name" != "life_web" ] && [ "$base_name" != "warp" ] && [ "$base_name" != "scene" ] && [ "$base_name" != "lux" ] && [ "$base_name" != "unit_tests" ]; then
-      output_file="web_build/${base_name}.o"
-      if [ ! -f "$output_file" ]; then
-        echo "Compiling $base_name.cpp using generic rule..."
-        em++ -MMD -MP -std=c++20 -msimd128 -matomics -mbulk-memory "$file" -c -o "$output_file"
+  
+  # Files without O3 optimization
+  local regular_files=(
+    "scene" "scene_io" "any_effect" "any_rule" "any_function" 
+    "buffer_pair" "image_loader" "emscripten_utils" "UI"
+  )
+  
+  for file in "${regular_files[@]}"; do
+    if compile_if_needed "src/${file}.cpp" "web_build/${file}.o" "$SIMD_FLAGS"; then
+      ((files_compiled++))
+    else
+      ((files_skipped++))
+    fi
+  done
+  
+  # Check for any remaining .cpp files that might have been missed
+  echo "Checking for any additional source files..."
+  for src_file in src/*.cpp; do
+    if [ -f "$src_file" ]; then
+      base_name=$(basename "$src_file" .cpp)
+      obj_file="web_build/${base_name}.o"
+      
+      # Skip files we don't want to compile
+      if [[ "$base_name" == "life_web" || "$base_name" == "warp" || "$base_name" == "lux" || "$base_name" == "unit_tests" || "$base_name" == "image_test" || "$base_name" == "sploot" || "$base_name" == "circle" || "$base_name" == "borg" || "$base_name" == "hello_react" ]]; then
+        continue
+      fi
+      
+      # Skip files we already handled (FFmpeg-dependent files)
+      if [[ "$base_name" == "lux_web" || "$base_name" == "video_recorder" ]]; then
+        continue
+      fi
+      
+      # Skip files we already handled (O3 optimized files)
+      if [[ "$base_name" == "effect" || "$base_name" == "fimage" || "$base_name" == "frgb" || "$base_name" == "gamma_lut" || "$base_name" == "image" || "$base_name" == "life" || "$base_name" == "next_element" || "$base_name" == "offset_field" || "$base_name" == "uimage" || "$base_name" == "ucolor" || "$base_name" == "vect2" || "$base_name" == "vector_field" || "$base_name" == "warp_field" ]]; then
+        continue
+      fi
+      
+      # Skip files we already handled (regular files)
+      if [[ "$base_name" == "scene" || "$base_name" == "scene_io" || "$base_name" == "any_effect" || "$base_name" == "any_rule" || "$base_name" == "any_function" || "$base_name" == "buffer_pair" || "$base_name" == "image_loader" || "$base_name" == "emscripten_utils" || "$base_name" == "UI" ]]; then
+        continue
+      fi
+      
+      echo "Found additional file: $base_name"
+      if compile_if_needed "$src_file" "$obj_file" "$SIMD_FLAGS"; then
+        ((files_compiled++))
+      else
+        ((files_skipped++))
       fi
     fi
   done
   
-  # List all compiled object files for verification
-  echo "Compiled object files in web_build:"
-  ls -la web_build/*.o
-}
-
-# Build the project with 
-build_project() {
-  show_message "Building Project..."
+  echo "Compilation summary: $files_compiled files compiled, $files_skipped files skipped"
   
-  # FFmpeg configuration 
-  FFMPEG_CFLAGS="-I${EXTERN_BUILD_DIR}/include -DUSE_FFMPEG=1 -msimd128"
-  FFMPEG_LIBS="-L${EXTERN_BUILD_DIR}/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lvpx"
+  # Collect all required object files for linking
+  local required_objects=(
+    "web_build/lux_web.o"
+    "web_build/life.o"
+    "web_build/any_effect.o"
+    "web_build/any_function.o"
+    "web_build/any_rule.o"
+    "web_build/buffer_pair.o"
+    "web_build/effect.o"
+    "web_build/image.o"
+    "web_build/uimage.o"
+    "web_build/ucolor.o"
+    "web_build/fimage.o"
+    "web_build/frgb.o"
+    "web_build/vector_field.o"
+    "web_build/vect2.o"
+    "web_build/offset_field.o"
+    "web_build/gamma_lut.o"
+    "web_build/image_loader.o"
+    "web_build/scene.o"
+    "web_build/scene_io.o"
+    "web_build/next_element.o"
+    "web_build/UI.o"
+    "web_build/warp_field.o"
+    "web_build/emscripten_utils.o"
+    "web_build/video_recorder.o"
+  )
   
-  # Files that need FFmpeg flags 
-  echo "Compiling lux_web.cpp with FFmpeg flags..."
-  em++ -O3 -MMD -MP -std=c++20 ${FFMPEG_CFLAGS} src/lux_web.cpp -c -o web_build/lux_web.o
+  # Check that all required object files exist
+  echo "Verifying required object files..."
+  local missing_objects=()
+  for obj in "${required_objects[@]}"; do
+    if [ ! -f "$obj" ]; then
+      missing_objects+=("$obj")
+    fi
+  done
   
-  echo "Compiling video_recorder.cpp with FFmpeg flags..."
-  em++ -O3 -MMD -MP -std=c++20 ${FFMPEG_CFLAGS} src/video_recorder.cpp -c -o web_build/video_recorder.o
+  if [ ${#missing_objects[@]} -gt 0 ]; then
+    echo "❌ Missing required object files:"
+    printf '%s\n' "${missing_objects[@]}"
+    exit 1
+  fi
   
-  # Individual file compilation rules - exactly as in Makefile
-  echo "Compiling effect.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/effect.cpp -c -o web_build/effect.o
+  # Check if linking is needed (if any object file is newer than the final output)
+  local need_linking=false
+  if [ ! -f "lux_react/src/lux.js" ]; then
+    need_linking=true
+    echo "Output file doesn't exist - linking needed"
+  else
+    for obj in "${required_objects[@]}"; do
+      if [ "$obj" -nt "lux_react/src/lux.js" ]; then
+        need_linking=true
+        echo "Object file $obj is newer than output - linking needed"
+        break
+      fi
+    done
+  fi
   
-  echo "Compiling fimage.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/fimage.cpp -c -o web_build/fimage.o
-  
-  echo "Compiling frgb.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/frgb.cpp -c -o web_build/frgb.o
-  
-  echo "Compiling gamma_lut.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/gamma_lut.cpp -c -o web_build/gamma_lut.o
-  
-  echo "Compiling image.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/image.cpp -c -o web_build/image.o
-  
-  echo "Compiling life.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/life.cpp -c -o web_build/life.o
-  
-  echo "Compiling next_element.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/next_element.cpp -c -o web_build/next_element.o
-  
-  echo "Compiling offset_field.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/offset_field.cpp -c -o web_build/offset_field.o
-  
-  echo "Compiling uimage.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/uimage.cpp -c -o web_build/uimage.o
-  
-  echo "Compiling ucolor.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/ucolor.cpp -c -o web_build/ucolor.o
-  
-  echo "Compiling vect2.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/vect2.cpp -c -o web_build/vect2.o
-  
-  echo "Compiling vector_field.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/vector_field.cpp -c -o web_build/vector_field.o
-  
-  echo "Compiling warp_field.cpp..."
-  em++ -O3 -MMD -MP -std=c++20 -msimd128 src/warp_field.cpp -c -o web_build/warp_field.o
-
-  echo "Compiling scene.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/scene.cpp -c -o web_build/scene.o
-
-  echo "Compiling scene_io.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/scene_io.cpp -c -o web_build/scene_io.o
-
-  echo "Compiling any_effect.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/any_effect.cpp -c -o web_build/any_effect.o
-
-  echo "Compiling any_rule.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/any_rule.cpp -c -o web_build/any_rule.o
-
-  echo "Compiling any_function.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/any_function.cpp -c -o web_build/any_function.o
-
-  echo "Compiling buffer_pair.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/buffer_pair.cpp -c -o web_build/buffer_pair.o
-
-  echo "Compiling image_loader.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/image_loader.cpp -c -o web_build/image_loader.o
-
-  echo "Compiling emscripten_utils.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/emscripten_utils.cpp -c -o web_build/emscripten_utils.o
-
-  echo "Compiling UI.cpp..."
-  em++ -MMD -MP -std=c++20 -msimd128 src/UI.cpp -c -o web_build/UI.o
-
-  compile_remaining_files
-  
-  # Main target - linking with cleaned flags compatible with strict mode
-  echo "Linking target with strict mode compatible flags..."
-  em++ web_build/lux_web.o web_build/life.o web_build/any_effect.o web_build/any_function.o web_build/any_rule.o web_build/buffer_pair.o web_build/effect.o web_build/image.o web_build/uimage.o web_build/ucolor.o web_build/fimage.o web_build/frgb.o web_build/vector_field.o web_build/vect2.o web_build/offset_field.o web_build/gamma_lut.o web_build/image_loader.o web_build/scene.o web_build/scene_io.o web_build/next_element.o web_build/UI.o web_build/warp_field.o web_build/emscripten_utils.o web_build/video_recorder.o -o lux_react/src/lux.js \
-    --embed-file lux_files \
-    -s MODULARIZE=1 \
-    -s SINGLE_FILE=1 \
-    -s ENVIRONMENT=web,worker \
-    -s NO_DISABLE_EXCEPTION_CATCHING=0 \
-    -s EXPORT_ES6=1 \
-    -s INITIAL_MEMORY=671088640 \
-    -s MAXIMUM_MEMORY=2147483648 \
-    -s ALLOW_TABLE_GROWTH=1 \
-    -s EXPORTED_FUNCTIONS=['_malloc','_free','_main'] \
-    -s EXPORTED_RUNTIME_METHODS=['addFunction','removeFunction','UTF8ToString','stringToUTF8','getValue','setValue','writeArrayToMemory','cwrap'] \
-    -s WASM_ASYNC_COMPILATION=1 \
-    -s EXIT_RUNTIME=0 \
-    -s LEGALIZE_JS_FFI=0 \
-    -s ALLOW_MEMORY_GROWTH=1 \
-    -s IMPORTED_MEMORY=1 \
-    -O3 \
-    -flto \
-    -s DISABLE_EXCEPTION_CATCHING=1 \
-    -msimd128 \
-    -lembind ${FFMPEG_LIBS}
+  if [ "$need_linking" = true ]; then
+    echo "Linking final executable..."
+    em++ "${required_objects[@]}" -o lux_react/src/lux.js \
+      --embed-file lux_files \
+      -s MODULARIZE=1 \
+      -s SINGLE_FILE=1 \
+      -s ENVIRONMENT=web,worker \
+      -s NO_DISABLE_EXCEPTION_CATCHING=0 \
+      -s EXPORT_ES6=1 \
+      -s INITIAL_MEMORY=671088640 \
+      -s MAXIMUM_MEMORY=2147483648 \
+      -s ALLOW_TABLE_GROWTH=1 \
+      -s EXPORTED_FUNCTIONS=['_malloc','_free','_main'] \
+      -s EXPORTED_RUNTIME_METHODS=['addFunction','removeFunction','UTF8ToString','stringToUTF8','getValue','setValue','writeArrayToMemory','cwrap'] \
+      -s WASM_ASYNC_COMPILATION=1 \
+      -s EXIT_RUNTIME=0 \
+      -s LEGALIZE_JS_FFI=0 \
+      -s ALLOW_MEMORY_GROWTH=1 \
+      -s IMPORTED_MEMORY=1 \
+      -O3 \
+      -flto \
+      -s DISABLE_EXCEPTION_CATCHING=1 \
+      -msimd128 \
+      -lembind ${FFMPEG_LIBS}
+    
+    echo "✓ Linking completed"
+  else
+    echo "✓ Output file is up to date - no linking needed"
+  fi
   
   show_message "Build Complete"
-  echo "Output file created at: lux_react/src/lux.js"
+  if [ -f "lux_react/src/lux.js" ]; then
+    local file_size=$(du -h lux_react/src/lux.js | cut -f1)
+    echo "✓ Output file: lux_react/src/lux.js (${file_size})"
+  else
+    echo "❌ Output file not found"
+    exit 1
+  fi
 }
 
 # Main execution flow
 main() {
-  show_message "Starting Jen Project Build"
+  show_message "Starting Jen Project Build (H.264/MP4 Incremental)"
   setup_dirs
   build_dependencies  
   build_project

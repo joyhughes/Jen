@@ -22,9 +22,9 @@ const MediaController = () => {
       height: 532,
       fps: 30,
       bitrate: 2000000,
-      codec: 'libvpx',  // Use VP8 codec
-      format: 'webm',   // Use WebM format
-      preset: 'realtime'
+      codec: 'libx264',  // Use H.264 codec
+      format: 'mp4',   // Use MP4 format
+      preset: 'ultrafast'
     };
 
     workerRef.current.postMessage({

@@ -29,7 +29,7 @@ async function initWasm(wasmUrl) {
             console.log('[Worker] Locating file:', path);
             return wasmUrl.replace('lux.js', path);
         },
-        // Remove wasmMemory configuration to use imported memory
+        // Use imported memory configuration
         importMemory: true
     };
 
@@ -74,23 +74,59 @@ function getCppError() {
 
 // Process frames in batches
 async function processFrameQueue() {
-    if (isProcessingFrames || frameQueue.length === 0) return;
+    console.log('[Worker] === PROCESS FRAME QUEUE START ===');
+    console.log('[Worker] isProcessingFrames:', isProcessingFrames);
+    console.log('[Worker] frameQueue.length:', frameQueue.length);
+    console.log('[Worker] recordingInProgress:', recordingInProgress);
+    
+    if (isProcessingFrames || frameQueue.length === 0) {
+        console.log('[Worker] Skipping frame processing - already processing or empty queue');
+        return;
+    }
     
     isProcessingFrames = true;
     const batchSize = 5; // Process 5 frames at a time
+    console.log('[Worker] Starting frame processing with batch size:', batchSize);
 
     try {
         while (frameQueue.length > 0 && recordingInProgress) {
             const batch = frameQueue.splice(0, batchSize);
+            console.log('[Worker] Processing batch of', batch.length, 'frames. Remaining in queue:', frameQueue.length);
             
             for (const frame of batch) {
                 const frameStartTime = performance.now();
                 try {
+                    // CRITICAL: Add detailed logging for frame processing
+                    console.log(`[Worker] === PROCESSING FRAME ${frameCount + 1} ===`);
+                    console.log(`[Worker] Frame dimensions: ${frame.width}x${frame.height}`);
+                    console.log(`[Worker] Frame imageData type:`, frame.imageData.constructor.name);
+                    console.log(`[Worker] Frame imageData length:`, frame.imageData.length);
+                    console.log(`[Worker] Expected length:`, frame.width * frame.height * 4);
+                    console.log(`[Worker] Queue remaining: ${frameQueue.length}, recording: ${recordingInProgress}`);
+                    
+                    if (!CppModule || typeof CppModule.worker_add_frame !== 'function') {
+                        console.error('[Worker] CppModule or worker_add_frame not available');
+                        console.error('[Worker] - CppModule:', !!CppModule);
+                        console.error('[Worker] - worker_add_frame type:', typeof (CppModule && CppModule.worker_add_frame));
+                        continue;
+                    }
+                    
+                    if (!frame.imageData || !frame.width || !frame.height) {
+                        console.error('[Worker] Invalid frame data:', {
+                            hasImageData: !!frame.imageData,
+                            width: frame.width,
+                            height: frame.height
+                        });
+                        continue;
+                    }
+                    
+                    console.log('[Worker] Calling CppModule.worker_add_frame...');
                     const success = CppModule.worker_add_frame(
                         frame.imageData,
                         frame.width,
                         frame.height
                     );
+                    console.log('[Worker] worker_add_frame returned:', success);
                     
                     const frameEndTime = performance.now();
                     const processingTime = frameEndTime - frameStartTime;
@@ -98,7 +134,9 @@ async function processFrameQueue() {
                     
                     if (success) {
                         frameCount++;
-                        if (frameCount % 30 === 0) {
+                        console.log(`[Worker] ✓ Frame ${frameCount} added successfully in ${processingTime.toFixed(2)}ms`);
+                        
+                        if (frameCount % 10 === 0) { // More frequent logging
                             const avgProcessingTime = frameProcessingTimes.reduce((a, b) => a + b, 0) / frameProcessingTimes.length;
                             const totalDuration = (performance.now() - recordingStartTime) / 1000;
                             const actualFps = frameCount / totalDuration;
@@ -126,12 +164,40 @@ async function processFrameQueue() {
                             frameProcessingTimes = [];
                         }
                     } else {
-                        console.error('[Worker] Failed to add frame');
-                        self.postMessage({ type: 'error', error: 'Failed to add frame' });
+                        console.error(`[Worker] ✗ Failed to add frame ${frameCount + 1} - C++ function returned false`);
+                        
+                        // Get detailed error from C++
+                        if (typeof CppModule.get_recording_error === 'function') {
+                            const cppError = CppModule.get_recording_error();
+                            console.error(`[Worker] C++ error: ${cppError}`);
+                        }
+                        
+                        // Check recording state
+                        if (typeof CppModule.get_recording_state === 'function') {
+                            const state = CppModule.get_recording_state();
+                            console.error(`[Worker] Recording state: ${state}`);
+                        }
+                        
+                        // Check if still recording
+                        if (typeof CppModule.is_recording === 'function') {
+                            const isCppRecording = CppModule.is_recording();
+                            console.error(`[Worker] C++ is_recording: ${isCppRecording}`);
+                        }
+                        
+                        // Don't fail completely, continue with next frame
+                        // self.postMessage({ type: 'error', error: 'Failed to add frame' });
                     }
                 } catch (error) {
-                    console.error('[Worker] Error adding frame:', error);
-                    self.postMessage({ type: 'error', error: 'Error adding frame: ' + error.message });
+                    console.error(`[Worker] ✗ Exception adding frame ${frameCount + 1}:`, error);
+                    console.error(`[Worker] Frame data:`, {
+                        hasImageData: !!frame.imageData,
+                        imageDataLength: frame.imageData ? frame.imageData.length : 0,
+                        width: frame.width,
+                        height: frame.height,
+                        expectedLength: frame.width * frame.height * 4
+                    });
+                    // Don't fail completely, continue with next frame
+                    // self.postMessage({ type: 'error', error: 'Error adding frame: ' + error.message });
                 }
             }
             
@@ -140,6 +206,9 @@ async function processFrameQueue() {
         }
     } finally {
         isProcessingFrames = false;
+        console.log('[Worker] === PROCESS FRAME QUEUE END ===');
+        console.log('[Worker] Final queue size:', frameQueue.length);
+        console.log('[Worker] Total frames processed:', frameCount);
     }
 }
 
@@ -162,7 +231,12 @@ self.onmessage = async (event) => {
                 break;
 
             case 'startRecording':
+                console.log('[Worker] === START RECORDING REQUEST ===');
+                console.log('[Worker] isInitialized:', isInitialized);
+                console.log('[Worker] recordingInProgress:', recordingInProgress);
+                
                 if (!isInitialized) {
+                    console.error('[Worker] ERROR: Worker not initialized');
                     throw new Error('Worker not initialized');
                 }
 
@@ -171,25 +245,41 @@ self.onmessage = async (event) => {
                     await stopCurrentRecording();
                 }
 
-                console.log('[Worker] Starting recording with options:', message.options);
+                console.log('[Worker] Starting H.264/MP4 recording with options:', message.options);
+                console.log('[Worker] Original options dimensions:', message.options.width, 'x', message.options.height);
+                
                 recordingInProgress = true;
                 frameCount = 0;
                 recordingStartTime = performance.now();
                 frameProcessingTimes = [];
 
-                // Before starting recording, ensure canvas size matches the image
+                // Use actual buffer dimensions for recording to ensure consistency
+                console.log('[Worker] Getting buffer dimensions from C++...');
                 const imageWidth = CppModule.get_buf_width();
                 const imageHeight = CppModule.get_buf_height();
-                // const canvas = document.querySelector('canvas');
-                // if (canvas.width !== imageWidth || canvas.height !== imageHeight) {
-                //     canvas.width = imageWidth;
-                //     canvas.height = imageHeight;
-                //     // Optionally, trigger a re-render here
-                // }
+                
+                console.log(`[Worker] Buffer dimensions from C++: ${imageWidth}x${imageHeight}`);
+                console.log(`[Worker] Message options dimensions: ${message.options.width}x${message.options.height}`);
+                
+                if (imageWidth !== message.options.width || imageHeight !== message.options.height) {
+                    console.warn('[Worker] WARNING: Dimension mismatch detected!');
+                    console.warn('[Worker] - Buffer:', imageWidth, 'x', imageHeight);
+                    console.warn('[Worker] - Options:', message.options.width, 'x', message.options.height);
+                    console.warn('[Worker] Using buffer dimensions for recording');
+                }
+
+                console.log('[Worker] Calling C++ start_recording with parameters:');
+                console.log('[Worker] - Width:', imageWidth);
+                console.log('[Worker] - Height:', imageHeight);
+                console.log('[Worker] - FPS:', message.options.fps);
+                console.log('[Worker] - Bitrate:', message.options.bitrate);
+                console.log('[Worker] - Codec:', message.options.codec);
+                console.log('[Worker] - Format:', message.options.format);
+                console.log('[Worker] - Preset:', message.options.preset);
 
                 const success = await CppModule.start_recording(
-                    message.options.width,
-                    message.options.height,
+                    imageWidth,  // Use actual buffer width
+                    imageHeight, // Use actual buffer height
                     message.options.fps,
                     message.options.bitrate,
                     message.options.codec,
@@ -197,19 +287,53 @@ self.onmessage = async (event) => {
                     message.options.preset
                 );
 
+                console.log('[Worker] start_recording returned:', success);
+                
                 if (success) {
+                    console.log('[Worker] ✓ Recording started successfully');
+                    // Verify recording state
+                    if (typeof CppModule.get_recording_state === 'function') {
+                        const state = CppModule.get_recording_state();
+                        console.log('[Worker] C++ recording state after start:', state);
+                    }
+                    if (typeof CppModule.is_recording === 'function') {
+                        const isRec = CppModule.is_recording();
+                        console.log('[Worker] C++ is_recording after start:', isRec);
+                    }
                     self.postMessage({ type: 'recordingStarted', success: true });
                 } else {
+                    console.error('[Worker] ✗ Failed to start H.264 recording');
+                    if (typeof CppModule.get_recording_error === 'function') {
+                        const error = CppModule.get_recording_error();
+                        console.error('[Worker] C++ error:', error);
+                    }
                     recordingInProgress = false;
-                    self.postMessage({ type: 'recordingStarted', success: false, error: 'Failed to start recording' });
+                    self.postMessage({ type: 'recordingStarted', success: false, error: 'Failed to start H.264 recording' });
                 }
                 break;
 
             case 'addFrame':
+                console.log('[Worker] === ADD FRAME REQUEST ===');
+                console.log('[Worker] CppModule available:', !!CppModule);
+                console.log('[Worker] worker_add_frame available:', !!(CppModule && CppModule.worker_add_frame));
+                console.log('[Worker] recordingInProgress:', recordingInProgress);
+                
                 if (!CppModule || !CppModule.worker_add_frame || !recordingInProgress) {
                     console.warn('[Worker] Ignoring frame - not ready or not recording');
+                    console.warn('[Worker] - CppModule:', !!CppModule);
+                    console.warn('[Worker] - worker_add_frame:', !!(CppModule && CppModule.worker_add_frame));
+                    console.warn('[Worker] - recordingInProgress:', recordingInProgress);
                     return;
                 }
+                
+                console.log('[Worker] Frame data validation:');
+                console.log('[Worker] - hasImageData:', !!message.imageData);
+                console.log('[Worker] - width:', message.width);
+                console.log('[Worker] - height:', message.height);
+                console.log('[Worker] - imageData type:', message.imageData ? message.imageData.constructor.name : 'null');
+                console.log('[Worker] - imageData length:', message.imageData ? message.imageData.length : 0);
+                console.log('[Worker] - expected length:', message.width * message.height * 4);
+                
                 if (!message.imageData || !message.width || !message.height) {
                     console.error('[Worker] Invalid frame data:', { 
                         hasImageData: !!message.imageData,
@@ -219,18 +343,32 @@ self.onmessage = async (event) => {
                     return;
                 }
 
+                // Check current recording state
+                if (typeof CppModule.get_recording_state === 'function') {
+                    const currentState = CppModule.get_recording_state();
+                    console.log('[Worker] Current C++ recording state:', currentState);
+                }
+                
+                if (typeof CppModule.is_recording === 'function') {
+                    const isCppRecording = CppModule.is_recording();
+                    console.log('[Worker] C++ is_recording:', isCppRecording);
+                }
+
                 // if (shouldDropFrame(frameQueue.length)) {
                 //     return; // Drop this frame
                 // }
                 
+                console.log('[Worker] Adding frame to queue. Current queue size:', frameQueue.length);
                 frameQueue.push({
                     imageData: message.imageData,
                     width: message.width,
                     height: message.height
                 });
+                console.log('[Worker] Frame added to queue. New queue size:', frameQueue.length);
 
                 // Process frames if queue is getting large
                 if (frameQueue.length >= MAX_QUEUE_SIZE) {
+                    console.log('[Worker] Queue size reached MAX_QUEUE_SIZE, processing frames');
                     processFrameQueue();
                 }
                 break;
@@ -333,7 +471,7 @@ async function stopCurrentRecording() {
                     throw new Error('Video data too small, likely corrupted');
                 }
 
-                // Create a proper WebM container with metadata
+                // Create a proper MP4 container with metadata
                 const videoDataBuffer = new ArrayBuffer(videoDataArray.length);
                 const videoData = new Uint8Array(videoDataBuffer);
                 videoData.set(videoDataArray);
@@ -341,25 +479,12 @@ async function stopCurrentRecording() {
                 const frameCount = CppModule.get_recorded_frame_count() || 0;
                 console.log(`[Worker] Final frame count: ${frameCount}`);
 
-                // Verify WebM header (EBML header)
-                const isWebM = videoData[0] === 0x1A && videoData[1] === 0x45 && videoData[2] === 0xDF && videoData[3] === 0xA3;
-                if (!isWebM) {
-                    console.error('[Worker] Invalid WebM header. Expected EBML header (1A 45 DF A3)');
-                    console.error('[Worker] Got:', headerHex);
-                    
-                    // Try to fix the header if it's missing
-                    if (videoData.length > 4) {
-                        console.log('[Worker] Attempting to fix WebM header...');
-                        videoData[0] = 0x1A;
-                        videoData[1] = 0x45;
-                        videoData[2] = 0xDF;
-                        videoData[3] = 0xA3;
-                        console.log('[Worker] Header fixed, new header:', 
-                            Array.from(videoData.slice(0, 4))
-                                .map(b => b.toString(16).padStart(2, '0'))
-                                .join(' ')
-                        );
-                    }
+                // Verify MP4 header (ftyp box)
+                const isMP4 = videoData[4] === 0x66 && videoData[5] === 0x74 && videoData[6] === 0x79 && videoData[7] === 0x70;
+                if (!isMP4) {
+                    console.warn('[Worker] Warning: MP4 header not detected. Expected ftyp box (66 74 79 70)');
+                    console.warn('[Worker] Got:', headerHex);
+                    // Don't fail - FFmpeg might use different container structure
                 }
 
                 // Send video data back to main thread with highest priority
@@ -368,7 +493,7 @@ async function stopCurrentRecording() {
                     success: true,
                     videoData: videoData,
                     frameCount: frameCount,
-                    mimeType: 'video/webm; codecs="vp8"', // VP8 codec
+                    mimeType: 'video/mp4; codecs="avc1.42E01E"', // H.264 baseline profile
                     duration: frameCount / 30 // Approximate duration in seconds
                 }, [videoDataBuffer]); // Transfer ownership for speed
             } else {
@@ -421,4 +546,4 @@ self.addEventListener('unhandledrejection', (event) => {
     }
 });
 
-console.log('[Worker] Video encoding worker initialized');
+console.log('[Worker] H.264/MP4 video encoding worker initialized');

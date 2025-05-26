@@ -42,6 +42,9 @@ struct frame_context {
 frame_context *global_context;
 
 val get_buf1() {
+    if (!global_context || !global_context->buf) {
+        return val::null();
+    }
     uimage& img = (uimage &)(global_context->buf->get_image());
     unsigned char* buffer = (unsigned char* )img.get_base_ptr();
     size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
@@ -51,9 +54,17 @@ val get_buf1() {
     return val(typed_memory_view(buffer_length, buffer));
 }
 
-val get_img_data() { return get_buf1(); }
+val get_img_data() { 
+    if (!global_context || !global_context->buf) {
+        return val::null();
+    }
+    return get_buf1(); 
+}
 
 val get_buf2() {
+    if (!global_context || !global_context->buf) {
+        return val::null();
+    }
     uimage& img = (uimage &)(global_context->buf->get_buffer());
     unsigned char* buffer = (unsigned char* )img.get_base_ptr();
     size_t buffer_length = img.get_dim().x * img.get_dim().y * 4; // Assuming 4 bytes per pixel (RGBA)
@@ -159,11 +170,17 @@ void set_scene_callback(val callback) {
 
 
 int get_buf_width() {
+    if (!global_context || !global_context->buf) {
+        return 0;
+    }
     uimage& img = (uimage &)(global_context->buf->get_image());
     return img.get_dim().x;
 }
 
 int get_buf_height() {
+    if (!global_context || !global_context->buf) {
+        return 0;
+    }
     uimage& img = (uimage &)(global_context->buf->get_image());
     return img.get_dim().y;
 }
@@ -253,7 +270,16 @@ void advance_frame() {
 }
 
 void mouse_move( int x, int y, int width, int height ) {
+    if (!global_context || !global_context->s) {
+        return;
+    }
     UI& ui = global_context->s->ui;
+    
+    // Prevent divide by zero
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+    
     ui.mouse_pixel = vec2i( { x * ui.canvas_bounds.width() / width, y * ui.canvas_bounds.height() / height } );
 }
 
@@ -539,35 +565,117 @@ void add_to_menu(std::string menu_name, std::string item) {
 
 
 bool worker_add_frame(val image_data, int width, int height) {
+    std::cout << "[C++] === WORKER_ADD_FRAME START ===" << std::endl;
+    std::cout << "[C++] Function called with dimensions: " << width << "x" << height << std::endl;
+    
     if (!global_context || !global_context->video_recorder) {
-        std::cerr << "Cannot add frame - video recorder not initialized" << std::endl;
+        std::cerr << "[C++] ERROR: Cannot add frame - video recorder not initialized" << std::endl;
+        std::cerr << "[C++] - global_context: " << (global_context ? "valid" : "null") << std::endl;
+        std::cerr << "[C++] - video_recorder: " << (global_context && global_context->video_recorder ? "valid" : "null") << std::endl;
         return false;
     }
 
     if (!global_context->is_recording) {
-        std::cerr << "Cannot add frame - not currently recording" << std::endl;
+        std::cerr << "[C++] ERROR: Cannot add frame - not currently recording" << std::endl;
+        std::cerr << "[C++] - is_recording flag: " << global_context->is_recording << std::endl;
         return false;
     }
 
     try {
-        // Create a temporary image to hold the data
-        uimage img(vec2i{width, height});
-        unsigned char* buffer = (unsigned char*)img.get_base_ptr();
+        // CRITICAL: Add detailed logging for debugging
+        std::cout << "[C++] Starting frame processing..." << std::endl;
+        std::cout << "[C++] Input validation:" << std::endl;
+        std::cout << "[C++] - Width: " << width << std::endl;
+        std::cout << "[C++] - Height: " << height << std::endl;
+        
+        // Validate dimensions
+        if (width <= 0 || height <= 0) {
+            std::cerr << "[C++] ERROR: Invalid dimensions: " << width << "x" << height << std::endl;
+            return false;
+        }
+        
+        // Check if image_data is valid
+        if (image_data.isNull() || image_data.isUndefined()) {
+            std::cerr << "[C++] ERROR: Image data is null or undefined" << std::endl;
+            return false;
+        }
+        
+        // CRITICAL FIX: Use proper Emscripten typed memory view
+        const int total_pixels = width * height;
+        const int expected_length = total_pixels * 4; // RGBA
+        std::cout << "[C++] Data validation:" << std::endl;
+        std::cout << "[C++] - Total pixels: " << total_pixels << std::endl;
+        std::cout << "[C++] - Expected length: " << expected_length << std::endl;
+        
+        // Get the length property to validate
+        int actual_length = image_data["length"].as<int>();
+        std::cout << "[C++] - Actual length: " << actual_length << std::endl;
+        
+        if (actual_length != expected_length) {
+            std::cerr << "[C++] ERROR: Image data length mismatch: got " << actual_length << ", expected " << expected_length << std::endl;
+            return false;
+        }
+        
+        std::cout << "[C++] Converting JavaScript array to memory view..." << std::endl;
+        // CRITICAL FIX: Convert the JavaScript typed array to a proper memory view
+        // This creates a typed_memory_view from the JavaScript Uint8ClampedArray
+        auto memory_view = emscripten::convertJSArrayToNumberVector<uint8_t>(image_data);
+        
+        if (memory_view.size() != expected_length) {
+            std::cerr << "[C++] ERROR: Memory view size mismatch: got " << memory_view.size() << ", expected " << expected_length << std::endl;
+            return false;
+        }
+        std::cout << "[C++] Memory view conversion successful, size: " << memory_view.size() << std::endl;
 
-        // Copy the data from JavaScript typed array to our C++ image buffer
-        for(unsigned int i = 0; i < width * height * 4; ++i) {
-            buffer[i] = image_data[i].as<uint8_t>();
+        // Debug: Check recording dimensions vs frame dimensions
+        if (global_context->video_recorder) {
+            auto opts = global_context->video_recorder->get_options();
+            std::cout << "[C++] Recording settings:" << std::endl;
+            std::cout << "[C++] - Recording dimensions: " << opts.width << "x" << opts.height << std::endl;
+            std::cout << "[C++] - Recording FPS: " << opts.fps << std::endl;
+            std::cout << "[C++] - Recording bitrate: " << opts.bitrate << std::endl;
+            std::cout << "[C++] - Recording codec: " << opts.codec << std::endl;
+            std::cout << "[C++] Frame dimensions: " << width << "x" << height << std::endl;
+            if (opts.width != width || opts.height != height) {
+                std::cout << "[C++] WARNING: Dimensions differ - will scale frame to match recording settings" << std::endl;
+            } else {
+                std::cout << "[C++] Dimensions match - no scaling needed" << std::endl;
+            }
         }
 
-        // Add frame to recording
-        bool success = global_context->video_recorder->add_frame(img);
+        // Check recorder state before processing
+        auto recorder_state = global_context->video_recorder->get_state();
+        std::cout << "[C++] Video recorder state: " << static_cast<int>(recorder_state) << std::endl;
+        
+        // OPTIMIZED: Use RGBA data directly - no conversion to ucolor needed
+        std::cout << "[C++] Using RGBA data directly, converting to YUV420P" << std::endl;
+
+        // Add frame to recording using efficient RGBA method
+        std::cout << "[C++] Calling add_frame_rgba..." << std::endl;
+        bool success = global_context->video_recorder->add_frame_rgba(memory_view.data(), width, height);
+        std::cout << "[C++] add_frame_rgba returned: " << (success ? "SUCCESS" : "FAILURE") << std::endl;
+        
         if (!success) {
-            std::cerr << "Failed to add frame to recording: " << 
-                global_context->video_recorder->get_error() << std::endl;
+            std::cerr << "[C++] ERROR: Failed to add RGBA frame to recording" << std::endl;
+            std::string error_msg = global_context->video_recorder->get_error();
+            std::cerr << "[C++] - Error message: " << error_msg << std::endl;
+            auto final_state = global_context->video_recorder->get_state();
+            std::cerr << "[C++] - Final recording state: " << static_cast<int>(final_state) << std::endl;
+            int frame_count = global_context->video_recorder->get_frame_count();
+            std::cerr << "[C++] - Current frame count: " << frame_count << std::endl;
+        } else {
+            int frame_count = global_context->video_recorder->get_frame_count();
+            std::cout << "[C++] SUCCESS: RGBA frame converted to YUV420P and added successfully" << std::endl;
+            std::cout << "[C++] - Current frame count: " << frame_count << std::endl;
         }
+        
+        std::cout << "[C++] === WORKER_ADD_FRAME END ===" << std::endl;
         return success;
     } catch (const std::exception& e) {
-        std::cerr << "Exception in worker_add_frame: " << e.what() << std::endl;
+        std::cerr << "[C++] EXCEPTION in worker_add_frame: " << e.what() << std::endl;
+        return false;
+    } catch (...) {
+        std::cerr << "[C++] UNKNOWN EXCEPTION in worker_add_frame" << std::endl;
         return false;
     }
 }
