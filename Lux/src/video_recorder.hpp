@@ -7,7 +7,7 @@
 #include "image.hpp"
 #include "uimage.hpp"
 
-// FFmpeg is mandatory - always include headers
+#ifndef DISABLE_FFMPEG
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -16,6 +16,7 @@ extern "C"
 #include <libswscale/swscale.h>
 #include <libavutil/opt.h>
 }
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -46,6 +47,8 @@ private:
     RecordingState state;
     RecordingOptions options;
     std::string error_message;
+    
+#ifndef DISABLE_FFMPEG
     std::string temp_filename; // Filename in virtual filesystem
 
     // FFmpeg context - always available
@@ -83,6 +86,11 @@ private:
     bool initialize_video();
     void cleanup();
     bool encode_frame(const uimage &img);
+#else
+    // Stub members for when FFmpeg is disabled
+    int frame_count;
+    std::vector<uint8_t> output_buffer;
+#endif
 
 public:
     VideoRecorder();
@@ -93,11 +101,13 @@ public:
     bool add_frame(const uimage &img);
     bool add_frame_rgba(const uint8_t* rgba_data, int width, int height);
 
+#ifndef DISABLE_FFMPEG
     // Utility functions
     bool validate_format_codec();
     bool initialize_from_image(const uimage &img);
     bool start_recording_adaptive(const uimage &first_frame, const RecordingOptions &base_opts);
     bool are_dimensions_valid(int width, int height);
+#endif
 
     // Getters
     RecordingState get_state() const { return state; }

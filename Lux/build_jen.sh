@@ -215,6 +215,18 @@ build_project() {
     FFMPEG_LIBS=""
   fi
   
+  # Camera optimization flags
+  CAMERA_FLAGS=""
+  CAMERA_MEMORY_FLAGS=""
+  if [ "$CAMERA_OPTIMIZED" = "true" ]; then
+    echo "✓ Camera optimizations enabled"
+    CAMERA_FLAGS="-DCAMERA_OPTIMIZED -DREAL_TIME_PROCESSING -DPERFORMANCE_MODE"
+    CAMERA_MEMORY_FLAGS="-s MAXIMUM_MEMORY=4294967296 -s STACK_SIZE=2097152"
+  else
+    echo "⚠️  Camera optimizations disabled"
+    CAMERA_MEMORY_FLAGS="-s MAXIMUM_MEMORY=2147483648"
+  fi
+  
   # Base compilation flags
   BASE_FLAGS="-O3 -MMD -MP -std=c++20 -msimd128"
   SIMD_FLAGS="-MMD -MP -std=c++20 -msimd128"
@@ -225,14 +237,14 @@ build_project() {
   
   # Files that need FFmpeg flags (or FFmpeg-disabled flags)
   echo "Checking FFmpeg-dependent files..."
-  if compile_if_needed "src/lux_web.cpp" "web_build/lux_web.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
+  if compile_if_needed "src/lux_web.cpp" "web_build/lux_web.o" "$BASE_FLAGS $FFMPEG_CFLAGS $CAMERA_FLAGS"; then
     ((files_compiled++))
   else
     ((files_skipped++))
   fi
   
   if [ "$has_ffmpeg" = true ]; then
-    if compile_if_needed "src/video_recorder.cpp" "web_build/video_recorder.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
+    if compile_if_needed "src/video_recorder.cpp" "web_build/video_recorder.o" "$BASE_FLAGS $FFMPEG_CFLAGS $CAMERA_FLAGS"; then
       ((files_compiled++))
     else
       ((files_skipped++))
@@ -383,7 +395,7 @@ build_project() {
       -s NO_DISABLE_EXCEPTION_CATCHING=0 \
       -s EXPORT_ES6=1 \
       -s INITIAL_MEMORY=671088640 \
-      -s MAXIMUM_MEMORY=2147483648 \
+      ${CAMERA_MEMORY_FLAGS} \
       -s ALLOW_TABLE_GROWTH=1 \
       -s EXPORTED_FUNCTIONS=['_malloc','_free','_main'] \
       -s EXPORTED_RUNTIME_METHODS=['addFunction','removeFunction','UTF8ToString','stringToUTF8','getValue','setValue','writeArrayToMemory','cwrap','FS'] \
@@ -407,6 +419,28 @@ build_project() {
   if [ -f "lux_react/src/lux.js" ]; then
     local file_size=$(du -h lux_react/src/lux.js | cut -f1)
     echo "✓ Output file: lux_react/src/lux.js (${file_size})"
+    echo ""
+    echo "🎯 Build Configuration:"
+    if [ "$has_ffmpeg" = true ]; then
+      echo "  📹 Video Recording: ✅ Enabled (FFmpeg + x264)"
+    else
+      echo "  📹 Video Recording: ❌ Disabled (FFmpeg not found)"
+    fi
+    if [ "$CAMERA_OPTIMIZED" = "true" ]; then
+      echo "  📷 Live Camera: ✅ Enabled with optimizations"
+      echo "     • Real-time processing flags"
+      echo "     • Enhanced memory (4GB max)"
+      echo "     • Buffer reuse optimization"
+      echo "     • RGBA→ARGB color conversion"
+      echo "     • Performance monitoring"
+    else
+      echo "  📷 Live Camera: ⚠️  Basic mode (no optimizations)"
+    fi
+    echo "  🎨 Kaleidoscope Effects: ✅ Full suite available"
+    echo "  🚀 WebAssembly: ✅ Optimized build"
+    echo ""
+    echo "💡 To start the application:"
+    echo "   cd lux_react && npm start"
   else
     echo "❌ Output file not found"
     exit 1

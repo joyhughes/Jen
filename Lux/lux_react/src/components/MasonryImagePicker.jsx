@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Divider, Alert, useTheme } from '@mui/material';
-import { ImagePlus } from 'lucide-react';
+import { Box, Typography, CircularProgress, Divider, Alert, useTheme, IconButton, Tooltip } from '@mui/material';
+import { ImagePlus, Camera } from 'lucide-react';
 import ThumbnailItem from './ThumbnailItem';
+import CameraCapture from './CameraCapture';
 import Masonry from 'react-masonry-css';
 import '../styles/MasonryImagePicker.css';
 import { ControlPanelContext } from './InterfaceContainer';
@@ -14,6 +15,8 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
     const [isInitializing, setIsInitializing] = useState(true);
     const [newImageName, setNewImageName] = useState(null);
     const [error, setError] = useState(null);
+    const [showCamera, setShowCamera] = useState(false);
+    const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
     const fileInputRef = useRef(null);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -130,6 +133,25 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         }
     }, [json]);
 
+    // ADD: Monitor live camera state from ImagePort component
+    useEffect(() => {
+        const checkLiveCameraState = () => {
+            // Check if live camera is active by looking for the live camera indicator
+            const liveCameraIndicator = document.querySelector('div[style*="SMOOTH CAMERA"]');
+            const newState = !!liveCameraIndicator;
+            if (newState !== isLiveCameraActive) {
+                setIsLiveCameraActive(newState);
+                console.log('MasonryImagePicker: Live camera state changed to:', newState);
+            }
+        };
+
+        // Check state every 500ms while camera dialog might be open
+        const interval = setInterval(checkLiveCameraState, 500);
+        checkLiveCameraState(); // Initial check
+
+        return () => clearInterval(interval);
+    }, [isLiveCameraActive]);
+
     // Handle file upload
     const handleFileUpload = async (file) => {
         try {
@@ -187,7 +209,53 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         }
     };
 
-    const handleImageSelect = async (imageName) => {
+    // Handle camera capture
+    const handleCameraCapture = async (captureData) => {
+        try {
+            setIsLoading(true);
+            
+            const { filename, imageName, imageData, blob } = captureData;
+            
+            // Camera capture now handles backend processing directly
+            // Just update the UI state to reflect the new image
+            if (imageName) {
+                // Update local state with new camera image
+                const newItems = [...menuItems];
+                if (!newItems.includes(imageName)) {
+                    newItems.push(imageName);
+                    setMenuItems(newItems);
+                    setNewImageName(imageName); // Mark as new for animation
+
+                    // Reset new image name after animation duration
+                    setTimeout(() => {
+                        setNewImageName(null);
+                    }, 1000);
+                }
+
+                // Auto-select the newly captured image
+                setSelectedImage(imageName);
+                onChange(imageName);
+                
+                console.log('Camera capture processed successfully:', imageName);
+            }
+            
+            setIsLoading(false);
+            
+            // Close camera and navigate to home
+            setShowCamera(false);
+            setTimeout(() => {
+                setActivePane("home");
+                console.log("Navigating to home pane after camera capture");
+            }, 100);
+            
+        } catch (error) {
+            console.error('Failed to process camera capture:', error);
+            setError('Failed to process camera capture: ' + error.message);
+            setIsLoading(false);
+        }
+    };
+
+    const handleImageSelect = (imageName) => {
         console.log('Image selected:', imageName);
         setSelectedImage(imageName);
 
@@ -201,6 +269,36 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             console.log("Navigating to home pane after image selection");
         }, 100);
     };
+
+    // MODIFY: Check live camera state before showing camera
+    const handleCameraClick = () => {
+        if (isLiveCameraActive) {
+            setError('Camera is already active in live mode. Please stop live camera first.');
+            return;
+        }
+        setShowCamera(true);
+    };
+
+    // Check if camera is supported
+    const isCameraSupported = () => {
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    };
+
+    // Show camera interface
+    if (showCamera) {
+        return (
+            <Box sx={{ width: width || '100%', height: 400 }}>
+                <CameraCapture
+                    onCapture={handleCameraCapture}
+                    onClose={() => setShowCamera(false)}
+                    width={width || '100%'}
+                    height={400}
+                    enableLivePreview={true}
+                    autoSaveToGrid={true}
+                />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ width: width || '100%' }} ref={containerRef}>
@@ -235,15 +333,61 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                 <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
                     <ImagePlus size={24} style={{ opacity: 0.5, margin: '0 auto 8px' }} />
                     <Typography variant="body2">
-                        No images available. Upload an image to get started.
+                        No images available. Upload an image or take a photo to get started.
                     </Typography>
                 </Box>
             )}
 
-            {/* Upload section with loading overlay */}
+            {/* Upload and Camera section */}
             <Divider sx={{ my: 2 }} />
 
             <Box sx={{ position: 'relative' }}>
+                {/* Camera and Upload buttons */}
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                    {/* Camera button */}
+                    {isCameraSupported() && (
+                        <Tooltip title={isLiveCameraActive ? "Live camera is active - stop it first" : "Take Photo"}>
+                            <IconButton
+                                onClick={handleCameraClick}
+                                disabled={isLoading || isLiveCameraActive}
+                                sx={{
+                                    bgcolor: isLiveCameraActive ? 'grey.400' : 'primary.main',
+                                    color: 'white',
+                                    '&:hover': {
+                                        bgcolor: isLiveCameraActive ? 'grey.400' : 'primary.dark',
+                                    },
+                                    '&:disabled': {
+                                        bgcolor: 'grey.300',
+                                    }
+                                }}
+                            >
+                                <Camera size={20} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    
+                    {/* Upload button */}
+                    <Tooltip title="Upload Image">
+                        <IconButton
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isLoading}
+                            sx={{
+                                bgcolor: 'secondary.main',
+                                color: 'white',
+                                '&:hover': {
+                                    bgcolor: 'secondary.dark',
+                                },
+                                '&:disabled': {
+                                    bgcolor: 'grey.300',
+                                }
+                            }}
+                        >
+                            <ImagePlus size={20} />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+
+                {/* Drag and drop area */}
                 <Box
                     sx={{
                         p: 2,
@@ -268,9 +412,12 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                     }}
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <ImagePlus size={24} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                        <ImagePlus size={24} />
+                        {isCameraSupported() && <Camera size={24} />}
+                    </Box>
                     <Typography sx={{ mt: 1 }}>
-                        Drag & drop an image or tap to browse
+                        Drag & drop an image, tap to browse, or use camera
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                         Supports JPG, PNG, and other common formats
