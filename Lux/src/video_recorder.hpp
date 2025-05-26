@@ -61,6 +61,24 @@ private:
     // Buffer for final output
     std::vector<uint8_t> output_buffer;
 
+    /**
+     * Initialize video recording with H.264/MP4 encoding
+     * 
+     * CRITICAL INITIALIZATION ORDER (DO NOT CHANGE):
+     * 1. Create format context and codec context
+     * 2. Set all codec parameters (width, height, bitrate, etc.)
+     * 3. Set codec-specific options (preset, profile, etc.)
+     * 4. Open codec with avcodec_open2() - THIS GENERATES SPS/PPS
+     * 5. Copy parameters to stream with avcodec_parameters_from_context()
+     * 6. Write format header with avformat_write_header()
+     * 
+     * WHY THIS ORDER MATTERS:
+     * - SPS/PPS parameter sets are only generated when codec is opened
+     * - MP4 container needs these in extradata for proper playback
+     * - Copying parameters before opening = empty extradata = unplayable video
+     * 
+     * @return true if initialization successful, false otherwise
+     */
     bool initialize_video();
     void cleanup();
     bool encode_frame(const uimage &img);

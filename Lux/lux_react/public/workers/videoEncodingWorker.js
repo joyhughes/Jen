@@ -253,24 +253,48 @@ self.onmessage = async (event) => {
                 recordingStartTime = performance.now();
                 frameProcessingTimes = [];
 
-                // Use actual buffer dimensions for recording to ensure consistency
-                console.log('[Worker] Getting buffer dimensions from C++...');
-                const imageWidth = CppModule.get_buf_width();
-                const imageHeight = CppModule.get_buf_height();
+                // ADAPTIVE DIMENSIONS: Use actual canvas dimensions for recording
+                // This ensures compatibility with different image sizes and mobile devices
+                console.log('[Worker] Using adaptive canvas dimensions for recording...');
+                let recordingWidth = message.options.width;
+                let recordingHeight = message.options.height;
                 
-                console.log(`[Worker] Buffer dimensions from C++: ${imageWidth}x${imageHeight}`);
-                console.log(`[Worker] Message options dimensions: ${message.options.width}x${message.options.height}`);
-                
-                if (imageWidth !== message.options.width || imageHeight !== message.options.height) {
-                    console.warn('[Worker] WARNING: Dimension mismatch detected!');
-                    console.warn('[Worker] - Buffer:', imageWidth, 'x', imageHeight);
-                    console.warn('[Worker] - Options:', message.options.width, 'x', message.options.height);
-                    console.warn('[Worker] Using buffer dimensions for recording');
+                // MOBILE COMPATIBILITY: Ensure dimensions are even numbers (required for H.264)
+                if (recordingWidth % 2 !== 0) {
+                    recordingWidth = recordingWidth - 1;
+                    console.log(`[Worker] Adjusted width to even number: ${recordingWidth}`);
                 }
+                if (recordingHeight % 2 !== 0) {
+                    recordingHeight = recordingHeight - 1;
+                    console.log(`[Worker] Adjusted height to even number: ${recordingHeight}`);
+                }
+                
+                // MOBILE COMPATIBILITY: Validate dimension limits for mobile devices
+                const maxMobileDimension = 1920; // Safe limit for most mobile devices
+                const minDimension = 16; // Minimum for H.264
+                
+                if (recordingWidth > maxMobileDimension || recordingHeight > maxMobileDimension) {
+                    console.warn(`[Worker] WARNING: Large dimensions (${recordingWidth}x${recordingHeight}) may cause issues on mobile devices`);
+                }
+                
+                if (recordingWidth < minDimension || recordingHeight < minDimension) {
+                    console.error(`[Worker] ERROR: Dimensions too small (${recordingWidth}x${recordingHeight}), minimum is ${minDimension}x${minDimension}`);
+                    recordingInProgress = false;
+                    self.postMessage({ type: 'recordingStarted', success: false, error: 'Dimensions too small for H.264 encoding' });
+                    return;
+                }
+                
+                console.log(`[Worker] Final recording dimensions: ${recordingWidth}x${recordingHeight}`);
+                console.log(`[Worker] Original canvas dimensions: ${message.options.width}x${message.options.height}`);
+                
+                // Get buffer dimensions for comparison only (not for recording)
+                const bufferWidth = CppModule.get_buf_width();
+                const bufferHeight = CppModule.get_buf_height();
+                console.log(`[Worker] Buffer dimensions (for reference): ${bufferWidth}x${bufferHeight}`);
 
-                console.log('[Worker] Calling C++ start_recording with parameters:');
-                console.log('[Worker] - Width:', imageWidth);
-                console.log('[Worker] - Height:', imageHeight);
+                console.log('[Worker] Calling C++ start_recording with CANVAS dimensions:');
+                console.log('[Worker] - Width:', recordingWidth);
+                console.log('[Worker] - Height:', recordingHeight);
                 console.log('[Worker] - FPS:', message.options.fps);
                 console.log('[Worker] - Bitrate:', message.options.bitrate);
                 console.log('[Worker] - Codec:', message.options.codec);
@@ -278,8 +302,8 @@ self.onmessage = async (event) => {
                 console.log('[Worker] - Preset:', message.options.preset);
 
                 const success = await CppModule.start_recording(
-                    imageWidth,  // Use actual buffer width
-                    imageHeight, // Use actual buffer height
+                    recordingWidth,  // Use canvas width (adaptive)
+                    recordingHeight, // Use canvas height (adaptive)
                     message.options.fps,
                     message.options.bitrate,
                     message.options.codec,
