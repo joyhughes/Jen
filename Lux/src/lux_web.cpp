@@ -797,8 +797,136 @@ std::string get_recording_state() {
     }
 }
 
+// Camera-specific functions for live processing
+bool add_camera_frame(val image_data, int width, int height, std::string temp_name = "live_camera") {
+    try {
+        // Create a temporary image for camera frame
+        auto temp_img_ptr = std::make_unique<uimage>(vec2i{width, height});
+        if (!temp_img_ptr) {
+            std::cerr << "Failed to create camera frame image" << std::endl;
+            return false;
+        }
 
+        uimage temp_img = *temp_img_ptr;
+        unsigned char* img_buffer = (unsigned char*)temp_img.get_base_ptr();
+        size_t buffer_length = width * height * 4;
 
+        // Copy the data from the TypedArray (camera frame)
+        for (unsigned int i = 0; i < buffer_length; ++i) {
+            img_buffer[i] = image_data[i].as<uint8_t>();
+        }
+
+        // Add to scene buffers as temporary camera source
+        ubuf_ptr camera_buf(new buffer_pair<ucolor>(temp_img));
+        any_buffer_pair_ptr any_buf = camera_buf;
+        global_context->s->buffers[temp_name] = any_buf;
+
+        // Mark for re-render
+        global_context->s->ui.displayed = false;
+        
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error in add_camera_frame: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool process_live_camera_frame(val image_data, int width, int height) {
+    // Process camera frame for live preview with effects
+    if (!add_camera_frame(image_data, width, height, "live_camera_preview")) {
+        return false;
+    }
+    
+    // Update source to camera preview for live effects
+    try {
+        if (global_context->s->functions.count("source_image_menu")) {
+            auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+            // Temporarily switch to camera preview without triggering full restart
+            std::string previous_choice = menu->get_chosen_item();
+            menu->choose("live_camera_preview");
+            
+            // Process one frame
+            global_context->s->render();
+            
+            // Restore previous choice
+            menu->choose(previous_choice);
+            return true;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing live camera frame: " << e.what() << std::endl;
+    }
+    
+    return false;
+}
+
+void set_camera_source_active(bool active) {
+    // Enable/disable camera as active source
+    if (!global_context || !global_context->s) return;
+    
+    try {
+        if (active) {
+            // Switch to camera source
+            update_source_name("live_camera_preview");
+        } else {
+            // Switch back to previous source
+            // This could be enhanced to remember the previous source
+            if (global_context->s->functions.count("source_image_menu")) {
+                auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+                if (!menu->items.empty()) {
+                    update_source_name(menu->items[0]); // Default to first item
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error setting camera source active: " << e.what() << std::endl;
+    }
+}
+
+std::string get_camera_processing_stats() {
+    // Return JSON with camera processing statistics
+    nlohmann::json stats;
+    
+    if (global_context && global_context->s) {
+        stats["camera_buffer_exists"] = global_context->s->buffers.count("live_camera_preview") > 0;
+        stats["total_buffers"] = global_context->s->buffers.size();
+        stats["canvas_width"] = global_context->buf->get_image().get_dim().x;
+        stats["canvas_height"] = global_context->buf->get_image().get_dim().y;
+        stats["is_running"] = global_context->s->ui.running;
+        stats["displayed"] = global_context->s->ui.displayed;
+    } else {
+        stats["error"] = "global context not available";
+    }
+    
+    return stats.dump();
+}
+
+// Enhanced image saving with camera metadata
+void save_camera_image_with_metadata(std::string name, std::string filepath, val metadata) {
+    try {
+        std::cout << "Saving camera image: " << name << " filepath: " << filepath << std::endl;
+
+        // Create buffer from file
+        ubuf_ptr img(new buffer_pair<ucolor>(filepath));
+        any_buffer_pair_ptr any_buf = img;
+
+        global_context->s->buffers[name] = any_buf;
+        
+        // Add camera-specific metadata if provided
+        if (!metadata.isNull() && !metadata.isUndefined()) {
+            // Could store metadata in a separate structure if needed
+            std::cout << "Camera metadata received (not yet stored)" << std::endl;
+        }
+        
+        // Mark affected queues for re-render
+        for (auto& q : global_context->s->queue) {
+            q.rendered = false;
+        }
+        global_context->s->restart();
+    } catch (const std::exception& e) {
+        std::cerr << "Error in save_camera_image_with_metadata: " << e.what() << std::endl;
+        throw;
+    }
+}
 
 int main(int argc, char** argv) {
     using namespace nlohmann;
@@ -903,6 +1031,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
 
+    // video recording functions
     function("start_recording", &start_recording);
     function("start_recording_adaptive", &start_recording_adaptive);
     function("stop_recording", &stop_recording);
@@ -912,4 +1041,11 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("get_recording_error", &get_recording_error);
     function("get_recording_data", &get_recording_data);
     function("worker_add_frame", &worker_add_frame);
+
+    // camera functions
+    function("add_camera_frame", &add_camera_frame);
+    function("process_live_camera_frame", &process_live_camera_frame);
+    function("set_camera_source_active", &set_camera_source_active);
+    function("get_camera_processing_stats", &get_camera_processing_stats);
+    function("save_camera_image_with_metadata", &save_camera_image_with_metadata);
 }

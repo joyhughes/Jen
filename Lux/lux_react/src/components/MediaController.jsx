@@ -11,7 +11,15 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import {Camera, Pause, Play, RotateCcw, Save, SkipForward, Video, VideoOff} from 'lucide-react';
+import { 
+  Pause, 
+  Play, 
+  RotateCcw, 
+  Save, 
+  SkipForward, 
+  Video, 
+  VideoOff 
+} from 'lucide-react';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
@@ -487,28 +495,6 @@ function MediaController({ isOverlay = false }) {
       const newState = !isRunning;
       setIsRunning(newState);
       window.module.run_pause();
-    }
-  };
-
-  const handleSnapshot = async () => {
-    try {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) {
-        showNotification("Canvas not found", "error");
-        return;
-      }
-      const filename = `jen-snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      link.click();
-
-      showNotification("Snapshot saved", "success");
-    } catch (error) {
-      console.error('Error taking snapshot:', error);
-      showNotification('Failed to save snapshot', 'error');
     }
   };
 
@@ -1236,16 +1222,6 @@ function MediaController({ isOverlay = false }) {
         }} />
 
         {/* Secondary Controls */}
-        <Tooltip title="Take Snapshot" arrow>
-          <IconButton
-            onClick={handleSnapshot}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <Camera size={iconSize} />
-          </IconButton>
-        </Tooltip>
-
         <Tooltip title={getRecordingTooltip()} arrow>
           <span> {/* Wrapper to allow tooltip on disabled button */}
             <IconButton
