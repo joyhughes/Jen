@@ -349,6 +349,13 @@ self.onmessage = async (event) => {
                         const isRec = CppModule.is_recording();
                         mobileLog('C++ is_recording after start:', isRec);
                     }
+                    
+                    // Process any frames that were queued while waiting for backend to be ready
+                    if (frameQueue.length > 0) {
+                        mobileLog(`Processing ${frameQueue.length} frames that were queued while waiting for backend`);
+                        processFrameQueue();
+                    }
+                    
                     self.postMessage({ type: 'recordingStarted', success: true });
                 } else {
                     mobileLog('✗ Failed to start H.264 recording');
@@ -357,6 +364,13 @@ self.onmessage = async (event) => {
                         mobileLog('C++ error:', error);
                     }
                     recordingInProgress = false;
+                    
+                    // Clear any queued frames since recording failed
+                    if (frameQueue.length > 0) {
+                        mobileLog(`Clearing ${frameQueue.length} queued frames due to recording failure`);
+                        frameQueue = [];
+                    }
+                    
                     self.postMessage({ type: 'recordingStarted', success: false, error: 'Failed to start H.264 recording' });
                 }
                 break;
@@ -374,9 +388,19 @@ self.onmessage = async (event) => {
                 }
                 
                 if (!CppModule || !CppModule.worker_add_frame) {
-                    mobileLog('Ignoring frame - module not ready');
+                    mobileLog('Module not ready, queuing frame for when backend is ready');
                     mobileLog('- CppModule:', !!CppModule);
                     mobileLog('- worker_add_frame:', !!(CppModule && CppModule.worker_add_frame));
+                    
+                    // Queue the frame even if backend isn't ready yet
+                    if (message.imageData && message.width && message.height) {
+                        frameQueue.push({
+                            imageData: message.imageData,
+                            width: message.width,
+                            height: message.height
+                        });
+                        mobileLog('Frame queued while waiting for backend. Queue size:', frameQueue.length);
+                    }
                     return;
                 }
                 
@@ -407,9 +431,15 @@ self.onmessage = async (event) => {
                     const isCppRecording = CppModule.is_recording();
                     mobileLog('C++ is_recording:', isCppRecording);
                     
-                    // ADDITIONAL SAFETY: If C++ says it's not recording, don't queue the frame
+                    // If C++ says it's not recording yet, queue the frame
                     if (!isCppRecording) {
-                        mobileLog('Rejecting frame - C++ not recording');
+                        mobileLog('C++ not ready yet, queuing frame');
+                        frameQueue.push({
+                            imageData: message.imageData,
+                            width: message.width,
+                            height: message.height
+                        });
+                        mobileLog('Frame queued waiting for C++ ready. Queue size:', frameQueue.length);
                         return;
                     }
                 }

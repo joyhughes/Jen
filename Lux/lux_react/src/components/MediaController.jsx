@@ -299,30 +299,24 @@ function MediaController({ isOverlay = false }) {
           mobileLog('Error (if any):', message.error);
           
           if (message.success) {
-            mobileLog('✓ Recording started successfully');
-            mobileLog('Setting recording state...');
-            mobileLog('- Before: isRecordingRef.current =', isRecordingRef.current);
-            
-            isRecordingRef.current = true; // Set ref first
-            setIsRecording(true);
-            setRecordingStartTime(Date.now());
-            setFrameCount(0); // Reset frame count
-            
-            mobileLog('- After: isRecordingRef.current =', isRecordingRef.current);
-            mobileLog('- Recording start time set:', new Date().toISOString());
-            
-            // Start frame capture immediately after recording starts
-            mobileLog('Starting frame capture...');
-            captureFrame();
-            
-            mobileLog('Starting status polling...');
-            startPollingStatus();
+            mobileLog('✓ Recording backend started successfully');
+            // Frame capture and status polling are already running from startRecording()
+            // No need to restart them here
+            mobileLog('Frame capture already running, backend now ready');
           } else {
-            mobileLog('✗ Recording failed to start');
+            mobileLog('✗ Recording backend failed to start');
             mobileLog('- Error:', message.error || 'Unknown error');
             
+            // Stop the frame capture that was started immediately
             isRecordingRef.current = false;
             setIsRecording(false);
+            
+            // Stop status polling
+            if (statusIntervalRef.current) {
+              clearInterval(statusIntervalRef.current);
+              statusIntervalRef.current = null;
+            }
+            
             showNotification(`Failed to start recording: ${message.error || 'Unknown error'}`, 'error');
           }
           break;
@@ -741,6 +735,21 @@ function MediaController({ isOverlay = false }) {
     
     recordingOptionsRef.current = options;
     
+    // IMMEDIATE START: Set recording state and start frame capture immediately
+    console.log('[MediaController] Setting recording state immediately...');
+    isRecordingRef.current = true;
+    setIsRecording(true);
+    setRecordingStartTime(Date.now());
+    setFrameCount(0);
+    
+    // Start frame capture immediately - don't wait for worker response
+    console.log('[MediaController] Starting frame capture immediately...');
+    captureFrame();
+    
+    // Start status polling immediately
+    console.log('[MediaController] Starting status polling...');
+    startPollingStatus();
+    
     try {
       console.log('[MediaController] Sending startRecording message to worker...');
       workerRef.current.postMessage({
@@ -749,11 +758,15 @@ function MediaController({ isOverlay = false }) {
       });
       
       console.log('[MediaController] Start recording message sent successfully');
-      showNotification('Starting recording...', 'info');
+      showNotification('Recording started!', 'success');
     } catch (error) {
       console.error('[MediaController] EXCEPTION sending start recording message:', error);
       console.error('[MediaController] - Error message:', error.message);
       console.error('[MediaController] - Error stack:', error.stack);
+      
+      // Rollback immediate start on error
+      isRecordingRef.current = false;
+      setIsRecording(false);
       showNotification('Failed to start recording: ' + error.message, 'error');
     }
   };
