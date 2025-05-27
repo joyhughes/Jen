@@ -7,6 +7,7 @@
 #include "image.hpp"
 #include "uimage.hpp"
 
+// FFmpeg is mandatory - always include headers
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -47,7 +48,7 @@ private:
     std::string error_message;
     std::string temp_filename; // Filename in virtual filesystem
 
-    // FFmpeg context
+    // FFmpeg context - always available
     AVFormatContext *format_context;
     AVCodecContext *codec_context;
     AVStream *video_stream;

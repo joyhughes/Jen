@@ -109,6 +109,13 @@ build_dependencies() {
     return 0
   fi
   
+  # Check if we should skip building dependencies (for distribution builds)
+  if [ "$SKIP_DEPENDENCIES" = "true" ]; then
+    echo "⚠️  SKIP_DEPENDENCIES=true - building without FFmpeg support"
+    echo "   Video recording features will be disabled"
+    return 0
+  fi
+  
   # Build H.264 (libx264)
   echo "Building H.264 (libx264) with Emscripten..."
   if [ ! -d "${X264_DIR}" ]; then
@@ -187,16 +194,26 @@ build_dependencies() {
 build_project() {
   show_message "Building Project with Incremental Compilation..."
   
-  # Verify FFmpeg headers are available
-  if [ ! -d "${EXTERN_BUILD_DIR}/include/libavcodec" ]; then
-    echo "❌ FFmpeg headers not found in ${EXTERN_BUILD_DIR}/include"
-    echo "Please run the dependency build first"
-    exit 1
+  # Check if FFmpeg dependencies are available
+  local has_ffmpeg=false
+  if [ -d "${EXTERN_BUILD_DIR}/include/libavcodec" ] && [ -f "${EXTERN_BUILD_DIR}/lib/libavcodec.a" ]; then
+    has_ffmpeg=true
+    echo "✓ FFmpeg dependencies found - video recording enabled"
+  else
+    echo "⚠️  FFmpeg dependencies not found - video recording disabled"
+    echo "   To enable video recording, run without SKIP_DEPENDENCIES=true"
   fi
   
-  # FFmpeg configuration flags
-  FFMPEG_CFLAGS="-I${EXTERN_BUILD_DIR}/include -DUSE_FFMPEG=1 -msimd128"
-  FFMPEG_LIBS="-L${EXTERN_BUILD_DIR}/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
+  # Configure compilation flags based on FFmpeg availability
+  if [ "$has_ffmpeg" = true ]; then
+    # FFmpeg configuration flags
+    FFMPEG_CFLAGS="-I${EXTERN_BUILD_DIR}/include -DUSE_FFMPEG=1 -msimd128"
+    FFMPEG_LIBS="-L${EXTERN_BUILD_DIR}/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
+  else
+    # No FFmpeg - disable video recording features
+    FFMPEG_CFLAGS="-DDISABLE_FFMPEG=1 -msimd128"
+    FFMPEG_LIBS=""
+  fi
   
   # Base compilation flags
   BASE_FLAGS="-O3 -MMD -MP -std=c++20 -msimd128"
@@ -206,7 +223,7 @@ build_project() {
   local files_compiled=0
   local files_skipped=0
   
-  # Files that need FFmpeg flags
+  # Files that need FFmpeg flags (or FFmpeg-disabled flags)
   echo "Checking FFmpeg-dependent files..."
   if compile_if_needed "src/lux_web.cpp" "web_build/lux_web.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
     ((files_compiled++))
@@ -214,10 +231,14 @@ build_project() {
     ((files_skipped++))
   fi
   
-  if compile_if_needed "src/video_recorder.cpp" "web_build/video_recorder.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
-    ((files_compiled++))
+  if [ "$has_ffmpeg" = true ]; then
+    if compile_if_needed "src/video_recorder.cpp" "web_build/video_recorder.o" "$BASE_FLAGS $FFMPEG_CFLAGS"; then
+      ((files_compiled++))
+    else
+      ((files_skipped++))
+    fi
   else
-    ((files_skipped++))
+    echo "Skipping video_recorder.cpp (FFmpeg disabled)"
   fi
   
   # Individual file compilation rules - exactly as in Makefile
@@ -315,8 +336,12 @@ build_project() {
     "web_build/UI.o"
     "web_build/warp_field.o"
     "web_build/emscripten_utils.o"
-    "web_build/video_recorder.o"
   )
+  
+  # Add video_recorder.o only if FFmpeg is available
+  if [ "$has_ffmpeg" = true ]; then
+    required_objects+=("web_build/video_recorder.o")
+  fi
   
   # Check that all required object files exist
   echo "Verifying required object files..."
@@ -361,7 +386,7 @@ build_project() {
       -s MAXIMUM_MEMORY=2147483648 \
       -s ALLOW_TABLE_GROWTH=1 \
       -s EXPORTED_FUNCTIONS=['_malloc','_free','_main'] \
-      -s EXPORTED_RUNTIME_METHODS=['addFunction','removeFunction','UTF8ToString','stringToUTF8','getValue','setValue','writeArrayToMemory','cwrap'] \
+      -s EXPORTED_RUNTIME_METHODS=['addFunction','removeFunction','UTF8ToString','stringToUTF8','getValue','setValue','writeArrayToMemory','cwrap','FS'] \
       -s WASM_ASYNC_COMPILATION=1 \
       -s EXIT_RUNTIME=0 \
       -s LEGALIZE_JS_FFI=0 \

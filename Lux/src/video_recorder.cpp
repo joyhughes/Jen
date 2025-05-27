@@ -7,7 +7,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-// Add FFmpeg headers
+// FFmpeg is mandatory - always include headers
 extern "C"
 {
 #include <libavutil/dict.h>
