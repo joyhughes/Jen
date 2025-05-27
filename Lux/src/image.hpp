@@ -151,9 +151,14 @@ public:
 
     const std::vector< T >& get_base_vector() const { return mip[0]; }
 
-    T* get_base_ptr() { 
+    T* get_base_ptr()  {
         return &(mip[0][0]);
-    }    
+    }
+
+    const T* get_base_ptr() const {
+        return &(mip[0][0]);
+    }
+
 
     //typedef std::iterator< std::forward_iterator_tag, std::vector< T > > image_iterator;
     auto begin() noexcept             { return mip[ 0 ].begin(); }

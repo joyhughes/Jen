@@ -1,10 +1,9 @@
-
 /**
  * Generates a deterministic color based on a string
  * @param {string} str - The string to generate a color from
  * @returns {string} - A CSS color string
  */
-export function getPlaceholderColor(str) {
+const getPlaceholderColor = (str) => {
     if (!str) return '#444444';
 
     // Simple hash function
@@ -17,7 +16,7 @@ export function getPlaceholderColor(str) {
     // Generate HSL color with fixed saturation and lightness
     const hue = Math.abs(hash % 360);
     return `hsl(${hue}, 60%, 40%)`;
-}
+};
 
 /**
  * Draws a placeholder thumbnail on a canvas
@@ -26,7 +25,7 @@ export function getPlaceholderColor(str) {
  * @param {number} size - The canvas size (assumes square)
  * @returns {boolean} - Success status
  */
-export function drawPlaceholder(canvas, name, size) {
+const drawPlaceholder = (canvas, name, size) => {
     if (!canvas) return false;
 
     const ctx = canvas.getContext('2d');
@@ -51,7 +50,7 @@ export function drawPlaceholder(canvas, name, size) {
 
     ctx.fillText(displayName, size / 2, size / 2);
     return true;
-}
+};
 
 /**
  * Fetches and renders a thumbnail from the WebAssembly module
@@ -61,7 +60,7 @@ export function drawPlaceholder(canvas, name, size) {
  * @param {number} height - Canvas height
  * @returns {Promise<object>} - Result with status and any error message
  */
-export async function fetchAndDrawThumbnail(canvas, imageName, width, height) {
+const fetchAndDrawThumbnail = async (canvas, imageName, width, height) => {
     if (!canvas || !imageName) {
         return { success: false, status: 'error', message: 'Invalid parameters' };
     }
@@ -132,4 +131,6 @@ export async function fetchAndDrawThumbnail(canvas, imageName, width, height) {
             shouldRetry: true
         };
     }
-}
+};
+
+export { getPlaceholderColor, drawPlaceholder, fetchAndDrawThumbnail };
