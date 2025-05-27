@@ -5,6 +5,8 @@ import ImagePort from "./ImagePort";
 import {SceneProvider} from './SceneContext';
 import {PaneContext} from "./panes/PaneContext.jsx";
 
+// Create a context for control panel state
+export const ControlPanelContext = React.createContext();
 
 function InterfaceContainer({panelSize}) {
     const [moduleReady, setModuleReady] = useState(false);
@@ -12,7 +14,33 @@ function InterfaceContainer({panelSize}) {
     const [imagePortDimensions, setImagePortDimensions] = useState({width: 0, height: 0});
     const [controlPanelDimensions, setControlPanelDimensions] = useState({width: 0, height: 0});
     const [activePane, setActivePane] = useState("home");
+    const [sliderValues, setSliderValues] = useState({});
     const containerRef = useRef(null);
+
+    // Store slider values when they change from user interaction
+    const handleSliderChange = (name, value) => {
+        setSliderValues(prev => {
+            const newValues = { ...prev, [name]: value };
+            // Only update backend when values actually change from user interaction
+            if (window.module && prev[name] !== value) {
+                window.module.set_slider_value(name, value);
+            }
+            return newValues;
+        });
+    };
+
+    // Store initial slider values when panel is first loaded
+    const storeInitialSliderValues = () => {
+        const values = {};
+        document.querySelectorAll('.jen-slider').forEach(slider => {
+            const name = slider.getAttribute('data-name');
+            const value = parseFloat(slider.getAttribute('data-value'));
+            if (name && !isNaN(value)) {
+                values[name] = value;
+            }
+        });
+        setSliderValues(values);
+    };
 
     // Calculate optimal panel width based on available space
     const getOptimalPanelWidth = (totalWidth, imageWidth) => {
@@ -118,6 +146,7 @@ function InterfaceContainer({panelSize}) {
         if (window.module) {
             window.module.set_resize_callback(resizeBox);
             setModuleReady(true);
+            storeInitialSliderValues();
         } else {
             // Poll for the Module to be ready
             const intervalId = setInterval(() => {
@@ -125,6 +154,7 @@ function InterfaceContainer({panelSize}) {
                     clearInterval(intervalId);
                     window.module.set_resize_callback(resizeBox);
                     setModuleReady(true);
+                    storeInitialSliderValues();
                 }
             }, 100);
 
@@ -150,43 +180,50 @@ function InterfaceContainer({panelSize}) {
         setActivePane: handlePaneChange
     }
 
+    const controlPanelContextValue = {
+        sliderValues,
+        onSliderChange: handleSliderChange
+    };
+
     return (
         <SceneProvider>
             <PaneContext.Provider value={paneContextValue}>
-                <Box
-                    ref={containerRef}
-                    sx={{
-                        display: "flex",
-                        flexDirection: isRowDirection ? "column" : "row",
-                        width: "100vw",
-                        height: "100vh",
-                        top: 0,
-                        left: 0,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        overflow: "hidden",
-                        background: "#121212"
-                    }}
-                >
+                <ControlPanelContext.Provider value={controlPanelContextValue}>
                     <Box
+                        ref={containerRef}
                         sx={{
                             display: "flex",
+                            flexDirection: isRowDirection ? "column" : "row",
+                            width: "100vw",
+                            height: "100vh",
+                            top: 0,
+                            left: 0,
                             justifyContent: "center",
                             alignItems: "center",
-                            width: isRowDirection ? "100%" : "auto",
-                            height: isRowDirection ? "auto" : "100%"
+                            overflow: "hidden",
+                            background: "#121212"
                         }}
                     >
-                        <ImagePort dimensions={imagePortDimensions}/>
-                    </Box>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                width: isRowDirection ? "100%" : "auto",
+                                height: isRowDirection ? "auto" : "100%"
+                            }}
+                        >
+                            <ImagePort dimensions={imagePortDimensions}/>
+                        </Box>
 
-                    <ControlPanel
-                        dimensions={controlPanelDimensions}
-                        panelSize={panelSize}
-                        activePane={activePane}
-                        onPaneChange={handlePaneChange}
-                    />
-                </Box>
+                        <ControlPanel
+                            dimensions={controlPanelDimensions}
+                            panelSize={panelSize}
+                            activePane={activePane}
+                            onPaneChange={handlePaneChange}
+                        />
+                    </Box>
+                </ControlPanelContext.Provider>
             </PaneContext.Provider>
         </SceneProvider>
     );

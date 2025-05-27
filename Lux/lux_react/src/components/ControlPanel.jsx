@@ -3,6 +3,8 @@ import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import JenSlider from './JenSlider';
+import { ControlPanelContext } from './InterfaceContainer';
 
 import MediaController from "./MediaController";
 import TabNavigation from "./TabNavigation";
@@ -14,6 +16,7 @@ import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
+    const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
     const [panelJSON, setPanelJSON] = useState([]);
     const [activeGroups, setActiveGroups] = useState([]);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -23,6 +26,30 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const loadingTimeoutRef = useRef(null);
     const previousPaneRef = useRef(activePane);
 
+    // Store slider values before scene changes
+    const storeSliderValues = () => {
+        const values = {};
+        document.querySelectorAll('.jen-slider').forEach(slider => {
+            const name = slider.getAttribute('data-name');
+            const value = parseFloat(slider.getAttribute('data-value'));
+            if (name && !isNaN(value)) {
+                values[name] = value;
+            }
+        });
+        onSliderChange(values);
+    };
+
+    // Restore slider values after scene changes
+    const restoreSliderValues = () => {
+        if (!window.module) return;
+        
+        Object.entries(sliderValues).forEach(([name, value]) => {
+            const slider = document.querySelector(`.jen-slider[data-name="${name}"]`);
+            if (slider) {
+                window.module.set_slider_value(name, value);
+            }
+        });
+    };
 
     useEffect(() => {
         console.log(`Pane changed from ${previousPaneRef.current} to ${activePane}`);
@@ -78,6 +105,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             console.log("Setting up panel...");
             setIsLoading(true);
 
+            // Store current slider values before setup
+            storeSliderValues();
+
             // Clear any existing loading timeout
             if (loadingTimeoutRef.current) {
                 clearTimeout(loadingTimeoutRef.current);
@@ -102,11 +132,13 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 setPanelJSON(parsedJSON);
 
                 // Use requestAnimationFrame to ensure state updates have been processed
-                // before trying to update widget groups
                 requestAnimationFrame(() => {
                     handleWidgetGroupChange();
                     setIsInitialized(true);
                     setIsLoading(false);
+                    
+                    // Restore slider values after setup
+                    setTimeout(restoreSliderValues, 100);
                 });
 
                 return true;
