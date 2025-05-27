@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Alert,
   Box,
@@ -11,21 +11,11 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import {
-  Camera,
-  Pause,
-  Play,
-  RotateCcw,
-  Save,
-  SkipForward,
-  Video,
-  VideoOff
-} from 'lucide-react';
+import {Camera, Pause, Play, RotateCcw, Save, SkipForward, Video, VideoOff} from 'lucide-react';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [isRunning, setIsRunning] = useState(true);
 
   // Video recording states
@@ -49,21 +39,24 @@ function MediaController({ isOverlay = false }) {
     actualFps: 0,
     queueSize: 0
   });
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-    const [isRunning, setIsRunning] = useState(true);
-    const [isRecording, setIsRecording] = useState(false);
-    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-    const recordingInterval = useRef(null);
-    const recordingFrames = useRef([]);
-    const prevStateRef = useRef({ isRunning: true });
+  const recordingInterval = useRef(null);
+  const prevStateRef = useRef({isRunning: true});
 
-    const isIOS = useRef(/iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isAndroid = useRef(/Android/.test(navigator.userAgent));
+
+  // Mobile logging helper
+  const mobileLog = (message, data = null) => {
+    const timestamp = new Date().toISOString().slice(11, 23);
+    const logMessage = `[${timestamp}] [Mobile] ${message}`;
+    console.log(logMessage, data || '');
+
+    // Also show critical errors as notifications on mobile
+    if (message.includes('ERROR') || message.includes('CRITICAL')) {
+      showNotification(`Debug: ${message}`, 'error');
+    }
+  };
 
     // Store state before image change
-    useEffect(() => {
+  useEffect(() => {
         if (window.module) {
             const originalUpdateSourceName = window.module.update_source_name;
             window.module.update_source_name = function(imageName) {
@@ -89,23 +82,6 @@ function MediaController({ isOverlay = false }) {
             }
         }
     }, [isRunning]);
-
-    // Cleanup recording interval on unmount
-    useEffect(() => {
-        return () => {
-            if (recordingInterval.current) {
-                clearInterval(recordingInterval.current);
-  // Mobile logging helper
-  const mobileLog = (message, data = null) => {
-    const timestamp = new Date().toISOString().slice(11, 23);
-    const logMessage = `[${timestamp}] [Mobile] ${message}`;
-    console.log(logMessage, data || '');
-
-    // Also show critical errors as notifications on mobile
-    if (message.includes('ERROR') || message.includes('CRITICAL')) {
-      showNotification(`Debug: ${message}`, 'error');
-    }
-  };
 
   // Enhanced mobile device detection with logging
   const isMobileDevice = () => {
