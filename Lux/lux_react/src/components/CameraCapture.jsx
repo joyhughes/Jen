@@ -75,6 +75,13 @@ const CameraCapture = ({
     // Live preview state
     const livePreviewRef = useRef(null);
     const animationFrameRef = useRef(null);
+    const [streamStats, setStreamStats] = useState({ fps: 0, active: false });
+
+    // Performance optimization refs
+    const lastFrameTimeRef = useRef(0);
+    const frameSkipCountRef = useRef(0);
+    const TARGET_FPS = 30; // Target FPS for live processing
+    const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
     // Check for module readiness
     useEffect(() => {
@@ -115,9 +122,17 @@ const CameraCapture = ({
         };
     }, []);
 
-    // Live preview effect processing
+    // Enhanced live preview with optimized processing
     const processLivePreview = useCallback(() => {
-        if (!livePreviewActive || !videoRef.current || !canvasRef.current) {
+        if (!livePreviewActive || !videoRef.current || !canvasRef.current || !moduleReady) {
+            return;
+        }
+
+        const currentTime = performance.now();
+        
+        // Frame rate limiting - only process if enough time has passed
+        if (currentTime - lastFrameTimeRef.current < FRAME_INTERVAL) {
+            animationFrameRef.current = requestAnimationFrame(processLivePreview);
             return;
         }
 
@@ -141,21 +156,31 @@ const CameraCapture = ({
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        // Send frame to backend for live effect processing if enabled
+        // Send frame to backend for optimized processing
         if (enableLivePreview && window.module) {
             try {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 
-                // Convert to format expected by backend
-                const uint8Array = new Uint8Array(imageData.data.buffer);
-                const imagePath = '/temp/live_preview.png';
+                // Use optimized backend function
+                const success = window.module.update_camera_frame_optimized(
+                    imageData.data, 
+                    canvas.width, 
+                    canvas.height
+                );
                 
-                // Write to virtual filesystem
-                window.module.FS.writeFile(imagePath, uint8Array);
+                if (success) {
+                    // Process frame with current effects
+                    window.module.process_camera_frame_with_effects();
+                    
+                    // Update stats periodically
+                    if (frameSkipCountRef.current % 30 === 0) { // Every 30 frames
+                        const stats = JSON.parse(window.module.get_camera_stream_stats());
+                        setStreamStats(stats);
+                    }
+                    frameSkipCountRef.current++;
+                }
                 
-                // Process through current scene effects
-                // This will apply whatever effects are currently active
-                window.module.update_source_name('live_preview');
+                lastFrameTimeRef.current = currentTime;
             } catch (err) {
                 console.warn('Live preview processing error:', err);
             }
@@ -163,17 +188,25 @@ const CameraCapture = ({
 
         // Continue animation loop
         animationFrameRef.current = requestAnimationFrame(processLivePreview);
-    }, [livePreviewActive, mirrorMode, enableLivePreview]);
+    }, [livePreviewActive, mirrorMode, enableLivePreview, moduleReady]);
 
-    // Start/stop live preview
+    // Start/stop live preview with backend stream control
     const toggleLivePreview = () => {
         if (livePreviewActive) {
             setLivePreviewActive(false);
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
+            // Stop backend camera stream
+            if (window.module && window.module.stop_camera_stream) {
+                window.module.stop_camera_stream();
+            }
         } else {
             setLivePreviewActive(true);
+            // Start backend camera stream
+            if (window.module && window.module.start_camera_stream) {
+                window.module.start_camera_stream();
+            }
             processLivePreview();
         }
     };
@@ -478,6 +511,33 @@ const CameraCapture = ({
                 >
                     <Zap size={16} style={{ marginRight: 4 }} />
                     Live Effects
+                    {streamStats.fps > 0 && (
+                        <Typography variant="caption" sx={{ ml: 1, color: 'lightgreen' }}>
+                            {streamStats.fps.toFixed(1)} FPS
+                        </Typography>
+                    )}
+                </Box>
+            )}
+
+            {/* Performance stats overlay (debug mode) */}
+            {livePreviewActive && streamStats.active && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: 10,
+                        left: 10,
+                        bgcolor: 'rgba(0,0,0,0.8)',
+                        color: 'white',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        fontSize: '0.7rem',
+                        fontFamily: 'monospace'
+                    }}
+                >
+                    <div>FPS: {streamStats.fps?.toFixed(1) || 0}</div>
+                    <div>Frames: {streamStats.frame_count || 0}</div>
+                    <div>Size: {streamStats.width}×{streamStats.height}</div>
                 </Box>
             )}
         </Box>

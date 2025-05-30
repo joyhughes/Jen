@@ -14,6 +14,7 @@ import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
+import RealTimeCameraKaleidoscope from "./RealTimeCameraKaleidoscope";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -268,6 +269,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 return <TargetImagePane {...commonProps} />;
             case "brush":
                 return <BrushPane {...commonProps} />;
+            case "camera":
+                return (
+                    <Box sx={{ p: 1, height: '100%' }}>
+                        <RealTimeCameraKaleidoscope 
+                            width={Math.min(dimensions.width - 20, 512)}
+                            height={Math.min(dimensions.height - 100, 512)}
+                            onClose={() => onPaneChange("home")}
+                        />
+                    </Box>
+                );
             default:
                 return <HomePane {...commonProps} />;
         }

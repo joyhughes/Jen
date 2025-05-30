@@ -21,6 +21,11 @@ export const useCamera = () => {
         audio: false
     });
 
+    // Real-time processing state
+    const [isLiveProcessing, setIsLiveProcessing] = useState(false);
+    const [processingStats, setProcessingStats] = useState({ fps: 0, active: false });
+    const liveProcessingRef = useRef(null);
+
     // Enumerate available camera devices
     const enumerateDevices = useCallback(async () => {
         try {
@@ -239,6 +244,88 @@ export const useCamera = () => {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }, []);
 
+    // Start real-time processing
+    const startLiveProcessing = useCallback(async () => {
+        if (!window.module || isLiveProcessing) return false;
+        
+        try {
+            const success = window.module.start_camera_stream();
+            if (success) {
+                setIsLiveProcessing(true);
+                
+                // Start stats monitoring
+                const updateStats = () => {
+                    if (window.module && window.module.get_camera_stream_stats) {
+                        try {
+                            const stats = JSON.parse(window.module.get_camera_stream_stats());
+                            setProcessingStats(stats);
+                        } catch (e) {
+                            console.warn('Failed to get camera stats:', e);
+                        }
+                    }
+                };
+                
+                liveProcessingRef.current = setInterval(updateStats, 1000); // Update every second
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to start live processing:', error);
+        }
+        return false;
+    }, [isLiveProcessing]);
+
+    // Stop real-time processing
+    const stopLiveProcessing = useCallback(() => {
+        if (!isLiveProcessing) return;
+        
+        try {
+            if (window.module && window.module.stop_camera_stream) {
+                window.module.stop_camera_stream();
+            }
+            
+            if (liveProcessingRef.current) {
+                clearInterval(liveProcessingRef.current);
+                liveProcessingRef.current = null;
+            }
+            
+            setIsLiveProcessing(false);
+            setProcessingStats({ fps: 0, active: false });
+        } catch (error) {
+            console.error('Failed to stop live processing:', error);
+        }
+    }, [isLiveProcessing]);
+
+    // Process single frame with optimized backend
+    const processFrame = useCallback((imageData, width, height) => {
+        if (!window.module || !window.module.update_camera_frame_optimized) {
+            return false;
+        }
+        
+        try {
+            const success = window.module.update_camera_frame_optimized(
+                imageData.data,
+                width,
+                height
+            );
+            
+            if (success && window.module.process_camera_frame_with_effects) {
+                window.module.process_camera_frame_with_effects();
+            }
+            
+            return success;
+        } catch (error) {
+            console.error('Failed to process frame:', error);
+            return false;
+        }
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopLiveProcessing();
+        };
+    }, [stopLiveProcessing]);
+
     return {
         // Refs
         videoRef,
@@ -259,6 +346,9 @@ export const useCamera = () => {
         capturePhoto,
         updateConstraints,
         enumerateDevices,
-        isCameraSupported
+        isCameraSupported,
+        startLiveProcessing,
+        stopLiveProcessing,
+        processFrame
     };
 }; 

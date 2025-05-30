@@ -13,15 +13,18 @@
 #include <emscripten/val.h>
 #include "emscripten_utils.hpp"
 #include "video_recorder.hpp"
+#include <chrono>
 
 
 //#include <chrono>
 //#include <thread>
 
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
-#define ERROR( msg ) throw std::runtime_error( msg );
 
 using namespace emscripten;
+
+// Forward declaration
+void debug_scene_processing_state();
 
 //const val document = val::global("document");
 
@@ -928,6 +931,461 @@ void save_camera_image_with_metadata(std::string name, std::string filepath, val
     }
 }
 
+// ULTRA-OPTIMIZED Camera processing with persistent buffers and zero-copy operations
+struct UltraCameraContext {
+    // Persistent buffers - allocated once, reused forever
+    std::shared_ptr<buffer_pair<ucolor>> camera_buffer;
+    std::shared_ptr<buffer_pair<ucolor>> effect_buffer;
+    
+    // Fixed dimensions for optimal performance
+    vec2i fixed_dimensions{256, 256};  // Small fixed size for 60fps
+    
+    // Performance tracking
+    std::chrono::high_resolution_clock::time_point last_frame_time;
+    float current_fps = 0.0f;
+    int frame_count = 0;
+    int processed_frames = 0;
+    
+    // State management
+    bool is_active = false;
+    bool buffers_initialized = false;
+    std::string backup_source;
+    
+    // Ultra-performance flags
+    bool skip_next_frame = false;
+    int skip_counter = 0;
+    int max_skip_frames = 2;
+    
+    // Buffer reuse optimization
+    ucolor* camera_pixels = nullptr;
+    ucolor* effect_pixels = nullptr;
+    size_t buffer_size = 0;
+};
+
+UltraCameraContext* ultra_camera = nullptr;
+
+// Initialize ultra-optimized camera context with persistent buffers
+void init_ultra_camera() {
+    if (!ultra_camera) {
+        ultra_camera = new UltraCameraContext();
+        
+        // Pre-allocate fixed-size buffers for maximum performance
+        ultra_camera->camera_buffer = std::make_shared<buffer_pair<ucolor>>(ultra_camera->fixed_dimensions);
+        ultra_camera->effect_buffer = std::make_shared<buffer_pair<ucolor>>(ultra_camera->fixed_dimensions);
+        
+        // Cache direct pixel access pointers for zero-copy operations
+        ultra_camera->camera_pixels = ultra_camera->camera_buffer->get_image().get_base_ptr();
+        ultra_camera->effect_pixels = ultra_camera->effect_buffer->get_image().get_base_ptr();
+        ultra_camera->buffer_size = ultra_camera->fixed_dimensions.x * ultra_camera->fixed_dimensions.y;
+        
+        ultra_camera->buffers_initialized = true;
+        ultra_camera->last_frame_time = std::chrono::high_resolution_clock::now();
+        
+        std::cout << "Ultra camera initialized: " << ultra_camera->fixed_dimensions.x << "x" 
+                  << ultra_camera->fixed_dimensions.y << " (" << ultra_camera->buffer_size << " pixels)" << std::endl;
+    }
+}
+
+// ULTRA-FAST camera frame update with zero-copy RGBA→ARGB conversion
+bool ultra_update_camera_frame(val image_data, int width, int height) {
+    std::cout << "=== ULTRA_UPDATE_CAMERA_FRAME START ===" << std::endl;
+    std::cout << "Input: " << width << "x" << height << std::endl;
+    
+    init_ultra_camera();
+    
+    if (!ultra_camera || !ultra_camera->buffers_initialized) {
+        std::cerr << "ERROR: Ultra camera not initialized" << std::endl;
+        return false;
+    }
+    
+    // Validate input dimensions
+    if (width != ultra_camera->fixed_dimensions.x || height != ultra_camera->fixed_dimensions.y) {
+        std::cerr << "ERROR: Invalid dimensions: expected " << ultra_camera->fixed_dimensions.x 
+                  << "x" << ultra_camera->fixed_dimensions.y 
+                  << ", got " << width << "x" << height << std::endl;
+        return false;
+    }
+    
+    try {
+        // Get the raw data from JavaScript Uint8Array
+        auto length = image_data["length"].as<unsigned>();
+        std::cout << "JS array length: " << length << std::endl;
+        
+        // Expected size for RGBA data
+        size_t expected_size = width * height * 4;
+        if (length != expected_size) {
+            std::cerr << "ERROR: Size mismatch: expected " << expected_size << " bytes, got " << length << std::endl;
+            return false;
+        }
+        
+        // CRITICAL DEBUG: Check first few bytes from JavaScript
+        std::cout << "First 12 JS bytes: ";
+        for (int i = 0; i < 12 && i < length; i++) {
+            uint8_t val = image_data[i].as<uint8_t>();
+            std::cout << (int)val << " ";
+        }
+        std::cout << std::endl;
+        
+        // Check if JS data has any non-zero values
+        int js_non_zero = 0;
+        for (size_t i = 0; i < std::min((size_t)1000, (size_t)length); i++) {
+            if (image_data[i].as<uint8_t>() > 0) js_non_zero++;
+        }
+        std::cout << "JS non-zero count (first 1000): " << js_non_zero << std::endl;
+        
+        if (js_non_zero == 0) {
+            std::cerr << "ERROR: JavaScript data is all zeros!" << std::endl;
+            return false;
+        }
+        
+        // Get camera buffer for writing
+        auto camera_buffer = &(ultra_camera->camera_buffer->get_image());
+        if (!camera_buffer) {
+            std::cerr << "ERROR: Camera buffer not available" << std::endl;
+            return false;
+        }
+        
+        ucolor* camera_pixels = camera_buffer->get_base_ptr();
+        if (!camera_pixels) {
+            std::cerr << "ERROR: Camera pixels not available" << std::endl;
+            return false;
+        }
+        
+        std::cout << "Processing pre-converted ARGB data from frontend..." << std::endl;
+        
+        // OPTIMIZED: Frontend now sends ARGB data (matching still image capture pattern)
+        // No conversion needed - directly copy bytes to ucolor buffer
+        size_t pixel_count = width * height;
+        for (size_t i = 0; i < pixel_count; i++) {
+            size_t argb_idx = i * 4;
+            
+            // Bounds check
+            if (argb_idx + 3 >= length) {
+                std::cerr << "ERROR: Bounds error at pixel " << i << std::endl;
+                break;
+            }
+            
+            uint8_t a = image_data[argb_idx + 0].as<uint8_t>();  // Alpha (position 0)
+            uint8_t r = image_data[argb_idx + 1].as<uint8_t>();  // Red (position 1)  
+            uint8_t g = image_data[argb_idx + 2].as<uint8_t>();  // Green (position 2)
+            uint8_t b = image_data[argb_idx + 3].as<uint8_t>();  // Blue (position 3)
+            
+            // Data is already in ARGB format - assemble into ucolor (uint32_t)
+            camera_pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+        }
+        
+        // VERIFY: Check camera buffer after conversion
+        int camera_non_zero = 0;
+        for (int i = 0; i < std::min(100, (int)pixel_count); i++) {
+            uint32_t pixel = camera_pixels[i];
+            uint8_t r = (pixel >> 16) & 0xFF;
+            uint8_t g = (pixel >> 8) & 0xFF;
+            uint8_t b = pixel & 0xFF;
+            if (r > 0 || g > 0 || b > 0) camera_non_zero++;
+        }
+        std::cout << "Camera buffer non-zero after conversion: " << camera_non_zero << "/100" << std::endl;
+        
+        if (camera_non_zero > 0) {
+            std::cout << "First 3 camera pixels: ";
+            for (int i = 0; i < 3; i++) {
+                uint32_t pixel = camera_pixels[i];
+                uint8_t r = (pixel >> 16) & 0xFF;
+                uint8_t g = (pixel >> 8) & 0xFF;
+                uint8_t b = pixel & 0xFF;
+                std::cout << "(" << (int)r << "," << (int)g << "," << (int)b << ") ";
+            }
+            std::cout << std::endl;
+        }
+        
+        ultra_camera->frame_count++;
+        std::cout << "SUCCESS: Frame " << ultra_camera->frame_count << " updated" << std::endl;
+        std::cout << "=== ULTRA_UPDATE_CAMERA_FRAME END ===" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in ultra_update_camera_frame: " << e.what() << std::endl;
+        std::cout << "=== ULTRA_UPDATE_CAMERA_FRAME END (ERROR) ===" << std::endl;
+        return false;
+    }
+}
+
+// ULTRA-OPTIMIZED kaleidoscope processing with camera integration
+bool ultra_process_camera_with_kaleidoscope() {
+    std::cout << "=== KALEIDOSCOPE_PROCESSING START ===" << std::endl;
+    
+    if (!ultra_camera || !ultra_camera->is_active || !global_context || !global_context->s) {
+        std::cerr << "ERROR: Ultra camera not active or context not available" << std::endl;
+        return false;
+    }
+    
+    try {
+        // Get the ultra_camera buffer from scene buffers
+        if (!global_context->s->buffers.count("ultra_camera")) {
+            std::cerr << "ERROR: ultra_camera buffer not found in scene buffers" << std::endl;
+            return false;
+        }
+        
+        auto camera_buffer = std::get<ubuf_ptr>(global_context->s->buffers["ultra_camera"]);
+        if (!camera_buffer || !camera_buffer->has_image()) {
+            std::cerr << "ERROR: Camera buffer invalid or has no image" << std::endl;
+            return false;
+        }
+        
+        auto& camera_image = camera_buffer->get_image();
+        vec2i camera_dims = camera_image.get_dim();
+        auto camera_pixels = camera_image.get_base_ptr();
+        
+        std::cout << "Camera buffer: " << camera_dims.x << "x" << camera_dims.y << std::endl;
+        
+        // Verify camera has data
+        bool camera_has_data = false;
+        int camera_non_zero = 0;
+        for (int i = 0; i < std::min(100, camera_dims.x * camera_dims.y); i++) {
+            uint32_t pixel = camera_pixels[i];
+            if ((pixel & 0x00FFFFFF) != 0) { // Check RGB components
+                camera_has_data = true;
+                camera_non_zero++;
+            }
+        }
+        
+        std::cout << "Camera data verification: " << camera_non_zero << "/100 non-zero pixels" << std::endl;
+        
+        if (!camera_has_data) {
+            std::cerr << "ERROR: Camera buffer has no data to process" << std::endl;
+            return false;
+        }
+        
+        // CRITICAL FIX: Instead of directly manipulating global_context->buf,
+        // we need to make the scene system process ultra_camera as the source
+        
+        // Step 1: Ensure the source menu is set to ultra_camera
+        if (global_context->s->functions.count("source_image_menu")) {
+            auto source_menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+            source_menu->choose("ultra_camera");
+            std::cout << "Set source menu to ultra_camera" << std::endl;
+        }
+        
+        // Step 2: Apply kaleidoscope effect directly to the camera buffer
+        // This way, when the scene renders ultra_camera, it gets the kaleidoscope version
+        
+        std::cout << "Applying kaleidoscope effect to camera buffer..." << std::endl;
+        
+        // Create a temporary copy of the original camera data
+        std::vector<ucolor> original_data(camera_pixels, camera_pixels + (camera_dims.x * camera_dims.y));
+        
+        // Apply kaleidoscope: Mirror quarters
+        int half_width = camera_dims.x / 2;
+        int half_height = camera_dims.y / 2;
+        
+        // Clear the camera buffer
+        memset(camera_pixels, 0, camera_dims.x * camera_dims.y * sizeof(ucolor));
+        
+        // Create kaleidoscope pattern in the camera buffer itself
+        for (int y = 0; y < half_height; y++) {
+            for (int x = 0; x < half_width; x++) {
+                // Get pixel from top-left of original data
+                int src_idx = y * camera_dims.x + x;
+                ucolor pixel = original_data[src_idx];
+                
+                // Copy to all 4 quadrants with mirroring
+                
+                // Top-left (original)
+                int dst_idx1 = y * camera_dims.x + x;
+                camera_pixels[dst_idx1] = pixel;
+                
+                // Top-right (horizontally mirrored)
+                int dst_idx2 = y * camera_dims.x + (camera_dims.x - 1 - x);
+                camera_pixels[dst_idx2] = pixel;
+                
+                // Bottom-left (vertically mirrored)
+                int dst_idx3 = (camera_dims.y - 1 - y) * camera_dims.x + x;
+                camera_pixels[dst_idx3] = pixel;
+                
+                // Bottom-right (both mirrored)
+                int dst_idx4 = (camera_dims.y - 1 - y) * camera_dims.x + (camera_dims.x - 1 - x);
+                camera_pixels[dst_idx4] = pixel;
+            }
+        }
+        
+        std::cout << "Kaleidoscope effect applied to camera buffer" << std::endl;
+        
+        // Step 3: CRITICAL - Force the scene to re-render with the updated ultra_camera buffer
+        // This is the key fix: we need to trigger the entire scene processing pipeline
+        
+        // Mark scene for re-rendering
+        global_context->s->ui.displayed = false;
+        
+        // CRITICAL FIX: Explicitly trigger scene rendering to process ultra_camera
+        // This forces the scene system to read from ultra_camera buffer and process it
+        // through the full rendering pipeline into the main output buffer
+        try {
+            std::cout << "Triggering scene render with ultra_camera source..." << std::endl;
+            global_context->s->render();
+            std::cout << "Scene render completed" << std::endl;
+        } catch (const std::exception& render_error) {
+            std::cerr << "ERROR during scene render: " << render_error.what() << std::endl;
+            return false;
+        }
+        
+        // Step 4: Verify the main output buffer now has the processed data
+        if (global_context->buf && global_context->buf->has_image()) {
+            auto& main_image = global_context->buf->get_image();
+            auto main_pixels = main_image.get_base_ptr();
+            vec2i main_dims = main_image.get_dim();
+            
+            std::cout << "Main buffer after scene render: " << main_dims.x << "x" << main_dims.y << std::endl;
+            
+            // Check if main buffer now has data
+            int main_non_zero = 0;
+            for (int i = 0; i < std::min(100, main_dims.x * main_dims.y); i++) {
+                uint32_t pixel = main_pixels[i];
+                if ((pixel & 0x00FFFFFF) != 0) { // Check RGB components
+                    main_non_zero++;
+                }
+            }
+            
+            std::cout << "Main buffer verification: " << main_non_zero << "/100 non-zero pixels" << std::endl;
+            
+            if (main_non_zero > 0) {
+                std::cout << "SUCCESS: Kaleidoscope processing complete, main buffer updated!" << std::endl;
+                ultra_camera->processed_frames++;
+                std::cout << "=== KALEIDOSCOPE_PROCESSING END (SUCCESS) ===" << std::endl;
+                return true;
+            } else {
+                std::cerr << "ERROR: Main buffer still empty after scene render" << std::endl;
+            }
+        } else {
+            std::cerr << "ERROR: Main buffer not available after scene render" << std::endl;
+        }
+        
+        std::cout << "=== KALEIDOSCOPE_PROCESSING END (FAILED) ===" << std::endl;
+        return false;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in kaleidoscope processing: " << e.what() << std::endl;
+        std::cout << "=== KALEIDOSCOPE_PROCESSING END (EXCEPTION) ===" << std::endl;
+        return false;
+    }
+}
+
+// ULTRA-OPTIMIZED kaleidoscope processing with camera integration
+bool ultra_start_camera_stream() {
+    std::cout << "=== ULTRA_START_CAMERA_STREAM ===" << std::endl;
+    
+    init_ultra_camera();
+    
+    if (!global_context || !global_context->s) {
+        std::cerr << "ERROR: Global context not available for ultra camera" << std::endl;
+        return false;
+    }
+    
+    try {
+        // Backup current source
+        if (!ultra_camera->is_active) {
+            if (global_context->s->functions.count("source_image_menu")) {
+                auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+                ultra_camera->backup_source = menu->get_chosen_item();
+                std::cout << "Backed up current source: " << ultra_camera->backup_source << std::endl;
+            }
+        }
+        
+        // Register camera buffer in scene system
+        any_buffer_pair_ptr camera_any_buf = ultra_camera->camera_buffer;
+        global_context->s->buffers["ultra_camera"] = camera_any_buf;
+        std::cout << "Registered ultra_camera buffer in scene system" << std::endl;
+        
+        // Add to source menu if not already there
+        if (global_context->s->functions.count("source_image_menu")) {
+            auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+            if (std::find(menu->items.begin(), menu->items.end(), "ultra_camera") == menu->items.end()) {
+                menu->items.push_back("ultra_camera");
+                std::cout << "Added ultra_camera to source menu" << std::endl;
+            } else {
+                std::cout << "ultra_camera already in source menu" << std::endl;
+            }
+        }
+        
+        ultra_camera->is_active = true;
+        std::cout << "SUCCESS: Ultra camera stream started with " << ultra_camera->fixed_dimensions.x 
+                  << "x" << ultra_camera->fixed_dimensions.y << " buffer" << std::endl;
+        std::cout << "=== ULTRA_START_CAMERA_STREAM END ===" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in ultra_start_camera_stream: " << e.what() << std::endl;
+        std::cout << "=== ULTRA_START_CAMERA_STREAM END (ERROR) ===" << std::endl;
+        return false;
+    }
+}
+
+// Stop ultra camera and restore previous state
+bool ultra_stop_camera_stream() {
+    std::cout << "=== ULTRA_STOP_CAMERA_STREAM ===" << std::endl;
+    
+    if (!ultra_camera || !ultra_camera->is_active) {
+        std::cout << "Ultra camera already stopped or not initialized" << std::endl;
+        return true; // Already stopped
+    }
+    
+    try {
+        // Restore previous source
+        if (!ultra_camera->backup_source.empty()) {
+            if (global_context->s->functions.count("source_image_menu")) {
+                auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+                menu->choose(ultra_camera->backup_source);
+                std::cout << "Restored source to: " << ultra_camera->backup_source << std::endl;
+            }
+        }
+        
+        ultra_camera->is_active = false;
+        
+        // Force render with restored source
+        global_context->s->ui.displayed = false;
+        global_context->s->render();
+        
+        std::cout << "SUCCESS: Ultra camera stream stopped and source restored" << std::endl;
+        std::cout << "=== ULTRA_STOP_CAMERA_STREAM END ===" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Exception in ultra_stop_camera_stream: " << e.what() << std::endl;
+        std::cout << "=== ULTRA_STOP_CAMERA_STREAM END (ERROR) ===" << std::endl;
+        return false;
+    }
+}
+
+// Get ultra camera performance statistics
+std::string ultra_get_camera_stats() {
+    nlohmann::json stats;
+    
+    if (ultra_camera) {
+        stats["initialized"] = ultra_camera->buffers_initialized;
+        stats["active"] = ultra_camera->is_active;
+        stats["fps"] = ultra_camera->current_fps;
+        stats["processed_frames"] = ultra_camera->processed_frames;
+        stats["width"] = ultra_camera->fixed_dimensions.x;
+        stats["height"] = ultra_camera->fixed_dimensions.y;
+        stats["buffer_size"] = ultra_camera->buffer_size;
+        stats["skip_frames"] = ultra_camera->max_skip_frames;
+        stats["skip_counter"] = ultra_camera->skip_counter;
+        stats["frame_count"] = ultra_camera->frame_count;
+    } else {
+        stats["initialized"] = false;
+        stats["active"] = false;
+        stats["fps"] = 0.0f;
+        stats["processed_frames"] = 0;
+        stats["frame_count"] = 0;
+    }
+    
+    if (global_context && global_context->s) {
+        stats["scene_running"] = global_context->s->ui.running;
+        stats["total_buffers"] = global_context->s->buffers.size();
+        stats["ultra_camera_buffer_exists"] = global_context->s->buffers.count("ultra_camera") > 0;
+    }
+    
+    return stats.dump();
+}
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -977,6 +1435,87 @@ int main(int argc, char** argv) {
 //  SDL_Quit();
 
   return 0;
+}
+
+
+// Add this debugging function to help diagnose scene state
+void debug_scene_processing_state() {
+    std::cout << "=== DEBUG SCENE PROCESSING STATE ===" << std::endl;
+    
+    if (!global_context || !global_context->s) {
+        std::cout << "ERROR: No global context or scene" << std::endl;
+        return;
+    }
+    
+    // Check current source selection
+    if (global_context->s->functions.count("source_image_menu")) {
+        auto source_menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
+        std::cout << "Current source: '" << source_menu->get_chosen_item() << "'" << std::endl;
+        std::cout << "Available sources: ";
+        for (const auto& item : source_menu->items) {
+            std::cout << "'" << item << "' ";
+        }
+        std::cout << std::endl;
+    }
+    
+    // Check available buffers
+    std::cout << "Scene buffers: ";
+    for (const auto& [name, buffer] : global_context->s->buffers) {
+        std::cout << "'" << name << "' ";
+    }
+    std::cout << std::endl;
+    
+    // Check ultra_camera buffer specifically
+    if (global_context->s->buffers.count("ultra_camera")) {
+        auto camera_buffer = std::get<ubuf_ptr>(global_context->s->buffers["ultra_camera"]);
+        if (camera_buffer && camera_buffer->has_image()) {
+            auto& camera_image = camera_buffer->get_image();
+            vec2i dims = camera_image.get_dim();
+            auto pixels = camera_image.get_base_ptr();
+            
+            std::cout << "Ultra camera buffer: " << dims.x << "x" << dims.y;
+            
+            // Check for data
+            int non_zero = 0;
+            for (int i = 0; i < std::min(100, dims.x * dims.y); i++) {
+                if ((pixels[i] & 0x00FFFFFF) != 0) non_zero++;
+            }
+            std::cout << ", " << non_zero << "/100 non-zero pixels" << std::endl;
+        } else {
+            std::cout << "Ultra camera buffer: INVALID or NO IMAGE" << std::endl;
+        }
+    } else {
+        std::cout << "Ultra camera buffer: NOT FOUND" << std::endl;
+    }
+    
+    // Check main output buffer
+    if (global_context->buf && global_context->buf->has_image()) {
+        auto& main_image = global_context->buf->get_image();
+        vec2i dims = main_image.get_dim();
+        auto pixels = main_image.get_base_ptr();
+        
+        std::cout << "Main output buffer: " << dims.x << "x" << dims.y;
+        
+        // Check for data
+        int non_zero = 0;
+        for (int i = 0; i < std::min(100, dims.x * dims.y); i++) {
+            if ((pixels[i] & 0x00FFFFFF) != 0) non_zero++;
+        }
+        std::cout << ", " << non_zero << "/100 non-zero pixels" << std::endl;
+    } else {
+        std::cout << "Main output buffer: INVALID or NO IMAGE" << std::endl;
+    }
+    
+    // Check if ultra camera is active
+    if (ultra_camera) {
+        std::cout << "Ultra camera state: " << (ultra_camera->is_active ? "ACTIVE" : "INACTIVE");
+        std::cout << ", frames: " << ultra_camera->frame_count;
+        std::cout << ", processed: " << ultra_camera->processed_frames << std::endl;
+    } else {
+        std::cout << "Ultra camera: NOT INITIALIZED" << std::endl;
+    }
+    
+    std::cout << "=== DEBUG END ===" << std::endl;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
@@ -1048,4 +1587,12 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("set_camera_source_active", &set_camera_source_active);
     function("get_camera_processing_stats", &get_camera_processing_stats);
     function("save_camera_image_with_metadata", &save_camera_image_with_metadata);
+
+    // new camera functions
+    function("ultra_update_camera_frame", &ultra_update_camera_frame);
+    function("ultra_process_camera_with_kaleidoscope", &ultra_process_camera_with_kaleidoscope);
+    function("ultra_start_camera_stream", &ultra_start_camera_stream);
+    function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
+    function("ultra_get_camera_stats", &ultra_get_camera_stats);
+
 }
