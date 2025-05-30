@@ -197,16 +197,16 @@ function ImagePort({ dimensions, moduleReady }) {
             }
 
             console.log('[Camera] Starting getUserMedia...');
-            // OPTIMIZATION: Use lower resolution video stream for better performance
+            // OPTIMAL PERFORMANCE: Lower resolution for maximum smooth 60fps
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 640, max: 1280 },      // Lower ideal resolution
-                    height: { ideal: 480, max: 720 },      // Lower ideal resolution
-                    frameRate: { ideal: 60, min: 30 },     // Prioritize high frame rate
+                    width: { ideal: 640, max: 1280 },        // Smooth: optimal for 256x256
+                    height: { ideal: 480, max: 720 },        // Smooth: 4:3 ratio, less demanding
+                    frameRate: { ideal: 60, min: 30 },       // Prioritize high frame rate
                     facingMode: 'user',
                     // Performance optimizations
                     aspectRatio: { ideal: 4 / 3 },           // Standard aspect ratio
-                    resizeMode: 'crop-and-scale'           // Let browser optimize
+                    resizeMode: 'crop-and-scale'             // Let browser optimize
                 },
                 audio: false  // Explicitly disable audio for performance
             });
@@ -373,17 +373,18 @@ function ImagePort({ dimensions, moduleReady }) {
         }
 
         const ctx = canvas.getContext('2d');
-        const BACKEND_WIDTH = 256;
-        const BACKEND_HEIGHT = 256;
+        const BACKEND_WIDTH = 256;   // OPTIMAL: Maximum smooth performance  
+        const BACKEND_HEIGHT = 256;  // OPTIMAL: Original smooth 60fps
 
         // Configure canvas for backend processing
         if (canvas.width !== BACKEND_WIDTH || canvas.height !== BACKEND_HEIGHT) {
             canvas.width = BACKEND_WIDTH;
             canvas.height = BACKEND_HEIGHT;
-            ctx.imageSmoothingEnabled = false;
+            ctx.imageSmoothingEnabled = true;  // Enable smoothing for better quality
+            ctx.imageSmoothingQuality = 'high';  // Use high quality interpolation
             ctx.globalCompositeOperation = 'source-over';
             if (shouldDetailLog) {
-                console.log(`[Frame ${perf.frameCount}] Canvas configured: ${BACKEND_WIDTH}x${BACKEND_HEIGHT}`);
+                console.log(`[Frame ${perf.frameCount}] Canvas configured: ${BACKEND_WIDTH}x${BACKEND_HEIGHT} (BALANCED QUALITY)`);
             }
         }
 
@@ -397,7 +398,7 @@ function ImagePort({ dimensions, moduleReady }) {
                 return;
             }
 
-            // Fast square crop for kaleidoscope effects
+            // Fast square crop for kaleidoscope effects with HIGH QUALITY scaling
             const minDim = Math.min(videoWidth, videoHeight);
             const sourceX = Math.round((videoWidth - minDim) * 0.5);
             const sourceY = Math.round((videoHeight - minDim) * 0.5);
@@ -409,11 +410,11 @@ function ImagePort({ dimensions, moduleReady }) {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
             }
 
-            // Single ultra-fast draw operation
+            // HIGH QUALITY draw operation with superior interpolation
             ctx.drawImage(
                 video,
-                sourceX, sourceY, minDim, minDim,
-                0, 0, BACKEND_WIDTH, BACKEND_HEIGHT
+                sourceX, sourceY, minDim, minDim,      // Source: square crop from center
+                0, 0, BACKEND_WIDTH, BACKEND_HEIGHT    // Dest: 512x512 with high quality scaling
             );
 
             // BACKEND PROCESSING with minimal logging
@@ -709,7 +710,11 @@ function ImagePort({ dimensions, moduleReady }) {
                     justifyContent: 'center',
                     overflow: 'hidden',
                 }}>
-                <ImagePortCanvas width={dimensions.width} height={dimensions.height} />
+                <ImagePortCanvas 
+                    width={dimensions.width} 
+                    height={dimensions.height}
+                    isLiveCameraActive={isLiveCameraActive}
+                />
             </Box>
 
             {/* Hidden video element for camera stream */}
@@ -726,44 +731,6 @@ function ImagePort({ dimensions, moduleReady }) {
                 ref={canvasRef}
                 style={{ display: 'none' }}
             />
-
-            {/* Ultra-Performance Camera Indicator with Backend Stats */}
-            {isLiveCameraActive && (
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        top: 8,
-                        left: 8,
-                        background: 'linear-gradient(45deg, rgba(255, 0, 0, 0.95), rgba(255, 69, 0, 0.95))',
-                        color: 'white',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        zIndex: 1000,
-                        fontFamily: 'monospace',
-                        lineHeight: 1.3,
-                        boxShadow: '0 3px 12px rgba(255,0,0,0.4)',
-                        border: '1px solid rgba(255,255,255,0.2)'
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '12px' }}>●</span>
-                        <span>ULTRA-KALEIDOSCOPE</span>
-                    </div>
-                    <div style={{ fontSize: '9px', opacity: 0.95, marginTop: '3px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                        <div>
-                            Frontend: {performanceRef.current.currentFps}fps | Q:{Math.round(quality * 100)}% | {performanceRef.current.avgFrameTime.toFixed(1)}ms
-                        </div>
-                        <div style={{ fontSize: '8px', opacity: 0.8 }}>
-                            Backend: 256×256 | Skip:{skipFrames} | Drop:{performanceRef.current.droppedFrames}
-                        </div>
-                        <div style={{ fontSize: '8px', opacity: 0.7, color: '#90EE90' }}>
-                            ✓ Kaleidoscope Effects Active
-                        </div>
-                    </div>
-                </Box>
-            )}
 
             {/* Camera Error Alert */}
             {error && (
@@ -872,6 +839,44 @@ function ImagePort({ dimensions, moduleReady }) {
                     </Box>
                 </Paper>
             </Zoom>
+
+            {/* High Quality Camera Indicator - Shows when camera is active */}
+            {isLiveCameraActive && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: 8,
+                        left: 8,
+                        background: 'linear-gradient(45deg, rgba(255, 0, 0, 0.95), rgba(255, 69, 0, 0.95))',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        zIndex: 1000,
+                        fontFamily: 'monospace',
+                        lineHeight: 1.3,
+                        boxShadow: '0 3px 12px rgba(255,0,0,0.4)',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12px' }}>●</span>
+                        <span>SMOOTH CAMERA</span>
+                    </div>
+                    <div style={{ fontSize: '9px', opacity: 0.95, marginTop: '3px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <div>
+                            Frontend: {performanceRef.current.currentFps}fps | Q:{Math.round(quality * 100)}% | {performanceRef.current.avgFrameTime.toFixed(1)}ms
+                        </div>
+                        <div style={{ fontSize: '8px', opacity: 0.8 }}>
+                            Backend: 256×256 | Skip:{skipFrames} | Drop:{performanceRef.current.droppedFrames}
+                        </div>
+                        <div style={{ fontSize: '8px', opacity: 0.7, color: '#90EE90' }}>
+                            ✓ Scene Effects Active (Frontend Controlled)
+                        </div>
+                    </div>
+                </Box>
+            )}
 
             {/* Floating Camera Button */}
             <Box

@@ -16,6 +16,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
     const [newImageName, setNewImageName] = useState(null);
     const [error, setError] = useState(null);
     const [showCamera, setShowCamera] = useState(false);
+    const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
     const fileInputRef = useRef(null);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -131,6 +132,25 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             setIsInitializing(false);
         }
     }, [json]);
+
+    // ADD: Monitor live camera state from ImagePort component
+    useEffect(() => {
+        const checkLiveCameraState = () => {
+            // Check if live camera is active by looking for the live camera indicator
+            const liveCameraIndicator = document.querySelector('div[style*="SMOOTH CAMERA"]');
+            const newState = !!liveCameraIndicator;
+            if (newState !== isLiveCameraActive) {
+                setIsLiveCameraActive(newState);
+                console.log('MasonryImagePicker: Live camera state changed to:', newState);
+            }
+        };
+
+        // Check state every 500ms while camera dialog might be open
+        const interval = setInterval(checkLiveCameraState, 500);
+        checkLiveCameraState(); // Initial check
+
+        return () => clearInterval(interval);
+    }, [isLiveCameraActive]);
 
     // Handle file upload
     const handleFileUpload = async (file) => {
@@ -250,6 +270,15 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         }, 100);
     };
 
+    // MODIFY: Check live camera state before showing camera
+    const handleCameraClick = () => {
+        if (isLiveCameraActive) {
+            setError('Camera is already active in live mode. Please stop live camera first.');
+            return;
+        }
+        setShowCamera(true);
+    };
+
     // Check if camera is supported
     const isCameraSupported = () => {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -317,15 +346,15 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     {/* Camera button */}
                     {isCameraSupported() && (
-                        <Tooltip title="Take Photo">
+                        <Tooltip title={isLiveCameraActive ? "Live camera is active - stop it first" : "Take Photo"}>
                             <IconButton
-                                onClick={() => setShowCamera(true)}
-                                disabled={isLoading}
+                                onClick={handleCameraClick}
+                                disabled={isLoading || isLiveCameraActive}
                                 sx={{
-                                    bgcolor: 'primary.main',
+                                    bgcolor: isLiveCameraActive ? 'grey.400' : 'primary.main',
                                     color: 'white',
                                     '&:hover': {
-                                        bgcolor: 'primary.dark',
+                                        bgcolor: isLiveCameraActive ? 'grey.400' : 'primary.dark',
                                     },
                                     '&:disabled': {
                                         bgcolor: 'grey.300',

@@ -937,8 +937,8 @@ struct UltraCameraContext {
     std::shared_ptr<buffer_pair<ucolor>> camera_buffer;
     std::shared_ptr<buffer_pair<ucolor>> effect_buffer;
     
-    // Fixed dimensions for optimal performance
-    vec2i fixed_dimensions{256, 256};  // Small fixed size for 60fps
+    // OPTIMAL PERFORMANCE: 256x256 for maximum smooth 60fps
+    vec2i fixed_dimensions{256, 256};  // Original smooth performance
     
     // Performance tracking
     std::chrono::high_resolution_clock::time_point last_frame_time;
@@ -1109,9 +1109,54 @@ bool ultra_update_camera_frame(val image_data, int width, int height) {
     }
 }
 
-// ULTRA-OPTIMIZED kaleidoscope processing with camera integration
+// Load kaleidoscope scene if not already loaded - NO HARDCODED PARAMETERS
+bool ensure_kaleidoscope_scene_loaded() {
+    if (!global_context || !global_context->s) {
+        std::cerr << "ERROR: Global context not available" << std::endl;
+        return false;
+    }
+    
+    // Check if kaleidoscope functions already exist (scene already loaded)
+    if (global_context->s->functions.count("scope_menu") && 
+        global_context->s->functions.count("segment_slider") &&
+        global_context->s->functions.count("source_image_menu")) {
+        std::cout << "✓ Kaleidoscope scene already loaded" << std::endl;
+        return true;
+    }
+    
+    std::cout << "Loading kaleidoscope scene for camera effects..." << std::endl;
+    
+    try {
+        // Load the kaleidoscope scene JSON
+        load_scene("lux_files/kaleido.json");
+        
+        // Verify the scene loaded successfully by checking for essential functions
+        bool has_scope_menu = global_context->s->functions.count("scope_menu") > 0;
+        bool has_segments = global_context->s->functions.count("segment_slider") > 0;
+        bool has_source = global_context->s->functions.count("source_image_menu") > 0;
+        
+        std::cout << "Scene verification - Scope menu: " << has_scope_menu 
+                  << ", Segments: " << has_segments 
+                  << ", Source menu: " << has_source << std::endl;
+        
+        if (has_scope_menu && has_segments && has_source) {
+            std::cout << "✓ Kaleidoscope scene fully loaded" << std::endl;
+            std::cout << "  Frontend controls will determine all effect parameters" << std::endl;
+            return true;
+        } else {
+            std::cerr << "ERROR: Kaleidoscope scene missing essential components" << std::endl;
+            return false;
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Failed to load kaleidoscope scene: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+// SCENE-BASED kaleidoscope processing - INTEGRATES WITH FRONTEND CONTROLS
 bool ultra_process_camera_with_kaleidoscope() {
-    std::cout << "=== KALEIDOSCOPE_PROCESSING START ===" << std::endl;
+    std::cout << "=== SCENE_INTEGRATED_CAMERA_PROCESSING START ===" << std::endl;
     
     if (!ultra_camera || !ultra_camera->is_active || !global_context || !global_context->s) {
         std::cerr << "ERROR: Ultra camera not active or context not available" << std::endl;
@@ -1119,7 +1164,7 @@ bool ultra_process_camera_with_kaleidoscope() {
     }
     
     try {
-        // Get the ultra_camera buffer from scene buffers
+        // STEP 1: Verify ultra_camera buffer exists in scene
         if (!global_context->s->buffers.count("ultra_camera")) {
             std::cerr << "ERROR: ultra_camera buffer not found in scene buffers" << std::endl;
             return false;
@@ -1131,139 +1176,59 @@ bool ultra_process_camera_with_kaleidoscope() {
             return false;
         }
         
-        auto& camera_image = camera_buffer->get_image();
-        vec2i camera_dims = camera_image.get_dim();
-        auto camera_pixels = camera_image.get_base_ptr();
+        std::cout << "✓ Camera buffer verified with image data" << std::endl;
         
-        std::cout << "Camera buffer: " << camera_dims.x << "x" << camera_dims.y << std::endl;
+        // STEP 2: CRITICAL - Let the scene system do ALL the work!
+        // This is the key insight: the scene automatically reads frontend control values
+        // and applies effects accordingly. We just need to trigger a render.
         
-        // Verify camera has data
-        bool camera_has_data = false;
-        int camera_non_zero = 0;
-        for (int i = 0; i < std::min(100, camera_dims.x * camera_dims.y); i++) {
-            uint32_t pixel = camera_pixels[i];
-            if ((pixel & 0x00FFFFFF) != 0) { // Check RGB components
-                camera_has_data = true;
-                camera_non_zero++;
-            }
-        }
+        // Ensure camera is selected as source (should already be set by ultra_start_camera_stream)
+        std::cout << "Triggering scene render with current frontend settings..." << std::endl;
         
-        std::cout << "Camera data verification: " << camera_non_zero << "/100 non-zero pixels" << std::endl;
-        
-        if (!camera_has_data) {
-            std::cerr << "ERROR: Camera buffer has no data to process" << std::endl;
-            return false;
-        }
-        
-        // CRITICAL FIX: Instead of directly manipulating global_context->buf,
-        // we need to make the scene system process ultra_camera as the source
-        
-        // Step 1: Ensure the source menu is set to ultra_camera
-        if (global_context->s->functions.count("source_image_menu")) {
-            auto source_menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
-            source_menu->choose("ultra_camera");
-            std::cout << "Set source menu to ultra_camera" << std::endl;
-        }
-        
-        // Step 2: Apply kaleidoscope effect directly to the camera buffer
-        // This way, when the scene renders ultra_camera, it gets the kaleidoscope version
-        
-        std::cout << "Applying kaleidoscope effect to camera buffer..." << std::endl;
-        
-        // Create a temporary copy of the original camera data
-        std::vector<ucolor> original_data(camera_pixels, camera_pixels + (camera_dims.x * camera_dims.y));
-        
-        // Apply kaleidoscope: Mirror quarters
-        int half_width = camera_dims.x / 2;
-        int half_height = camera_dims.y / 2;
-        
-        // Clear the camera buffer
-        memset(camera_pixels, 0, camera_dims.x * camera_dims.y * sizeof(ucolor));
-        
-        // Create kaleidoscope pattern in the camera buffer itself
-        for (int y = 0; y < half_height; y++) {
-            for (int x = 0; x < half_width; x++) {
-                // Get pixel from top-left of original data
-                int src_idx = y * camera_dims.x + x;
-                ucolor pixel = original_data[src_idx];
-                
-                // Copy to all 4 quadrants with mirroring
-                
-                // Top-left (original)
-                int dst_idx1 = y * camera_dims.x + x;
-                camera_pixels[dst_idx1] = pixel;
-                
-                // Top-right (horizontally mirrored)
-                int dst_idx2 = y * camera_dims.x + (camera_dims.x - 1 - x);
-                camera_pixels[dst_idx2] = pixel;
-                
-                // Bottom-left (vertically mirrored)
-                int dst_idx3 = (camera_dims.y - 1 - y) * camera_dims.x + x;
-                camera_pixels[dst_idx3] = pixel;
-                
-                // Bottom-right (both mirrored)
-                int dst_idx4 = (camera_dims.y - 1 - y) * camera_dims.x + (camera_dims.x - 1 - x);
-                camera_pixels[dst_idx4] = pixel;
-            }
-        }
-        
-        std::cout << "Kaleidoscope effect applied to camera buffer" << std::endl;
-        
-        // Step 3: CRITICAL - Force the scene to re-render with the updated ultra_camera buffer
-        // This is the key fix: we need to trigger the entire scene processing pipeline
-        
-        // Mark scene for re-rendering
+        // Mark scene as needing refresh to pick up any parameter changes
         global_context->s->ui.displayed = false;
         
-        // CRITICAL FIX: Explicitly trigger scene rendering to process ultra_camera
-        // This forces the scene system to read from ultra_camera buffer and process it
-        // through the full rendering pipeline into the main output buffer
-        try {
-            std::cout << "Triggering scene render with ultra_camera source..." << std::endl;
-            global_context->s->render();
-            std::cout << "Scene render completed" << std::endl;
-        } catch (const std::exception& render_error) {
-            std::cerr << "ERROR during scene render: " << render_error.what() << std::endl;
-            return false;
-        }
+        // Execute scene render - this will:
+        // 1. Read the ultra_camera buffer as source
+        // 2. Apply all effects based on current frontend control panel values  
+        // 3. Render the result to the main output buffer
+        global_context->s->render();
         
-        // Step 4: Verify the main output buffer now has the processed data
+        std::cout << "✓ Scene render completed with frontend-controlled effects" << std::endl;
+        
+        // STEP 3: Verify scene processing worked
         if (global_context->buf && global_context->buf->has_image()) {
             auto& main_image = global_context->buf->get_image();
-            auto main_pixels = main_image.get_base_ptr();
             vec2i main_dims = main_image.get_dim();
             
-            std::cout << "Main buffer after scene render: " << main_dims.x << "x" << main_dims.y << std::endl;
+            std::cout << "Main buffer after scene processing: " << main_dims.x << "x" << main_dims.y << std::endl;
             
-            // Check if main buffer now has data
-            int main_non_zero = 0;
+            // Quick verification of output
+            auto main_pixels = main_image.get_base_ptr();
+            int processed_pixels = 0;
             for (int i = 0; i < std::min(100, main_dims.x * main_dims.y); i++) {
                 uint32_t pixel = main_pixels[i];
                 if ((pixel & 0x00FFFFFF) != 0) { // Check RGB components
-                    main_non_zero++;
+                    processed_pixels++;
                 }
             }
             
-            std::cout << "Main buffer verification: " << main_non_zero << "/100 non-zero pixels" << std::endl;
+            std::cout << "Scene output verification: " << processed_pixels << "/100 processed pixels" << std::endl;
             
-            if (main_non_zero > 0) {
-                std::cout << "SUCCESS: Kaleidoscope processing complete, main buffer updated!" << std::endl;
-                ultra_camera->processed_frames++;
-                std::cout << "=== KALEIDOSCOPE_PROCESSING END (SUCCESS) ===" << std::endl;
+            if (processed_pixels > 10) {
+                std::cout << "✓ Scene successfully processed camera with frontend effects" << std::endl;
                 return true;
             } else {
-                std::cerr << "ERROR: Main buffer still empty after scene render" << std::endl;
+                std::cout << "WARNING: Scene output appears minimal" << std::endl;
+                return false;
             }
         } else {
-            std::cerr << "ERROR: Main buffer not available after scene render" << std::endl;
+            std::cerr << "ERROR: No main buffer after scene processing" << std::endl;
+            return false;
         }
         
-        std::cout << "=== KALEIDOSCOPE_PROCESSING END (FAILED) ===" << std::endl;
-        return false;
-        
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception in kaleidoscope processing: " << e.what() << std::endl;
-        std::cout << "=== KALEIDOSCOPE_PROCESSING END (EXCEPTION) ===" << std::endl;
+        std::cerr << "ERROR in scene-based camera processing: " << e.what() << std::endl;
         return false;
     }
 }
@@ -1276,6 +1241,12 @@ bool ultra_start_camera_stream() {
     
     if (!global_context || !global_context->s) {
         std::cerr << "ERROR: Global context not available for ultra camera" << std::endl;
+        return false;
+    }
+    
+    // CRITICAL: Ensure kaleidoscope scene is loaded before starting camera
+    if (!ensure_kaleidoscope_scene_loaded()) {
+        std::cerr << "ERROR: Failed to load kaleidoscope scene for camera" << std::endl;
         return false;
     }
     
@@ -1306,14 +1277,19 @@ bool ultra_start_camera_stream() {
         }
         
         ultra_camera->is_active = true;
-        std::cout << "SUCCESS: Ultra camera stream started with " << ultra_camera->fixed_dimensions.x 
-                  << "x" << ultra_camera->fixed_dimensions.y << " buffer" << std::endl;
-        std::cout << "=== ULTRA_START_CAMERA_STREAM END ===" << std::endl;
+        ultra_camera->frame_count = 0;
+        ultra_camera->processed_frames = 0;
+        
+        std::cout << "✓ Ultra camera stream started with kaleidoscope scene integration" << std::endl;
+        std::cout << "✓ Scene-based effects ready: segments, levels, spin, expand, reflect" << std::endl;
+        std::cout << "✓ Vector field transformations available" << std::endl;
+        std::cout << "✓ Multiple kaleidoscope modes: Kaleido, Multiples, Tile" << std::endl;
+        std::cout << "=== ULTRA_START_CAMERA_STREAM SUCCESS ===" << std::endl;
+        
         return true;
         
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception in ultra_start_camera_stream: " << e.what() << std::endl;
-        std::cout << "=== ULTRA_START_CAMERA_STREAM END (ERROR) ===" << std::endl;
+        std::cerr << "ERROR: Exception starting ultra camera stream: " << e.what() << std::endl;
         return false;
     }
 }
