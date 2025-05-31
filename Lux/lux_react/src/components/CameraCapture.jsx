@@ -57,10 +57,15 @@ const CameraCapture = ({
         error,
         devices,
         currentDeviceId,
+        currentFacingMode,
         constraints,
         startCamera,
         stopCamera,
         switchCamera,
+        toggleCameraFacing,
+        switchToFrontCamera,
+        switchToBackCamera,
+        getCameraInfo,
         capturePhoto,
         updateConstraints
     } = useCamera();
@@ -71,6 +76,7 @@ const CameraCapture = ({
     const [mirrorMode, setMirrorMode] = useState(true);
     const [captureMode, setCaptureMode] = useState('photo'); // 'photo' | 'live'
     const [livePreviewActive, setLivePreviewActive] = useState(false);
+    const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
 
     // Live preview state
     const livePreviewRef = useRef(null);
@@ -82,6 +88,28 @@ const CameraCapture = ({
     const frameSkipCountRef = useRef(0);
     const TARGET_FPS = 30; // Target FPS for live processing
     const FRAME_INTERVAL = 1000 / TARGET_FPS;
+
+    // Auto-update mirror mode based on camera facing
+    useEffect(() => {
+        // Only mirror front camera, not back camera
+        setMirrorMode(currentFacingMode === 'user');
+    }, [currentFacingMode]);
+
+    // Enhanced camera switching for mobile
+    const handleCameraSwitch = async () => {
+        try {
+            setIsSwitchingCamera(true);
+            const newFacingMode = await toggleCameraFacing();
+            console.log('[CameraCapture] Camera switched to:', newFacingMode);
+        } catch (error) {
+            console.error('[CameraCapture] Camera switch failed:', error);
+        } finally {
+            setIsSwitchingCamera(false);
+        }
+    };
+
+    // Get camera info for UI display
+    const cameraInfo = getCameraInfo();
 
     // Check for module readiness
     useEffect(() => {
@@ -477,13 +505,11 @@ const CameraCapture = ({
                 onCapture={handleCapture}
                 onClose={onClose}
                 onToggleSettings={() => setShowSettings(!showSettings)}
-                onSwitchCamera={() => {
-                    const nextIndex = (devices.findIndex(d => d.deviceId === currentDeviceId) + 1) % devices.length;
-                    if (devices[nextIndex]) {
-                        switchCamera(devices[nextIndex].deviceId);
-                    }
-                }}
-                showSwitchCamera={devices.length > 1}
+                onSwitchCamera={handleCameraSwitch}
+                showSwitchCamera={cameraInfo.hasMultipleCameras}
+                isSwitchingCamera={isSwitchingCamera}
+                currentFacingMode={currentFacingMode}
+                cameraInfo={cameraInfo}
                 livePreviewActive={livePreviewActive}
                 onToggleLivePreview={toggleLivePreview}
                 moduleReady={moduleReady}

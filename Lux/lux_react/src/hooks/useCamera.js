@@ -12,6 +12,7 @@ export const useCamera = () => {
     const [error, setError] = useState(null);
     const [devices, setDevices] = useState([]);
     const [currentDeviceId, setCurrentDeviceId] = useState(null);
+    const [currentFacingMode, setCurrentFacingMode] = useState('user'); // 'user' = front, 'environment' = back
     const [constraints, setConstraints] = useState({
         video: {
             width: { ideal: 1280 },
@@ -33,6 +34,12 @@ export const useCamera = () => {
             const videoDevices = devices.filter(device => device.kind === 'videoinput');
             setDevices(videoDevices);
             
+            console.log('[useCamera] Available cameras:', videoDevices.map(d => ({ 
+                id: d.deviceId, 
+                label: d.label,
+                facingMode: d.label.toLowerCase().includes('back') ? 'environment' : 'user'
+            })));
+            
             // Auto-select first device if none selected
             if (videoDevices.length > 0 && !currentDeviceId) {
                 setCurrentDeviceId(videoDevices[0].deviceId);
@@ -46,8 +53,30 @@ export const useCamera = () => {
         }
     }, [currentDeviceId]);
 
-    // Start camera stream
-    const startCamera = useCallback(async (deviceId = null) => {
+    // Get camera constraints based on facing mode or device ID
+    const getCameraConstraints = useCallback((facingMode = null, deviceId = null) => {
+        const baseConstraints = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        };
+
+        // If we have a specific device ID, use it
+        if (deviceId) {
+            return {
+                ...baseConstraints,
+                deviceId: { exact: deviceId }
+            };
+        }
+
+        // Otherwise use facing mode
+        return {
+            ...baseConstraints,
+            facingMode: facingMode || currentFacingMode
+        };
+    }, [currentFacingMode]);
+
+    // Start camera stream with enhanced mobile support
+    const startCamera = useCallback(async (deviceId = null, facingMode = null) => {
         try {
             setError(null);
             
@@ -56,18 +85,14 @@ export const useCamera = () => {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
 
-            // Build constraints
-            const videoConstraints = {
-                ...constraints.video,
-                ...(deviceId && { deviceId: { exact: deviceId } })
-            };
-
+            // Build constraints with mobile support
+            const videoConstraints = getCameraConstraints(facingMode, deviceId);
             const streamConstraints = {
-                ...constraints,
-                video: videoConstraints
+                video: videoConstraints,
+                audio: false
             };
 
-            console.log('Starting camera with constraints:', streamConstraints);
+            console.log(`[useCamera] Starting camera with constraints:`, streamConstraints);
 
             // Get user media
             const stream = await navigator.mediaDevices.getUserMedia(streamConstraints);
@@ -84,6 +109,17 @@ export const useCamera = () => {
                     const onLoadedMetadata = () => {
                         video.removeEventListener('loadedmetadata', onLoadedMetadata);
                         video.removeEventListener('error', onError);
+                        
+                        // Detect actual facing mode from stream
+                        const track = stream.getVideoTracks()[0];
+                        if (track && track.getSettings) {
+                            const settings = track.getSettings();
+                            if (settings.facingMode) {
+                                setCurrentFacingMode(settings.facingMode);
+                                console.log(`[useCamera] Camera started with facing mode: ${settings.facingMode}`);
+                            }
+                        }
+                        
                         resolve();
                     };
                     
@@ -99,9 +135,12 @@ export const useCamera = () => {
 
                 setIsStreaming(true);
                 
-                // Update current device ID
+                // Update current device ID and facing mode
                 if (deviceId) {
                     setCurrentDeviceId(deviceId);
+                }
+                if (facingMode) {
+                    setCurrentFacingMode(facingMode);
                 }
             }
 
@@ -119,14 +158,32 @@ export const useCamera = () => {
             } else if (err.name === 'NotReadableError') {
                 setError('Camera is already in use by another application.');
             } else if (err.name === 'OverconstrainedError') {
-                setError('Camera does not support the requested settings.');
+                setError('Camera does not support the requested settings. Trying fallback...');
+                
+                // Try fallback with basic constraints
+                try {
+                    const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: facingMode || currentFacingMode },
+                        audio: false
+                    });
+                    streamRef.current = fallbackStream;
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = fallbackStream;
+                        setIsStreaming(true);
+                        setError(null);
+                    }
+                } catch (fallbackErr) {
+                    setError(`Camera error: ${err.message || 'Unknown error'}`);
+                }
             } else {
                 setError(`Camera error: ${err.message || 'Unknown error'}`);
             }
             
-            setIsStreaming(false);
+            if (error) {
+                setIsStreaming(false);
+            }
         }
-    }, [constraints, enumerateDevices]);
+    }, [getCameraConstraints, currentFacingMode, enumerateDevices, error]);
 
     // Stop camera stream
     const stopCamera = useCallback(() => {
@@ -142,12 +199,52 @@ export const useCamera = () => {
         setIsStreaming(false);
     }, []);
 
-    // Switch to different camera
+    // Switch to different camera by device ID
     const switchCamera = useCallback(async (deviceId) => {
         if (deviceId !== currentDeviceId) {
             await startCamera(deviceId);
         }
     }, [currentDeviceId, startCamera]);
+
+    // Toggle between front and back camera (mobile-friendly)
+    const toggleCameraFacing = useCallback(async () => {
+        const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        console.log(`[useCamera] Toggling camera from ${currentFacingMode} to ${newFacingMode}`);
+        
+        try {
+            await startCamera(null, newFacingMode);
+            return newFacingMode;
+        } catch (error) {
+            console.error('[useCamera] Failed to toggle camera facing:', error);
+            throw error;
+        }
+    }, [currentFacingMode, startCamera]);
+
+    // Switch to front camera
+    const switchToFrontCamera = useCallback(async () => {
+        if (currentFacingMode !== 'user') {
+            await startCamera(null, 'user');
+        }
+    }, [currentFacingMode, startCamera]);
+
+    // Switch to back camera
+    const switchToBackCamera = useCallback(async () => {
+        if (currentFacingMode !== 'environment') {
+            await startCamera(null, 'environment');
+        }
+    }, [currentFacingMode, startCamera]);
+
+    // Get current camera info
+    const getCameraInfo = useCallback(() => {
+        return {
+            facingMode: currentFacingMode,
+            deviceId: currentDeviceId,
+            availableCameras: devices,
+            isFrontCamera: currentFacingMode === 'user',
+            isBackCamera: currentFacingMode === 'environment',
+            hasMultipleCameras: devices.length > 1
+        };
+    }, [currentFacingMode, currentDeviceId, devices]);
 
     // Update camera constraints
     const updateConstraints = useCallback(async (newConstraints) => {
@@ -337,12 +434,17 @@ export const useCamera = () => {
         error,
         devices,
         currentDeviceId,
+        currentFacingMode,
         constraints,
         
         // Methods
         startCamera,
         stopCamera,
         switchCamera,
+        toggleCameraFacing,
+        switchToFrontCamera,
+        switchToBackCamera,
+        getCameraInfo,
         capturePhoto,
         updateConstraints,
         enumerateDevices,

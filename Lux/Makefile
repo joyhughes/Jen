@@ -65,25 +65,16 @@ FFMPEG_DIR := $(EXTERN_DIR)/FFmpeg
 SRC_DIR := $(ROOT_DIR)/src
 WEB_BUILD_DIR := $(ROOT_DIR)/web_build
 
-<<<<<<< HEAD
-=======
 # Camera optimization flags (integrated into main build)
 CAMERA_FLAGS := -DCAMERA_OPTIMIZED -DREAL_TIME_PROCESSING -DPERFORMANCE_MODE
 
->>>>>>> 050d9d2 (Camera input)
 # FFmpeg is mandatory - always use these flags
 FFMPEG_CFLAGS := -I$(EXTERN_BUILD_DIR)/include
 FFMPEG_LIBS := -L$(EXTERN_BUILD_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264
 
-<<<<<<< HEAD
-# Compilation flags
-BASE_FLAGS := -O3 -MMD -MP -std=c++20 -msimd128 $(FFMPEG_CFLAGS)
-SIMD_FLAGS := -MMD -MP -std=c++20 -msimd128 $(FFMPEG_CFLAGS)
-=======
 # Compilation flags with integrated camera optimizations
 BASE_FLAGS := -O3 -MMD -MP -std=c++20 -msimd128 $(FFMPEG_CFLAGS) $(CAMERA_FLAGS)
 SIMD_FLAGS := -MMD -MP -std=c++20 -msimd128 $(FFMPEG_CFLAGS) $(CAMERA_FLAGS)
->>>>>>> 050d9d2 (Camera input)
 
 # Source files categorized by optimization level
 O3_SOURCES := effect fimage frgb gamma_lut image life next_element offset_field uimage ucolor vect2 vector_field warp_field

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <!-- Background circle -->
+    <circle cx="200" cy="200" r="180" fill="#FFFFFF"/>
+
+    <!-- Main 'J' shape -->
+    <path d="M165 100 Q165 80 185 80 L240 80 Q260 80 260 100 L260 240 Q260 280 220 280 L180 280 Q140 280 140 240"
+          fill="none" stroke="#1A1A1A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Generative pattern accent -->
+    <path d="M180 120 L220 120 L220 160 L180 160 Z" fill="none" stroke="#2196F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M220 160 L260 160 L260 200 L220 200 Z" fill="none" stroke="#2196F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M180 160 L150 160 L150 200 L180 200 Z" fill="none" stroke="#2196F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M180 200 L220 200 L220 240 L180 240 Z" fill="none" stroke="#2196F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Dot accent -->
+    <circle cx="220" cy="120" r="8" fill="#2196F3"/>
+
+    <!-- Text element - uncomment if text is needed
+    <text x="200" y="340" font-family="Arial, sans-serif" font-size="40" font-weight="bold" text-anchor="middle" fill="#1A1A1A">jen</text>
+    -->
+</svg>

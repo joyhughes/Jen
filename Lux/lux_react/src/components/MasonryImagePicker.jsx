@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Divider, Alert, useTheme, IconButton, Tooltip, Chip } from '@mui/material';
-import { ImagePlus, Camera, Video, VideoOff } from 'lucide-react';
+import { Box, Typography, CircularProgress, Divider, Alert, useTheme, IconButton, Tooltip, Chip, Button } from '@mui/material';
+import { ImagePlus, Camera, Video, VideoOff, FlipHorizontal, RotateCcw } from 'lucide-react';
 import ThumbnailItem from './ThumbnailItem';
 import CameraCapture from './CameraCapture';
 import { createLiveCameraManager, getLiveCameraManager, destroyLiveCameraManager } from './LiveCameraManager';
+import { useScene } from './SceneContext';
 import Masonry from 'react-masonry-css';
 import '../styles/MasonryImagePicker.css';
 
 export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => {
+    const { scenes, currentSceneIndex } = useScene();
     const [menuItems, setMenuItems] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
     const [isDragging, setIsDragging] = useState(false);
@@ -18,6 +20,14 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
     const [showCamera, setShowCamera] = useState(false);
     const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
     const [liveCameraError, setLiveCameraError] = useState(null);
+    const [liveCameraInfo, setLiveCameraInfo] = useState({
+        facingMode: 'user',
+        isFrontCamera: true,
+        isBackCamera: false,
+        availableCameras: []
+    });
+    const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+    const [cachedLiveCameraSupported, setCachedLiveCameraSupported] = useState(false);
     const fileInputRef = useRef(null);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -28,6 +38,51 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
     const THUMB_SPACING = 8;
     // Each thumbnail needs this much space with its margins
     const TOTAL_THUMB_WIDTH = THUMB_SIZE + (THUMB_SPACING * 2);
+
+    // Check if current scene supports live camera (using cached value)
+    const isLiveCameraSupported = () => {
+        return cachedLiveCameraSupported;
+    };
+
+    // Fetch live camera support from backend when scene changes (once per scene)
+    useEffect(() => {
+        const fetchLiveCameraSupport = async () => {
+            console.log('Checking live camera support for scene index:', currentSceneIndex);
+            
+            // Wait a bit for the scene to load in the backend
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            if (window.module) {
+                console.log('Window module available:', !!window.module);
+                console.log('is_live_camera_supported function available:', !!window.module.is_live_camera_supported);
+                
+                if (window.module.is_live_camera_supported) {
+                    const supported = window.module.is_live_camera_supported();
+                    setCachedLiveCameraSupported(supported);
+                    console.log('Live camera support result:', supported, 'for scene index:', currentSceneIndex);
+                    
+                    // Force menu items to update with the new cached value
+                    if (json) {
+                        console.log('Triggering menu update after live camera support check');
+                        // Use a small delay to ensure the state is updated
+                        setTimeout(() => {
+                            // Force a re-render by updating the JSON dependency
+                            setError(null);
+                        }, 50);
+                    }
+                } else {
+                    console.log('is_live_camera_supported function not available in module');
+                    setCachedLiveCameraSupported(false);
+                }
+            } else {
+                console.log('Window module not available');
+                setCachedLiveCameraSupported(false);
+            }
+        };
+
+        // Fetch when scene changes
+        fetchLiveCameraSupport();
+    }, [currentSceneIndex]);
 
     // Use ResizeObserver to detect actual width changes
     useEffect(() => {
@@ -50,6 +105,23 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             }
         };
     }, []);
+
+    // Update live camera info periodically
+    useEffect(() => {
+        if (isLiveCameraActive) {
+            const updateCameraInfo = () => {
+                const cameraManager = getLiveCameraManager();
+                if (cameraManager) {
+                    const info = cameraManager.getCurrentCameraInfo();
+                    setLiveCameraInfo(info);
+                }
+            };
+
+            updateCameraInfo();
+            const interval = setInterval(updateCameraInfo, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [isLiveCameraActive]);
 
     // Calculate breakpoints for image grid - ensuring we fit as many as possible
     const getBreakpointColumns = () => {
@@ -99,28 +171,33 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                     }
                 }
 
-                // Add live camera option to the beginning of the menu
-                const allItems = ['LIVE_CAMERA', ...items];
+                // Add live camera option to the beginning of the menu only if supported
+                const liveCameraSupported = isLiveCameraSupported();
+                console.log('Menu generation - cachedLiveCameraSupported:', cachedLiveCameraSupported);
+                console.log('Menu generation - isLiveCameraSupported():', liveCameraSupported);
+                console.log('Menu generation - original items:', items);
+                
+                const allItems = liveCameraSupported ? ['LIVE_CAMERA', ...items] : items;
                 setMenuItems(allItems);
-                console.log('Menu items with live camera:', allItems);
+                console.log('Menu items with conditional live camera:', allItems, 'Live camera supported:', liveCameraSupported);
 
                 let selectedIdx = -1;
 
                 if (json.choice !== undefined && Number.isInteger(json.choice)) {
-                    selectedIdx = json.choice + 1; // Offset by 1 due to live camera option
+                    selectedIdx = liveCameraSupported ? json.choice + 1 : json.choice; // Offset by 1 only if live camera is included
                 } else if (json.selected !== undefined && Number.isInteger(json.selected)) {
-                    selectedIdx = json.selected + 1;
+                    selectedIdx = liveCameraSupported ? json.selected + 1 : json.selected;
                 } else if (json.value !== undefined && Number.isInteger(json.value)) {
-                    selectedIdx = json.value + 1;
+                    selectedIdx = liveCameraSupported ? json.value + 1 : json.value;
                 }
 
                 if (selectedIdx >= 0 && selectedIdx < allItems.length) {
                     console.log('Setting selected image to:', allItems[selectedIdx]);
                     setSelectedImage(allItems[selectedIdx]);
-                } else if (allItems.length > 1) {
-                    // Default to first non-camera item if no selection
-                    console.log('Defaulting to first image:', allItems[1]);
-                    setSelectedImage(allItems[1]);
+                } else if (allItems.length > 0) {
+                    // Default to first item (live camera if supported, otherwise first regular image)
+                    console.log('Defaulting to first item:', allItems[0]);
+                    setSelectedImage(allItems[0]);
                 }
 
                 setError(null);
@@ -133,12 +210,37 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         } finally {
             setIsInitializing(false);
         }
-    }, [json]);
+    }, [json, cachedLiveCameraSupported]);
+
+    // Stop live camera if scene changes to one that doesn't support it
+    useEffect(() => {
+        if (isLiveCameraActive && !isLiveCameraSupported()) {
+            console.log('[ImagePicker] Scene changed to one that does not support live camera, stopping...');
+            const cameraManager = getLiveCameraManager();
+            if (cameraManager) {
+                cameraManager.stop();
+            }
+            destroyLiveCameraManager();
+            setIsLiveCameraActive(false);
+            
+            // Switch to first regular image if available
+            const regularImages = menuItems.filter(item => item !== 'LIVE_CAMERA');
+            if (regularImages.length > 0) {
+                handleImageSelect(regularImages[0]);
+            }
+        }
+    }, [currentSceneIndex, scenes, isLiveCameraActive, menuItems]);
 
     // Handle live camera toggle
-    const toggleLiveCamera = async () => {
+    const toggleLiveCamera = async (facingMode = 'user') => {
         try {
             setLiveCameraError(null);
+            
+            // Check if live camera is supported for current scene
+            if (!isLiveCameraSupported()) {
+                setLiveCameraError('Live camera is not supported for the current scene');
+                return;
+            }
             
             if (isLiveCameraActive) {
                 // Stop live camera
@@ -158,10 +260,15 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             } else {
                 // Start live camera
                 const cameraManager = createLiveCameraManager();
-                await cameraManager.start();
+                await cameraManager.start(facingMode);
                 setIsLiveCameraActive(true);
                 setSelectedImage('LIVE_CAMERA');
-                console.log('[ImagePicker] Live camera started');
+                
+                // Update camera info
+                const info = cameraManager.getCurrentCameraInfo();
+                setLiveCameraInfo(info);
+                
+                console.log('[ImagePicker] Live camera started with facing mode:', facingMode);
                 
                 // Navigate to home to show the live camera
                 setTimeout(() => {
@@ -172,6 +279,28 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             console.error('[ImagePicker] Live camera error:', error);
             setLiveCameraError(`Live camera failed: ${error.message}`);
             setIsLiveCameraActive(false);
+        }
+    };
+
+    // Switch camera (front/back toggle)
+    const switchLiveCamera = async () => {
+        try {
+            setIsSwitchingCamera(true);
+            setLiveCameraError(null);
+            
+            const cameraManager = getLiveCameraManager();
+            if (cameraManager && isLiveCameraActive) {
+                const newFacingMode = await cameraManager.switchCamera();
+                const info = cameraManager.getCurrentCameraInfo();
+                setLiveCameraInfo(info);
+                
+                console.log('[ImagePicker] Camera switched to:', newFacingMode);
+            }
+        } catch (error) {
+            console.error('[ImagePicker] Camera switch failed:', error);
+            setLiveCameraError(`Camera switch failed: ${error.message}`);
+        } finally {
+            setIsSwitchingCamera(false);
         }
     };
 
@@ -187,6 +316,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                     cameraManager.stop();
                 }
                 destroyLiveCameraManager();
+                setIsLiveCameraActive(false);
             }
             
             const reader = new FileReader();
@@ -242,7 +372,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         }
     };
 
-    // Handle camera capture
+    // Handle camera capture (still photo)
     const handleCameraCapture = async (captureData) => {
         try {
             setIsLoading(true);
@@ -254,6 +384,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                     cameraManager.stop();
                 }
                 destroyLiveCameraManager();
+                setIsLiveCameraActive(false);
             }
             
             const { filename, imageName, imageData, blob } = captureData;
@@ -301,6 +432,10 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
         console.log('Image selected:', imageName);
         
         if (imageName === 'LIVE_CAMERA') {
+            if (!isLiveCameraSupported()) {
+                setLiveCameraError('Live camera is not supported for the current scene');
+                return;
+            }
             if (!isLiveCameraActive) {
                 toggleLiveCamera();
             }
@@ -354,74 +489,105 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             sx={{
                 width: THUMB_SIZE,
                 height: THUMB_SIZE,
-                borderRadius: 1,
-                border: isSelected ? '3px solid' : '2px solid',
-                borderColor: isSelected ? 'primary.main' : (isLiveCameraActive ? 'success.main' : 'grey.400'),
+                borderRadius: 2,
+                border: isSelected ? '4px solid' : '3px solid',
+                borderColor: isSelected ? '#ff1744' : (isLiveCameraActive ? '#4caf50' : '#ff5722'),
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: isLiveCameraActive 
-                    ? 'linear-gradient(45deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.2))'
-                    : 'linear-gradient(45deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.2))',
-                transition: 'all 0.2s ease-in-out',
+                    ? 'linear-gradient(45deg, #4caf50, #66bb6a)'
+                    : 'linear-gradient(45deg, #ff5722, #ff7043)',
+                color: 'white',
                 position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.3s',
                 '&:hover': {
-                    borderColor: isLiveCameraActive ? 'success.light' : 'primary.light',
                     transform: 'scale(1.05)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                },
+                '&:active': {
+                    transform: 'scale(0.95)',
                 }
             }}
         >
             {isLiveCameraActive ? (
                 <>
-                    <Video size={20} color={theme.palette.success.main} />
+                    <Video size={32} color="white" />
                     <Typography variant="caption" sx={{ 
-                        fontSize: '9px', 
-                        color: 'success.main', 
+                        fontSize: '12px', 
+                        color: 'white', 
                         fontWeight: 'bold',
                         textAlign: 'center',
-                        mt: 0.5
+                        mt: 0.5,
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
                     }}>
                         LIVE
                     </Typography>
-                    {/* Live indicator dot */}
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: 4,
-                            right: 4,
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            backgroundColor: 'success.main',
-                            animation: 'pulse 2s infinite',
-                            '@keyframes pulse': {
-                                '0%': { opacity: 1 },
-                                '50%': { opacity: 0.5 },
-                                '100%': { opacity: 1 },
-                            }
-                        }}
-                    />
+                    <Typography variant="caption" sx={{ 
+                        fontSize: '8px', 
+                        color: 'white', 
+                        textAlign: 'center',
+                        opacity: 0.9,
+                        textShadow: '1px 1px 1px rgba(0,0,0,0.8)'
+                    }}>
+                        {liveCameraInfo.isFrontCamera ? 'Front' : 'Back'}
+                    </Typography>
+                    
+                    {/* Camera Switch Button */}
+                    {liveCameraInfo.availableCameras.length > 1 && (
+                        <IconButton
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                switchLiveCamera();
+                            }}
+                            disabled={isSwitchingCamera}
+                            sx={{
+                                position: 'absolute',
+                                top: 2,
+                                right: 2,
+                                width: 24,
+                                height: 24,
+                                bgcolor: 'rgba(255,255,255,0.2)',
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.3)',
+                                },
+                                '&:disabled': {
+                                    opacity: 0.5
+                                }
+                            }}
+                        >
+                            {isSwitchingCamera ? (
+                                <CircularProgress size={12} color="inherit" />
+                            ) : (
+                                <RotateCcw size={12} />
+                            )}
+                        </IconButton>
+                    )}
                 </>
             ) : (
                 <>
-                    <VideoOff size={20} color={theme.palette.primary.main} />
+                    <Video size={28} color="white" />
                     <Typography variant="caption" sx={{ 
-                        fontSize: '9px', 
-                        color: 'primary.main', 
+                        fontSize: '11px', 
+                        color: 'white', 
                         fontWeight: 'bold',
                         textAlign: 'center',
-                        mt: 0.5
+                        mt: 0.5,
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
                     }}>
-                        CAMERA
+                        LIVE
                     </Typography>
                 </>
             )}
         </Box>
     );
 
-    // Show camera interface
+    // Show camera interface for still photos
     if (showCamera) {
         return (
             <Box sx={{ width: width || '100%', height: 400 }}>
@@ -439,6 +605,25 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
 
     return (
         <Box sx={{ width: width || '100%' }} ref={containerRef}>
+            {/* Scene Information */}
+            {scenes && scenes.length > 0 && currentSceneIndex >= 0 && currentSceneIndex < scenes.length && (
+                <Box sx={{ mb: 2 }}>
+                    <Chip 
+                        label={`Scene: ${scenes[currentSceneIndex]?.name || 'Unknown'}`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ mr: 1 }}
+                    />
+                    <Chip 
+                        icon={isLiveCameraSupported() ? <Video size={14} /> : <VideoOff size={14} />}
+                        label={isLiveCameraSupported() ? "Live Camera Available" : "Live Camera Not Available"}
+                        size="small"
+                        color={isLiveCameraSupported() ? "success" : "default"}
+                        variant="outlined"
+                    />
+                </Box>
+            )}
+
             {/* Error messages */}
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -452,17 +637,31 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                 </Alert>
             )}
 
-            {/* Live Camera Status */}
+            {/* Live Camera Status with Controls */}
             {isLiveCameraActive && (
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <Chip 
                         icon={<Video size={16} />}
-                        label="Live Camera Active"
+                        label={`Live Camera: ${liveCameraInfo.isFrontCamera ? 'Front' : 'Back'}`}
                         color="success"
                         variant="outlined"
                         size="small"
                         sx={{ fontWeight: 'bold' }}
                     />
+                    
+                    {/* Camera Switch Button */}
+                    {liveCameraInfo.availableCameras.length > 1 && (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={isSwitchingCamera ? <CircularProgress size={16} /> : <RotateCcw size={16} />}
+                            onClick={switchLiveCamera}
+                            disabled={isSwitchingCamera}
+                            sx={{ minWidth: 'auto', px: 1 }}
+                        >
+                            {isSwitchingCamera ? 'Switching...' : (liveCameraInfo.isFrontCamera ? 'Switch to Back' : 'Switch to Front')}
+                        </Button>
+                    )}
                 </Box>
             )}
 

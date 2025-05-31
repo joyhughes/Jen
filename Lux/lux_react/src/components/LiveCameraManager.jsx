@@ -8,6 +8,9 @@ class LiveCameraManager {
         this.lastFrameTimeRef = 0;
         this.isActive = false;
         this.cameraReady = false;
+        this.currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+        this.availableCameras = [];
+        this.currentDeviceId = null;
         
         // Performance tracking
         this.performanceRef = {
@@ -54,9 +57,51 @@ class LiveCameraManager {
         document.body.appendChild(this.canvasRef);
     }
 
-    async start() {
+    // Enumerate available cameras
+    async getAvailableCameras() {
         try {
-            console.log('[LiveCamera] Starting camera with backend integration...');
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            this.availableCameras = devices.filter(device => device.kind === 'videoinput');
+            console.log('[LiveCamera] Available cameras:', this.availableCameras.map(c => ({ id: c.deviceId, label: c.label })));
+            return this.availableCameras;
+        } catch (error) {
+            console.error('[LiveCamera] Error enumerating cameras:', error);
+            return [];
+        }
+    }
+
+    // Get camera constraints based on facing mode or device ID
+    getCameraConstraints() {
+        const baseConstraints = {
+            width: { ideal: 640, max: 1280 },
+            height: { ideal: 480, max: 720 },
+            frameRate: { ideal: 60, min: 30 },
+            aspectRatio: { ideal: 4 / 3 },
+            resizeMode: 'crop-and-scale'
+        };
+
+        // If we have a specific device ID, use it
+        if (this.currentDeviceId) {
+            return {
+                ...baseConstraints,
+                deviceId: { exact: this.currentDeviceId }
+            };
+        }
+
+        // Otherwise use facing mode
+        return {
+            ...baseConstraints,
+            facingMode: this.currentFacingMode
+        };
+    }
+
+    async start(facingMode = 'user') {
+        try {
+            console.log(`[LiveCamera] Starting camera with facing mode: ${facingMode}`);
+            this.currentFacingMode = facingMode;
+
+            // Get available cameras first
+            await this.getAvailableCameras();
 
             // Backend initialization
             if (window.module && typeof window.module.ultra_start_camera_stream === 'function') {
@@ -74,16 +119,9 @@ class LiveCameraManager {
                 }
             }
 
-            // Start camera stream
+            // Start camera stream with selected camera
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 640, max: 1280 },
-                    height: { ideal: 480, max: 720 },
-                    frameRate: { ideal: 60, min: 30 },
-                    facingMode: 'user',
-                    aspectRatio: { ideal: 4 / 3 },
-                    resizeMode: 'crop-and-scale'
-                },
+                video: this.getCameraConstraints(),
                 audio: false
             });
 
@@ -97,7 +135,7 @@ class LiveCameraManager {
 
             return new Promise((resolve, reject) => {
                 this.videoRef.onloadedmetadata = () => {
-                    console.log(`[LiveCamera] Video loaded: ${this.videoRef.videoWidth}x${this.videoRef.videoHeight}`);
+                    console.log(`[LiveCamera] Video loaded: ${this.videoRef.videoWidth}x${this.videoRef.videoHeight}, facing: ${this.currentFacingMode}`);
                     
                     // Reset performance counters
                     this.performanceRef = {
@@ -113,6 +151,9 @@ class LiveCameraManager {
 
                     this.cameraReady = true;
                     this.isActive = true;
+
+                    // Update mirror mode based on camera
+                    this.settings.mirrorMode = this.currentFacingMode === 'user';
 
                     // Start frame processing
                     setTimeout(() => {
@@ -134,6 +175,98 @@ class LiveCameraManager {
             console.error('[LiveCamera] Failed to start:', error);
             throw error;
         }
+    }
+
+    // Switch camera (front/back toggle)
+    async switchCamera() {
+        try {
+            if (!this.isActive) {
+                throw new Error('Camera is not active');
+            }
+
+            console.log(`[LiveCamera] Switching camera from ${this.currentFacingMode}`);
+            
+            // Toggle facing mode
+            const newFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
+            
+            // Stop current stream
+            if (this.videoRef && this.videoRef.srcObject) {
+                const tracks = this.videoRef.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+
+            // Start with new camera
+            this.currentFacingMode = newFacingMode;
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: this.getCameraConstraints(),
+                audio: false
+            });
+
+            this.videoRef.srcObject = stream;
+
+            // Update mirror mode - only mirror front camera
+            this.settings.mirrorMode = this.currentFacingMode === 'user';
+
+            console.log(`[LiveCamera] Switched to ${this.currentFacingMode} camera, mirror: ${this.settings.mirrorMode}`);
+            
+            return this.currentFacingMode;
+
+        } catch (error) {
+            console.error('[LiveCamera] Camera switch failed:', error);
+            throw error;
+        }
+    }
+
+    // Switch to specific camera by device ID
+    async switchToCamera(deviceId) {
+        try {
+            if (!this.isActive) {
+                throw new Error('Camera is not active');
+            }
+
+            console.log(`[LiveCamera] Switching to camera device: ${deviceId}`);
+            
+            // Stop current stream
+            if (this.videoRef && this.videoRef.srcObject) {
+                const tracks = this.videoRef.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+
+            // Set device ID and start stream
+            this.currentDeviceId = deviceId;
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: this.getCameraConstraints(),
+                audio: false
+            });
+
+            this.videoRef.srcObject = stream;
+
+            // Determine if this is front or back camera based on label
+            const selectedCamera = this.availableCameras.find(c => c.deviceId === deviceId);
+            const isBackCamera = selectedCamera && selectedCamera.label.toLowerCase().includes('back');
+            this.currentFacingMode = isBackCamera ? 'environment' : 'user';
+            this.settings.mirrorMode = this.currentFacingMode === 'user';
+
+            console.log(`[LiveCamera] Switched to camera: ${selectedCamera?.label}, facing: ${this.currentFacingMode}`);
+            
+            return this.currentFacingMode;
+
+        } catch (error) {
+            console.error('[LiveCamera] Camera switch failed:', error);
+            throw error;
+        }
+    }
+
+    // Get current camera info
+    getCurrentCameraInfo() {
+        return {
+            facingMode: this.currentFacingMode,
+            deviceId: this.currentDeviceId,
+            availableCameras: this.availableCameras,
+            isFrontCamera: this.currentFacingMode === 'user',
+            isBackCamera: this.currentFacingMode === 'environment',
+            mirrorMode: this.settings.mirrorMode
+        };
     }
 
     stop() {
@@ -225,7 +358,7 @@ class LiveCameraManager {
             const sourceX = Math.round((videoWidth - minDim) * 0.5);
             const sourceY = Math.round((videoHeight - minDim) * 0.5);
 
-            // Mirror mode handling
+            // Mirror mode handling - only for front camera
             if (this.settings.mirrorMode) {
                 ctx.setTransform(-1, 0, 0, 1, BACKEND_WIDTH, 0);
             } else {

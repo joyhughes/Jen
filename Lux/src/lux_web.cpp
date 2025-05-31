@@ -1494,6 +1494,14 @@ void debug_scene_processing_state() {
     std::cout << "=== DEBUG END ===" << std::endl;
 }
 
+// Check if current scene supports live camera
+bool is_live_camera_supported() {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    return global_context->s->liveCamera;
+}
+
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback",  &set_frame_callback );
     function( "set_resize_callback", &set_resize_callback );
@@ -1502,6 +1510,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     // scene selection functions
     function( "load_scene",         &load_scene );
     function( "get_scene_list_JSON", &get_scene_list_JSON );
+    function( "is_live_camera_supported", &is_live_camera_supported );
 
     // image functions
     function( "bitmaps_ready",      &bitmaps_ready );
