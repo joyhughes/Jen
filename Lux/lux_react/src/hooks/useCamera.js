@@ -174,44 +174,15 @@ export const useCamera = () => {
             const canvas = canvasRef.current || document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // PERFORMANCE FIX: Use same 256×256 dimensions as live camera for smooth effects
-            const CAPTURE_WIDTH = 256;   // Match live camera processing
-            const CAPTURE_HEIGHT = 256;  // Match live camera processing
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
             
-            // Set canvas to optimized size for smooth effects
-            canvas.width = CAPTURE_WIDTH;
-            canvas.height = CAPTURE_HEIGHT;
+            // Draw video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // QUALITY: Enable high-quality scaling like live camera
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            
-            // Get video dimensions for square crop calculation
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            
-            if (videoWidth === 0 || videoHeight === 0) {
-                throw new Error('Video not ready for capture');
-            }
-            
-            // Calculate square crop from center (same as live camera logic)
-            const minDim = Math.min(videoWidth, videoHeight);
-            const sourceX = Math.round((videoWidth - minDim) * 0.5);
-            const sourceY = Math.round((videoHeight - minDim) * 0.5);
-            
-            console.log(`[CameraCapture] Capturing ${CAPTURE_WIDTH}×${CAPTURE_HEIGHT} from ${videoWidth}×${videoHeight} video (square crop: ${minDim}×${minDim})`);
-            
-            // Draw video frame to canvas with high-quality square crop and resize
-            ctx.drawImage(
-                video,
-                sourceX, sourceY, minDim, minDim,           // Source: square crop from center  
-                0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT        // Dest: 256×256 for smooth effects
-            );
-            
-            // Get optimized image data
-            const imageData = ctx.getImageData(0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT);
-            
-            console.log(`[CameraCapture] Captured ${imageData.width}×${imageData.height} image data for smooth effects processing`);
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
             // Add flash effect (visual feedback)
             if (videoRef.current) {

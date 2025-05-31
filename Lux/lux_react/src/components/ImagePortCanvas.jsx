@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Box, CircularProgress } from '@mui/material';
+import { getLiveCameraManager } from './LiveCameraManager';
 
-function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
+function ImagePortCanvas({ width, height }) {
   const canvasRef = useRef(null);
   const [isModuleReady, setModuleReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -58,7 +59,7 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
     }
   }, []);
 
-  // DUAL-MODE Canvas rendering function
+  // DUAL-MODE Canvas rendering function with color format detection
   const updateCanvas = useCallback(async () => {
     if (!window.module || !canvasRef.current) return;
 
@@ -77,39 +78,50 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
     }
 
     try {
-      if (isLiveCameraActive) {
-        // CAMERA MODE: Live camera sends BGRA format - need to convert to RGBA
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Camera] Processing live camera frame (BGRA format)...');
-        }
-        
-        // Get image data from WebAssembly (camera processed data in BGRA format)
-        const imageDataArray = window.module.get_img_data();
-        const bufWidth = window.module.get_buf_width();
-        const bufHeight = window.module.get_buf_height();
-
-        if (shouldLog && logging.debugEnabled) {
-          console.log(`[Canvas-Camera] Buffer: ${bufWidth}x${bufHeight}, Data length: ${imageDataArray?.byteLength}`);
+      // CORRECT DETECTION: Check the actual current source from backend
+      let isLiveCameraSource = false;
+      try {
+        if (window.module && typeof window.module.get_widget_JSON === 'function') {
+          const sourceMenuJSON = window.module.get_widget_JSON('source_image_menu');
+          const sourceMenu = JSON.parse(sourceMenuJSON);
+          const currentSource = sourceMenu.items[sourceMenu.choice];
+          isLiveCameraSource = currentSource === 'ultra_camera';
           
-          // Check camera processed data
-          if (imageDataArray && imageDataArray.byteLength > 0) {
-            let nonZeroCount = 0;
-            const sampleSize = Math.min(1000, imageDataArray.byteLength);
-            for (let i = 0; i < sampleSize; i++) {
-              if (imageDataArray[i] > 0) nonZeroCount++;
-            }
-            console.log(`[Canvas-Camera] Processed pixels: ${nonZeroCount}/${sampleSize} (${((nonZeroCount/sampleSize)*100).toFixed(1)}%)`);
+          if (shouldLog && logging.debugEnabled) {
+            console.log(`[Canvas] Current source: "${currentSource}", isLiveCamera: ${isLiveCameraSource}`);
           }
         }
-        
-        if (!imageDataArray || imageDataArray.byteLength === 0) {
-          if (shouldLog) {
-            console.warn('[Canvas-Camera] No processed camera data available');
-          }
-          return;
+      } catch (sourceError) {
+        // Fallback: if we can't get source info, assume regular image
+        isLiveCameraSource = false;
+        if (shouldLog && logging.debugEnabled) {
+          console.log('[Canvas] Could not detect source, assuming regular image');
+        }
+      }
+
+      // Get image data from WebAssembly backend
+      const imageDataArray = window.module.get_img_data();
+      const bufWidth = window.module.get_buf_width();
+      const bufHeight = window.module.get_buf_height();
+
+      if (shouldLog && logging.debugEnabled) {
+        console.log(`[Canvas] Mode: ${isLiveCameraSource ? 'Live Camera (BGRA)' : 'Regular Image (RGBA)'}`);
+        console.log(`[Canvas] Buffer: ${bufWidth}x${bufHeight}, Data length: ${imageDataArray?.byteLength}`);
+      }
+      
+      if (!imageDataArray || imageDataArray.byteLength === 0) {
+        if (shouldLog) {
+          console.warn('[Canvas] No image data available from backend');
+        }
+        return;
+      }
+
+      if (isLiveCameraSource) {
+        // LIVE CAMERA MODE: Backend sends BGRA format - convert to RGBA for display
+        if (shouldLog && logging.debugEnabled) {
+          console.log('[Canvas-Camera] Converting BGRA → RGBA for live camera display');
         }
 
-        // CRITICAL: Camera data is in BGRA format - convert to RGBA for Canvas
         const pixelCount = bufWidth * bufHeight;
         const expectedBytes = pixelCount * 4;
         
@@ -118,8 +130,6 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
           return;
         }
 
-        console.log('[Canvas-Camera] Converting BGRA → RGBA for camera display');
-        
         // Create new array for RGBA data
         const rgbaData = new Uint8ClampedArray(expectedBytes);
         
@@ -127,7 +137,7 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
         for (let i = 0; i < pixelCount; i++) {
           const pixelStart = i * 4;
           
-          // Read pixel data in BGRA format (how camera backend stores it)
+          // Read pixel data in BGRA format (how camera backend sends it)
           const b = imageDataArray[pixelStart + 0]; // Blue from position 0
           const g = imageDataArray[pixelStart + 1]; // Green from position 1
           const r = imageDataArray[pixelStart + 2]; // Red from position 2
@@ -149,28 +159,12 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
         imageBitmap.close();
 
       } else {
-        // NORMAL MODE: Regular images are already in RGBA format - use directly
+        // REGULAR IMAGE MODE: Still images are already in RGBA format - use directly
         if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Normal] Displaying regular image (RGBA format)...');
-        }
-        
-        // Get image data from WebAssembly (regular backend buffer in RGBA format)
-        const imageDataArray = window.module.get_img_data();
-        const bufWidth = window.module.get_buf_width();
-        const bufHeight = window.module.get_buf_height();
-
-        if (shouldLog && logging.debugEnabled) {
-          console.log(`[Canvas-Normal] Buffer: ${bufWidth}x${bufHeight}, Data length: ${imageDataArray?.byteLength}`);
-        }
-        
-        if (!imageDataArray || imageDataArray.byteLength === 0) {
-          if (shouldLog) {
-            console.warn('[Canvas-Normal] No image data available from backend');
-          }
-          return;
+          console.log('[Canvas-Regular] Displaying regular image (RGBA format, no conversion)');
         }
 
-        // Direct RGBA display (original behavior - no conversion needed)
+        // Display image data directly (original behavior - no conversion needed)
         const imageData = new ImageData(
             new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
             bufWidth,
@@ -185,14 +179,14 @@ function ImagePortCanvas({ width, height, isLiveCameraActive = false }) {
 
       // Mark initialization complete after first render
       if (isInitializing) {
-        console.log(`[Canvas] Initialization complete - Mode: ${isLiveCameraActive ? 'Camera (BGRA→RGBA)' : 'Normal (RGBA)'}`);
+        console.log(`[Canvas] Initialization complete - Mode: ${isLiveCameraSource ? 'Camera (BGRA→RGBA)' : 'Regular (RGBA)'}`);
         setIsInitializing(false);
       }
       
     } catch (error) {
-      console.error(`[Canvas] Error in ${isLiveCameraActive ? 'camera' : 'normal'} mode:`, error);
+      console.error('[Canvas] Rendering error:', error);
     }
-  }, [width, height, isInitializing, isLiveCameraActive]);
+  }, [width, height, isInitializing]);
 
   // This dependency array ensures the callback is recreated only when these values change
   // This is important for performance - we don't want to recreate the function unnecessarily

@@ -176,9 +176,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     // If setup failed but we haven't exceeded max attempts, try again
                     if (setupAttempts.current < maxSetupAttempts) {
                         setupAttempts.current += 1;
-                        console.log(`Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 200ms...`);
+                        console.log(`Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 1s...`);
 
-                        setTimeout(initializeModule, 200);
+                        setTimeout(initializeModule, 1000);
                     } else {
                         console.error("Max setup attempts reached, giving up");
                         setIsLoading(false);
