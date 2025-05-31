@@ -1,6 +1,7 @@
 {
     "name": "Kaleidoswirl",
     "title": "Kaleidoscopic collage",
+    "liveCamera": true,
     "images": 
     [
         {

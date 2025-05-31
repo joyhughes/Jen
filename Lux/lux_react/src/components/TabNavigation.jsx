@@ -5,6 +5,7 @@ import { BiImageAlt } from 'react-icons/bi';
 import { FaBullseye } from 'react-icons/fa';
 import { BsBrush } from 'react-icons/bs';
 import { BsCollectionPlay } from 'react-icons/bs';
+import { BsCameraVideo } from 'react-icons/bs';
 
 function TabNavigation({ activePane, onPaneChange }) {
     const handleChange = (event, newValue) => {
@@ -99,6 +100,20 @@ function TabNavigation({ activePane, onPaneChange }) {
                     }}
                     aria-label="Brush"
                     title="Brush"
+                />
+
+                <Tab
+                    icon={<BsCameraVideo style={iconStyle} />}
+                    value="camera"
+                    sx={{
+                        minHeight: '50px',
+                        '&.Mui-selected': {
+                            color: 'primary.main',
+                            background: 'rgba(25, 118, 210, 0.08)'
+                        }
+                    }}
+                    aria-label="Camera"
+                    title="Camera"
                 />
             </Tabs>
         </Box>

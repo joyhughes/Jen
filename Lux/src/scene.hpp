@@ -222,6 +222,7 @@ struct effect_list {
 struct scene {
     // scene owns clusters, elements, images, effects, and functions
     std::string name;
+    bool liveCamera;
     UI ui;  // We gotta go now
 
     std::unordered_map< std::string, any_function > functions; 

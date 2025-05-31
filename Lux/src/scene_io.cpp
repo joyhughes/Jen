@@ -37,6 +37,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     if( j.contains( "name" ) ) j[ "name" ].get_to( s.name ); else s.name = "Unnamed";
     DEBUG( "Name: " + s.name )
     if( j.contains( "time_interval" ) ) j[ "time_interval" ].get_to( s.time_interval );
+    if( j.contains( "liveCamera" ) ) j[ "liveCamera" ].get_to( s.liveCamera ); else s.liveCamera = false;
 
     // TODO: Allow size different from image size
     //if( j.contains( "size" ) ) s.size = read_vec2i( j[ "size" ] ); else s.size = { 1080, 1080 };

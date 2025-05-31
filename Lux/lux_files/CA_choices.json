@@ -1,6 +1,7 @@
 {
     "name": "CA_scene",
     "title": "Cellular Automata Explorer",
+    "liveCamera": false,
     "images": 
     [
         {

@@ -11,7 +11,15 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import {Camera, Pause, Play, RotateCcw, Save, SkipForward, Video, VideoOff} from 'lucide-react';
+import { 
+  Pause, 
+  Play, 
+  RotateCcw, 
+  Save, 
+  SkipForward, 
+  Video, 
+  VideoOff 
+} from 'lucide-react';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
@@ -256,32 +264,6 @@ function MediaController({ isOverlay = false }) {
       });
 
       mobileLog('Init message sent to worker');
-
-      // Check for mobile camera roll support and notify user
-      if (isMobileDevice()) {
-        mobileLog('Mobile device detected, checking camera roll support...');
-        const saveType = supportsCameraRollSave();
-        mobileLog('Camera roll save type:', saveType);
-
-        if (saveType) {
-          setTimeout(() => {
-            switch (saveType) {
-              case 'webshare':
-                showNotification('📱 Mobile detected: Videos will save to camera roll via share', 'info');
-                break;
-              case 'filesystem':
-                showNotification('📱 Mobile detected: Videos will save to device storage', 'info');
-                break;
-              case 'ios-fallback':
-                showNotification('📱 iOS detected: Long-press videos to save to Photos', 'info');
-                break;
-              case 'android-fallback':
-                showNotification('📱 Android detected: Videos will download to Gallery', 'info');
-                break;
-            }
-          }, 2000); // Delay to avoid overwhelming user with notifications
-        }
-      }
     } catch (error) {
       mobileLog('CRITICAL ERROR - Failed to initialize worker:', error.message);
       showNotification('Failed to initialize recording: ' + error.message, 'error');
@@ -487,28 +469,6 @@ function MediaController({ isOverlay = false }) {
       const newState = !isRunning;
       setIsRunning(newState);
       window.module.run_pause();
-    }
-  };
-
-  const handleSnapshot = async () => {
-    try {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) {
-        showNotification("Canvas not found", "error");
-        return;
-      }
-      const filename = `jen-snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      link.click();
-
-      showNotification("Snapshot saved", "success");
-    } catch (error) {
-      console.error('Error taking snapshot:', error);
-      showNotification('Failed to save snapshot', 'error');
     }
   };
 
@@ -1236,16 +1196,6 @@ function MediaController({ isOverlay = false }) {
         }} />
 
         {/* Secondary Controls */}
-        <Tooltip title="Take Snapshot" arrow>
-          <IconButton
-            onClick={handleSnapshot}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <Camera size={iconSize} />
-          </IconButton>
-        </Tooltip>
-
         <Tooltip title={getRecordingTooltip()} arrow>
           <span> {/* Wrapper to allow tooltip on disabled button */}
             <IconButton
@@ -1295,33 +1245,6 @@ function MediaController({ isOverlay = false }) {
           </IconButton>
         </Tooltip>
       </Box>
-
-      {/* Display recording info if recording and not mobile */}
-      {isRecording && !isMobile && !isProcessing && (
-        <Box sx={{
-          position: 'absolute',
-          bottom: '-20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          bgcolor: theme.palette.error.dark,
-          color: 'white',
-          px: 1,
-          py: 0.2,
-          borderRadius: 1,
-          fontSize: '0.7rem',
-          fontWeight: 'bold',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
-          <Box>REC {formatTime(elapsedTime)} • {frameCount} frames</Box>
-          <Box sx={{ fontSize: '0.6rem', opacity: 0.8 }}>
-            FPS: {performanceMetrics.actualFps.toFixed(1)} •
-            Queue: {performanceMetrics.queueSize} •
-            Process: {performanceMetrics.avgProcessingTime.toFixed(0)}ms
-          </Box>
-        </Box>
-      )}
 
       <Snackbar
         open={notification.open}

@@ -7,7 +7,13 @@ import {
     IconButton,
     Tooltip,
     useTheme,
-    Zoom
+    Zoom,
+    Fab,
+    Switch,
+    FormControlLabel,
+    Slider,
+    Alert,
+    Dialog
 } from '@mui/material';
 import {
     Maximize2,
@@ -17,7 +23,12 @@ import {
     Download,
     RefreshCw,
     Info,
-    X
+    X,
+    Camera,
+    CameraOff,
+    Settings,
+    Zap,
+    ZapOff
 } from 'lucide-react';
 
 import ImagePortCanvas from './ImagePortCanvas.jsx';
@@ -26,6 +37,9 @@ import MediaController from "./MediaController.jsx";
 function ImagePort({ dimensions, moduleReady }) {
     const theme = useTheme();
     const imagePortRef = useRef(null);
+    const mouseTimerRef = useRef(null);
+
+    // UI State
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(false);
     const [showInfo, setShowInfo] = useState(false);
@@ -36,8 +50,6 @@ function ImagePort({ dimensions, moduleReady }) {
         frameCount: '0'
     });
     const [showMediaControls, setShowMediaControls] = useState(false);
-
-    const mouseTimerRef = useRef(null);
 
     // Update image information periodically if functions are available
     useEffect(() => {
@@ -85,51 +97,6 @@ function ImagePort({ dimensions, moduleReady }) {
 
         return () => clearInterval(intervalId);
     }, [moduleReady]);
-
-
-    const handleMouseEnter = () => {
-        setShowMediaControls(true);
-    };
-
-
-    const handleMouseLeave = () => {
-        if (!mouseTimerRef.current) {
-            setShowMediaControls(false);
-        }
-    };
-
-
-    useEffect(() => {
-        return () => {
-            if (mouseTimerRef.current) {
-                clearTimeout(mouseTimerRef.current);
-            }
-        };
-    }, []);
-
-    // Handle mouse movement to show/hide controls
-    const handleMouseMove = () => {
-        setShowControls(true);
-
-        // Clear existing timer
-        if (mouseTimerRef.current) {
-            clearTimeout(mouseTimerRef.current);
-        }
-
-        // Set new timer to hide controls after inactivity
-        mouseTimerRef.current = setTimeout(() => {
-            setShowControls(false);
-        }, 3000);
-    };
-
-    // Cleanup timer on unmount
-    useEffect(() => {
-        return () => {
-            if (mouseTimerRef.current) {
-                clearTimeout(mouseTimerRef.current);
-            }
-        };
-    }, []);
 
     // Toggle fullscreen mode
     const toggleFullscreen = () => {
@@ -211,7 +178,47 @@ function ImagePort({ dimensions, moduleReady }) {
         setShowInfo(!showInfo);
     };
 
+    const handleMouseEnter = () => {
+        setShowMediaControls(true);
+    };
 
+    const handleMouseLeave = () => {
+        if (!mouseTimerRef.current) {
+            setShowMediaControls(false);
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (mouseTimerRef.current) {
+                clearTimeout(mouseTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Handle mouse movement to show/hide controls
+    const handleMouseMove = () => {
+        setShowControls(true);
+
+        // Clear existing timer
+        if (mouseTimerRef.current) {
+            clearTimeout(mouseTimerRef.current);
+        }
+
+        // Set new timer to hide controls after inactivity
+        mouseTimerRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 3000);
+    };
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (mouseTimerRef.current) {
+                clearTimeout(mouseTimerRef.current);
+            }
+        };
+    }, []);
 
     return (
         <Paper
@@ -240,11 +247,13 @@ function ImagePort({ dimensions, moduleReady }) {
                     justifyContent: 'center',
                     overflow: 'hidden',
                 }}>
-                <ImagePortCanvas width={dimensions.width} height={dimensions.height} />
+                <ImagePortCanvas 
+                    width={dimensions.width} 
+                    height={dimensions.height}
+                />
             </Box>
 
-
-            {/* Floating Controls - existing side controls */}
+            {/* Floating Controls - only basic fullscreen toggle */}
             <Fade in={showControls}>
                 <Box
                     sx={{
@@ -264,13 +273,13 @@ function ImagePort({ dimensions, moduleReady }) {
                             backgroundColor: 'rgba(28, 28, 30, 0.85)',
                             backdropFilter: 'blur(8px)',
                         }}>
-                        <Box sx={{display: 'flex', flexDirection: 'column', p: 0.75}}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', p: 0.75 }}>
                             <Tooltip title="Toggle fullscreen" placement="left" arrow>
                                 <IconButton
                                     onClick={toggleFullscreen}
                                     sx={{
                                         'color': 'white',
-                                        '&:hover': {color: theme.palette.primary.light},
+                                        '&:hover': { color: theme.palette.primary.light },
                                     }}
                                     size="small">
                                     {isFullscreen ? <X size={16} /> : <Maximize2 size={16} />}
@@ -333,12 +342,9 @@ function ImagePort({ dimensions, moduleReady }) {
                         </Typography>
                     </Box>
                 </Paper>
-
-
             </Zoom>
         </Paper>
     )
-
 }
 
 export default ImagePort;

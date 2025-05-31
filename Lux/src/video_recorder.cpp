@@ -7,7 +7,8 @@
 #include <emscripten/emscripten.h>
 #endif
 
-// FFmpeg is mandatory - always include headers
+#ifndef DISABLE_FFMPEG
+// Add FFmpeg headers
 extern "C"
 {
 #include <libavutil/dict.h>
@@ -913,3 +914,52 @@ bool VideoRecorder::start_recording_adaptive(const uimage &first_frame, const Re
     state = RecordingState::RECORDING;
     return true;
 }
+
+#else
+// Stub implementations when FFmpeg is disabled
+
+#define DEBUG(msg)                           \
+    {                                        \
+        std::string debug_msg = msg;         \
+        std::cout << debug_msg << std::endl; \
+    }
+
+VideoRecorder::VideoRecorder() : state(RecordingState::IDLE), frame_count(0)
+{
+    error_message = "Video recording disabled - FFmpeg not available";
+    DEBUG("VideoRecorder created without FFmpeg support");
+}
+
+VideoRecorder::~VideoRecorder()
+{
+    DEBUG("VideoRecorder destroyed (FFmpeg disabled)");
+}
+
+bool VideoRecorder::start_recording(const RecordingOptions &opts)
+{
+    DEBUG("start_recording called but FFmpeg is disabled");
+    error_message = "Video recording disabled - FFmpeg not available";
+    state = RecordingState::ERROR;
+    return false;
+}
+
+bool VideoRecorder::stop_recording()
+{
+    DEBUG("stop_recording called but FFmpeg is disabled");
+    state = RecordingState::IDLE;
+    return false;
+}
+
+bool VideoRecorder::add_frame(const uimage &img)
+{
+    DEBUG("add_frame called but FFmpeg is disabled");
+    return false;
+}
+
+bool VideoRecorder::add_frame_rgba(const uint8_t* rgba_data, int width, int height)
+{
+    DEBUG("add_frame_rgba called but FFmpeg is disabled");
+    return false;
+}
+
+#endif
