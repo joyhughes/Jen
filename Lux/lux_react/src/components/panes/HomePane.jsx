@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
 
@@ -77,59 +78,147 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
 
         return true;
     });
-         return (
-           <Box
-             ref={containerRef}
-             sx={{
-               display: 'flex',
-               flexDirection: 'column',
-               padding: 1,
-               height: '100%',
-               overflowY: 'auto',
-               width: '100%'
-             }}
-           >
-             <Divider sx={{ mb: 2 }} />
-    
 
-           {nonImageGroups.length > 0 ? (
-              // First compute the breakpoints & panelWidth once
-              (() => {
-                const breakpoints = getBreakpointColumns();
-                const panelWidth = (containerWidth || panelSize) / breakpoints.default;
-                // Flatten all of the widgets in all of your groups:
-                const singletonWidgets = nonImageGroups.flatMap(group =>
-                  group.widgets.map(widgetName => (
+    // Helper function to check if a widget is a menu with short text
+    const isShortMenu = (widgetName) => {
+        try {
+            const widgetJSON = window.module?.get_widget_JSON(widgetName);
+            const widget = JSON.parse(widgetJSON);
+            if (widget?.tool === 'pull_down' || widget?.tool === 'radio') {
+                // Check if all menu items are short (less than 20 characters)
+                const maxLength = Math.max(...(widget.items || []).map(item => item.length));
+                return maxLength < 20;
+            }
+        } catch (error) {
+            return false;
+        }
+        return false;
+    };
+
+    // Helper function to check if widget is a menu
+    const isMenu = (widgetName) => {
+        try {
+            const widgetJSON = window.module?.get_widget_JSON(widgetName);
+            const widget = JSON.parse(widgetJSON);
+            return widget?.tool === 'pull_down' || widget?.tool === 'radio';
+        } catch (error) {
+            return false;
+        }
+    };
+
+    // Group widgets intelligently
+    const groupWidgets = () => {
+        const allWidgets = nonImageGroups.flatMap(group => group.widgets);
+        const groupedWidgets = [];
+        let i = 0;
+
+        while (i < allWidgets.length) {
+            const currentWidget = allWidgets[i];
+            
+            // Check if current widget is a short menu and next widget is also a short menu
+            if (i < allWidgets.length - 1 && 
+                isShortMenu(currentWidget) && 
+                isShortMenu(allWidgets[i + 1])) {
+                // Group two short menus together
+                groupedWidgets.push({
+                    type: 'row',
+                    widgets: [currentWidget, allWidgets[i + 1]]
+                });
+                i += 2;
+            } else {
+                // Single widget
+                groupedWidgets.push({
+                    type: 'single',
+                    widget: currentWidget
+                });
+                i++;
+            }
+        }
+
+        return groupedWidgets;
+    };
+
+    const renderWidgetGroup = (groupedWidget, index) => {
+        const breakpoints = getBreakpointColumns();
+        const panelWidth = (containerWidth || panelSize) / breakpoints.default;
+
+        if (groupedWidget.type === 'row') {
+            // Render two menus in a row
+            return (
+                <Box 
+                    key={`row-${index}`}
+                    sx={{ 
+                        width: '100%',
+                        px: 1.5, // Consistent padding that shifts content right
+                        mb: 1
+                    }}
+                >
+                    <Stack direction="row" spacing={1.5}>
+                        {groupedWidget.widgets.map((widgetName, widgetIndex) => (
+                            <Box key={widgetName} sx={{ flex: 1, minWidth: 0 }}>
+                                <WidgetGroup
+                                    json={{ widgets: [widgetName] }}
+                                    panelSize={panelWidth / 2} 
+                                    onChange={onWidgetGroupChange}
+                                    disableImageWidgets={true}
+                                />
+                            </Box>
+                        ))}
+                    </Stack>
+                </Box>
+            );
+        } else {
+            // Single widget with full width
+            const isMenuWidget = isMenu(groupedWidget.widget);
+            return (
+                <Box 
+                    key={groupedWidget.widget}
+                    sx={{ 
+                        width: '100%',
+                        px: isMenuWidget ? 1.5 : 1.5, // Add padding for menus to match sliders
+                    }}
+                >
                     <WidgetGroup
-                      key={widgetName}
-                      json={{ widgets: [widgetName] }}
-                      panelSize={panelWidth}
-                      onChange={onWidgetGroupChange}
-                      disableImageWidgets={true}
+                        json={{ widgets: [groupedWidget.widget] }}
+                        panelSize={isMenuWidget ? panelWidth - 24 : panelWidth} // Adjust width for menu padding
+                        onChange={onWidgetGroupChange}
+                        disableImageWidgets={true}
                     />
-                  ))
-                );
-    
-                return (
-                  <Masonry
-                    breakpointCols={breakpoints}
-                    className="widget-masonry-grid"
-                    columnClassName="widget-masonry-column"
-                  >
-                    {singletonWidgets}
-                  </Masonry>
-                );
-              })()
+                </Box>
+            );
+        }
+    };
+
+    return (
+        <Box
+            ref={containerRef}
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                px: 1.25, // Increased padding to shift content right
+                py: 1,
+                height: '100%',
+                overflowY: 'auto',
+                width: '100%'
+            }}
+        >
+            <Divider sx={{ mb: 2 }} />
+
+            {nonImageGroups.length > 0 ? (
+                <Box sx={{ width: '100%' }}>
+                    {groupWidgets().map((groupedWidget, index) => 
+                        renderWidgetGroup(groupedWidget, index)
+                    )}
+                </Box>
             ) : (
-               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                 <Typography>
-                   No active widget groups available. Select a scene to begin.
-                 </Typography>
-               </Box>
-             )}
-           </Box>
-         );
-    
+                <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                    <Typography>
+                        No active widget groups available. Select a scene to begin.
+                    </Typography>
+                </Box>
+            )}
+        </Box>
+    );
 }
 
 export default HomePane;

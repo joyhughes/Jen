@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { isMobileDevice } from '../utils/cameraUtils';
 
 export const useCamera = () => {
     // Refs
@@ -6,21 +7,27 @@ export const useCamera = () => {
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
 
+    // Get mobile-specific default facing mode
+    const isMobile = isMobileDevice();
+    const defaultFacingMode = isMobile ? 'environment' : 'user'; // Back camera for mobile, front for desktop
+
     // State
     const [isStreaming, setIsStreaming] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);
     const [error, setError] = useState(null);
     const [devices, setDevices] = useState([]);
     const [currentDeviceId, setCurrentDeviceId] = useState(null);
-    const [currentFacingMode, setCurrentFacingMode] = useState('user'); // 'user' = front, 'environment' = back
+    const [currentFacingMode, setCurrentFacingMode] = useState(defaultFacingMode);
     const [constraints, setConstraints] = useState({
         video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: 'user' // Default to front camera on mobile
+            facingMode: defaultFacingMode // Use mobile-specific default
         },
         audio: false
     });
+
+    console.log(`[useCamera] Initialized with default facing mode: ${defaultFacingMode} (mobile: ${isMobile})`);
 
     // Real-time processing state
     const [isLiveProcessing, setIsLiveProcessing] = useState(false);

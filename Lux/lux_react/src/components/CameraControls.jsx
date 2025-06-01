@@ -10,6 +10,7 @@ import {
     ZapOff,
     RotateCcw
 } from 'lucide-react';
+import { isMobileDevice } from '../utils/cameraUtils';
 
 const CameraControls = ({
     isStreaming,
@@ -28,6 +29,10 @@ const CameraControls = ({
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const isMobileDevice_ = isMobileDevice(); // Use utility function for mobile detection
+
+    // Only show switch camera on mobile devices and when there are multiple cameras
+    const shouldShowSwitchCamera = isMobileDevice_ && showSwitchCamera;
 
     // Button styles for mobile optimization
     const buttonStyles = {
@@ -143,7 +148,7 @@ const CameraControls = ({
                 }}
             >
                 {/* Switch camera button (if multiple cameras available) */}
-                {showSwitchCamera && (
+                {shouldShowSwitchCamera && (
                     <Tooltip title={
                         isSwitchingCamera ? "Switching camera..." : 
                         `Switch to ${cameraInfo.isFrontCamera ? 'Back' : 'Front'} Camera`
@@ -189,7 +194,7 @@ const CameraControls = ({
                 </Tooltip>
 
                 {/* Placeholder for symmetry if no switch camera */}
-                {!showSwitchCamera && (
+                {!shouldShowSwitchCamera && (
                     <Box sx={{ width: isMobile ? 56 : 48, height: isMobile ? 56 : 48 }} />
                 )}
             </Box>

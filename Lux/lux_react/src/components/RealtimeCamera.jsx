@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 
-const RealTimeCameraKaleidoscope = ({ 
+const RealtimeCamera = ({ 
     width = 512, 
     height = 512,
     onClose 
@@ -506,4 +506,4 @@ const RealTimeCameraKaleidoscope = ({
     );
 };
 
-export default RealTimeCameraKaleidoscope; 
+export default RealtimeCamera; 

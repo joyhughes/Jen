@@ -98,47 +98,88 @@ function ImagePort({ dimensions, moduleReady }) {
         return () => clearInterval(intervalId);
     }, [moduleReady]);
 
-    // Toggle fullscreen mode
-    const toggleFullscreen = () => {
+    // Toggle fullscreen mode with comprehensive mobile support
+    const toggleFullscreen = async () => {
         if (!imagePortRef.current) return;
 
-        if (!isFullscreen) {
-            if (imagePortRef.current.requestFullscreen) {
-                imagePortRef.current.requestFullscreen();
-            } else if (imagePortRef.current.webkitRequestFullscreen) {
-                imagePortRef.current.webkitRequestFullscreen();
-            } else if (imagePortRef.current.msRequestFullscreen) {
-                imagePortRef.current.msRequestFullscreen();
+        try {
+            if (!isFullscreen) {
+                // Enter fullscreen
+                const element = imagePortRef.current;
+                
+                if (element.requestFullscreen) {
+                    await element.requestFullscreen();
+                } else if (element.webkitRequestFullscreen) {
+                    // Safari
+                    await element.webkitRequestFullscreen();
+                } else if (element.webkitRequestFullScreen) {
+                    // Older Safari
+                    await element.webkitRequestFullScreen();
+                } else if (element.mozRequestFullScreen) {
+                    // Firefox
+                    await element.mozRequestFullScreen();
+                } else if (element.msRequestFullscreen) {
+                    // IE/Edge
+                    await element.msRequestFullscreen();
+                } else {
+                    // Fallback: Try to maximize the element visually
+                    console.warn('Fullscreen API not supported, using fallback');
+                    setIsFullscreen(true);
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    await document.webkitExitFullscreen();
+                } else if (document.webkitCancelFullScreen) {
+                    await document.webkitCancelFullScreen();
+                } else if (document.mozCancelFullScreen) {
+                    await document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    await document.msExitFullscreen();
+                } else {
+                    // Fallback
+                    setIsFullscreen(false);
+                }
             }
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
+        } catch (error) {
+            console.warn('Fullscreen operation failed:', error);
+            // On mobile, some browsers may reject fullscreen requests
+            // Try visual fullscreen as fallback
+            setIsFullscreen(!isFullscreen);
         }
     };
 
-    // Listen for fullscreen change events
+    // Listen for fullscreen change events with comprehensive support
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(
+            const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
                 document.webkitFullscreenElement ||
+                document.webkitCurrentFullScreenElement ||
+                document.mozFullScreenElement ||
                 document.msFullscreenElement
             );
+            setIsFullscreen(isCurrentlyFullscreen);
         };
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+        // Add all possible fullscreen event listeners
+        const events = [
+            'fullscreenchange',
+            'webkitfullscreenchange',
+            'mozfullscreenchange',
+            'msfullscreenchange'
+        ];
+
+        events.forEach(event => {
+            document.addEventListener(event, handleFullscreenChange);
+        });
 
         return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+            events.forEach(event => {
+                document.removeEventListener(event, handleFullscreenChange);
+            });
         };
     }, []);
 
@@ -188,13 +229,17 @@ function ImagePort({ dimensions, moduleReady }) {
         }
     };
 
-    useEffect(() => {
-        return () => {
-            if (mouseTimerRef.current) {
-                clearTimeout(mouseTimerRef.current);
-            }
-        };
-    }, []);
+    // Add touch handling for mobile
+    const handleTouchStart = () => {
+        setShowControls(true);
+        if (mouseTimerRef.current) {
+            clearTimeout(mouseTimerRef.current);
+        }
+        // Auto-hide controls after 4 seconds on mobile
+        mouseTimerRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 4000);
+    };
 
     // Handle mouse movement to show/hide controls
     const handleMouseMove = () => {
@@ -210,6 +255,29 @@ function ImagePort({ dimensions, moduleReady }) {
             setShowControls(false);
         }, 3000);
     };
+
+    // Handle window resize for fullscreen mode (important for mobile orientation changes)
+    useEffect(() => {
+        const handleResize = () => {
+            if (isFullscreen) {
+                // Force re-render of canvas with new dimensions
+                // This is important for mobile when orientation changes
+                const event = new CustomEvent('forceRedraw');
+                const canvas = document.querySelector('[data-engine="true"]');
+                if (canvas) {
+                    canvas.dispatchEvent(event);
+                }
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
+        };
+    }, [isFullscreen]);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -233,10 +301,25 @@ function ImagePort({ dimensions, moduleReady }) {
                 backgroundColor: 'rgba(18, 18, 18, 0.8)',
                 boxShadow: isFullscreen ? 'none' : theme.shadows[8],
                 transition: 'all 0.3s ease-in-out',
+                // Mobile fullscreen optimizations
+                ...(isFullscreen && {
+                    position: 'fixed !important',
+                    top: 0,
+                    left: 0,
+                    width: '100vw !important',
+                    height: '100vh !important',
+                    zIndex: 9999,
+                    backgroundColor: 'black',
+                    // Ensure it takes full screen on mobile
+                    WebkitTransform: 'translate3d(0,0,0)',
+                    transform: 'translate3d(0,0,0)',
+                }),
             }}
             onMouseMove={handleMouseMove}
             onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}>
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleMouseLeave}>
             {/* Canvas Container */}
             <Box
                 sx={{
@@ -248,8 +331,8 @@ function ImagePort({ dimensions, moduleReady }) {
                     overflow: 'hidden',
                 }}>
                 <ImagePortCanvas 
-                    width={dimensions.width} 
-                    height={dimensions.height}
+                    width={isFullscreen ? (typeof window !== 'undefined' ? window.innerWidth : dimensions.width) : dimensions.width} 
+                    height={isFullscreen ? (typeof window !== 'undefined' ? window.innerHeight : dimensions.height) : dimensions.height}
                 />
             </Box>
 
@@ -279,10 +362,23 @@ function ImagePort({ dimensions, moduleReady }) {
                                     onClick={toggleFullscreen}
                                     sx={{
                                         'color': 'white',
-                                        '&:hover': { color: theme.palette.primary.light },
+                                        'minWidth': { xs: 44, sm: 'auto' }, // Larger touch target on mobile
+                                        'minHeight': { xs: 44, sm: 'auto' },
+                                        'padding': { xs: '12px', sm: '8px' },
+                                        '&:hover': { 
+                                            color: theme.palette.primary.light,
+                                            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                        },
+                                        '&:active': {
+                                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                            transform: 'scale(0.95)'
+                                        },
+                                        // Prevent double-tap zoom on mobile
+                                        touchAction: 'manipulation',
+                                        transition: 'all 0.15s ease'
                                     }}
-                                    size="small">
-                                    {isFullscreen ? <X size={16} /> : <Maximize2 size={16} />}
+                                    size={isFullscreen ? "medium" : "small"}>
+                                    {isFullscreen ? <X size={20} /> : <Maximize2 size={20} />}
                                 </IconButton>
                             </Tooltip>
                         </Box>

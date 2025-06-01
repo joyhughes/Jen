@@ -154,60 +154,6 @@ export function SceneChooserPane() {
                                             }}
                                             onClick={() => handleSceneSelect(index)}
                                         >
-                                            {/* Camera availability indicator - only show if live camera is supported */}
-                                            {scene.liveCamera && (
-                                                <Box
-                                                    sx={{
-                                                        position: 'absolute',
-                                                        top: 3,
-                                                        right: 3,
-                                                        zIndex: 2
-                                                    }}
-                                                >
-                                                        <Chip
-                                                            icon={<Video size={14} />}
-                                                            size="small"
-                                                            sx={{
-                                                                height: 22,
-                                                                fontSize: '0.65rem',
-                                                                bgcolor: '#ff1744', // Bright red background
-                                                                color: 'white',
-                                                                border: '2px solid #ffffff',
-                                                                fontWeight: 'bold',
-                                                                boxShadow: '0 3px 8px rgba(255, 23, 68, 0.5)',
-                                                                animation: 'glow 2s ease-in-out infinite alternate',
-                                                                '@keyframes glow': {
-                                                                    '0%': { 
-                                                                        boxShadow: '0 3px 8px rgba(255, 23, 68, 0.5)'
-                                                                    },
-                                                                    '100%': { 
-                                                                        boxShadow: '0 4px 12px rgba(255, 23, 68, 0.8)'
-                                                                    }
-                                                                },
-                                                                '& .MuiChip-icon': {
-                                                                    fontSize: '14px',
-                                                                    color: 'white',
-                                                                    marginLeft: '4px',
-                                                                    marginRight: '-2px'
-                                                                },
-                                                                '& .MuiChip-label': {
-                                                                    fontWeight: 'bold',
-                                                                    fontSize: '0.65rem',
-                                                                    paddingLeft: '4px',
-                                                                    paddingRight: '6px',
-                                                                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
-                                                                },
-                                                                '&:hover': {
-                                                                    bgcolor: '#d50000',
-                                                                    transform: 'scale(1.05)',
-                                                                    boxShadow: '0 4px 14px rgba(213, 0, 0, 0.8)'
-                                                                }
-                                                            }}
-                                                            label="LIVE"
-                                                        />
-                                                </Box>
-                                            )}
-
                                             <Box
                                                 sx={{
                                                     width: '100%',

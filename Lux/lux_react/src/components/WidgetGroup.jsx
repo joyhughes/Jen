@@ -134,7 +134,7 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 return (
                     <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                         {labelElement}
-                        <JenSlider json={widget} width="100%" />
+                        <JenSlider json={widget} width="100%"/>
                     </Box>
                 );
 

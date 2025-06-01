@@ -19,14 +19,32 @@ export const isMobileDevice = () => {
 };
 
 /**
+ * Get the default camera facing mode based on device type
+ * Mobile devices default to back camera ('environment')
+ * Desktop devices default to front camera ('user')
+ */
+export const getDefaultCameraFacingMode = () => {
+    return isMobileDevice() ? 'environment' : 'user';
+};
+
+/**
+ * Check if camera switching controls should be shown
+ * Only show camera switching on mobile devices with multiple cameras
+ */
+export const shouldShowCameraSwitching = (hasMultipleCameras = false) => {
+    return isMobileDevice() && hasMultipleCameras;
+};
+
+/**
  * Get optimal camera constraints for the device
  */
-export const getOptimalConstraints = (preferredFacing = 'user') => {
+export const getOptimalConstraints = (preferredFacing = null) => {
     const isMobile = isMobileDevice();
+    const facingMode = preferredFacing || getDefaultCameraFacingMode();
     
     const baseConstraints = {
         video: {
-            facingMode: preferredFacing,
+            facingMode: facingMode,
             width: { ideal: isMobile ? 1280 : 1920 },
             height: { ideal: isMobile ? 720 : 1080 },
             frameRate: { ideal: 30, max: 60 }

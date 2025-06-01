@@ -31,6 +31,7 @@ import {
     ZapOff
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
+import { isMobileDevice } from '../utils/cameraUtils';
 import CameraControls from './CameraControls';
 import '../styles/CameraCapture.css';
 
@@ -44,9 +45,15 @@ const CameraCapture = ({
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const isMobileDevice_ = isMobileDevice(); // Use utility function for mobile detection
     
     // Module ready state
     const [moduleReady, setModuleReady] = useState(false);
+    
+    // Get default camera facing mode - back camera for mobile, front for desktop
+    const getDefaultFacingMode = () => {
+        return isMobileDevice_ ? 'environment' : 'user';
+    };
     
     // Camera hook for all camera logic
     const {
@@ -136,10 +143,19 @@ const CameraCapture = ({
         return () => clearInterval(interval);
     }, []);
 
+    // Initialize camera on component mount with mobile-specific default
     useEffect(() => {
-        // Auto-start camera when component mounts
-        if (!isStreaming) {
-            startCamera();
+        const initCamera = async () => {
+            try {
+                console.log('[CameraCapture] Starting camera with default facing mode for mobile:', getDefaultFacingMode());
+                await startCamera(null, getDefaultFacingMode());
+            } catch (err) {
+                console.error('[CameraCapture] Failed to start camera:', err);
+            }
+        };
+
+        if (moduleReady) {
+            initCamera();
         }
 
         return () => {
@@ -148,7 +164,7 @@ const CameraCapture = ({
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, []);
+    }, [moduleReady]);
 
     // Enhanced live preview with optimized processing
     const processLivePreview = useCallback(() => {
@@ -506,7 +522,7 @@ const CameraCapture = ({
                 onClose={onClose}
                 onToggleSettings={() => setShowSettings(!showSettings)}
                 onSwitchCamera={handleCameraSwitch}
-                showSwitchCamera={cameraInfo.hasMultipleCameras}
+                showSwitchCamera={isMobileDevice_ && cameraInfo.hasMultipleCameras} // Only show on mobile
                 isSwitchingCamera={isSwitchingCamera}
                 currentFacingMode={currentFacingMode}
                 cameraInfo={cameraInfo}

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { isMobileDevice } from '../utils/cameraUtils';
 
 class LiveCameraManager {
     constructor() {
@@ -8,10 +9,15 @@ class LiveCameraManager {
         this.lastFrameTimeRef = 0;
         this.isActive = false;
         this.cameraReady = false;
-        this.currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+        
+        // Get mobile-specific default facing mode
+        const isMobile = isMobileDevice();
+        this.currentFacingMode = isMobile ? 'environment' : 'user'; // Back camera for mobile, front for desktop
         this.availableCameras = [];
         this.currentDeviceId = null;
         
+        console.log(`[LiveCamera] Initializing with default facing mode: ${this.currentFacingMode} (mobile: ${isMobile})`);
+
         // Performance tracking
         this.performanceRef = {
             frameCount: 0,
@@ -95,8 +101,14 @@ class LiveCameraManager {
         };
     }
 
-    async start(facingMode = 'user') {
+    async start(facingMode = null) {
         try {
+            // Use provided facingMode or default based on device type
+            if (facingMode === null) {
+                const isMobile = isMobileDevice();
+                facingMode = isMobile ? 'environment' : 'user';
+            }
+            
             console.log(`[LiveCamera] Starting camera with facing mode: ${facingMode}`);
             this.currentFacingMode = facingMode;
 

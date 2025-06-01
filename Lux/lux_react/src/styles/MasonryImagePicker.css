@@ -21,13 +21,39 @@
 .image-grid-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px; /* Consistent spacing between items */
-    margin-bottom: 12px; /* Reduced from 16px */
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 4px;
 }
 
 .image-grid-item {
-    /* No margins needed as we're using gap for spacing */
-    display: flex;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-grid-item.new-image {
+    animation: slideInUp 0.4s ease-out;
+    box-shadow: 0 0 0 2px #4caf50;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* Animation for newly added images */
@@ -97,6 +123,67 @@
     .image-grid-container {
         gap: 6px; /* Reduced from 8px */
     }
+    
+    /* Mobile slider optimizations */
+    .jen-slider {
+        touch-action: manipulation !important;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    /* Prevent zoom and viewport shifting */
+    .mobile-slider-container {
+        transform: translateZ(0); /* Force hardware acceleration */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    /* Mobile text input optimizations */
+    .mobile-text-input {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        touch-action: manipulation;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+    }
+    
+    .mobile-text-input:focus {
+        outline: none;
+        transform: none; /* Prevent transforms that cause shifting */
+    }
+    
+    /* Control button touch targets */
+    .mobile-control-button {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Prevent layout shifts during interaction */
+    .slider-container-mobile {
+        will-change: auto;
+        contain: layout style;
+        min-height: 72px; /* Consistent height to prevent jumps */
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Range slider label touch targets */
+    .range-label-mobile {
+        min-width: 44px;
+        min-height: 28px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
 }
 
 /* Group divider styling */
@@ -135,9 +222,40 @@
 /* Optimize touch targets on mobile without excessive size */
 @media (max-width: 599px) {
     .touch-target {
-        min-height: 36px; /* Minimum recommended touch target */
+        min-height: 44px; /* Apple recommended touch target */
+        min-width: 44px;
         display: flex;
         align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+    }
+    
+    /* Prevent text selection on slider labels */
+    .MuiTypography-root {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    /* Smooth transitions without layout shifts */
+    .MuiSlider-root {
+        transition: none; /* Remove transitions that can cause shifting */
+    }
+    
+    .MuiSlider-thumb {
+        transition: box-shadow 0.15s ease, transform 0.1s ease !important;
+    }
+    
+    .MuiTextField-root {
+        transition: none; /* Prevent field transitions from causing shifts */
+    }
+    
+    /* Container stability */
+    .slider-main-container {
+        position: relative;
+        overflow: hidden;
+        contain: layout;
     }
 }
 
@@ -154,5 +272,32 @@
     /* Slightly more space between items on larger displays */
     .widget-item {
         margin-bottom: 6px;
+    }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .image-grid-item {
+        transform: translateZ(0); /* Hardware acceleration for smooth animations */
+    }
+    
+    .MuiSlider-thumb {
+        will-change: transform, box-shadow;
+        transform: translateZ(0);
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .image-grid-item {
+        transition: none;
+    }
+    
+    .image-grid-item.new-image {
+        animation: none;
+    }
+    
+    .MuiSlider-thumb {
+        transition: none !important;
     }
 }
