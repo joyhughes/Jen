@@ -38,7 +38,7 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
 
                 if( target_buf->has_image() ) {
 //                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
-                    target_buf->get_image().splat( img_buf->get_image(), false, el.position, el.scale, th, mask, tint, el.mmode ); 
+                    target_buf->get_image().splat( img_buf->get_image(), el.smooth, el.position, el.scale, th, mask, tint, el.mmode ); 
                 }
             }
             else std::cout << "splat_element() - no image in buffer" << std::endl;
@@ -47,6 +47,7 @@ template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > targ
     }
     else std::cout << "splat_element() - unmatched image buffer" << std::endl;
 }
+element_context::element_context( scene& s_init, any_buffer_pair_ptr& buf_init ) : el(default_element), cl(default_cluster), s(s_init), buf(buf_init) {}
 
 // splats any element onto any image
 void element::render( any_buffer_pair_ptr& target ) { 
@@ -95,14 +96,64 @@ void cluster::set_root( element& el ) {
     root_elem.index = 0;
 }
 
-void effect_list::resize( const vec2i& new_dim ) {
+void effect_list::resize( vec2i new_dim ) {
+    //if( new_dim == *dim ) return;
     // need to resize buffer (retaining data) instead?
     std::cout << "effect_list " << name << " resize() " << new_dim.x << " " << new_dim.y << std::endl;
     std::visit( [&]( auto& b ) { b->reset( new_dim ); }, buf );       
 }
 
+void effect_list::update( scene& s ) {
+    // create dummy context
+    element_context context( s, buf );
+
+    if( self_generated ) {
+        vec2i old_dim = *dim;
+        dim( context );
+        vec2i new_dim = *dim;
+        if( new_dim != old_dim ) {
+            resize( new_dim );
+            rendered = false;
+        }
+    }
+    else {
+        // check for new source buffer
+        std::string old_name = *source_name; 
+        source_name(context);
+
+        if (*source_name != old_name) {
+            rendered = false;
+        }
+
+        if (rmode == MODE_EPHEMERAL || !rendered) {
+
+            if (s.buffers.contains(*source_name)) {
+                any_buffer_pair_ptr& source_buf = s.buffers[*source_name];
+                vec2i source_dim;
+
+                std::visit([&](auto& b) {
+                    source_dim = b->get_image().get_dim();
+                }, source_buf);
+
+                if (source_dim != *dim) {
+                    dim = source_dim;
+                    resize(source_dim);
+                }
+
+                // Copying here may be an unnecessary extra step - can we render directly from source buffer?
+                std::visit([&, source_buf](auto& b) {
+                    copy_buffer(b, source_buf);
+                }, buf);
+            } else {
+                std::cout << "effect_list::update() - what happens here?" << std::endl;
+            }
+        }
+    }
+}
+
+/*
 void effect_list::update_source_name( scene& s ) {
-    std::cout << "effect_list " << name << " update_source_name() ";
+    //std::cout << "effect_list " << name << " update_source_name() ";
     // create dummy context
     element el;
     next_element ne;
@@ -112,25 +163,26 @@ void effect_list::update_source_name( scene& s ) {
     // check for new source buffer
     std::string old_name = *source_name; 
     source_name( context );
-    std::cout << " old source name: " << old_name << " new source name: " << *source_name << std::endl;
+    //std::cout << " old source name: " << old_name << " new source name: " << *source_name << std::endl;
     if( *source_name != old_name ) rendered = false;
 }
  
+// Could be changed to allow different size than source buffer
 void effect_list::copy_source_buffer( scene& s ) {
     // get dimensions of source buffer - resize output buffer if necessary
-        if( rmode == MODE_EPHEMERAL || !rendered ) { // ephemeral buffers are re-rendered each frame
+    if( rmode == MODE_EPHEMERAL || !rendered ) { // ephemeral buffers are re-rendered each frame
         //std::cout << "preparing to copy buffer " << *source_name << std::endl;
         if( s.buffers.contains( *source_name ) ) {  // load source image or result into buffer
             // Copy source buffer into working buffer 
             any_buffer_pair_ptr& source_buf = s.buffers[ *source_name ];
             vec2i source_dim;
             std::visit( [&]( auto& b ) { source_dim = b->get_image().get_dim(); }, source_buf );
-            if( source_dim != dim ) {
+            if( source_dim != *dim ) {
                 dim = source_dim;
-                resize( dim );
+                resize( *dim );
             }
             if( !self_generated ) {
-                std::cout << "effect_list" << name << " copy_source_buffer() - copying buffer " << *source_name << std::endl;
+                //std::cout << "effect_list" << name << " copy_source_buffer() - copying buffer " << *source_name << std::endl;
                 std::visit( [ &, source_buf ]( auto& b ) { copy_buffer( b, source_buf ); }, buf );
             }
         }
@@ -141,13 +193,11 @@ void effect_list::copy_source_buffer( scene& s ) {
         }
     }
 }
-
+*/
 void effect_list::render( scene& s ) {
     // todo: what happens if effect list is targeting a buffer that depends on itself?
 
-    update_source_name( s );
-    std::cout << "effect_list " << name << " render(): source name " << *source_name << " rendered = " << rendered << std::endl;
-    copy_source_buffer( s );
+    update( s );
     if( !( rmode == MODE_STATIC && rendered ) ) { // no need to re-render static buffers
         for( auto& e : effects ) {
             // default element and cluster
@@ -155,19 +205,22 @@ void effect_list::render( scene& s ) {
             next_element default_next_element;
             cluster default_cluster( default_element, default_next_element );
             element_context context( default_element, default_cluster, s, buf );
+            //std::cout << "about to render effect " << e << " into buffer " << name << std::endl;
             s.effects[ e ]( buf, context );
             //std::cout << "rendered effect " << e << " into buffer " << name << std::endl;
         }
         rendered = true;
+        // use std::visit to call mip_it on image pixels
+        //std::visit( [&]( auto& b ) { b->get_image().use_mip(true); b->get_image().mip_it(); }, buf );
     }
     //else std::cout << "static or already rendered" << std::endl;
+    // std::cout << "effect_list render complete" << std::endl;
 }
 
 void effect_list::restart( scene& s ) {
-    std::cout << "effect_list " << name << " restart()" << std::endl;
+    //std::cout << "effect_list " << name << " restart()" << std::endl;
     rendered = false;
-    update_source_name( s );
-    copy_source_buffer( s );
+    update( s );
 }
 
 scene::scene( float time_interval_init ) : time_interval( time_interval_init ), default_time_interval( time_interval_init ) {}
@@ -196,7 +249,6 @@ void scene::set_time_interval( const float& t ) {
 }
 
 void scene::render() {
-    //std::cout << "scene::render() " << std::endl;
     for( auto& eff_list : queue ) eff_list.render( *this );
     time += time_interval;
 }
@@ -280,10 +332,11 @@ void scene::animate(
 void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     auto& output_list = queue.back();
     output_list.buf = buf;
+    std::visit( [&]( auto& b ) { b->reset( *(output_list.dim) ); }, buf );
     output_list.ptype = ( pixel_type )buf.index();
     vec2i dim_out;
     std::visit( [&]( auto& b ) { dim_out = b->get_image().get_dim(); }, buf );
-    //std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
+    std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
 
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];

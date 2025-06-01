@@ -1,0 +1,158 @@
+/* MasonryImagePicker.css - Optimized for Space Efficiency */
+
+/* Widget Masonry Layout Styles */
+.widget-masonry-grid {
+    display: flex;
+    width: 100%;
+    margin-left: -8px; /* Gutter size offset */
+}
+
+.widget-masonry-column {
+    padding-left: 8px; /* Gutter size */
+    background-clip: padding-box;
+}
+
+.widget-item {
+    /* Reduced margin for tighter spacing */
+    margin-bottom: 4px;
+}
+
+/* Image Grid Layout - Using flexbox for consistent spacing */
+.image-grid-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Consistent spacing between items */
+    margin-bottom: 12px; /* Reduced from 16px */
+}
+
+.image-grid-item {
+    /* No margins needed as we're using gap for spacing */
+    display: flex;
+}
+
+/* Animation for newly added images */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.new-image {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Custom scroll styling for widget containers */
+.widget-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+.widget-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.widget-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.widget-container::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+/* Responsive adjustments - optimized for desktop */
+@media (min-width: 600px) {
+    .widget-masonry-grid {
+        margin-left: -8px; /* Reduced from -12px for tighter columns */
+    }
+
+    .widget-masonry-column {
+        padding-left: 8px; /* Reduced from 12px */
+    }
+
+    .widget-item {
+        margin-bottom: 4px; /* Reduced from 12px for tighter spacing */
+    }
+
+    .image-grid-container {
+        gap: 8px; /* Reduced from 12px for more compact layout */
+    }
+}
+
+/* Mobile optimizations - extra compact for small screens */
+@media (max-width: 599px) {
+    .widget-masonry-grid {
+        margin-left: -4px; /* Reduced from -8px for tighter layout */
+    }
+
+    .widget-masonry-column {
+        padding-left: 4px; /* Reduced from 8px */
+    }
+
+    .widget-item {
+        margin-bottom: 2px; /* Reduced from 8px for tighter spacing */
+    }
+
+    .image-grid-container {
+        gap: 6px; /* Reduced from 8px */
+    }
+}
+
+/* Group divider styling */
+.widget-group-divider {
+    margin: 4px 0;
+    opacity: 0.2;
+}
+
+/* Slider component specific styles */
+.slider-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.slider-track {
+    flex-basis: 85%;
+    flex-grow: 1;
+}
+
+.slider-controls {
+    flex-basis: 15%;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Override Material-UI default spacing for compact layout */
+.MuiBox-root .MuiStack-root.slider-stack {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Optimize touch targets on mobile without excessive size */
+@media (max-width: 599px) {
+    .touch-target {
+        min-height: 36px; /* Minimum recommended touch target */
+        display: flex;
+        align-items: center;
+    }
+}
+
+/* Optimize for Mac desktop displays */
+@media (min-width: 1200px) {
+    .widget-masonry-grid {
+        margin-left: -6px; /* Optimized for desktop */
+    }
+
+    .widget-masonry-column {
+        padding-left: 6px;
+    }
+
+    /* Slightly more space between items on larger displays */
+    .widget-item {
+        margin-bottom: 6px;
+    }
+}

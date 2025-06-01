@@ -9,9 +9,9 @@
 template<> void warp_field::fill( const image< vec2f >& vfield, const bool relative, const image_extend extend );
 
 template<> template< class U > inline void warp_field::advect( int index, image< U >& in, image< U > out ) // advect one pixel
-    { out.set( index, in.index[ base[ index ] ] ); }
+    { out.set( index, in.index[ mip[ 0 ][ index ] ] ); }
     
 template<> template< class U > void warp_field::advect( image< U >& in, image< U >& out ) // advect entire image
-    { for( int i = 0; i < base.size(); i++ ) advect( i, in, out ); }
+    { for( int i = 0; i < mip[ 0 ].size(); i++ ) advect( i, in, out ); }
 
 #endif // __WARP_FIELD_HPP

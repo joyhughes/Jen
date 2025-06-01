@@ -394,14 +394,6 @@ template< class T > void rule_identity< T >::operator () ( CA< T >& ca ) {
  *  http://www.bitstorm.org/gameoflife/lexicon/
  */
 
-template<class T> inline rule_life<T>::rule_life() { 
-    T c;
-    black( c );
-    off = c;
-    white( c );
-    on = c;
-}
-
 template< class T > CA_hood rule_life< T >::operator () ( element_context &context ) {
     on( context ); off( context ); threshold( context );
     return HOOD_MOORE;
@@ -809,6 +801,8 @@ template< class T > CA_hood rule_funky_sort< T >::operator () ( element_context 
 { 
     direction( context );
     max_diff( context );
+    dafunk_l( context );
+    dafunk_r( context );
     return hood;
     //return HOOD_HOUR; 
     //if( diagonal( direction ) ) return HOOD_HOUR; 
@@ -820,18 +814,18 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
     auto& result = ca.result;
 
     // Rotate neighbors opposite direction
-    if( *direction == D8_RIGHT || *direction == D8_DOWNRIGHT ) {
+    if( *direction == D4_RIGHT ) {
         T tmp = MUL;
         MUL = MUR;
         MUR = MLR;
         MLR = MLL;
         MLL = tmp;
     }
-    else if( *direction == D8_DOWN || *direction == D8_DOWNLEFT ) {
+    else if( *direction == D4_DOWN ) {
         std::swap( MUL, MLR );
         std::swap( MUR, MLL );
     }
-    else if( *direction == D8_LEFT || *direction == D8_UPLEFT ) {
+    else if( *direction == D4_LEFT ) {
         T tmp = MUL;
         MUL = MLL;
         MLL = MLR;
@@ -839,7 +833,7 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
         MUR = tmp;
     }
 
-    // Calculate approximate brighness of pixels (sum of color components)
+    // Calculate approximate brightness of pixels (sum of color components)
     int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
     int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
     int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
@@ -853,27 +847,96 @@ template< class T > void rule_funky_sort< T >::operator () ( CA< T >& ca ) {
         ( (unsigned int)( manhattan( MUL, MLR ) < *max_diff ) << 4 ) | 
         ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
 
-    if( !diagonal( *direction ) ) {
-        if( ( ( dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
-        if( ( ( dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
-    }
-    else { 
-        if( ( ( dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
-    }
+
+    if( ( ( *dafunk_l >> funk ) & 1 ) && ( wll > wul ) ) SWAP_LEFT  else SAME_LEFT
+    if( ( ( *dafunk_r >> funk ) & 1 ) && ( wlr > wur ) ) SWAP_RIGHT else SAME_RIGHT
 
     // Rotate result same direction
-    if( *direction == D8_RIGHT || *direction == D8_DOWNRIGHT ) {
+    if( *direction == D4_RIGHT ) {
         T tmp = RUL;
         RUL = RLL;
         RLL = RLR;
         RLR = RUR;
         RUR = tmp;
     }
-    else if( *direction == D8_DOWN || *direction == D8_DOWNLEFT ) {
+    else if( *direction == D4_DOWN ) {
         std::swap( RUL, RLR );
         std::swap( RUR, RLL );
     }
-    else if( *direction == D8_LEFT || *direction == D8_UPLEFT ) {
+    else if( *direction == D4_LEFT ) {
+        T tmp = RUL;
+        RUL = RUR;
+        RUR = RLR;
+        RLR = RLL;
+        RLL = tmp;
+    }
+} 
+
+template< class T > CA_hood rule_diagonal_funky_sort< T >::operator () ( element_context &context ) 
+{ 
+    direction( context );
+    max_diff( context );
+    dafunk_d( context );
+    return hood;
+    //return HOOD_HOUR; 
+    //if( diagonal( direction ) ) return HOOD_HOUR; 
+    //else                        return HOOD_MARGOLUS;
+} 
+
+template< class T > void rule_diagonal_funky_sort< T >::operator () ( CA< T >& ca ) { 
+    auto& neighbors = ca.neighbors;
+    auto& result = ca.result;
+
+    // Rotate neighbors opposite direction
+    if( *direction == D4D_DOWNRIGHT ) {
+        T tmp = MUL;
+        MUL = MUR;
+        MUR = MLR;
+        MLR = MLL;
+        MLL = tmp;
+    }
+    else if( *direction == D4D_DOWNLEFT ) {
+        std::swap( MUL, MLR );
+        std::swap( MUR, MLL );
+    }
+    else if( *direction == D4D_UPLEFT ) {
+        T tmp = MUL;
+        MUL = MLL;
+        MLL = MLR;
+        MLR = MUR;
+        MUR = tmp;
+    }
+
+    // Calculate approximate brightness of pixels (sum of color components)
+    int wul = ((MUL & 0x00ff0000) >> 16) + ((MUL & 0x0000ff00) >> 8) + (MUL & 0x000000ff);
+    int wur = ((MUR & 0x00ff0000) >> 16) + ((MUR & 0x0000ff00) >> 8) + (MUR & 0x000000ff);
+    int wll = ((MLL & 0x00ff0000) >> 16) + ((MLL & 0x0000ff00) >> 8) + (MLL & 0x000000ff);
+    int wlr = ((MLR & 0x00ff0000) >> 16) + ((MLR & 0x0000ff00) >> 8) + (MLR & 0x000000ff);
+
+    unsigned int funk =   
+        ( (unsigned int)( manhattan( MUR, MLR ) < *max_diff ) ) | 
+        ( (unsigned int)( manhattan( MLR, MLL ) < *max_diff ) << 1 ) | 
+        ( (unsigned int)( manhattan( MLL, MUL ) < *max_diff ) << 2 ) | 
+        ( (unsigned int)( manhattan( MUL, MUR ) < *max_diff ) << 3 ) | 
+        ( (unsigned int)( manhattan( MUL, MLR ) < *max_diff ) << 4 ) | 
+        ( (unsigned int)( manhattan( MUR, MLL ) < *max_diff ) << 5 );
+
+
+    if( ( ( *dafunk_d >> funk ) & 1 ) && ( wll > wur ) ) SWAP_UP_DIAG else SAME_ALL
+    
+    // Rotate result same direction
+    if( *direction == D4D_DOWNRIGHT ) {
+        T tmp = RUL;
+        RUL = RLL;
+        RLL = RLR;
+        RLR = RUR;
+        RUR = tmp;
+    }
+    else if( *direction == D4D_DOWNLEFT ) {
+        std::swap( RUL, RLR );
+        std::swap( RUR, RLL );
+    }
+    else if( *direction == D4D_UPLEFT ) {
         T tmp = RUL;
         RUL = RUR;
         RUR = RLR;
@@ -1059,3 +1122,4 @@ template class rule_gravitate< ucolor >;       // uimage
 template class rule_snow< ucolor >;       // uimage
 template class rule_pixel_sort< ucolor >;       // uimage  
 template class rule_funky_sort< ucolor >;       // uimage 
+template class rule_diagonal_funky_sort< ucolor >;       // uimage

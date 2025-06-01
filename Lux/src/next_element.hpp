@@ -14,10 +14,13 @@ struct cluster;
 struct scene;
 struct element_context;
 
+typedef unsigned long long funk_factor;
+
 template< class T > struct any_fn;
 template<> struct any_fn< bool >;
 template<> struct any_fn< float >;
 template<> struct any_fn< int >;
+template<> struct any_fn< funk_factor >;
 template<> struct any_fn< interval_float >;
 template<> struct any_fn< interval_int >;
 template<> struct any_fn< vec2f >;
@@ -33,6 +36,7 @@ struct any_gen_fn;
 typedef std::function< bool   ( bool&,   element_context& ) > bool_fn; 
 typedef std::function< float  ( float&,  element_context& ) > float_fn; 
 typedef std::function< int    ( int&,    element_context& ) > int_fn; 
+typedef std::function< funk_factor ( funk_factor&, element_context& ) > funk_factor_fn;
 typedef std::function< interval_float ( interval_float&,  element_context& ) > interval_float_fn;
 typedef std::function< interval_int   ( interval_int&,    element_context& ) > interval_int_fn;
 typedef std::function< vec2f  ( vec2f&,  element_context& ) > vec2f_fn; 
@@ -42,6 +46,7 @@ typedef std::function< ucolor ( ucolor&, element_context& ) > ucolor_fn;
 typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn; 
 typedef std::function< std::string ( std::string&, element_context& ) > string_fn;
 typedef std::function< direction4 ( direction4&, element_context& ) > direction4_fn;
+typedef std::function< direction4_diagonal ( direction4_diagonal&, element_context& ) > direction4_diagonal_fn;
 typedef std::function< direction8 ( direction8&, element_context& ) > direction8_fn;
 typedef std::function< box_blur_type ( box_blur_type&, element_context& ) > box_blur_type_fn;
 typedef std::function< image_extend ( image_extend&, element_context& ) > image_extend_fn;
@@ -77,6 +82,7 @@ template< class U > struct identity_fn {
 typedef identity_fn< bool   > identity_bool;
 typedef identity_fn< int    > identity_int;
 typedef identity_fn< float  > identity_float;
+typedef identity_fn< funk_factor > identity_funk_factor;
 typedef identity_fn< interval_float  > identity_interval_float;
 typedef identity_fn< interval_int    > identity_interval_int;
 typedef identity_fn< vec2i  > identity_vec2i;
@@ -86,6 +92,7 @@ typedef identity_fn< ucolor > identity_ucolor;
 typedef identity_fn< bb2f   > identity_bb2f;
 typedef identity_fn< std::string > identity_string;
 typedef identity_fn< direction4 > identity_direction4;
+typedef identity_fn< direction4_diagonal > identity_direction4_diagonal;
 typedef identity_fn< direction8 > identity_direction8;
 typedef identity_fn< box_blur_type > identity_box_blur_type;
 typedef identity_fn< image_extend > identity_image_extend;
@@ -100,16 +107,12 @@ template< Additive U > struct adder {
         return v; 
     }
 
-    adder() { // zero default value
-        U r_init;
-        black( r_init ); 
-        r = r_init;
-    } 
-    adder( const U& r_init ) : r( r_init ) {}
+    adder( const U& r_init = black< U > ) : r( r_init ) {}
 };
 
 typedef adder< int    > adder_int;
 typedef adder< float  > adder_float;
+typedef adder< funk_factor > adder_funk_factor;
 typedef adder< vec2i  > adder_vec2i;
 typedef adder< vec2f  > adder_vec2f;
 typedef adder< frgb   > adder_frgb;
@@ -145,6 +148,21 @@ template< MultipliableByFloat U > struct ratio {
 typedef ratio<float> ratio_float;
 typedef ratio<vec2f> ratio_vec2f;
 
+// Newton's method
+template< MultipliableByFloat U > struct integrator {
+    harness< float > delta;
+    harness< float > scale;
+    U val;
+    U starting_val;
+    float last_time;
+    
+    U operator () ( U& u, element_context& context );
+
+    integrator( const float& val_init = U( 0 ), const float& delta_init = 1.0f, const float& scale_init = 1.0f ) : val( val_init ), starting_val( val_init ), delta( delta_init ), scale( scale_init ), last_time( 0.0f ) {}
+};
+
+typedef integrator< float > integrator_float;
+
 // Generalized oscillator
 struct wiggle {
     harness< float > wavelength;
@@ -156,6 +174,15 @@ struct wiggle {
 
     wiggle( const float& wavelength_init = 1.0f, const float& amplitude_init = 1.0f, const float& phase_init = 0.0f, const float& wiggliness_init = 0.0f ) 
         : wavelength( wavelength_init ), amplitude( amplitude_init ), phase( phase_init ), wiggliness( wiggliness_init ) {}
+};
+
+// Dimensions of buffer with given name
+struct buffer_dim_fn {
+    harness< std::string > buf_name;
+
+    vec2i operator () ( vec2i& val, element_context& context );
+
+    buffer_dim_fn( const std::string& buf_name_init = "none" ) : buf_name( buf_name_init ) {}
 };
 
 // Vec2f function returning mouse position in parametric space
@@ -457,6 +484,7 @@ typedef equal_condition< vec2f > equal_vec2f_condition;
 typedef equal_condition< vec2f > equal_vec2f_fn;
 typedef equal_condition< int > equal_int_condition;
 typedef equal_condition< int > equal_int_fn;
+typedef equal_condition< funk_factor > equal_funk_factor_condition;
 typedef equal_condition< vec2i > equal_vec2i_condition;
 typedef equal_condition< vec2i > equal_vec2i_fn;
 typedef equal_condition< frgb > equal_frgb_condition;
@@ -469,6 +497,8 @@ typedef equal_condition< bool > equal_bool_condition;
 typedef equal_condition< bool > equal_bool_fn;
 typedef equal_condition< direction4 > equal_direction4_condition;
 typedef equal_condition< direction4 > equal_direction4_fn;
+typedef equal_condition< direction4_diagonal > equal_direction4_diagonal_condition;
+typedef equal_condition< direction4_diagonal > equal_direction4_diagonal_fn;
 typedef equal_condition< direction8 > equal_direction8_condition;
 typedef equal_condition< direction8 > equal_direction8_fn;
 

@@ -1,4 +1,54 @@
-Lux/lux_react/node_modules/
-Lux/web_build
-Lux/build
-.DS_Store
+### C++ template
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+### react template
+.DS_*
+*.log
+logs
+**/*.backup.*
+**/*.back.*
+**/.idea
+Lux/lux_react/package-lock.json
+Lux/lux_react/node_modules
+**/package-lock.json
+bower_components
+
+*.sublime*
+
+psd
+thumb
+sketch
+cmake-build-debug
+build/
+

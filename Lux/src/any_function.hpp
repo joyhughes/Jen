@@ -21,10 +21,25 @@ template < class T > struct any_fn {};
     any_fn< _T_ >( any_##_T_##_fn_ptr any_##_T_##_fn, _T_##_fn fn, std::string name ) : any_fn_ptr( any_##_T_##_fn ), fn( fn ), name( name ) {}; \
 };
 
+/* example 
+template<> struct any_fn< float > { 
+    any_float_fn_ptr any_fn_ptr; 
+    float_fn fn; 
+    std::string name; 
+    float operator () ( float& val, element_context& context ) { return fn( val, context ); } 
+    any_fn< float >() : name("identity_" "float" "_default") { 
+        std::shared_ptr< identity_float > f( new identity_fn< float > ); 
+        fn = std::ref( *f ); any_fn_ptr = f; 
+        } 
+    any_fn< float >( any_float_fn_ptr any_float_fn, float_fn fn, std::string name ) : any_fn_ptr( any_float_fn ), fn( fn ), name( name ) {}; 
+};
+*/
+
 typedef std::variant < 
     // harness functions
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
+    std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,
     std::shared_ptr< ratio_float >,
@@ -62,6 +77,15 @@ ANY_FN( int )
 
 typedef std::variant <
     // harness functions
+    std::shared_ptr< identity_funk_factor >,
+    std::shared_ptr< adder_funk_factor >,
+    std::shared_ptr< funk_factor_picker >
+> any_funk_factor_fn_ptr;
+
+ANY_FN( funk_factor )
+
+typedef std::variant <
+    // harness functions
     std::shared_ptr< identity_interval_float >,
     std::shared_ptr< range_slider_float >
 > any_interval_float_fn_ptr;
@@ -90,6 +114,7 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_vec2i >,
     std::shared_ptr< adder_vec2i >,
+    std::shared_ptr< buffer_dim_fn >,
     std::shared_ptr< mouse_pix_fn >
 > any_vec2i_fn_ptr;
 
@@ -106,7 +131,8 @@ ANY_FN( frgb )
 typedef std::variant <
     // harness functions
     std::shared_ptr< identity_ucolor >,
-    std::shared_ptr< adder_ucolor >
+    std::shared_ptr< adder_ucolor >,
+    std::shared_ptr< ucolor_picker >
 > any_ucolor_fn_ptr;
 
 ANY_FN( ucolor )
@@ -137,6 +163,16 @@ typedef std::variant <
 > any_direction4_fn_ptr;
 
 ANY_FN( direction4 )
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_direction4_diagonal >,
+
+    // ui functions
+    std::shared_ptr< direction_picker_4_diagonal >
+> any_direction4_diagonal_fn_ptr;
+
+ANY_FN( direction4_diagonal )
 
 typedef std::variant <
     // harness functions
@@ -190,6 +226,7 @@ typedef std::variant <
     std::shared_ptr< equal_string_fn >,
     std::shared_ptr< equal_bool_fn >,
     std::shared_ptr< equal_direction4_fn >,
+    std::shared_ptr< equal_direction4_diagonal_fn >,
     std::shared_ptr< equal_direction8_fn >,
 
     // ui functions
@@ -220,6 +257,7 @@ typedef std::variant <
     std::shared_ptr< equal_string_condition >,
     std::shared_ptr< equal_bool_condition >,
     std::shared_ptr< equal_direction4_condition >,
+    std::shared_ptr< equal_direction4_diagonal_condition >,
     std::shared_ptr< equal_direction8_condition >,
 
     // ui conditions
@@ -282,6 +320,7 @@ struct any_gen_fn {
 typedef std::variant < 
     any_fn< float >,
     any_fn< int >,
+    any_fn< funk_factor >,
     any_fn< interval_float >,
     any_fn< interval_int >,
     any_fn< vec2f >,
@@ -292,6 +331,7 @@ typedef std::variant <
     any_fn< bb2i >,
     any_fn< std::string >,
     any_fn< direction4 >,
+    any_fn< direction4_diagonal >,
     any_fn< direction8 >,
     any_fn< box_blur_type >,
     any_fn< image_extend >,

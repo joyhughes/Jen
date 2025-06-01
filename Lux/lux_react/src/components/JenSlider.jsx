@@ -1,0 +1,434 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+    Slider,
+    Input,
+    Stack,
+    Box,
+    Typography,
+    useTheme,
+    IconButton,
+    useMediaQuery
+} from '@mui/material';
+import { styled } from '@mui/system';
+import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ControlPanelContext } from './InterfaceContainer';
+
+const StyledInput = styled(Input, {
+    shouldForwardProp: (prop) => prop !== 'valueLength' && prop !== 'isMobile'
+})(({ theme, valueLength, isMobile }) => ({
+    width: isMobile
+        ? `${Math.max(38, 36 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`
+        : `${Math.max(38, 32 + (valueLength > 2 ? (valueLength - 2) * 6 : 0))}px`,
+    height: isMobile ? 32 : 28,
+    padding: '0px 4px',
+    fontSize: isMobile ? '0.9rem' : '0.8rem',
+    fontFamily: 'Roboto, Arial, sans-serif',
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: theme.palette.action.hover,
+    transition: theme.transitions.create(['background-color', 'box-shadow', 'width']),
+    '&:hover': {
+        backgroundColor: theme.palette.action.selected,
+    },
+    '&.Mui-focused': {
+        backgroundColor: theme.palette.action.selected,
+        boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
+    },
+    '& input': {
+        padding: isMobile ? '8px 0' : '4px 0',
+        textAlign: 'center',
+    },
+    '& input[type=number]': {
+        MozAppearance: 'textfield',
+    },
+    '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+        WebkitAppearance: 'none',
+        margin: 0,
+    },
+}));
+
+const StyledSlider = styled(Slider, {
+    shouldForwardProp: (prop) => prop !== 'isMobile'
+})(({ theme, isMobile }) => ({
+    height: isMobile ? 6 : 4,
+    padding: isMobile ? '13px 0' : '11px 0',
+    '& .MuiSlider-thumb': {
+        height: isMobile ? 20 : 16,
+        width: isMobile ? 20 : 16,
+        backgroundColor: theme.palette.common.white,
+        border: `2px solid ${theme.palette.primary.main}`,
+        boxShadow: 'none',
+        '&:hover, &.Mui-focusVisible': {
+            boxShadow: `0 0 0 4px ${theme.palette.primary.main}20`,
+        },
+        '&.Mui-active': {
+            boxShadow: `0 0 0 6px ${theme.palette.primary.main}30`,
+        },
+    },
+    '& .MuiSlider-rail': {
+        height: isMobile ? 6 : 4,
+        borderRadius: isMobile ? 3 : 2,
+        backgroundColor: theme.palette.action.hover,
+    },
+    '& .MuiSlider-track': {
+        height: isMobile ? 6 : 4,
+        borderRadius: isMobile ? 3 : 2,
+    },
+    '& .MuiSlider-valueLabel': {
+        fontSize: '0.75rem',
+        fontWeight: 500,
+        background: 'unset',
+        backgroundColor: theme.palette.primary.main,
+        transformOrigin: 'bottom',
+        transform: 'translate(50%, -30px) scale(0)',
+        '&:before': { display: 'none' },
+        '&.MuiSlider-valueLabelOpen': {
+            transform: 'translate(50%, -30px) scale(1)',
+        },
+    },
+}));
+
+const ValueButton = styled(IconButton, {
+    shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'valueLength'
+})(({ theme, isMobile }) => ({
+    padding: 0,
+    backgroundColor: theme.palette.action.hover,
+    color: theme.palette.common.white,
+    '&:hover': {
+        backgroundColor: theme.palette.action.selected,
+    },
+    width: isMobile ? 16 : 16,
+    height: isMobile ? 16 : 16,
+    minWidth: isMobile ? 16 : 16,
+    minHeight: isMobile ? 16 : 16,
+}));
+
+function JenSlider({ json, width }) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [value, setValue] = useState(json.default_value ?? json.min ?? 0);
+    const [minFocus, setMinFocus] = useState(true);
+    const [isDragging, setIsDragging] = useState(false);
+    const [showValueLabel, setShowValueLabel] = useState(false);
+    const touchTimer = useRef(null);
+    const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
+
+    const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
+
+    const formatDisplayValue = (val) => {
+        if (json.type === 'slider_int' || json.type === 'range_slider_int') {
+            return parseInt(val);
+        } else {
+            const rounded = parseFloat(val).toFixed(1);
+            const split = rounded.split(".");
+            const lastDigit = split[split.length - 1];
+            if(lastDigit === '0') {
+                return rounded.substring(0, rounded.indexOf("."));
+            } else {
+                return rounded;
+            }
+        }
+    };
+
+    const formatModuleValue = (val) => {
+        if (json.type === 'slider_int' || json.type === 'range_slider_int') {
+            return parseInt(val);
+        } else {
+            return parseFloat(val);
+        }
+    };
+
+    const getDisplayValue = () => {
+        if (isRange) {
+            return formatDisplayValue(minFocus ? value[0] : value[1]);
+        } else {
+            return formatDisplayValue(value);
+        }
+    };
+
+    const getValueLength = () => {
+        const displayVal = getDisplayValue();
+        return displayVal ? displayVal.toString().length : 1;
+    };
+
+    const handleSliderChange = (event, newValue) => {
+        if (isRange) {
+            if (value[0] !== newValue[0]) setMinFocus(true);
+            else if (value[1] !== newValue[1]) setMinFocus(false);
+        }
+        setValue(newValue);
+        onSliderChange(json.name, newValue);
+    };
+
+    const handleInputChange = (event) => {
+        let newValue = event.target.value === '' ? 0 : Number(event.target.value);
+
+        if (isRange) {
+            const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
+            setValue(rangeValue);
+            onSliderChange(json.name, rangeValue);
+        } else {
+            setValue(newValue);
+            onSliderChange(json.name, newValue);
+        }
+    };
+
+    const handleIncrement = () => {
+        if (isRange) {
+            const currentVal = minFocus ? value[0] : value[1];
+            const step = json.step || 1;
+            let newVal = currentVal + step;
+
+            if (json.type === 'range_slider_int') {
+                newVal = Math.floor(newVal);
+            }
+
+            const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
+            setValue(newValue);
+            onSliderChange(json.name, newValue);
+        } else {
+            const step = json.step || 1;
+            let newVal = value + step;
+
+            if (json.type === 'slider_int') {
+                newVal = Math.floor(newVal);
+            }
+
+            setValue(newVal);
+            onSliderChange(json.name, newVal);
+        }
+    };
+
+    const handleDecrement = () => {
+        if (isRange) {
+            const currentVal = minFocus ? value[0] : value[1];
+            const step = json.step || 1;
+            let newVal = currentVal - step;
+
+            if (json.type === 'range_slider_int') {
+                newVal = Math.floor(newVal);
+            }
+
+            const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
+            setValue(newValue);
+            onSliderChange(json.name, newValue);
+        } else {
+            const step = json.step || 1;
+            let newVal = value - step;
+
+            if (json.type === 'slider_int') {
+                newVal = Math.floor(newVal);
+            }
+
+            setValue(newVal);
+            onSliderChange(json.name, newVal);
+        }
+    };
+
+    const handleTouchStart = () => {
+        setShowValueLabel(true);
+        setIsDragging(true);
+
+        if (touchTimer.current) {
+            clearTimeout(touchTimer.current);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        touchTimer.current = setTimeout(() => {
+            setShowValueLabel(false);
+            setIsDragging(false);
+        }, 1000);
+    };
+
+    const handleMouseDown = () => {
+        setIsDragging(true);
+        setShowValueLabel(true);
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        setTimeout(() => {
+            setShowValueLabel(false);
+        }, 800);
+    };
+
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('touchend', handleTouchEnd);
+
+            return () => {
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.removeEventListener('touchend', handleTouchEnd);
+            };
+        }
+    }, [isDragging]);
+
+    // Initialize value from context if available
+    useEffect(() => {
+        if (sliderValues[json.name] !== undefined) {
+            setValue(sliderValues[json.name]);
+        } else if (json.default_value !== undefined) {
+            setValue(json.default_value);
+        } else if (json.min !== undefined) {
+            setValue(json.min);
+        }
+
+        return () => {
+            if (touchTimer.current) {
+                clearTimeout(touchTimer.current);
+            }
+        };
+    }, [json.name, json.default_value, json.min, sliderValues]);
+
+    return (
+        <Box
+            sx={{
+                width: '100%',
+                px: 0.5,
+                py: isMobile ? 0.5 : 0.25,
+            }}
+        >
+            <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{
+                    width: '100%',
+                    mb: isRange ? 0.5 : 0
+                }}
+            >
+                <StyledSlider
+                    size={isMobile ? "medium" : "small"}
+                    min={json.min}
+                    max={json.max}
+                    step={json.step}
+                    value={value}
+                    onChange={handleSliderChange}
+                    valueLabelDisplay={(isDragging || showValueLabel) ? "auto" : "off"}
+                    onMouseDown={handleMouseDown}
+                    onTouchStart={handleTouchStart}
+                    marks={json.markers ? [
+                        { value: json.min, label: formatDisplayValue(json.min) },
+                        { value: json.max, label: formatDisplayValue(json.max) }
+                    ] : undefined}
+                    sx={{
+                        flexGrow: 1,
+                        flexBasis: "85%",
+                    }}
+                    isMobile={isMobile}
+                    className="jen-slider"
+                    data-name={json.name}
+                    data-value={value}
+                />
+
+                <Stack
+                    direction="column"
+                    spacing={0.25}
+                    alignItems="center"
+                    sx={{
+                        flexBasis: isMobile ? "auto" : "15%",
+                        flexShrink: 0,
+                        justifyContent: "center",
+                    }}
+                >
+                    <ValueButton
+                        size="small"
+                        onClick={handleIncrement}
+                        isMobile={isMobile}
+                    >
+                        <ChevronUp size={isMobile ? 16 : 14} />
+                    </ValueButton>
+
+                    <ValueButton
+                        size="small"
+                        onClick={handleDecrement}
+                        isMobile={isMobile}
+                    >
+                        <ChevronDown size={isMobile ? 16 : 14} />
+                    </ValueButton>
+                </Stack>
+
+                <Stack
+                    direction="column"
+                    spacing={0.25}
+                    alignItems="center"
+                    sx={{
+                        flexBasis: isMobile ? "auto" : "15%",
+                        flexShrink: 0,
+                        justifyContent: "center",
+                    }}
+                >
+                    <StyledInput
+                        value={getDisplayValue()}
+                        onChange={handleInputChange}
+                        valueLength={getValueLength()}
+                        type="number"
+                        inputProps={{
+                            min: json.min,
+                            max: json.max,
+                            step: json.step,
+                            'aria-label': 'slider value',
+                        }}
+                        disableUnderline
+                        isMobile={isMobile}
+                        sx={{
+                            my: 0.5,
+                        }}
+                    />
+                </Stack>
+            </Stack>
+
+            {isRange && (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        px: 1,
+                        mt: -0.5
+                    }}
+                >
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: minFocus ? theme.palette.primary.main : theme.palette.text.secondary,
+                            fontWeight: minFocus ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'color 0.2s',
+                            fontSize: isMobile ? '0.7rem' : '0.65rem',
+                            fontFamily: 'Roboto, Arial, sans-serif',
+                            padding: isMobile ? '4px 2px' : '2px',
+                            '&:hover': {
+                                color: theme.palette.primary.main
+                            }
+                        }}
+                        onClick={() => setMinFocus(true)}
+                    >
+                        Min: {formatDisplayValue(value[0])}
+                    </Typography>
+
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: !minFocus ? theme.palette.primary.main : theme.palette.text.secondary,
+                            fontWeight: !minFocus ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'color 0.2s',
+                            fontSize: isMobile ? '0.7rem' : '0.65rem',
+                            fontFamily: 'Roboto, Arial, sans-serif',
+                            padding: isMobile ? '4px 2px' : '2px',
+                            '&:hover': {
+                                color: theme.palette.primary.main
+                            }
+                        }}
+                        onClick={() => setMinFocus(false)}
+                    >
+                        Max: {formatDisplayValue(value[1])}
+                    </Typography>
+                </Box>
+            )}
+        </Box>
+    );
+}
+
+export default JenSlider;

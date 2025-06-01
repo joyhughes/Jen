@@ -1,0 +1,69 @@
+{
+    "name": "Test splat",
+    "title": "Test splatting in various situations",
+    "images": 
+    [
+
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/crab_nebula.jpg", 
+            "name": "Crab Nebula"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/hk_square_512.jpg", 
+            "name": "Hong Kong"
+        }
+    ],
+    "elements":
+    [
+        {
+            "name": "nebula_element",
+            "image": "nebula_checkerboard",
+            "mask": "nebula_mask",
+            "smooth": true,
+            "scale": 0.3
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "gray",
+            "type": "eff_grayscale_ucolor"
+        },
+        {
+            "name": "checkerboard",
+            "type": "eff_checkerboard_ucolor"
+        },
+        {
+            "name": "test_splat",
+            "type": "element",
+            "element_name": "nebula_element"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "nebula_checkerboard",
+            "source": "Crab Nebula",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "checkerboard" ]
+        },
+        {
+            "name": "nebula_mask",
+            "source": "Crab Nebula",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "checkerboard" ]
+        },
+        {
+            "name": "Splat Test",
+            "source": "Hong Kong",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "test_splat" ]
+        }
+    ]
+}
+ 

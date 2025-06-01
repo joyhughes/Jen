@@ -34,7 +34,9 @@ template struct harness< ucolor >;
 template struct harness< bb2f >;
 template struct harness< std::string >;
 template struct harness< bool >;
+template struct harness< funk_factor >;
 template struct harness< direction4 >; // future: replace enum harnesses with int harnesses
+template struct harness< direction4_diagonal >; // future: replace enum harnesses with int harnesses
 template struct harness< direction8 >; // future: replace enum harnesses with int harnesses
 template struct harness< interval_int >;
 template struct harness< interval_float >;
@@ -52,6 +54,23 @@ float time_fn::operator () ( float& val, element_context& context  ) {
     return context.s.time; 
 }
 
+template< MultipliableByFloat U > U integrator< U >::operator () ( U& u, element_context& context ) {
+    if( last_time != context.s.time ) {
+        if( context.s.time < last_time ) { // reset if time goes backwards (e.g. looped animation or restart)
+            val = starting_val; 
+            last_time = context.s.time;
+        } 
+        else {
+            delta( context ); scale( context );
+            val += ( context.s.time - last_time ) * *delta * *scale;
+            last_time = context.s.time;
+        }
+    } 
+    return val; 
+}
+
+template struct integrator< float >;
+
 float wiggle::operator ()  ( float& val, element_context& context  )
 {
     wavelength( context ); amplitude( context ); phase( context ); wiggliness( context );
@@ -61,6 +80,14 @@ float wiggle::operator ()  ( float& val, element_context& context  )
         return *amplitude * sin( ( val / *wavelength + *phase + *wiggliness * context.s.time ) * TAU );
     }
     else return 0.0f; 
+}
+
+vec2i buffer_dim_fn::operator () ( vec2i& val, element_context& context  )
+{
+    buf_name( context );
+    any_buffer_pair_ptr buf = context.s.buffers[ *buf_name ];
+    std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
+    return val;
 }
 
 vec2f mouse_pos_fn::operator () ( vec2f& val, element_context& context  )
@@ -292,7 +319,9 @@ template struct equal_condition< frgb >;
 template struct equal_condition< ucolor >;
 template struct equal_condition< std::string >;
 template struct equal_condition< bool >;
+template struct equal_condition< funk_factor >;
 template struct equal_condition< direction4 >;
+template struct equal_condition< direction4_diagonal >;
 template struct equal_condition< direction8 >;
 
 void filter::operator () ( element_context& context ) { 
@@ -330,5 +359,4 @@ bool next_element::operator () ( element_context& context ) {
 }
 
 next_element::next_element() {}
-
 

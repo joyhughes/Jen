@@ -15,7 +15,7 @@ public:
     buffer_pair();
     buffer_pair( const std::string& filename );
     buffer_pair( const image< T >& img );       // copy image into buffer
-    buffer_pair( vec2i& dim );                  // create empty buffer of given dimensions
+    buffer_pair( vec2i dim );                  // create empty buffer of given dimensions
 //  buffer_pair( const buffer_pair< T >& bp );  // copy constructor
 
     bool has_image();
@@ -34,7 +34,7 @@ public:
     } */
 
     void reset( const image< T >& img );
-    void reset( vec2i& dim );
+    void reset( vec2i dim );
 
 /*
     void set( const image< T >& img ) { 

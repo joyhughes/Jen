@@ -46,6 +46,22 @@ template class eff_noise< vec2f >;
 template class eff_noise< int >;
 template class eff_noise< vec2i >;
 
+template< class T > void eff_checkerboard< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    c1( context ); c2( context ); box_size( context );
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_checkerboard: no image in buffer" );
+        buf_ptr->get_image().checkerboard( *box_size, *c1, *c2 );
+    }
+}
+
+template class eff_checkerboard< frgb >;
+template class eff_checkerboard< ucolor >;
+template class eff_checkerboard< vec2f >;
+template class eff_checkerboard< int >;
+template class eff_checkerboard< vec2i >;
+
 template< class T > void eff_grayscale< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
@@ -65,17 +81,71 @@ template< class T > void eff_invert< T >::operator () ( any_buffer_pair_ptr& buf
 template class eff_invert< frgb >;
 template class eff_invert< ucolor >;
 
-template< class T > void eff_rotate_colors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+template< class T > void eff_rotate_components< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_grayscale: no image in buffer" );
-        buf_ptr->get_image().rotate_colors( *r );
+        buf_ptr->get_image().rotate_components( *r );
     }
 }
 
-template class eff_rotate_colors< frgb >;
-template class eff_rotate_colors< ucolor >;
+template class eff_rotate_components< frgb >;
+template class eff_rotate_components< ucolor >;
+
+template< class T > void eff_rgb_to_hsv< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rgb_to_hsv: no image in buffer" );
+        buf_ptr->get_image().image<T>::rgb_to_hsv();
+        //auto img = buf_ptr->get_image();
+        //for( auto c = img.begin(); c != img.end(); c++ ) *c = rgb_to_hsv( *c );
+    }
+}
+
+template class eff_rgb_to_hsv< frgb >;
+template class eff_rgb_to_hsv< ucolor >;
+
+template< class T > void eff_hsv_to_rgb< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_hsv_to_rgb: no image in buffer" );
+        buf_ptr->get_image().hsv_to_rgb();
+    }
+}
+
+template class eff_hsv_to_rgb< frgb >;
+template class eff_hsv_to_rgb< ucolor >;
+
+template< class T > void eff_rotate_hue< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+//    float old_offset = *offset;
+    offset( context );
+//    if( *offset != old_offset ) {
+        if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+        {
+            auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+            if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_rotate_hue: no image in buffer" );
+            buf_ptr->get_image().rotate_hue( *offset );
+        }
+//    }
+}
+
+template class eff_rotate_hue< frgb >;
+template class eff_rotate_hue< ucolor >;
+
+template< class T > void eff_bit_plane< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_bit_plane: no image in buffer" );
+        bit_mask( context );
+        buf_ptr->get_image().bit_plane( *bit_mask );
+    }
+}
+
+template class eff_bit_plane< ucolor >;
 
 template< class T > void eff_crop_circle< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
@@ -161,11 +231,10 @@ template class eff_vector_warp< vec2i >;
 
 template< class T > void eff_feedback< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    std::cout << "eff_feedback" << std::endl;
+    //std::cout << "eff_feedback" << std::endl;
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         wf_name( context );
-
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_feedback: no image in buffer" );
         auto& wf = context.s.get_image< int >( *wf_name );
@@ -282,6 +351,15 @@ template< class T > void eff_spiral< T >::operator () ( any_buffer_pair_ptr& buf
 
 template class eff_spiral< vec2f >;
 
+template< class T > void eff_fermat_spiral< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    c(context);
+    vf_tools tools( get_image< T >( buf ) );
+    tools.fermat_spiral( *c );
+}
+
+template class eff_fermat_spiral< vec2f >;
+
 template< class T > void eff_vortex< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     if (std::holds_alternative< vbuf_ptr>(buf)) 
@@ -323,27 +401,136 @@ template class eff_position_fill< vec2f >;
 
 template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    vec2f old_center=*center; float old_segments=*segments; float old_offset_angle=*offset_angle; bool old_reflect=*reflect;
-    center(context); segments(context); offset_angle(context); reflect(context); 
+    //vec2f old_center=*center; float old_segments=*segments; float old_start = *start; float old_spin = *spin; bool old_reflect=*reflect;
+    segments( context ); levels( context );
+    start( context ); spin( context );
+    level_start( context ); expand( context );
+    reflect( context ); reflect_levels( context );
     
-    if(*center!=old_center || *segments!=old_segments || *offset_angle!=old_offset_angle || *reflect!=old_reflect)
-    filled=false;
-    old_center = *center; old_segments=*segments; old_offset_angle=*offset_angle; old_reflect=*reflect;
-
-    std::cout << "eff_kaleidoscope: filled = " << filled << std::endl;
-    if(!filled)
-    {
-        filled =true;
-        vf_tools tools( get_image< T >( buf ) );
-        tools.kaleidoscope(*center,*segments,*offset_angle,*reflect);
-    }  
+    filled =true;
+    vf_tools tools( get_image< T >( buf ) );
+    tools.kaleidoscope( *segments, *levels, *start, *spin, *level_start, *expand, *reflect, *reflect_levels );  
 }
 
 template class eff_kaleidoscope< vec2f >;
 
+template< class T > void eff_radial_tile< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    segments(context);  levels(context); 
+    offset_x(context);  offset_y(context); 
+    spin( context );    expand( context );
+    zoom_x(context);    zoom_y(context); 
+    reflect_x(context); reflect_y(context);
+    
+    vf_tools tools( get_image< T >( buf ) );
+    tools.radial_tile( *segments, *levels, vec2f( *offset_x, *offset_y ), *spin, *expand, vec2f( *zoom_x, *zoom_y ), *reflect_x, *reflect_y );
+}
+
+template class eff_radial_tile< vec2f >;
+
+template< class T > void eff_radial_multiply< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    segments(context);  levels(context);  
+    spin( context );  expand( context );
+    reflect( context ); reflect_levels( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.radial_multiply( *segments, *levels, *spin, *expand, *reflect, *reflect_levels );
+    }
+}
+
+template class eff_radial_multiply< vec2f >;
+
+template< class T > void eff_theta_swirl< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    amount( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_swirl( *amount );
+    }
+}
+
+template class eff_theta_swirl< vec2f >;
+
+template< class T > void eff_theta_rotate< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    angle( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_rotate( *angle );
+    }
+}
+
+template class eff_theta_rotate< vec2f >;
+
+template< class T > void eff_theta_rings< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    n( context ); swirl( context ); alternate( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_rings( *n, *swirl, *alternate );
+    }
+}
+
+template class eff_theta_rings< vec2f >;
+
+template< class T > void eff_theta_waves< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context ); const_amp( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_waves( *freq, *amp, *phase, *const_amp );
+    }
+}
+
+template class eff_theta_waves< vec2f >;
+
+template< class T > void eff_theta_saw< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context ); const_amp( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_saw( *freq, *amp, *phase, *const_amp );
+    }
+}
+
+template class eff_theta_saw< vec2f >;
+
+template< class T > void eff_theta_compression_waves< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    freq( context ); amp( context ); phase( context ); const_amp( context );
+
+    if (std::holds_alternative< vbuf_ptr>(buf)) 
+    {
+        auto& buf_ptr = std::get< vbuf_ptr >(buf);
+        vf_tools tools( buf_ptr->get_image() );
+        tools.theta_compression_waves( *freq, *amp, *phase, *const_amp );
+    }
+}
+
+template class eff_theta_compression_waves< vec2f >;
+
 template< class T > void eff_fill_warp< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
-    std::cout << "eff_fill_warp" << std::endl;
+    //std::cout << "eff_fill_warp" << std::endl;
     vf_name( context ); relative( context ); extend( context );
     if( *vf_name != "none" && *vf_name != "" ) {
         image< vec2f >& vf = context.s.get_image< vec2f >( *vf_name );
@@ -386,5 +573,4 @@ void eff_chooser::choose( const std::string& name ) {
 }
 
 void eff_chooser::add_effect( const any_effect_fn& eff ) { effects.push_back( eff ); }
-
 

@@ -1,6 +1,6 @@
 // Color using unsigned char and bit shifting
 // Intended for use with Cellular Automata in Lux Vitae but can be used for other purposes
-
+#include <iostream>
 #include "ucolor.hpp"
 #include "gamma_lut.hpp"
 #include "joy_rand.hpp"
@@ -108,4 +108,72 @@ ucolor blend( const std::vector< ucolor >& colors ) {
 ucolor gray( const ucolor& in ) {
     unsigned int lum = luminance( in );
     return( ( in & 0xff000000 ) + ( lum << 16 ) + ( lum << 8 ) + lum );
+}
+
+ucolor rgb_to_hsv( const ucolor& in ) {
+    unsigned int r = ( in >> 16 ) & 0xff;
+    unsigned int g = ( in >> 8 ) & 0xff;
+    unsigned int b = in & 0xff;
+    //std::cout << "rgb_to_hsv: RGB = " << r << " " << g << " " << b << std::endl;
+    unsigned int h, s, v;
+
+    unsigned int max = r > g ? r : g;
+    max = max > b ? max : b;
+    unsigned int min = r < g ? r : g;
+    min = min < b ? min : b;
+
+    v = max;
+    unsigned int delta = max - min;
+    if( delta == 0 ) {
+        return ( in & 0xff000000 ) + r; // gray, white, black - implied if delta == 0, also max == 0 and divide by zero will not occur below
+    }
+    s = delta * 0xff / max;
+
+    // fixed point math for a more accurate result
+    if( r == max ) {
+        if( b == min )
+            h = ( ( ( g - b ) * 0x2AAAAA / delta + 0x7FFF ) >> 16 ) & 0xff;
+        else
+            h = ( ( 0x1000000 - ( b - g ) * 0x2AAAAA / delta + 0x7FFF ) >> 16 ) & 0xff;
+    }
+    else if( g == max ) {
+        if( r == min )
+            h = ( 0x555555 + ( b - r ) * 0x2AAAAA / delta + 0x7FFF ) >> 16;
+        else
+            h = ( 0x555555 - ( r - b ) * 0x2AAAAA / delta + 0x7FFF ) >> 16;
+    }
+    else {
+        if( g == min )
+            h = ( 0xAAAAAB + ( r - g ) * 0x2AAAAA / delta + 0x7FFF ) >> 16;
+        else
+            h = ( 0xAAAAAB - ( g - r ) * 0x2AAAAA / delta + 0x7FFF ) >> 16;
+    }
+    //std::cout << "rgb_to_hsv: HSV = " << h << " " << s << " " << v << std::endl;
+    return ( ( in & 0xff000000 ) + ( h << 16 ) + ( s << 8 ) + v );
+}
+
+ucolor hsv_to_rgb( const ucolor& in ) {
+    unsigned int h = ( in >> 16 ) & 0xff;
+    unsigned int s = ( in >> 8 ) & 0xff;
+    unsigned int v = in & 0xff;
+
+    if( s == 0 ) {
+        return ( ( in & 0xff000000 ) + ( v << 16 ) + ( v << 8 ) + v ); // gray
+    }
+
+    // fixed point math for a more accurate result
+    unsigned int i = ( h * 0x10000 ) / 0x2AAAAB;
+    unsigned int f = ( h * 0x100 - i * 0x2AAB ) * 6;
+    unsigned int p = ( v * ( 0xff - s) + 0x7f ) >> 8;
+    unsigned int q = ( v * ( 0xffff - ( s * f ) / 0x100 ) + 0x7fff ) >> 16;
+    unsigned int t = ( v * ( 0xffff - ( s * ( 0xffff - f ) ) / 0x100 ) + 0x7fff ) >> 16;
+
+    switch( i ) {
+        case 0: return  ( ( in & 0xff000000 ) + ( v << 16 ) + ( t << 8 ) + p );
+        case 1: return  ( ( in & 0xff000000 ) + ( q << 16 ) + ( v << 8 ) + p );
+        case 2: return  ( ( in & 0xff000000 ) + ( p << 16 ) + ( v << 8 ) + t );
+        case 3: return  ( ( in & 0xff000000 ) + ( p << 16 ) + ( q << 8 ) + v );
+        case 4: return  ( ( in & 0xff000000 ) + ( t << 16 ) + ( p << 8 ) + v );
+        default: return ( ( in & 0xff000000 ) + ( v << 16 ) + ( p << 8 ) + q );
+    }
 }

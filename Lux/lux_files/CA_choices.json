@@ -1,0 +1,510 @@
+{
+    "name": "CA_scene",
+    "title": "Cellular Automata Explorer",
+    "images": 
+    [
+        {
+            "type": "uimage",
+            "filename": "lux_files/Ada.jpg",
+            "name": "Ada"
+        },        
+        {
+            "type": "uimage",
+            "filename": "lux_files/apples.jpg",
+            "name": "Apples"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/crab_nebula.jpg", 
+            "name": "Crab Nebula"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/earth.jpg",
+            "name": "Earth"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/everest.jpg",
+            "name": "Everest"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/flower.jpg",
+            "name": "Flower"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/forest.jpg",
+            "name": "Forest"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/hk_square_512.jpg", 
+            "name": "Hong Kong"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/lighthouse.jpg",
+            "name": "Lighthouse"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/sunrise.jpg",
+            "name": "Sunrise"
+        }
+    ],
+    "elements":
+    [
+        {
+            "name": "nebula_element",
+            "image": "Crab Nebula",
+            "mask": "nebula_mask",
+            "scale": 0.3
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "brush_fn",
+            "type": "position_gen_fn",
+            "position": { "functions": [ "mouse_position" ] }
+        },
+        {
+            "name": "direction_4",
+            "type": "direction_picker_4",
+            "default_value": "down",
+            "label": "Direction",
+            "description": "Direction of gravity"
+        },
+        {
+            "name": "direction_8",
+            "type": "direction_picker_8",
+            "default_value": "up",
+            "label": "Direction",
+            "description": "Direction of sort"
+        },        
+        {
+            "name": "direction_4_funky",
+            "type": "direction_picker_4",
+            "default_value": "down",
+            "label": "Direction",
+            "description": "Direction of funkiness"
+        },        
+        {
+            "name": "direction_4_diagonal",
+            "type": "direction_picker_4_diagonal",
+            "default_value": "down_right",
+            "label": "Direction",
+            "description": "Direction of funkiness"
+        },
+        {
+            "name": "edge_block_switch",
+            "type": "switch_fn",
+            "label": "Edge block",
+            "description": "Freezes pixels on the edge of the image",
+            "tool": "switch",
+            "default_value": true
+        },
+        {
+            "name": "bright_block_slider",
+            "type": "range_slider_int",
+            "label": "Brightness freeze",
+            "description": "Freezes pixels with brighness outside the range",
+            "min": 0,
+            "max": 768,
+            "default_value": [ 10, 768 ],
+            "step": 1
+        },
+        {
+            "name": "bright_block_switch",
+            "type": "switch_fn",
+            "label": "Brightness block",
+            "description": "Freezes pixels with brighness outside the range",
+            "tool": "switch",
+            "default_value": false
+        },
+        {
+            "name": "bright_block_widget_switch",
+            "type": "widget_switch_fn",
+            "label": "Brightness freeze",
+            "description": "Freeze pixels with brighness outside the range",
+            "switcher": "bright_block_switch",
+            "widget": "bright_block_slider"
+        },
+        {
+            "name": "max_diff_slider",
+            "type": "slider_int",
+            "label": "Sort Threshold",
+            "description": "Sort Threshold is the maximum brightness difference between adjacent pixels that will be sorted.",
+            "min": 0,
+            "max": 768,
+            "default_value": 230,
+            "step": 1
+        },        
+        {
+            "name": "life_slider",
+            "type": "slider_int",
+            "label": "Brightness Threshold",
+            "description": "Pixels with brighness above threshold become alive.",
+            "min": 0,
+            "max": 768,
+            "default_value": 384,
+            "step": 1
+        },
+        {
+            "name": "source_image_menu",
+            "type": "menu_string",
+            "tool": "image",
+            "label": "Source Image",
+            "description": "Choose an image to apply the transition rule to.",
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 1
+        },
+        {
+            "name": "rule_menu",
+            "type": "menu_int",
+            "tool": "pull_down",
+            "label": "Transition Rule",
+            "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
+            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Threadfall", "Borg", "Box blur", "Blurriffic" ],
+            "default_choice": 4,
+            "affects_widget_groups": true
+        },
+        {
+            "name": "rule_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 0
+        },
+        {
+            "name": "rule_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 1
+        },
+        {
+            "name": "rule_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 2
+        },
+        {
+            "name": "rule_menu_3",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 3
+        },
+        {
+            "name": "rule_menu_4",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 4
+        },
+        {
+            "name": "rule_menu_5",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 5
+        },
+        {
+            "name": "rule_menu_6",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 6
+        },        
+        {
+            "name": "rule_menu_7",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 7
+        },
+        {
+            "name": "rule_menu_8",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "rule_menu" ] },
+            "b": 8
+        },
+        {
+            "name": "dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor",
+            "description": "Funk factor is a parameter of the Funky sort rule.",
+            "default_value": "0xffffffffaa00aa00"
+        },
+        {
+            "name": "left dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Left",
+            "description": "Funk factor for left hand side of sort.",
+            "default_value": "0xffff0000ffff0000"
+        },
+        {
+            "name": "right dafunk",
+            "type": "funk_factor_picker",
+            "label": "Funk Factor Right",
+            "description": "Funk factor for right hand side of sort.",
+            "default_value": "0xffffffff00000000"
+        },
+        {
+            "name": "blur_picker",
+            "type": "box_blur_picker",
+            "label": "Blur method",
+            "description": "Choose a set of possible directions to blur pixels.",
+            "default_value": "orthogonal"
+        },
+        {
+            "name": "blur_picker_custom",
+            "type": "custom_blur_picker",
+            "label": "Custom blur method",
+            "description": "Choose a set of possible directions to blur pixels.",
+            "pickers": [ [ 17, 17 ], [ 68, 68 ] ]
+        },
+        {
+            "name": "box_blur_bug_switch",
+            "type": "switch_fn",
+            "label": "Bug mode",
+            "description": "Bug mode runs the rule incorrectly with interesting results. Switch has the largest effect when sort threshold is low.",
+            "tool": "switch",
+            "default_value": false
+        },
+        {
+            "name": "bb_random_copy_switch",
+            "type": "switch_fn",
+            "label": "Random copy",
+            "description": "Random copy mode copies a random pixel from the neighborhood.",
+            "tool": "switch",
+            "default_value": false
+        }
+    ],
+    "clusters":
+    [
+        {
+            "name": "brush_cluster",
+            "element": "nebula_element",
+            "functions": [ "brush_fn" ],
+            "conditions": [ "mouse_click" ]
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "gray",
+            "type": "eff_grayscale_ucolor"
+        },
+        {
+            "name": "Diffuse",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "diffuse",
+                "type": "rule_diffuse_ucolor"            
+            }
+        },        
+        {
+            "name": "Life",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "rule":
+            {
+                "name": "life",
+                "type": "rule_life_ucolor",
+                "threshold": { "functions": [ "life_slider" ] },
+                "use_threshold": true         
+            }
+        },
+        {
+            "name": "Gravitate",
+            "type": "CA_ucolor",
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "rule":
+            {
+                "name": "gravitate",
+                "type": "rule_gravitate_ucolor",
+                "direction": { "functions": [ "direction_4" ] }
+            }
+        },
+        {
+            "name": "Snow",
+            "type": "CA_ucolor",
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "rule":
+            {
+                "name": "snow",
+                "type": "rule_snow_ucolor",
+                "direction": { "functions": [ "direction_4" ] }
+            }
+        },
+        {
+            "name": "Pixel sort",
+            "type": "CA_ucolor",
+            "edge_block": {"functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "pixel_sort",
+                "type": "rule_pixel_sort_ucolor",
+                "direction": { "functions": [ "direction_8" ] },
+                "max_diff": { "functions": [ "max_diff_slider" ] }
+            }
+        },
+        {
+            "name": "Funky sort",
+            "type": "CA_ucolor",
+            "edge_block": {   "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "funky_sort",
+                "type": "rule_funky_sort_ucolor",
+                "direction": { "functions": [ "direction_4_funky" ] },
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_l": { "functions": [ "left dafunk" ] },
+                "dafunk_r": { "functions": [ "right dafunk" ] }
+            }
+        },
+        {
+            "name": "Diagonal funky sort",
+            "type": "CA_ucolor",
+            "edge_block": {   "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "funky_sort",
+                "type": "rule_diagonal_funky_sort_ucolor",
+                "direction": { "functions": [ "direction_4_diagonal" ] },
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "dafunk_d": { "functions": [ "dafunk" ] }
+            }
+        },
+        {
+            "name": "Box blur",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "box blur rule",
+                "type": "rule_box_blur_ucolor",
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "bug_mode": { "functions": [ "box_blur_bug_switch" ] },
+                "blur_method": { "functions": [ "blur_picker" ] },
+                "random_copy": false,
+                "custom_picker": "blur_picker_custom"
+            }
+        },        
+        {
+            "name": "Blurriffic",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "rule":
+            {
+                "name": "Blurriffic rule",
+                "type": "rule_box_blur_ucolor",
+                "max_diff": { "functions": [ "max_diff_slider" ] },
+                "bug_mode": { "functions": [ "box_blur_bug_switch" ] },
+                "blur_method": "custom",
+                "random_copy": { "functions": [ "bb_random_copy_switch" ]},
+                "custom_picker": "blur_picker_custom"
+            }
+        },  
+        {
+            "name": "Rule Chooser",
+            "type": "eff_chooser",
+            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Diagonal funky sort", "Box blur", "Blurriffic" ],
+            "choice": { "functions": [ "rule_menu" ] }
+        },
+        {
+            "name": "brush",
+            "type": "cluster",
+            "cluster_name": "brush_cluster"
+        }
+    ],
+    "queue":
+    [
+        {
+            "name": "nebula_mask",
+            "source": "Crab Nebula",
+            "type": "uimage",
+            "mode": "static",  
+            "effects": [ "gray" ]
+        },
+        {
+            "name": "Cellular Automata",
+            "source": { "functions": [ "source_image_menu" ] },
+            "type": "uimage",
+            "mode": "iterative",  
+            "effects": [ "brush", "Rule Chooser" ]
+        }
+    ],
+    "widget groups":
+    [
+        {
+            "name": "home_group",
+            "widgets": [ "rule_menu", "edge_block_switch" ]
+        },
+        {
+            "name": "source_image_group",
+            "widgets": [ "source_image_menu" ]
+        },
+        {
+            "name": "diffuse_group",
+            "conditions": [ "rule_menu_0" ],
+            "widgets": [ "bright_block_widget_switch" ]
+        },
+        {
+            "name": "life_group",
+            "conditions": [ "rule_menu_1" ],
+            "widgets": [ "life_slider" ]
+        },
+        {
+            "name": "gravitate_group",
+            "conditions": [ "rule_menu_2" ],
+            "widgets": [ "direction_4", "bright_block_widget_switch" ]
+        },
+        {
+            "name": "snow_group",
+            "conditions": [ "rule_menu_3" ],
+            "widgets": [ "direction_4", "bright_block_widget_switch" ]
+        },
+        {
+            "name": "pixel_sort_group",
+            "conditions": [ "rule_menu_4" ],
+            "widgets": [ "direction_8", "max_diff_slider", "bright_block_widget_switch" ]
+        },
+        {
+            "name": "funky_sort_group",
+            "conditions": [ "rule_menu_5" ],
+            "widgets": [ "direction_4_funky", "max_diff_slider", "bright_block_widget_switch", "left dafunk", "right dafunk" ]
+        },        
+        {
+            "name": "diagonal_funky_sort_group",
+            "conditions": [ "rule_menu_6" ],
+            "widgets": [ "direction_4_diagonal", "max_diff_slider", "bright_block_widget_switch", "dafunk" ]
+        },
+        {
+            "name": "box_blur_group",
+            "conditions": [ "rule_menu_7" ],
+            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "blur_picker", "box_blur_bug_switch" ]
+        },
+        {
+            "name": "blurriffic_group",
+            "conditions": [ "rule_menu_8" ],
+            "widgets": [ "max_diff_slider", "bright_block_widget_switch", "box_blur_bug_switch", "bb_random_copy_switch", "blur_picker_custom" ]
+        }
+    ]
+}
+ 

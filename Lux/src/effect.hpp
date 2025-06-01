@@ -9,7 +9,6 @@
 #include "warp_field.hpp"
 #include "next_element.hpp"
 
-
 typedef std::function< void ( any_buffer_pair_ptr& buf, element_context& context ) > effect_fn;
 struct any_effect_fn;
 
@@ -28,13 +27,8 @@ template< class T > struct eff_fill  {
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_fill() : bounded( false ) {
-        T b;
-        black( b );
-        fill_color = b;
-    }
-    eff_fill( T& fill_color_init ) : bounded( false ), fill_color( fill_color_init ) {}
-    eff_fill( T& fill_color_init, const bb2i& bounds_init ) : bounds( bounds_init ), fill_color( fill_color_init ) {}
+    eff_fill( const T& fill_color_init = black< T > ) : bounded( false ), fill_color( fill_color_init ) {}
+    eff_fill( const T& fill_color_init, const bb2i& bounds_init ) : bounds( bounds_init ), fill_color( fill_color_init ) {}
 };
 
 typedef eff_fill< frgb > eff_fill_frgb;
@@ -62,6 +56,23 @@ typedef eff_noise< vec2f > eff_noise_vec2f;
 typedef eff_noise< int > eff_noise_int;
 typedef eff_noise< vec2i > eff_noise_vec2i;
 
+template< class T > struct eff_checkerboard {
+    harness< T > c1;
+    harness< T > c2;
+    harness< int > box_size;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_checkerboard( T c1_init = black< T >, T c2_init = white< T >, int box_size_init = 8 ) : 
+        c1( c1_init ), c2( c2_init ), box_size( box_size_init ) {}
+};
+
+typedef eff_checkerboard< frgb > eff_checkerboard_frgb;
+typedef eff_checkerboard< ucolor > eff_checkerboard_ucolor;
+typedef eff_checkerboard< vec2f > eff_checkerboard_vec2f;
+typedef eff_checkerboard< int > eff_checkerboard_int;
+typedef eff_checkerboard< vec2i > eff_checkerboard_vec2i;
+
 template< class T > struct eff_grayscale {
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 };
@@ -76,16 +87,51 @@ template< class T > struct eff_invert {
 typedef eff_invert< frgb > eff_invert_frgb;
 typedef eff_invert< ucolor > eff_invert_ucolor;
 
-template< class T > struct eff_rotate_colors {
+template< class T > struct eff_rotate_components {
     harness< int > r;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_rotate_colors( int r_init = 0 ) : r( r_init ) {}
+    eff_rotate_components( int r_init = 0 ) : r( r_init ) {}
 };
 
-typedef eff_rotate_colors< frgb > eff_rotate_colors_frgb;
-typedef eff_rotate_colors< ucolor > eff_rotate_colors_ucolor;
+typedef eff_rotate_components< frgb > eff_rotate_components_frgb;
+typedef eff_rotate_components< ucolor > eff_rotate_components_ucolor;
+
+template< class T > struct eff_rgb_to_hsv {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_rgb_to_hsv< frgb > eff_rgb_to_hsv_frgb;
+typedef eff_rgb_to_hsv< ucolor > eff_rgb_to_hsv_ucolor;
+
+template< class T > struct eff_hsv_to_rgb {
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+};
+
+typedef eff_hsv_to_rgb< frgb > eff_hsv_to_rgb_frgb;
+typedef eff_hsv_to_rgb< ucolor > eff_hsv_to_rgb_ucolor;
+
+template< class T > struct eff_rotate_hue {
+    harness< float > offset;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_rotate_hue( float offset_init = 0.0f ) : offset( offset_init ) {}
+};
+
+typedef eff_rotate_hue< frgb > eff_rotate_hue_frgb;
+typedef eff_rotate_hue< ucolor > eff_rotate_hue_ucolor;
+
+template< class T > struct eff_bit_plane {
+    harness< ucolor > bit_mask;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_bit_plane( ucolor bit_mask_init = 0xFFFFFFFF ) : bit_mask( bit_mask_init ) {}
+};
+
+typedef eff_bit_plane< ucolor > eff_bit_plane_ucolor;
 
 template< class T > struct eff_crop_circle {
     harness< T > background;
@@ -308,6 +354,16 @@ template< class T > struct eff_spiral {
 
 typedef eff_spiral< vec2f > eff_spiral_vec2f;
 
+template< class T > struct eff_fermat_spiral {
+    harness< float > c;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_fermat_spiral( float const_init = 0.0f ) : c( const_init ) {}
+};
+
+typedef eff_fermat_spiral< vec2f > eff_fermat_spiral_vec2f;
+
 template< class T > struct eff_vortex {
     harness< float > diameter;   // float - Overall size of vortex
     harness< float > soften;     // float - Avoids a singularity in the center of vortex
@@ -384,21 +440,157 @@ template< class T > struct eff_position_fill {
 
 typedef eff_position_fill< vec2f > eff_position_fill_vec2f;
 
+// Assumes radial coordinates
 template< class T > struct eff_kaleidoscope {
-    harness< vec2f > center;
     harness< float > segments;
-    harness< float > offset_angle;
-    harness< bool >  reflect;
+    harness< float > levels;
+    harness< float > start;
+    harness< float > spin;
+    harness< float > level_start;
+    harness< float > expand;
+    harness< bool  > reflect;
+    harness< bool  > reflect_levels;
 
     bool filled;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_kaleidoscope( vec2f center_init = vec2f( 0.0f, 0.0f ), float segments_init = 6.0f, float offset_angle_init = 0.0f, bool reflect_init = true ) : 
-        center( center_init ), segments( segments_init ), offset_angle( offset_angle_init ), reflect( reflect_init ), filled( false ) {}
+    eff_kaleidoscope( float segments_init = 6.0f, 
+                      float levels_init = 1.0f, 
+                      float start_init = 0.0f, 
+                      float spin_init = 0.0f, 
+                      float level_start_init = 0.0f, 
+                      bool expand_init = 0.0f, 
+                      bool reflect_init = true, 
+                      bool reflect_levels_init = true ) : 
+        segments( segments_init ),
+        levels( levels_init ), 
+        start( start_init ),
+        spin( spin_init ),
+        level_start( level_start_init ),
+        reflect( reflect_init ),
+        reflect_levels( reflect_levels_init ),
+        filled( false ) {}
 };
 
 typedef eff_kaleidoscope< vec2f > eff_kaleidoscope_vec2f;
+
+template< class T > struct eff_radial_tile {
+    harness< float > segments;
+    harness< float > levels;
+    harness< float > offset_x;
+    harness< float > offset_y;
+    harness< float > spin;
+    harness< float > expand;
+    harness< float > zoom_x;
+    harness< float > zoom_y;
+    harness< bool  > reflect_x;
+    harness< bool  > reflect_y;
+    // orientation
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_radial_tile( float segments_init = 6.0f, float levels_init = 2.0f, float offset_x_init = 0.0f, float offset_y_init = 0.0f, float spin_init = 0.0f, float expand_init = 0.0f, float zoom_x_init = 1.0f, float zoom_y_init = 1.0f, bool reflect_x_init = true, bool reflect_y_init = true ) : 
+        segments( segments_init ), levels( levels_init ), offset_x( offset_x_init ), offset_y( offset_y_init ), spin( spin_init ), expand( expand_init ), zoom_x( zoom_x_init ), zoom_y( zoom_y_init ), reflect_x( reflect_x_init ), reflect_y( reflect_y_init ) {}
+};
+
+typedef eff_radial_tile< vec2f > eff_radial_tile_vec2f;
+
+template< class T > struct eff_radial_multiply {
+    harness< float > segments;
+    harness< float > levels;
+    harness< float > spin;
+    harness< float > expand;
+    harness< bool  > reflect;
+    harness< bool  > reflect_levels;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_radial_multiply(    float segments_init = 6.0f, float levels_init = 1.0f, 
+                            float spin_init = 0.0f, float expand_init = 0.0f,
+                            bool reflect_init = true, bool reflect_levels_init = true 
+                            ) : 
+        segments( segments_init ), levels( levels_init ), 
+        spin( spin_init ), expand( expand_init ), 
+        reflect( reflect_init ), reflect_levels( reflect_levels_init ) {}
+};
+
+typedef eff_radial_multiply< vec2f > eff_radial_multiply_vec2f;
+
+template< class T > struct eff_theta_swirl {
+    harness< float > amount;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_swirl( float amount_init = 60.0f ) : amount( amount_init ) {}
+};
+
+typedef eff_theta_swirl< vec2f > eff_theta_swirl_vec2f;
+
+template< class T > struct eff_theta_rotate {
+    harness< float > angle;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_rotate( float angle_init = 0.0f ) : angle( angle_init ) {}
+};
+
+typedef eff_theta_rotate< vec2f > eff_theta_rotate_vec2f;
+
+template< class T > struct eff_theta_rings {
+    harness< float > n; // number of rings
+    harness< float > swirl; // amount of swirl
+    harness< float > alternate; // rotate in alternate directions
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_rings( float n_init = 10.0f, float swirl_init = 0.0f, float alternate_init = 30.0f ) : 
+        n( n_init ), swirl( swirl_init ), alternate( alternate_init ) {}
+};
+
+typedef eff_theta_rings< vec2f > eff_theta_rings_vec2f;
+
+template< class T > struct eff_theta_waves {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+    harness< bool  > const_amp;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_waves( float freq_init = 2.0f, float amp_init = 5.0f, float phase_init = 0.0f, bool const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
+};
+
+typedef eff_theta_waves< vec2f > eff_theta_waves_vec2f;
+
+template< class T > struct eff_theta_saw {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+    harness< bool  > const_amp;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_saw( float freq_init = 2.0f, float amp_init = 5.0f, float phase_init = 0.0f, bool const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
+};
+
+typedef eff_theta_saw< vec2f > eff_theta_saw_vec2f;
+
+template< class T > struct eff_theta_compression_waves {
+    harness< float > freq;
+    harness< float > amp;
+    harness< float > phase;
+    harness< bool  > const_amp;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_theta_compression_waves( float freq_init = 6.0f, float amp_init = 5.0f, float phase_init = 0.0f, float const_amp_init = false ) : 
+        freq( freq_init ), amp( amp_init ), phase( phase_init ), const_amp( const_amp_init ) {}
+};
+
+typedef eff_theta_compression_waves< vec2f > eff_theta_compression_waves_vec2f;
 
 // Warp field effects
 template< class T > struct eff_fill_warp {

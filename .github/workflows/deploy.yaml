@@ -1,0 +1,49 @@
+name: Deploy Vite React App
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./Lux/lux_react
+      
+      - name: Check Vite config
+        run: cat vite.config.js
+        working-directory: ./Lux/lux_react
+      
+      - name: Clean existing dist folder
+        run: rm -rf dist
+        working-directory: ./Lux/lux_react
+      
+      - name: Build project
+        run: npm run build
+        working-directory: ./Lux/lux_react
+      
+      - name: List built files
+        run: ls -la dist
+        working-directory: ./Lux/lux_react
+      
+      - name: Create .nojekyll file
+        run: touch dist/.nojekyll
+        working-directory: ./Lux/lux_react
+      
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: ./Lux/lux_react/dist
+          branch: gh-pages
+          clean: true

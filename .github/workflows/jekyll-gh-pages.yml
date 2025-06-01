@@ -1,0 +1,52 @@
+name: Deploy Vite React App to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./Lux/lux_react
+      
+      - name: Update Vite config for GitHub Pages
+        run: |
+          if grep -q "base:" vite.config.js; then
+            sed -i "s|base:.*,|base: '/Jen/',|g" vite.config.js
+            echo "Updated base path in vite.config.js"
+          else
+            echo "Warning: Could not find base path in vite.config.js"
+          fi
+          cat vite.config.js
+        working-directory: ./Lux/lux_react
+      
+      - name: Build project
+        run: npm run build
+        working-directory: ./Lux/lux_react
+        env:
+          NODE_ENV: production
+      
+      - name: Add .nojekyll file
+        run: touch ./Lux/lux_react/dist/.nojekyll
+      
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: ./Lux/lux_react/dist
+          branch: gh-pages
+          clean: true
+          commit-message: "Deploy: ${{ github.event.head_commit.message || 'Manual deployment' }}"

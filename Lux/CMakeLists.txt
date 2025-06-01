@@ -62,7 +62,8 @@ src/warp_field.cpp
 src/warp.hpp
 )
 
-add_library(common ${COMMON_LIB_SRCS})
+add_library(common ${COMMON_LIB_SRCS}
+        src/video_recorder.cpp)
 
 set(LUX_MAIN_SRCS src/lux.cpp)
 add_executable(lux ${LUX_MAIN_SRCS})

@@ -16,9 +16,15 @@ struct cluster;
 template< class T > struct CA;
 template< class T > struct eff_fill;
 template< class T > struct eff_noise;
+template< class T > struct eff_checkerboard;
 template< class T > struct eff_grayscale;
 template< class T > struct eff_invert;
-template< class T > struct eff_rotate_colors;
+template< class T > struct eff_rotate_components;
+template< class T > struct eff_rgb_to_hsv;
+template< class T > struct eff_hsv_to_rgb;
+template< class T > struct eff_rotate_hue;
+template< class T > struct eff_bit_plane;
+
 template< class T > struct eff_crop_circle;
 template< class T > struct eff_mirror;
 template< class T > struct eff_turn;
@@ -38,9 +44,18 @@ template< class T > struct eff_inverse_square;
 template< class T > struct eff_concentric;
 template< class T > struct eff_rotational;
 template< class T > struct eff_spiral;
+template< class T > struct eff_fermat_spiral;
 template< class T > struct eff_vortex;
 template< class T > struct eff_turbulent;
 template< class T > struct eff_kaleidoscope;
+template< class T > struct eff_radial_tile;
+template< class T > struct eff_theta_rotate;
+template< class T > struct eff_theta_swirl;
+template< class T > struct eff_theta_rings;
+template< class T > struct eff_theta_waves;
+template< class T > struct eff_theta_saw;
+template< class T > struct eff_theta_compression_waves;
+template< class T > struct eff_radial_multiply;
 template< class T > struct eff_position_fill;
 
 // warp field effects
@@ -71,14 +86,31 @@ typedef std::variant <
     std::shared_ptr< eff_noise< int > >,
     std::shared_ptr< eff_noise< vec2i > >,
 
+    std::shared_ptr< eff_checkerboard< frgb > >,
+    std::shared_ptr< eff_checkerboard< ucolor > >,
+    std::shared_ptr< eff_checkerboard< vec2f > >,
+    std::shared_ptr< eff_checkerboard< int > >,
+    std::shared_ptr< eff_checkerboard< vec2i > >,
+    
     std::shared_ptr< eff_grayscale< frgb > >,
     std::shared_ptr< eff_grayscale< ucolor > >,
 
     std::shared_ptr< eff_invert< frgb > >,
     std::shared_ptr< eff_invert< ucolor > >,
 
-    std::shared_ptr< eff_rotate_colors< frgb > >,
-    std::shared_ptr< eff_rotate_colors< ucolor > >,
+    std::shared_ptr< eff_rotate_components< frgb > >,
+    std::shared_ptr< eff_rotate_components< ucolor > >,
+
+    std::shared_ptr< eff_rgb_to_hsv< frgb > >,
+    std::shared_ptr< eff_rgb_to_hsv< ucolor > >,
+
+    std::shared_ptr< eff_hsv_to_rgb< frgb > >,
+    std::shared_ptr< eff_hsv_to_rgb< ucolor > >,
+
+    std::shared_ptr< eff_rotate_hue< frgb > >,
+    std::shared_ptr< eff_rotate_hue< ucolor > >,
+
+    std::shared_ptr< eff_bit_plane< ucolor > >,
 
     std::shared_ptr< eff_crop_circle< frgb > >,
     std::shared_ptr< eff_crop_circle< ucolor > >,
@@ -128,9 +160,18 @@ typedef std::variant <
     std::shared_ptr< eff_concentric< vec2f > >,
     std::shared_ptr< eff_rotational< vec2f > >,
     std::shared_ptr< eff_spiral< vec2f > >,
+    std::shared_ptr< eff_fermat_spiral< vec2f > >,
     std::shared_ptr< eff_vortex< vec2f > >,
     std::shared_ptr< eff_turbulent< vec2f > >,
     std::shared_ptr< eff_kaleidoscope< vec2f > >,
+    std::shared_ptr< eff_radial_tile< vec2f > >,
+    std::shared_ptr< eff_theta_rotate< vec2f > >,
+    std::shared_ptr< eff_theta_swirl< vec2f > >,
+    std::shared_ptr< eff_theta_rings< vec2f > >,
+    std::shared_ptr< eff_theta_waves< vec2f > >,
+    std::shared_ptr< eff_theta_saw< vec2f > >,
+    std::shared_ptr< eff_theta_compression_waves< vec2f > >,
+    std::shared_ptr< eff_radial_multiply< vec2f > >,
     std::shared_ptr< eff_position_fill< vec2f > >,
 
     // warp field effects

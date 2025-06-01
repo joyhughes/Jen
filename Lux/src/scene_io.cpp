@@ -8,24 +8,8 @@
 #include <fstream>
 #include <sstream>
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-void emscripten_message( std::string msg ) {
-    msg = "console.log('" + msg + "');";
-    emscripten_run_script( msg.c_str() );
-}
-
-void emscripten_error( std::string msg ) {
-    emscripten_message( msg );
-    exit( 0 );
-}
-
-#define DEBUG( msg ) emscripten_message( msg );
-#define ERROR( msg ) emscripten_error( msg ); 
-#else
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
 #define ERROR( msg ) throw std::runtime_error( msg );
-#endif
 
 using json = nlohmann::json;
 using string = std::string;
@@ -72,6 +56,7 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     DEBUG( "Effects loaded" )
 
     if( j.contains( "queue" ) ) for( auto& q : j[ "queue" ] ) {
+        DEBUG( "Reading queue" )
         read_queue( q );              // add to render queue
     }
 
@@ -108,7 +93,7 @@ ucolor scene_reader::read_ucolor( const json& j ) {
     return u;
 }
 
-unsigned long long scene_reader::read_ull( const json& j ) { 
+funk_factor scene_reader::read_funk_factor( const json& j ) { 
     std::string s;
     unsigned long long ull;
     j.get_to( s );
@@ -139,6 +124,19 @@ direction4 scene_reader::read_direction4( const json& j ) {
     else if( s == "down" ) d = direction4::D4_DOWN;
     else if( s == "left" ) d = direction4::D4_LEFT;
     else ERROR( "Invalid direction4 string: " + s )
+    return d;
+}
+
+direction4_diagonal scene_reader::read_direction4_diagonal( const json& j ) { 
+    std::string s;
+    direction4_diagonal d;
+
+    j.get_to( s );
+    if(      s == "up_right"  ) d = direction4_diagonal::D4D_UPRIGHT;
+    else if( s == "down_right") d = direction4_diagonal::D4D_DOWNRIGHT;
+    else if( s == "down_left" ) d = direction4_diagonal::D4D_DOWNLEFT;
+    else if( s == "up_left"   ) d = direction4_diagonal::D4D_UPLEFT;
+    else ERROR( "Invalid direction4_diagonal string: " + s )
     return d;
 }
 
@@ -254,29 +252,25 @@ switch_type scene_reader::read_switch_type( const json& j ) {
 
 void scene_reader::read_image( const json& j ) {
     std::string type, name, filename;
-    DEBUG( "scene_reader::read_image" )
 
     if( j.contains( "filename" ) ) j[ "filename" ].get_to( filename );
     else ERROR( "scene_reader::read_image error - image filename missing\n" )
-    DEBUG( "scene_reader::read_image - filename: " + filename )
 
     if( j.contains( "name" ) ) j[ "name" ].get_to( name );
     else name = filename;
-    DEBUG( "scene_reader::read_image - name: " + name )
 
     if( j.contains( "type") ) j[ "type" ].get_to( type );
     else ERROR( "scene_reader::read_image error - image type missing\n" )
-    DEBUG( "scene_reader::read_image - type: " + type )
 
     // future: add binary file format for all image types
 
+    DEBUG( "scene_reader::read_image() - filename " + filename + "name " + name + " type " + type )
     if( type == "fimage" ) {
         fbuf_ptr img( new buffer_pair< frgb >( filename ) );
         s.buffers[ name ] = img;
     }
 
     if( type == "uimage" ) {
-        DEBUG( "scene_reader::read_image - reading uimage" )
         ubuf_ptr img( new buffer_pair< ucolor >( filename ) );
         s.buffers[ name ] = img;
         //std :: cout << "uimage pointer " << img << std::endl;
@@ -418,6 +412,7 @@ void scene_reader::read_function( const json& j ) {
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
+    FN( integrator_float, float ) HARNESS( delta ) HARNESS( scale ) READ( val ) END_FN
     FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
@@ -458,6 +453,7 @@ void scene_reader::read_function( const json& j ) {
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
+    FN( buffer_dim_fn, vec2i ) HARNESS( buf_name ) END_FN
     FN( mouse_pix_fn, vec2i ) END_FN
 
     // harness frgb functions
@@ -467,10 +463,13 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_ucolor, ucolor ) HARNESS( r ) END_FN
 
     // pickers
-    FN( direction_picker_4, direction4 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( direction_picker_8, direction8 ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( multi_direction8_picker, int )   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
-    FN( box_blur_picker, box_blur_type ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( ucolor_picker, ucolor )                             READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( funk_factor_picker, funk_factor )                   READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4, direction4 )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_4_diagonal, direction4_diagonal )  READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( direction_picker_8, direction8 )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( multi_direction8_picker, int )                      READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( box_blur_picker, box_blur_type )                    READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
     // special case for custom_blur_picker
     FN( custom_blur_picker, int ) 
@@ -501,6 +500,7 @@ void scene_reader::read_function( const json& j ) {
     FN( equal_string_fn,     bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_bool_fn,       bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_direction4_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
+    FN( equal_direction4_diagonal_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
     FN( equal_direction8_fn, bool ) HARNESS( a ) HARNESS( b ) END_FN
 
 
@@ -540,6 +540,7 @@ void scene_reader::read_function( const json& j ) {
     COND_FN( equal_string_condition )     HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_bool_condition )       HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    COND_FN( equal_direction4_diagonal_condition ) HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_FN
 }
 
@@ -593,7 +594,8 @@ void scene_reader::read_rule( const json& j, std::shared_ptr< CA_ucolor >& ca ) 
     RULE( rule_gravitate_ucolor )  HARNESSR( direction ) END_RULE()
     RULE( rule_snow_ucolor )       HARNESSR( direction ) END_RULE()
     RULE( rule_pixel_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) END_RULE()
-    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) READR( dafunk_l ) READR( dafunk_r ) READR( dafunk_d ) READR( hood ) END_RULE()
+    RULE( rule_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) HARNESSR( dafunk_l ) HARNESSR( dafunk_r ) READR( hood ) END_RULE()
+    RULE( rule_diagonal_funky_sort_ucolor ) HARNESSR( direction ) HARNESSR( max_diff ) HARNESSR( dafunk_d ) READR( hood ) END_RULE()
     DEBUG( "CA rule " + name + " complete" )
 }
 
@@ -664,7 +666,7 @@ void scene_reader::read_effect( const json& j ) {
     END_EFF()
 
     EFF( eff_composite )
-    if( j.contains( "effects ") )
+    if( j.contains( "effects") )
     {
         for( std::string eff_name : j[ "effects" ] ) {
             if( s.effects.contains( eff_name ) ) e->add_effect( s.effects[ eff_name ] );
@@ -703,8 +705,19 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_invert_ucolor )  END_EFF()
     EFF( eff_invert_frgb )    END_EFF()
 
-    EFF( eff_rotate_colors_frgb ) HARNESSE( r ) END_EFF()
-    EFF( eff_rotate_colors_ucolor ) HARNESSE( r ) END_EFF()
+    EFF( eff_rotate_components_frgb ) HARNESSE( r ) END_EFF()
+    EFF( eff_rotate_components_ucolor ) HARNESSE( r ) END_EFF()
+
+    EFF( eff_rgb_to_hsv_frgb )   END_EFF()
+    EFF( eff_rgb_to_hsv_ucolor ) END_EFF()
+
+    EFF( eff_hsv_to_rgb_frgb )   END_EFF()
+    EFF( eff_hsv_to_rgb_ucolor ) END_EFF()
+
+    EFF( eff_rotate_hue_frgb )   HARNESSE( offset ) END_EFF()
+    EFF( eff_rotate_hue_ucolor ) HARNESSE( offset ) END_EFF()
+
+    EFF( eff_bit_plane_ucolor ) HARNESSE( bit_mask ) END_EFF()
 
     EFF( eff_crop_circle_frgb )   HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
     EFF( eff_crop_circle_ucolor ) HARNESSE( background ) HARNESSE( ramp_width ) END_EFF()
@@ -736,6 +749,12 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_noise_vec2f )  HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_int )    HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
 
+    EFF( eff_checkerboard_frgb)   HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_ucolor) HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2i)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_vec2f)  HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+    EFF( eff_checkerboard_int)    HARNESSE( box_size ) HARNESSE( c1 ) HARNESSE( c2 ) END_EFF()
+
     EFF( eff_vector_warp_frgb )   HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_ucolor ) HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
     EFF( eff_vector_warp_vec2i )  HARNESSE( vf_name ) HARNESSE( step ) HARNESSE( smooth ) HARNESSE( relative ) HARNESSE( extend ) END_EFF()
@@ -760,6 +779,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_concentric_vec2f ) HARNESSE( center ) END_EFF()
     EFF( eff_rotational_vec2f ) HARNESSE( center ) END_EFF()
     EFF( eff_spiral_vec2f ) HARNESSE( center ) HARNESSE( angle ) END_EFF()
+    EFF( eff_fermat_spiral_vec2f ) HARNESSE( c ) END_EFF()
     EFF( eff_vortex_vec2f ) HARNESSE( diameter ) HARNESSE( soften ) HARNESSE( intensity ) HARNESSE( center_orig ) 
                             READE( revolving ) HARNESSE( velocity ) HARNESSE( center_of_revolution ) END_EFF()
     EFF( eff_turbulent_vec2f ) HARNESSE( n ) HARNESSE( bounds ) HARNESSE( scale_factor ) 
@@ -768,7 +788,24 @@ void scene_reader::read_effect( const json& j ) {
                                HARNESSE( min_intensity ) HARNESSE( max_intensity ) READE( intensity_direction )
                                READE( revolving ) HARNESSE( min_velocity ) HARNESSE( max_velocity )
                                READE( velocity_direction ) HARNESSE( min_orbital_radius ) HARNESSE( max_orbital_radius ) END_EFF()
-    EFF( eff_kaleidoscope_vec2f ) HARNESSE( center ) HARNESSE( segments ) HARNESSE( offset_angle ) HARNESSE( reflect ) END_EFF()                    
+    EFF( eff_kaleidoscope_vec2f )   HARNESSE( segments ) HARNESSE( levels ) 
+                                    HARNESSE( start ) HARNESSE( level_start )
+                                    HARNESSE( spin ) HARNESSE( expand )
+                                    HARNESSE( reflect ) HARNESSE( reflect_levels ) END_EFF() 
+    EFF( eff_radial_tile_vec2f  ) HARNESSE( segments )  HARNESSE( levels ) 
+                                  HARNESSE( offset_x )  HARNESSE( offset_y ) 
+                                  HARNESSE( spin )      HARNESSE( expand ) 
+                                  HARNESSE( zoom_x )    HARNESSE( zoom_y ) 
+                                  HARNESSE( reflect_x ) HARNESSE( reflect_y ) END_EFF()
+    EFF( eff_radial_multiply_vec2f )    HARNESSE( segments ) HARNESSE( levels ) 
+                                        HARNESSE( spin ) HARNESSE( expand )
+                                        HARNESSE( reflect ) HARNESSE( reflect_levels ) END_EFF() 
+    EFF( eff_theta_rotate_vec2f ) HARNESSE( angle ) END_EFF() 
+    EFF( eff_theta_swirl_vec2f  ) HARNESSE( amount) END_EFF()
+    EFF( eff_theta_rings_vec2f  ) HARNESSE( n ) HARNESSE( swirl ) HARNESSE( alternate ) END_EFF() 
+    EFF( eff_theta_waves_vec2f  ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()   
+    EFF( eff_theta_saw_vec2f    ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()  
+    EFF( eff_theta_compression_waves_vec2f ) HARNESSE( freq ) HARNESSE( amp ) HARNESSE( phase ) HARNESSE( const_amp ) END_EFF()   
     EFF( eff_position_fill_vec2f ) END_EFF()
 
     // warp field effects
@@ -783,18 +820,18 @@ void scene_reader::read_queue( const json& j ) {
     bool self_generated = false;
     if( j.contains( "self_generated" ) ) read( self_generated, j[ "self_generated" ] );
     vec2i dim( 512, 512 );
-    if( j.contains( "dim"            ) ) read( dim,            j[ "dim"          ] );
     pixel_type ptype = pixel_type::PIXEL_UCOLOR;
     if( j.contains( "type"           ) ) read( ptype,          j[ "type"         ] );
     render_mode rmode = render_mode::MODE_STATIC;
     if( j.contains( "mode"           ) ) read( rmode,          j[ "mode"         ] );
     float relative_dim = 1.0;
     if( j.contains( "relative_dim"   ) ) read( relative_dim,   j[ "relative_dim" ] );  
-    
     effect_list elist( name, self_generated, "none", dim, ptype, rmode, relative_dim );
     // DEBUG( "Reading queue " + .name )
     if( j.contains( "effects"      ) ) for( std::string eff_name : j[ "effects"      ] ) elist.effects.push_back( eff_name );  ;
     if( j.contains( "source"       ) ) read_harness( j[ "source" ], elist.source_name );
+    if( j.contains( "dim"          ) ) read_harness( j[ "dim"    ], elist.dim );
+
     // DEBUG( "queue source successfully read " )
     s.queue.push_back( elist );
     s.buffers[ name ] = elist.buf;
@@ -841,6 +878,27 @@ void to_json(nlohmann::json& j, const direction4& d ) {
             break;
         default:
             // Handle unexpected direction4 value
+            j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
+void to_json(nlohmann::json& j, const direction4_diagonal& d) {
+    switch (d) {
+        case direction4_diagonal::D4D_UPRIGHT:
+            j = "up_right";
+            break;
+        case direction4_diagonal::D4D_DOWNRIGHT:
+            j = "down_right";
+            break;
+        case direction4_diagonal::D4D_DOWNLEFT:
+            j = "down_left";
+            break;
+        case direction4_diagonal::D4D_UPLEFT:
+            j = "up_left";
+            break;
+        default:
+            // Handle unexpected direction4_diagonal value
             j = nullptr; // Or any indication of an error/invalid value
             break;
     }
@@ -946,6 +1004,19 @@ void to_json(nlohmann::json& j, const std::vector<widget_group>& wg_vec) {
     }
 }
 */
+
+std::string ullToHexString(unsigned long long value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << value;
+    return ss.str();
+}
+
+std::string ulToHexString(unsigned long value) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::uppercase << value;
+    return ss.str();
+}
+
 void to_json( nlohmann::json& j, const any_function& af ) {
     std::visit(overloaded{ 
         [&]( const any_fn< bool >& wrapper ) {
@@ -1065,6 +1136,28 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                 }
             }, wrapper.any_fn_ptr);
         },
+        [&]( const any_fn< funk_factor >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< funk_factor_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "funk_factor_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", ullToHexString( fn->value ) },
+                        {"default_value", ullToHexString( fn->default_value ) }
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented funk_factor function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },  
         [&]( const any_fn< interval_int >& wrapper ) {
             std::visit(overloaded{
                 [&]( const std::shared_ptr< range_slider_int >& fn ) {
@@ -1122,9 +1215,29 @@ void to_json( nlohmann::json& j, const any_function& af ) {
         },
         [&]( const any_fn< frgb >& wrapper ) {
         },
-        [&]( const any_fn< ucolor >& wrapper ) {
-        },
         */
+        [&]( const any_fn< ucolor >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< ucolor_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "ucolor_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", ulToHexString( fn->value ) },
+                        {"default_value", ulToHexString( fn->default_value ) }
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented ucolor function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },
         [&]( const any_fn< std::string >& wrapper ) {
             std::visit( overloaded {
                 [&]( const std::shared_ptr< menu_string >& fn ) {
@@ -1169,6 +1282,28 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
                         {"type", "unimplemented direction4 function"} // Replace with actual type identification if needed
+                        // Other placeholder fields...
+                    };
+                }
+            }, wrapper.any_fn_ptr);
+        },        
+        [&]( const any_fn< direction4_diagonal >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< direction_picker_4_diagonal >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "direction_picker_4_diagonal"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    // Placeholder for other types
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented direction4_diagonal function"} // Replace with actual type identification if needed
                         // Other placeholder fields...
                     };
                 }
