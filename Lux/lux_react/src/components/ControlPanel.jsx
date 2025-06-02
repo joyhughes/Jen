@@ -14,6 +14,7 @@ import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
+import RealtimeCamera from "./RealtimeCamera.jsx";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -175,9 +176,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                     // If setup failed but we haven't exceeded max attempts, try again
                     if (setupAttempts.current < maxSetupAttempts) {
                         setupAttempts.current += 1;
-                        console.log(`Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 200ms...`);
+                        console.log(`Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 1...`);
 
-                        setTimeout(initializeModule, 200);
+                        setTimeout(initializeModule, 1000);
                     } else {
                         console.error("Max setup attempts reached, giving up");
                         setIsLoading(false);
@@ -268,6 +269,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 return <TargetImagePane {...commonProps} />;
             case "brush":
                 return <BrushPane {...commonProps} />;
+            case "camera":
+                return (
+                    <Box sx={{ p: 1, height: '100%' }}>
+                        <RealtimeCamera 
+                            width={Math.min(dimensions.width - 20, 512)}
+                            height={Math.min(dimensions.height - 100, 512)}
+                            onClose={() => onPaneChange("home")}
+                        />
+                    </Box>
+                );
             default:
                 return <HomePane {...commonProps} />;
         }

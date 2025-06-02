@@ -9,9 +9,10 @@ import {
     Alert,
     Fade,
     Grid,
-    Tooltip
+    Tooltip,
+    Chip
 } from "@mui/material";
-import { BookOpen, Info } from "lucide-react";
+import { BookOpen, Info, Video, VideoOff } from "lucide-react";
 import { useScene } from "../SceneContext.jsx";
 import { usePane } from "./PaneContext.jsx";
 
@@ -27,7 +28,7 @@ const calculateFontSize = (name) => {
 
 export function SceneChooserPane() {
     const { scenes, currentSceneIndex, changeScene, isLoading } = useScene();
-    const { setActivePane } = usePane(); // Get the setActivePane function from context
+    const { setActivePane } = usePane();
     const [selectedIndex, setSelectedIndex] = useState(currentSceneIndex);
     const [containerWidth, setContainerWidth] = useState(0);
     const containerRef = useRef(null);
@@ -148,7 +149,8 @@ export function SceneChooserPane() {
                                                 },
                                                 height: '100%',
                                                 display: 'flex',
-                                                flexDirection: 'column'
+                                                flexDirection: 'column',
+                                                position: 'relative'
                                             }}
                                             onClick={() => handleSceneSelect(index)}
                                         >

@@ -223,10 +223,10 @@ void effect_list::restart( scene& s ) {
     update( s );
 }
 
-scene::scene( float time_interval_init ) : time_interval( time_interval_init ), default_time_interval( time_interval_init ) {}
+scene::scene( float time_interval_init ) : liveCamera( false ), time_interval( time_interval_init ), default_time_interval( time_interval_init ) {}
 
 scene::scene( const std::string& filename, float time_interval_init ) 
-    : time( 0.0f ), time_interval( time_interval_init ), default_time_interval( time_interval_init )
+    : liveCamera( false ), time( 0.0f ), time_interval( time_interval_init ), default_time_interval( time_interval_init )
 {
     scene_reader reader( *this, filename );
 }

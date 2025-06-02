@@ -1,0 +1,156 @@
+.camera-capture-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #000;
+}
+
+.camera-capture-container video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Flash animation for photo capture */
+@keyframes camera-flash {
+    0% { opacity: 0; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
+
+.camera-flash-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    pointer-events: none;
+    animation: camera-flash 0.3s ease-out;
+    z-index: 9999;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+    .camera-capture-container {
+        border-radius: 12px;
+    }
+    
+    /* Larger touch targets on mobile */
+    .camera-controls button {
+        min-width: 56px;
+        min-height: 56px;
+    }
+    
+    .camera-controls .capture-button {
+        min-width: 72px;
+        min-height: 72px;
+    }
+}
+
+/* Live preview indicator animation */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.live-preview-indicator {
+    animation: pulse 2s infinite;
+}
+
+/* Settings panel animations */
+.camera-settings-panel {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Camera switching animation */
+.camera-switching {
+    animation: flip 0.6s ease-in-out;
+}
+
+@keyframes flip {
+    0% { transform: scaleX(1); }
+    50% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+}
+
+/* Error state styling */
+.camera-error {
+    background: linear-gradient(45deg, #f44336, #d32f2f);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+/* Loading state */
+.camera-loading {
+    background: linear-gradient(45deg, #333, #555);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* Responsive video container */
+.camera-video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #000;
+}
+
+.camera-video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Control overlay positioning */
+.camera-controls-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.camera-controls-overlay > * {
+    pointer-events: auto;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .camera-flash-overlay,
+    .live-preview-indicator,
+    .camera-settings-panel,
+    .camera-switching {
+        animation: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .camera-capture-container {
+        border: 2px solid white;
+    }
+    
+    .camera-controls button {
+        border: 1px solid white;
+    }
+} 
