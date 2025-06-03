@@ -1,2 +1,7 @@
 #!/usr/bin/bash
-exec docker run --rm -it -v $(pwd):$(pwd) --net=host jentest bash
+export DUSERNAME=$(id -u -n)
+export DGROUP=$(id -g -n)
+export DUID=$(id -u)
+export DGID=$(id -g)
+
+exec docker run -e DGROUP -e DUSERNAME -e DUID -e DGID -w $(pwd) --rm -it -v $(pwd):$(pwd) --net=host jentest ./scripts/second-stage.sh
