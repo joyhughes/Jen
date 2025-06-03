@@ -4,10 +4,10 @@
 #ifndef __UCOLOR_HPP
 #define __UCOLOR_HPP
 
+#include <vector>
+#include <algorithm>
 #include "mask_mode.hpp"
-#include "algorithm"
-#include "vector"
-#include <iostream>
+
 typedef unsigned int ucolor;
 
 float af( const ucolor &c );
