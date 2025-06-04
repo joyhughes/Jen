@@ -67,6 +67,14 @@
     "functions":
     [
         {
+            "name": "target_switch",
+            "type": "switch_fn",
+            "label": "Target",
+            "description": "Image becomes more similar to target image",
+            "tool": "switch",
+            "default_value": false
+        },
+        {
             "name": "brush_fn",
             "type": "position_gen_fn",
             "position": { "functions": [ "mouse_position" ] }
@@ -158,6 +166,15 @@
             "type": "menu_string",
             "tool": "image",
             "label": "Source Image",
+            "description": "Choose an image to apply the transition rule to.",
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 1
+        },        
+        {
+            "name": "target_image_menu",
+            "type": "menu_string",
+            "tool": "pull_down",
+            "label": "Target Image",
             "description": "Choose an image to apply the transition rule to.",
             "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
             "default_choice": 1
@@ -299,6 +316,7 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "diffuse",
@@ -309,6 +327,7 @@
             "name": "Life",
             "type": "CA_ucolor",
             "edge_block": { "functions": [ "edge_block_switch" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "life",
@@ -323,6 +342,7 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "gravitate",
@@ -336,6 +356,7 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "snow",
@@ -349,6 +370,7 @@
             "edge_block": {"functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "pixel_sort",
@@ -363,6 +385,7 @@
             "edge_block": {   "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "funky_sort",
@@ -379,6 +402,7 @@
             "edge_block": {   "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "funky_sort",
@@ -394,6 +418,7 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "box blur rule",
@@ -411,6 +436,7 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
             "rule":
             {
                 "name": "Blurriffic rule",
@@ -455,7 +481,12 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "rule_menu", "edge_block_switch" ]
+            "widgets": [ "rule_menu", "edge_block_switch", "target_switch" ]
+        },
+        { 
+            "name": "target_image_group",
+            "conditions": "target_switch",
+            "widgets": [ "target_image_menu" ]
         },
         {
             "name": "source_image_group",
@@ -464,7 +495,7 @@
         {
             "name": "diffuse_group",
             "conditions": [ "rule_menu_0" ],
-            "widgets": [ "bright_block_widget_switch" ]
+            "widgets": [ "target_switch", "bright_block_widget_switch" ]
         },
         {
             "name": "life_group",
