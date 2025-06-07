@@ -23,7 +23,7 @@ echo "⏳ Waiting for container to be ready..."
 sleep 5
 
 # Check if container is running
-if ! docker-compose ps jen-dev | grep -q "running"; then
+if ! docker-compose ps jen-dev | grep -q "Up"; then
     echo "❌ Container failed to start. Check logs with: docker-compose logs jen-dev"
     exit 1
 fi
