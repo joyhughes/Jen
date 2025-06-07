@@ -25,7 +25,8 @@
   },
   "type": "module",
   "scripts": {
-    "start": "vite",
+    "start": "vite --host 0.0.0.0 --port 3000 --no-open",
+    "start-dev": "vite --host 0.0.0.0 --port 5173 --no-open", 
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
