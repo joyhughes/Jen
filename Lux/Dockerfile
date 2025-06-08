@@ -70,6 +70,7 @@ RUN mkdir -p /app/external/build/lib && \
 
 # Build x264 with Emscripten
 RUN cd /app/external && \
+    rm -rf x264 && \
     git clone --depth 1 https://code.videolan.org/videolan/x264.git && \
     cd x264 && \
     bash -c "source /opt/emsdk/emsdk_env.sh && \
@@ -93,6 +94,7 @@ RUN cd /app/external && \
 
 # Build FFmpeg with x264 support using Emscripten
 RUN cd /app/external && \
+    rm -rf ffmpeg && \
     git clone https://git.ffmpeg.org/ffmpeg.git && \
     cd ffmpeg && \
     git checkout release/7.1 && \
