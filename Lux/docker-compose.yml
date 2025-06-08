@@ -84,13 +84,16 @@ services:
       echo '🔧 Available commands:'
       echo '  cd lux_react && npm start    # Start React dev server'
       echo '  cd lux_react && npm run dev  # Start Vite dev server'
-      echo '  make                         # Rebuild WASM if needed'
+      echo '  ./dev-watch.sh               # Watch C++ files for changes'
+      echo '  ./build-cpp.sh               # Manual C++ rebuild'
       echo '  make status                  # Check build status'
       echo ''
       echo '🌐 Access your app at:'
       echo '  http://localhost:5173 (Vite)'
       echo '  http://localhost:3000 (CRA)'
       echo ''
+      echo '💡 Starting C++ file watcher in background...'
+      ./dev-watch.sh &
       echo '💡 Open a new terminal and run: docker exec -it jen-dev-environment bash'
       bash
       "
