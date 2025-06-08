@@ -1528,5 +1528,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("ultra_start_camera_stream", &ultra_start_camera_stream);
     function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
     function("ultra_get_camera_stats", &ultra_get_camera_stats);
-
-}
+} 

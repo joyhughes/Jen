@@ -57,7 +57,9 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         if (group.name.toLowerCase().includes('source') ||
             group.name.toLowerCase().includes('target') ||
             group.name === 'SOURCE_IMAGE_GROUP' ||
-            group.name === 'TARGET_IMAGE_GROUP') {
+            group.name === 'TARGET_IMAGE_GROUP'
+            ) 
+            {
             return false;
         }
 
