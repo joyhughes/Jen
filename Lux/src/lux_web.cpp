@@ -1109,51 +1109,6 @@ bool ultra_update_camera_frame(val image_data, int width, int height) {
     }
 }
 
-// Load kaleidoscope scene if not already loaded - NO HARDCODED PARAMETERS
-bool ensure_kaleidoscope_scene_loaded() {
-    if (!global_context || !global_context->s) {
-        std::cerr << "ERROR: Global context not available" << std::endl;
-        return false;
-    }
-    
-    // Check if kaleidoscope functions already exist (scene already loaded)
-    if (global_context->s->functions.count("scope_menu") && 
-        global_context->s->functions.count("segment_slider") &&
-        global_context->s->functions.count("source_image_menu")) {
-        std::cout << "✓ Kaleidoscope scene already loaded" << std::endl;
-        return true;
-    }
-    
-    std::cout << "Loading kaleidoscope scene for camera effects..." << std::endl;
-    
-    try {
-        // Load the kaleidoscope scene JSON
-        load_scene("lux_files/kaleido.json");
-        
-        // Verify the scene loaded successfully by checking for essential functions
-        bool has_scope_menu = global_context->s->functions.count("scope_menu") > 0;
-        bool has_segments = global_context->s->functions.count("segment_slider") > 0;
-        bool has_source = global_context->s->functions.count("source_image_menu") > 0;
-        
-        std::cout << "Scene verification - Scope menu: " << has_scope_menu 
-                  << ", Segments: " << has_segments 
-                  << ", Source menu: " << has_source << std::endl;
-        
-        if (has_scope_menu && has_segments && has_source) {
-            std::cout << "✓ Kaleidoscope scene fully loaded" << std::endl;
-            std::cout << "  Frontend controls will determine all effect parameters" << std::endl;
-            return true;
-        } else {
-            std::cerr << "ERROR: Kaleidoscope scene missing essential components" << std::endl;
-            return false;
-        }
-        
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to load kaleidoscope scene: " << e.what() << std::endl;
-        return false;
-    }
-}
-
 // SCENE-BASED kaleidoscope processing - INTEGRATES WITH FRONTEND CONTROLS
 bool ultra_process_camera_with_kaleidoscope() {
     std::cout << "=== SCENE_INTEGRATED_CAMERA_PROCESSING START ===" << std::endl;
@@ -1243,13 +1198,7 @@ bool ultra_start_camera_stream() {
         std::cerr << "ERROR: Global context not available for ultra camera" << std::endl;
         return false;
     }
-    
-    // CRITICAL: Ensure kaleidoscope scene is loaded before starting camera
-    if (!ensure_kaleidoscope_scene_loaded()) {
-        std::cerr << "ERROR: Failed to load kaleidoscope scene for camera" << std::endl;
-        return false;
-    }
-    
+
     try {
         // Backup current source
         if (!ultra_camera->is_active) {
@@ -1579,5 +1528,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("ultra_start_camera_stream", &ultra_start_camera_stream);
     function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
     function("ultra_get_camera_stats", &ultra_get_camera_stats);
-
-}
+} 
