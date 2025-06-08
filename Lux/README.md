@@ -200,3 +200,227 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# Jen - Kaleidoscope Application with Live Camera & Video Recording
+
+A powerful WebAssembly-based kaleidoscope application with real-time camera processing and H.264/MP4 video recording capabilities.
+
+## 🚀 Quick Start with Docker (Recommended)
+
+The easiest way to run Jen is using Docker, which provides a unified development environment with all dependencies pre-built.
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/get-started) installed on your system
+- [Docker Compose](https://docs.docker.com/compose/install/) (usually included with Docker)
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd Jen
+```
+
+### 2. Start Development Environment
+
+```bash
+# Start the development container
+docker-compose up jen-dev
+
+# Or run in detached mode
+docker-compose up -d jen-dev
+```
+
+This will:
+- ✅ Build the complete development environment with Emscripten, FFmpeg, and x264
+- ✅ Compile the C++ source code to WebAssembly (`lux.js`)
+- ✅ Mount your local files for live development
+- ✅ Install React dependencies
+- ✅ Provide an interactive shell
+
+### 3. Start the React Development Server
+
+In a new terminal, connect to the running container:
+
+```bash
+# Connect to the development container
+docker exec -it jen-dev-environment bash
+
+# Inside the container, start the React app
+cd lux_react
+npm start        # For Create React App
+# OR
+npm run dev      # For Vite
+```
+
+### 4. Access Your Application
+
+- **Vite Dev Server**: http://localhost:5173
+- **Create React App**: http://localhost:3000
+
+## 🎥 Features
+
+- **Real-time Camera Processing**: Live kaleidoscope effects from your webcam
+- **Video Recording**: Record H.264/MP4 videos with embedded kaleidoscope effects
+- **WebAssembly Performance**: High-performance C++ processing compiled to WASM
+- **Mobile Compatible**: Optimized for both desktop and mobile browsers
+- **Live Preview**: See effects in real-time before recording
+
+## 🔧 Development Commands
+
+Inside the Docker container:
+
+```bash
+# Check build status
+make status
+
+# Rebuild WebAssembly if needed
+make
+
+# Clean and rebuild
+make clean && make
+
+# Quick camera-optimized build
+make camera-dev
+
+# Check FFmpeg/x264 installation
+ls -la /app/external/build/lib/
+```
+
+## 📁 Project Structure
+
+```
+Jen/
+├── src/                    # C++ source code
+│   ├── lux_web.cpp        # Main WebAssembly interface
+│   ├── video_recorder.cpp # H.264/MP4 recording
+│   ├── effect.cpp         # Kaleidoscope effects
+│   └── ...                # Other C++ modules
+├── lux_react/             # React frontend
+│   ├── src/
+│   │   ├── lux.js        # Compiled WebAssembly (auto-generated)
+│   │   └── ...           # React components
+│   └── package.json
+├── external/              # External dependencies (auto-built)
+│   ├── build/            # FFmpeg, x264 libraries
+│   └── ...
+├── Dockerfile            # Docker build configuration
+├── docker-compose.yml    # Development environment
+└── Makefile             # Build system
+```
+
+## 🏗️ Manual Build (Advanced)
+
+If you prefer building manually without Docker:
+
+### Prerequisites
+
+- **Emscripten SDK** (latest version)
+- **CMake** and **build tools**
+- **Git** for dependency management
+
+### Build Steps
+
+```bash
+# 1. Activate Emscripten
+source /path/to/emsdk/emsdk_env.sh
+
+# 2. Build dependencies and application
+make
+
+# 3. Start React development
+cd lux_react
+npm install
+npm start
+```
+
+## 🐳 Docker Commands Reference
+
+```bash
+# Start development environment
+docker-compose up jen-dev
+
+# Start in background
+docker-compose up -d jen-dev
+
+# Connect to running container
+docker exec -it jen-dev-environment bash
+
+# View logs
+docker-compose logs jen-dev
+
+# Stop environment
+docker-compose down
+
+# Rebuild container (after changes to Dockerfile)
+docker-compose build jen-dev
+
+# Production build (optional)
+docker-compose --profile prod up jen-prod
+```
+
+## 🔧 Troubleshooting
+
+### Container Build Issues
+
+```bash
+# Clean rebuild
+docker-compose down
+docker-compose build --no-cache jen-dev
+docker-compose up jen-dev
+```
+
+### WebAssembly Issues
+
+```bash
+# Inside container: rebuild WASM
+make clean && make
+
+# Check dependencies
+make status
+```
+
+### React Development Issues
+
+```bash
+# Inside container: reinstall dependencies
+cd lux_react
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### FFmpeg/Video Recording Issues
+
+```bash
+# Inside container: verify FFmpeg installation
+ls -la /app/external/build/lib/libav*.a
+ls -la /app/external/build/lib/libx264.a
+
+# Check build configuration
+make info
+```
+
+## 🎯 Development Workflow
+
+1. **Start Docker**: `docker-compose up -d jen-dev`
+2. **Connect**: `docker exec -it jen-dev-environment bash`
+3. **Edit Code**: Modify files in your local editor (they're mounted in the container)
+4. **Rebuild WASM**: Run `make` inside container if you change C++ code
+5. **Start React**: `cd lux_react && npm start`
+6. **Develop**: Your React app will hot-reload on changes
+
+## 📊 Performance Tips
+
+- The Docker environment includes camera optimizations and enhanced memory (4GB max)
+- WASM build uses `-O3` optimization and SIMD instructions
+- Video recording uses hardware-accelerated H.264 encoding when available
+- Real-time processing is optimized for 60fps performance
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and test with Docker environment
+4. Submit a pull request
+
+For more examples, see the React components in `lux_react/src/`.

@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Unified Lux Application (Development)
+  lux-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - EMSCRIPTEN_VERSION=3.1.51
+        - NODE_VERSION=18-alpine
+    volumes:
+      - ./lux_react:/app:delegated
+      - /app/node_modules
+      - ./src:/workspace/src:ro
+      - ./lux_files:/workspace/lux_files:ro
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_HMR_HOST=localhost
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Production Build (for testing production builds locally)
+  lux-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - EMSCRIPTEN_VERSION=3.1.51
+        - NODE_VERSION=18-alpine
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    profiles:
+      - production
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Jen Development Environment - Complete setup with FFmpeg and x264
+  jen-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jen-dev-environment
+    volumes:
+      # Mount the entire project for development
+      - .:/app
+      # Preserve built dependencies and artifacts
+      - jen_node_modules:/app/lux_react/node_modules
+      - jen_external_build:/app/external/build
+      - jen_web_build:/app/web_build
+    ports:
+      # React development server (Vite)
+      - "5173:5173"
+      # React development server (Create React App fallback)
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    working_dir: /app
+    command: |
+      bash -c "
+      echo '🚀 Jen Development Environment Ready!'
+      echo '📁 Project files mounted at /app'
+      echo '🎥 Video recording: FFmpeg + x264 enabled'
+      echo '⚡ WASM build: lux.js ready'
+      echo ''
+      echo '🔧 Available commands:'
+      echo '  cd lux_react && npm start    # Start React dev server'
+      echo '  cd lux_react && npm run dev  # Start Vite dev server'
+      echo '  ./dev-watch.sh               # Watch C++ files for changes'
+      echo '  ./build-cpp.sh               # Manual C++ rebuild'
+      echo '  make status                  # Check build status'
+      echo ''
+      echo '🌐 Access your app at:'
+      echo '  http://localhost:5173 (Vite)'
+      echo '  http://localhost:3000 (CRA)'
+      echo ''
+      echo '💡 Starting C++ file watcher in background...'
+      ./dev-watch.sh &
+      echo '💡 Open a new terminal and run: docker exec -it jen-dev-environment bash'
+      bash
+      "
+    stdin_open: true
+    tty: true
+
+  # Production Build Service (optional)
+  jen-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jen-production
+    volumes:
+      - .:/app
+    ports:
+      - "8080:80"
+    command: |
+      bash -c "
+      echo '🏗️  Building production version...'
+      cd lux_react
+      if [ -f package.json ]; then
+        npm install
+        npm run build
+        echo '✅ Production build complete!'
+        echo '🌐 Serving at http://localhost:8080'
+        npx serve -s build -l 80
+      else
+        echo '❌ No package.json found in lux_react/'
+        echo '💡 Make sure your React app is in the lux_react directory'
+        bash
+      fi
+      "
+    profiles:
+      - prod
+
+volumes:
+  # Named volumes for better performance and persistence
+  jen_node_modules:
+    driver: local
+  jen_external_build:
+    driver: local  
+  jen_web_build:
+    driver: local 
