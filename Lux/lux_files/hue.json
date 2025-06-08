@@ -1,7 +1,7 @@
 {
     "name": "hues",
     "title": "Hues",
-    "liveCamera": false,
+    "liveCamera": true,
     "images":
     [
         {
