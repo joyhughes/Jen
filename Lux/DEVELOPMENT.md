@@ -9,7 +9,7 @@ For users who just want to run the app quickly:
 ```bash
 # 1. Clone and enter directory
 git clone <repo-url>
-cd Jen
+cd Jen/Lux
 
 # 2. One command to build and run everything
 docker-compose up jen-dev
