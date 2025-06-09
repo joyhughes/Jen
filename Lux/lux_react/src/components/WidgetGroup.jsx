@@ -13,13 +13,16 @@ import JenFunkyPicker from './JenFunkyPicker';
 import JenColorPicker from './JenColorPicker';
 import MasonryImagePicker from './MasonryImagePicker';
 import { Plus, X } from 'lucide-react';
+import { ControlPanelContext } from './InterfaceContainer';
 
 function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false }) {
-    const [renderCount, setRenderCount] = useState(0);
     const [widgetElements, setWidgetElements] = useState([]);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
     const theme = useTheme();
+    
+    // Get reset trigger from context
+    const { resetTrigger } = React.useContext(ControlPanelContext);
 
     const getBreakpointColumns = () => {
         // If we have the actual container width, use it, otherwise use panelSize
@@ -204,14 +207,22 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 for (let i = 0; i < widget.pickers.length; i++) {
                     const handleClose = () => {
                         window.module.remove_custom_blur_pickers(widget.name, i);
-                        setRenderCount(renderCount + 1);
+                        // Force re-render by updating the widget elements
+                        setTimeout(() => {
+                            if (json && json.widgets) {
+                                const elements = json.widgets
+                                    .map(createWidgetElement)
+                                    .filter(el => el !== null);
+                                setWidgetElements(elements);
+                            }
+                        }, 50);
                     };
 
                     const picker = widget.pickers[i];
 
                     pickerElements.push(
                         <Box
-                            key={`picker-${i}-${renderCount}`}
+                            key={`picker-${i}-${resetTrigger}`}
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -227,13 +238,13 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                                 name={widget.name}
                                 value={picker[0]}
                                 code={i}
-                                key={`dir1-${i}-${renderCount}`}
+                                key={`dir1-${i}-${resetTrigger}`}
                             />
                             <JenMultiDirection8
                                 name={widget.name}
                                 value={picker[1]}
                                 code={i + 128}
-                                key={`dir2-${i}-${renderCount}`}
+                                key={`dir2-${i}-${resetTrigger}`}
                             />
                             <IconButton size="small" onClick={handleClose} sx={{ p: 0.2, color: 'white' }}>
                                 <X size={12} />
@@ -244,7 +255,15 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
 
                 const handleAddPicker = () => {
                     window.module.add_custom_blur_pickers(widget.name);
-                    setRenderCount(renderCount + 1);
+                    // Force re-render by updating the widget elements
+                    setTimeout(() => {
+                        if (json && json.widgets) {
+                            const elements = json.widgets
+                                .map(createWidgetElement)
+                                .filter(el => el !== null);
+                            setWidgetElements(elements);
+                        }
+                    }, 50);
                 };
 
                 return (
@@ -327,7 +346,7 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 .filter(el => el !== null);
             setWidgetElements(elements);
         }
-    }, [json, panelSize, disableImageWidgets, renderCount]);
+    }, [json, panelSize, disableImageWidgets, resetTrigger]);
 
     // If no widgets, don't render anything
     if (widgetElements.length === 0) {

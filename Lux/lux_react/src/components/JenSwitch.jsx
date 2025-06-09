@@ -8,6 +8,7 @@ import {
     Tooltip
 } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
+import { ControlPanelContext } from './InterfaceContainer';
 
 const StyledSwitch = styled(Switch)(({ theme }) => ({
     width: 38,
@@ -65,6 +66,9 @@ const StyledCheckbox = styled(Checkbox)(({ theme }) => ({
 function JenSwitch({ json, onChange }) {
     const theme = useTheme();
     const [switchValue, setSwitchValue] = useState(json.value ?? false);
+    
+    // Get reset trigger from context
+    const { resetTrigger } = React.useContext(ControlPanelContext);
 
     // Handle switch change
     const handleSwitchChange = (event) => {
@@ -142,6 +146,14 @@ function JenSwitch({ json, onChange }) {
                 );
         }
     };
+
+    // Reset to default value when resetTrigger changes
+    useEffect(() => {
+        if (resetTrigger > 0) {
+            const defaultValue = json.default_value ?? false;
+            setSwitchValue(defaultValue);
+        }
+    }, [resetTrigger, json.default_value]);
 
     // Update state if json value changes
     useEffect(() => {

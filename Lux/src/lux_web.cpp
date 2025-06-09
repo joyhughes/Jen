@@ -267,6 +267,118 @@ void restart() {
     global_context->s->ui.displayed = false;
 }
 
+
+void reset_scene_parameters() {
+    if (!global_context || !global_context->s) {
+        return;
+    }
+    
+    // Reset all functions to their default values
+    for (auto& [name, fn] : global_context->s->functions) {
+        std::visit([](auto&& func_wrapper) {
+            using T = std::decay_t<decltype(func_wrapper)>;
+            
+            if constexpr (std::is_same_v<T, any_fn<float>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
+                        fn_ptr->reset();
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<int>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_int>>) {
+                        fn_ptr->reset();
+                    }
+                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<menu_int>>) {
+                        fn_ptr->choice = fn_ptr->default_choice;
+                    }
+                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<multi_direction8_picker>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<interval_float>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<range_slider_float>>) {
+                        fn_ptr->reset();
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<interval_int>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<range_slider_int>>) {
+                        fn_ptr->reset();
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<std::string>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<menu_string>>) {
+                        fn_ptr->choice = fn_ptr->default_choice;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<bool>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<switch_fn>>) {
+                        fn_ptr->reset();
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<ucolor>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<ucolor_picker>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<funk_factor>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<funk_factor_picker>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<direction4>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<direction_picker_4>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<direction4_diagonal>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<direction_picker_4_diagonal>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+            else if constexpr (std::is_same_v<T, any_fn<direction8>>) {
+                std::visit([](auto&& fn_ptr) {
+                    using FnType = std::decay_t<decltype(fn_ptr)>;
+                    if constexpr (std::is_same_v<FnType, std::shared_ptr<direction_picker_8>>) {
+                        fn_ptr->value = fn_ptr->default_value;
+                    }
+                }, func_wrapper.any_fn_ptr);
+            }
+                 }, fn);
+     }
+     
+     // Force re-render
+     global_context->s->ui.displayed = false;
+}
+
 void advance_frame() {
     global_context->s->ui.advance = true;
     global_context->s->ui.running = false;
@@ -1475,6 +1587,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "run_pause",          &run_pause );
     function( "restart",            &restart );
     function( "advance_frame",      &advance_frame );
+    function( "reset_scene_parameters", &reset_scene_parameters );
 
     // widget info functions
     function( "get_panel_JSON",     &get_panel_JSON);
