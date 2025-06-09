@@ -15,6 +15,7 @@ function InterfaceContainer({panelSize}) {
     const [controlPanelDimensions, setControlPanelDimensions] = useState({width: 0, height: 0});
     const [activePane, setActivePane] = useState("home");
     const [sliderValues, setSliderValues] = useState({});
+    const [resetTrigger, setResetTrigger] = useState(0);
     const containerRef = useRef(null);
 
     // Store slider values when they change from user interaction
@@ -23,10 +24,42 @@ function InterfaceContainer({panelSize}) {
             const newValues = { ...prev, [name]: value };
             // Only update backend when values actually change from user interaction
             if (window.module && prev[name] !== value) {
-                window.module.set_slider_value(name, value);
+                try {
+                    // Handle range sliders vs single sliders differently
+                    if (Array.isArray(value) && value.length === 2) {
+                        // For range sliders, call set_range_slider_value with two separate parameters
+                        if (typeof window.module.set_range_slider_value === 'function') {
+                            // Ensure values are proper numbers
+                            const val1 = parseFloat(value[0]);
+                            const val2 = parseFloat(value[1]);
+                            
+                            if (!isNaN(val1) && !isNaN(val2)) {
+                                window.module.set_range_slider_value(name, val1, val2);
+                            } else {
+                                console.warn(`Invalid range slider values for ${name}:`, value);
+                            }
+                        } else {
+                            console.warn(`set_range_slider_value function not available for ${name}`);
+                        }
+                    } else if (typeof value === 'number' && !isNaN(value)) {
+                        // Single slider with valid number
+                        window.module.set_slider_value(name, value);
+                    } else {
+                        console.warn(`Invalid slider value for ${name}:`, value);
+                    }
+                } catch (error) {
+                    console.error(`Error setting slider value for ${name}:`, error, 'Value:', value);
+                }
             }
             return newValues;
         });
+    };
+
+    // Trigger UI reset - this will cause all widgets to refresh their values
+    const triggerReset = () => {
+        setResetTrigger(prev => prev + 1);
+        // Clear stored slider values since they're now reset to defaults
+        setSliderValues({});
     };
 
     // Store initial slider values when panel is first loaded
@@ -182,7 +215,9 @@ function InterfaceContainer({panelSize}) {
 
     const controlPanelContextValue = {
         sliderValues,
-        onSliderChange: handleSliderChange
+        onSliderChange: handleSliderChange,
+        resetTrigger,
+        triggerReset
     };
 
     return (

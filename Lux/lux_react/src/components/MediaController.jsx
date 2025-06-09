@@ -21,11 +21,15 @@ import {
   VideoOff,
   Camera
 } from 'lucide-react';
+import { ControlPanelContext } from './InterfaceContainer';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isRunning, setIsRunning] = useState(true);
+  
+  // Get reset functionality from context
+  const { triggerReset } = React.useContext(ControlPanelContext);
 
   // Video recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -422,9 +426,19 @@ function MediaController({ isOverlay = false }) {
 
   // Handle media controls
   const handleRestart = () => {
-    if (window.module) {
+    if (window.module && triggerReset) {
+      // Reset all scene parameters to defaults first
+      if (typeof window.module.reset_scene_parameters === 'function') {
+        window.module.reset_scene_parameters();
+      }
+      
+      // Then restart the scene
       window.module.restart();
-      showNotification('Scene restarted', 'info');
+      
+      // Trigger UI reset to refresh all widget displays
+      triggerReset();
+      
+      showNotification('Scene reset to defaults', 'success');
     }
   };
 
@@ -1202,7 +1216,7 @@ function MediaController({ isOverlay = false }) {
         width: '100%'
       }}>
         {/* Primary Controls */}
-        <Tooltip title="Restart" arrow>
+        <Tooltip title="Reset scene" arrow>
           <IconButton
             onClick={handleRestart}
             sx={buttonStyles}

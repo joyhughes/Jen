@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { CheckCircle } from 'lucide-react';
 import { styled } from '@mui/system';
+import { ControlPanelContext } from './InterfaceContainer';
 
 const StyledSelect = styled(Select)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
@@ -65,6 +66,9 @@ function JenMenu({ json, onChange }) {
     const theme = useTheme();
     const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.choice ?? 0);
     const [internalItems, setInternalItems] = useState(json.items || []);
+    
+    // Get reset trigger from context
+    const { resetTrigger } = React.useContext(ControlPanelContext);
 
     // Handle menu change
     const handleMenuChange = (event) => {
@@ -223,6 +227,14 @@ function JenMenu({ json, onChange }) {
             );
         }
     };
+
+    // Reset to default choice when resetTrigger changes
+    useEffect(() => {
+        if (resetTrigger > 0) {
+            const defaultChoice = json.default_choice ?? 0;
+            setSelectedMenuChoice(defaultChoice);
+        }
+    }, [resetTrigger, json.default_choice]);
 
     useEffect(() => {
         setInternalItems(json.items || []);
