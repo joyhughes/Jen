@@ -17,8 +17,9 @@ import {
   RotateCcw, 
   Save, 
   SkipForward, 
-  Video, 
-  VideoOff 
+  Video,
+  VideoOff,
+  Camera
 } from 'lucide-react';
 
 function MediaController({ isOverlay = false }) {
@@ -440,6 +441,77 @@ function MediaController({ isOverlay = false }) {
       window.module.run_pause();
       setIsRunning(!isRunning); // Toggle UI state
       showNotification(isRunning ? 'Paused' : 'Playing', 'info');
+    }
+  };
+
+  const handleTakeScreenshot = () => {
+    if (window.module && typeof window.module.get_img_data === 'function') {
+      try {
+        // Get image data from the backend
+        const imageDataVal = window.module.get_img_data();
+        if (!imageDataVal) {
+          showNotification('Failed to capture screenshot: No image data', 'error');
+          return;
+        }
+
+        const width = window.module.get_buf_width();
+        const height = window.module.get_buf_height();
+        
+        if (!width || !height) {
+          showNotification('Failed to capture screenshot: Invalid dimensions', 'error');
+          return;
+        }
+
+        // Create canvas to process the image data
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Get the image buffer
+        const bufferLength = imageDataVal.byteLength;
+        const pixelData = new Uint8ClampedArray(imageDataVal.buffer, imageDataVal.byteOffset, bufferLength);
+
+        // Convert to RGBA format for canvas
+        const rgbaData = new Uint8ClampedArray(bufferLength);
+        for (let i = 0; i < bufferLength; i += 4) {
+          rgbaData[i] = pixelData[i];         // R
+          rgbaData[i + 1] = pixelData[i + 1]; // G
+          rgbaData[i + 2] = pixelData[i + 2]; // B
+          rgbaData[i + 3] = 255;              // A (full opacity)
+        }
+
+        // Create ImageData and render to canvas
+        const imageData = new ImageData(rgbaData, width, height);
+        ctx.putImageData(imageData, 0, 0);
+
+        // Generate filename and download
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `jen-screenshot-${timestamp}.png`;
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Screenshot saved!', 'success');
+          } else {
+            showNotification('Failed to create screenshot file', 'error');
+          }
+        }, 'image/png');
+
+      } catch (error) {
+        console.error('Screenshot error:', error);
+        showNotification('Failed to take screenshot: ' + error.message, 'error');
+      }
+    } else {
+      showNotification('Screenshot function not available', 'error');
     }
   };
 
@@ -1204,6 +1276,16 @@ function MediaController({ isOverlay = false }) {
               )}
             </IconButton>
           </span>
+        </Tooltip>
+
+        <Tooltip title="Take Screenshot" arrow>
+          <IconButton
+            onClick={handleTakeScreenshot}
+            sx={buttonStyles}
+            size="medium"
+          >
+            <Camera size={iconSize} />
+          </IconButton>
         </Tooltip>
 
         <Tooltip title="Save Scene" arrow>
