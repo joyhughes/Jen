@@ -241,7 +241,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
             } 
             else if( hood == HOOD_SQUARE_REV ) { 
-                if( ( ( 5 - ( ca_frame % 4 ) ) / 2 ) % 2 ) startx = 0; else startx = 1;  // square
+                if( ( ( 5 - ( ca_frame % 4 ) ) / 2 ) % 2 ) startx = 0; else startx = 1;  // reverse square
                 if( ( ca_frame / 2 )         % 2 ) starty = 0; else starty = -1;
             } 
             else if( hood == HOOD_RANDOM ) {
@@ -300,7 +300,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                                  { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                             else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
                         }
-                        else *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
+                        else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
 
                         out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
                         out_ll = out + 1;                         out_lr = out + 2;
@@ -337,7 +337,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                                  { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                             else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
                         }
-                        else *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
+                        else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                         out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
                         out_ll = out + (y + 1) * dim.x + 1; out_lr = out + (y + 1) * dim.x + 2;
 
@@ -357,8 +357,17 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                     if( *targeted ) { TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr; }
                     run_rule();  // apply rule
-                    *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR;
-                    // update neighborhood
+                    if( *targeted ) {   // update neighborhood
+                        if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
+                            manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
+                             { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; } 
+                        else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
+                        /*if( manhattan( RUL, TUL ) < manhattan( MUL, TUL ) ) *out_ul = RUL; else *out_ul = MUL;
+                        if( manhattan( RUR, TUR ) < manhattan( MUR, TUR ) ) *out_ur = RUR; else *out_ur = MUR;
+                        if( manhattan( RLR, TLR ) < manhattan( MLR, TLR ) ) *out_lr = RLR; else *out_lr = MLR;
+                        if( manhattan( RLL, TLL ) < manhattan( MLL, TLL ) ) *out_ll = RLL; else *out_ll = MLL;*/
+                    }
+                    else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }                
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
                     out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
                     if( *targeted ) { tar_ul += 2; tar_ur +=2 ; tar_ll +=2 ; tar_lr += 2; }
