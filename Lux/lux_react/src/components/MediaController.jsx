@@ -48,8 +48,6 @@ function MediaController({ isOverlay = false }) {
     queueSize: 0
   });
   const recordingInterval = useRef(null);
-  const prevStateRef = useRef({isRunning: true});
-
 
   // Mobile logging helper
   const mobileLog = (message, data = null) => {
@@ -62,34 +60,6 @@ function MediaController({ isOverlay = false }) {
       showNotification(`Debug: ${message}`, 'error');
     }
   };
-
-    // Store state before image change
-  useEffect(() => {
-        if (window.module) {
-            const originalUpdateSourceName = window.module.update_source_name;
-            window.module.update_source_name = function(imageName) {
-                // Store current state
-                prevStateRef.current = {
-                    isRunning: isRunning
-                };
-                // Call original function
-                return originalUpdateSourceName.call(this, imageName);
-            };
-        }
-    }, [isRunning]);
-
-    // Restore state after image change
-    useEffect(() => {
-        if (window.module && prevStateRef.current) {
-            const { isRunning: prevIsRunning } = prevStateRef.current;
-            if (prevIsRunning !== isRunning) {
-                setIsRunning(prevIsRunning);
-                if (window.module.run_pause) {
-                    window.module.run_pause();
-                }
-            }
-        }
-    }, [isRunning]);
 
   // Enhanced mobile device detection with logging
   const isMobileDevice = () => {
@@ -458,17 +428,18 @@ function MediaController({ isOverlay = false }) {
   };
 
   const handleAdvance = () => {
-    if (window.module) {
-      setIsRunning(false);
+    if (window.module && typeof window.module.advance_frame === 'function') {
       window.module.advance_frame();
+      setIsRunning(false); // Update UI state to reflect that we're now paused
+      showNotification('Advanced one frame', 'info');
     }
   };
 
   const handleRunPause = () => {
-    if (window.module) {
-      const newState = !isRunning;
-      setIsRunning(newState);
+    if (window.module && typeof window.module.run_pause === 'function') {
       window.module.run_pause();
+      setIsRunning(!isRunning); // Toggle UI state
+      showNotification(isRunning ? 'Paused' : 'Playing', 'info');
     }
   };
 
