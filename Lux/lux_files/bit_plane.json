@@ -1,0 +1,101 @@
+{
+    "name": "bit planes",
+    "title": "Bit Planes",
+    "liveCamera": true,
+    "images":
+    [
+        {
+            "type": "uimage",
+            "filename": "lux_files/Ada.jpg",
+            "name": "Ada"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/crab_nebula.jpg", 
+            "name": "Crab Nebula"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/earth.jpg",
+            "name": "Earth"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/everest.jpg",
+            "name": "Everest"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/flower.jpg",
+            "name": "Flower"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/forest.jpg",
+            "name": "Forest"
+        },
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/hk_square_512.jpg", 
+            "name": "Hong Kong"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/lighthouse.jpg",
+            "name": "Lighthouse"
+        },
+        {
+            "type": "uimage",
+            "filename": "lux_files/sunrise.jpg",
+            "name": "Sunrise"
+        }
+    ],
+    "functions":
+    [
+        {
+            "name": "source_image_menu",
+            "type": "menu_string",
+            "tool": "image",
+            "label": "Source Image",
+            "description": "Choose an image",
+            "items": [ "Ada", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 6
+        },
+        {
+            "name": "bit_mask_picker",
+            "type": "ucolor_picker",
+            "default_value": "0xff808080",
+            "label": "Color Mask",
+            "description": "Color mask for bit plane effect"
+        }
+    ],
+    "effects":
+    [
+        {
+            "name": "bit plane",
+            "type": "eff_bit_plane_ucolor",
+            "bit_mask": { "functions": [ "bit_mask_picker" ] }
+        }
+    ],
+    "queue": 
+    [
+        {
+            "name": "bit planes",
+            "source": { "functions": [ "source_image_menu" ] },
+            "type": "uimage",
+            "mode": "ephemeral",  
+            "effects": [ "bit plane" ]
+        }
+    ],
+    "widget groups":
+    [
+        {
+            "name": "home_group",
+            "widgets": [ "bit_mask_picker" ]
+        },
+        {
+            "name": "source_image_group",
+            "widgets": [ "source_image_menu" ]
+        }
+    ]
+}
