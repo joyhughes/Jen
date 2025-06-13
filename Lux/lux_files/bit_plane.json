@@ -1,6 +1,7 @@
 {
     "name": "bit planes",
     "title": "Bit Planes",
+    "liveCamera": true,
     "images":
     [
         {
