@@ -112,26 +112,27 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
         auto tar = in;
+        bool use_target = false; // *targeted == true and target is valid and same dimensions as source image
         if( *targeted ) { 
             if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
                 tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
                 // future: handle different target dimensions
                 if( tar_ptr.get() ) {   // check for null pointer
                     if( tar_ptr->has_image() ) {
-                        if( tar_ptr->get_image().get_dim() == img.get_dim() ) tar = tar_ptr->get_image().begin();
+                        if( tar_ptr->get_image().get_dim() == img.get_dim() ) {
+                            tar = tar_ptr->get_image().begin();
+                            use_target = true;  // target image is valid
+                        }
                         else {
                             std::cout << "CA: target buffer dimensions do not match" << std::endl;
-                            throw std::runtime_error( "CA: target buffer dimensions do not match" );
                         }
                     }
                     else {
                         std::cout << "CA: target buffer has no image" << std::endl;
-                        throw std::runtime_error( "CA: target buffer has no image" );
                     }
                 }
                 else {
                     std::cout << "CA: target buffer is null" << std::endl;
-                    throw std::runtime_error( "CA: target buffer is null" );
                 }
              }
         }
@@ -141,7 +142,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         if( hood == HOOD_MOORE ) {
             neighbors.resize( 9 );
             result.resize( 1 );
-            if( *targeted ) targ.resize( 1 );
+            if( use_target ) targ.resize( 1 );
             auto out_it = out;
             auto dl_it = in;
             auto dm_it = in;
@@ -176,16 +177,16 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                if( *targeted ) tar_it = tar + x;
+                if( use_target ) tar_it = tar + x;
                 for( y = 0; y < dim.y - 1; y++ ) {
                     run_rule();  // apply rule
-                    if( *targeted ) {    // if targeted, compare with target
+                    if( use_target ) {    // if targeted, compare with target
                         if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
                         else *out_it = MM;
                     }
                     else *out_it = result[0];        // set output
                     out_it += dim.x;
-                    if( *targeted ) tar_it += dim.x;
+                    if( use_target ) tar_it += dim.x;
                     // update neighborhood
                     UL = ML; UM = MM; UR = MR;
                     ML = DL; MM = DM; MR = DR;
@@ -197,7 +198,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 DM = *(in + x);
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
                 run_rule();  // apply rule
-                if( *targeted ) {    // if targeted, compare with target
+                if( use_target ) {    // if targeted, compare with target
                     if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
                     else *out_it = MM;
                 }
@@ -209,7 +210,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         else if((int)hood >= (int)HOOD_MARGOLUS ){ 
             neighbors.resize( 4 );
             result.resize( 4 );
-            if( *targeted ) targ.resize( 4 );
+            if( use_target ) targ.resize( 4 );
             auto out_ul = out; auto out_ur = out; auto out_ll = out; auto out_lr = out;
             auto in_ul  = in;  auto in_ur  = in;  auto in_ll  = in;  auto in_lr  = in;
             auto tar_ul = tar; auto tar_ur = tar; auto tar_ll = tar; auto tar_lr = tar;
@@ -258,7 +259,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul  = in  + ( dim.y - 1 ) * dim.x; in_ur  = in_ul  + 1; 
                         in_ll  = in;                          in_lr  = in     + 1;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar + ( dim.y - 1 ) * dim.x; tar_ur = tar_ul + 1; 
                             tar_ll = tar;                         tar_lr = tar    + 1;
                         }
@@ -270,7 +271,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul = in + y * dim.x;         in_ur = in_ul + 1; 
                         in_ll = in + (y + 1) * dim.x;   in_lr = in_ll + 1;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar + y * dim.x;       tar_ur = tar_ul + 1; 
                             tar_ll = tar + (y + 1) * dim.x; tar_lr = tar_ll + 1;
                         }
@@ -284,7 +285,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul  = in  + dim.y * dim.x - 1; in_ur  = in  + ( dim.y - 1 ) * dim.x; 
                         in_ll  = in  + dim.x - 1;         in_lr  = in;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar + dim.y * dim.x - 1; tar_ur = tar + ( dim.y - 1 ) * dim.x; 
                             tar_ll = tar + dim.x - 1;         tar_lr = tar;
 
@@ -294,7 +295,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
 
                         run_rule();  // apply rule
-                        if( *targeted ) {
+                        if( use_target ) {
                             if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
                                 manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
                                  { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
@@ -308,7 +309,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul  = in +  ( dim.y - 1 ) * dim.x + 1; in_ur  = in  + ( dim.y - 1 ) * dim.x + 2;
                         in_ll  = in  + 1;                         in_lr  = in  + 2;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar +  ( dim.y - 1 ) * dim.x + 1; tar_ur = tar + ( dim.y - 1 ) * dim.x + 2;
                             tar_ll = tar + 1;                         tar_lr = tar + 2;
 
@@ -322,7 +323,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul = in + (y + 1) * dim.x - 1;   in_ur = in + y * dim.x;
                         in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar + (y + 1) * dim.x - 1; tar_ur = tar + y * dim.x; 
                             tar_ll = tar + (y + 2) * dim.x - 1; tar_lr = tar + (y + 1) * dim.x;
 
@@ -331,7 +332,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
 
                         MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
                         run_rule();  // apply rule
-                        if( *targeted ) {
+                        if( use_target ) {
                             if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
                                 manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
                                  { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
@@ -344,7 +345,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         in_ul = in + y * dim.x + 1;         in_ur = in + y * dim.x + 2;
                         in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
 
-                        if( *targeted ) {
+                        if( use_target ) {
                             tar_ul = tar + y * dim.x + 1;         tar_ur = tar + y * dim.x + 2;
                             tar_ll = tar + (y + 1) * dim.x + 1;   tar_lr = tar + (y + 1) * dim.x + 2;
 
@@ -355,9 +356,9 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 for( x= startx; x < dim.x; x += 2 ) {
                     // set neighborhood
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                    if( *targeted ) { TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr; }
+                    if( use_target ) { TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr; }
                     run_rule();  // apply rule
-                    if( *targeted ) {   // update neighborhood
+                    if( use_target ) {   // update neighborhood
                         if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
                             manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
                              { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; } 
@@ -370,11 +371,11 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                     else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }                
                     in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
                     out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
-                    if( *targeted ) { tar_ul += 2; tar_ur +=2 ; tar_ll +=2 ; tar_lr += 2; }
+                    if( use_target ) { tar_ul += 2; tar_ur +=2 ; tar_ll +=2 ; tar_lr += 2; }
                     if( x == dim.x - 3 ) { // right edge
                         in_ur  -= dim.x; in_lr  -= dim.x;
                         out_ur -= dim.x; out_lr -= dim.x;
-                        if( *targeted ) { tar_ur -= dim.x; tar_lr -= dim.x; }
+                        if( use_target ) { tar_ur -= dim.x; tar_lr -= dim.x; }
                     }
                 }
             }
