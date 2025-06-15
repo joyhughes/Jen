@@ -22,7 +22,7 @@
 template< class T > struct CA {
    std::vector< T > neighbors, result, targ; // vector of neighbors - size depends on neighborhood
    // Future - use for image targeting
-   bool targeted; // if true, rule will run if it gets closer to target image
+   harness< bool > targeted; // if true, rule will run if it gets closer to target image
    any_buffer_pair_ptr target; // target image
    // 
    // Rule can have both warp field and vector field

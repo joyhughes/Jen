@@ -650,7 +650,7 @@ void scene_reader::read_effect( const json& j ) {
             j[ "target" ].get_to( buf_name );
             CA_targets[ name ] = buf_name;
         }
-        READE( targeted )
+        HARNESSE( targeted )
         HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block ) 
         HARNESSE( bright_block ) HARNESSE( bright_range )
     END_EFF()
