@@ -12,6 +12,10 @@ static std::uniform_real_distribution<float> rand1( 0.0f, 1.0f );
 static std::uniform_int_distribution<unsigned int> fair_coin( 0, 1 );
 static std::uniform_int_distribution<unsigned int> rand_uint( 0, 0xffffffff ); 
 static float rand_range( const float a, const float b ) { return a + ( b - a ) * rand1( gen ); }
+static int rand_range( const int a, const int b ) { 
+    std::uniform_int_distribution<int> dist( a, b );
+    return dist( gen );
+}
 
 // potentially unfair coin - returns 1 with probability a
 static unsigned int weighted_bit( const float a ) { if( rand1( gen ) < a ) return 1; else return 0; }

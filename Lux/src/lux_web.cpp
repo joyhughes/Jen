@@ -427,6 +427,27 @@ void set_slider_value( std::string name, float value ) {
     throw std::runtime_error( "slider " + name + " not found in scene" );
 }
 
+void set_slider_callback( std::string name, val callback ) {
+    std::cout << "set_slider_callback: " << name << std::endl;
+    if( global_context->s->functions.contains( name ) ) {
+        any_function& fn = global_context->s->functions[ name ];
+        if( std::holds_alternative< any_fn< float > >( fn ) ) {
+            global_context->s->get_fn_ptr< float, slider_float >( name )->callback = [callback](float value) {
+                callback(value);
+            };
+            return;
+        }
+        else if( std::holds_alternative< any_fn< int > >( fn ) ) {
+            global_context->s->get_fn_ptr< int, slider_int >( name )->callback = [callback](int value) {
+                callback(value);
+            };
+            return;
+        }
+        throw std::runtime_error( "slider " + name + " invalid type for callback" );
+    }
+    throw std::runtime_error( "slider " + name + " not found in scene" );
+}
+
 void set_range_slider_value( std::string name, float value_min, float value_max ) {
     // std::cout << "set_range_slider_value: " << name << " " << value_min << " " << value_max << std::endl;
     if( global_context->s->functions.contains( name ) ) {

@@ -409,18 +409,19 @@ void scene_reader::read_function( const json& j ) {
     FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
 
     // harness float functions
-    //FN( adder_float, float ) HARNESS( r ) END_FN
+    FN( adder_float, float ) HARNESS( r ) END_FN
+    FN( tweaker_float, float ) HARNESS( p ) HARNESS( amount ) END_FN
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
     FN( integrator_float, float ) HARNESS( delta ) HARNESS( scale ) READ( val ) END_FN
     FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
-    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
-    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
+    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // special case for menu
@@ -1066,7 +1067,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"max", fn->max},
                         {"default_value", fn->default_value},
                         {"step", fn->step},
-                        {"value", fn->value}
+                        {"value", *fn->value}
                     };
                 },
                 [&]( const std::shared_ptr< menu_int >& fn ) {
@@ -1124,7 +1125,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"max", fn->max},
                         {"default_value", fn->default_value},
                         {"step", fn->step},
-                        {"value", fn->value}
+                        {"value", *fn->value}
                     };
                 },
                 [&]( const auto& fn ) {

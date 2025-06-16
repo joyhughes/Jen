@@ -72,7 +72,9 @@ typedef switch_condition switch_fn;
 
 template< Scalar T > struct slider {
     std::string label, description;
-    T value, default_value, min, max, step;
+    harness< T > value; 
+    T default_value, min, max, step;
+    std::function<void(T)> callback;
 
     T operator () ( T& val, element_context& context ); 
 

@@ -118,6 +118,26 @@ typedef adder< vec2f  > adder_vec2f;
 typedef adder< frgb   > adder_frgb;
 typedef adder< ucolor > adder_ucolor;
 
+template< Additive U > struct tweaker {
+    harness< float > p; // change probability
+    harness< int > amount; // amount to change by
+    
+    U operator () ( U& u, element_context& context ) { 
+        p( context );
+        if( rand_range( 0.0f, 1.0f ) < *p ) {
+            amount( context );
+            U v = rand_range( - *amount, *amount );
+            u += v;
+        }
+        return u;   
+    }
+
+    tweaker( const float& p_init = 0.001f, const int& amount_init = 1 ) : p( p_init ), amount( amount_init ) {}
+};
+
+typedef tweaker< int    > tweaker_int;
+typedef tweaker< float  > tweaker_float;
+
 struct log_fn {
     harness< float > scale;
     harness< float > shift;
