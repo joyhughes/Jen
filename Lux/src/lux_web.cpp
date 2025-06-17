@@ -15,11 +15,27 @@
 #include "video_recorder.hpp"
 #include <chrono>
 
+// Audio data stored in scene's UI context - no separate global audio context needed
+// The frontend SHO/FFT system updates scene parameters directly via the harness system
 
-//#include <chrono>
-//#include <thread>
+// Implementation of audio harness helper functions
+template<>
+void make_audio_reactive<float>(harness<float>& h, const std::string& channel, float sensitivity) {
+    auto audio_fn = std::make_shared<audio_additive_fn>(channel, sensitivity, 0.0f);
+    float_fn fn_ref = std::ref(*audio_fn);
+    any_float_fn_ptr variant_ptr = audio_fn;  // Cast to variant type
+    any_fn<float> any_audio_fn(variant_ptr, fn_ref, "audio_" + channel);
+    h.add_function(any_audio_fn);
+}
 
-#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+template<>
+void make_audio_reactive<vec2f>(harness<vec2f>& h, const std::string& channel, float sensitivity) {
+    auto audio_fn = std::make_shared<audio_additive_vec2f_fn>(channel, channel, sensitivity, sensitivity, vec2f(0.0f, 0.0f));
+    vec2f_fn fn_ref = std::ref(*audio_fn);
+    any_vec2f_fn_ptr variant_ptr = audio_fn;  // Cast to variant type
+    any_fn<vec2f> any_audio_fn(variant_ptr, fn_ref, "audio_" + channel);
+    h.add_function(any_audio_fn);
+}
 
 using namespace emscripten;
 
@@ -242,6 +258,9 @@ void render_and_display( void *arg )
 
         global_context->frame_callback();
 
+        // Apply audio reactivity to scene parameters
+        // Audio reactivity is now handled automatically by the harness system
+
         if( running || advance || !displayed ) {
             global_context->s->render();
         }
@@ -283,6 +302,10 @@ void reset_scene_parameters() {
                     using FnType = std::decay_t<decltype(fn_ptr)>;
                     if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
                         fn_ptr->reset();
+                    }
+                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<integrator_float>>) {
+                        fn_ptr->val = fn_ptr->starting_val;
+                        fn_ptr->last_time = 0.0f;
                     }
                 }, func_wrapper.any_fn_ptr);
             }
@@ -375,6 +398,9 @@ void reset_scene_parameters() {
                  }, fn);
      }
      
+     // Disable audio when resetting to default state
+     global_context->s->ui.audio.enabled = false;
+     
      // Force re-render
      global_context->s->ui.displayed = false;
 }
@@ -416,10 +442,41 @@ void set_slider_value( std::string name, float value ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
             global_context->s->get_fn_ptr< float, slider_float >( name )->value = value;
+            
+            global_context->s->ui.displayed = false;
+            
+            if( name.find("start") != std::string::npos || 
+                name.find("spin") != std::string::npos || 
+                name.find("expand") != std::string::npos ||
+                name.find("phase") != std::string::npos ||
+                name.find("swirl") != std::string::npos ||
+                name.find("alternate") != std::string::npos ||
+                name.find("speed") != std::string::npos ||
+                name.find("rate") != std::string::npos ||
+                name.find("time") != std::string::npos ) {
+                // These sliders typically feed integrators - start animation to see effect
+                global_context->s->ui.running = true;
+            }
             return;
         }
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
            global_context->s->get_fn_ptr< int, slider_int >( name )->value = (int)std::roundf( value );
+           
+           // Smart animation control for int sliders too
+           // Always force redraw, but also start animation for time-based effects
+           global_context->s->ui.displayed = false;
+           
+           if( name.find("start") != std::string::npos || 
+               name.find("spin") != std::string::npos || 
+               name.find("expand") != std::string::npos ||
+               name.find("phase") != std::string::npos ||
+               name.find("swirl") != std::string::npos ||
+               name.find("alternate") != std::string::npos ||
+               name.find("speed") != std::string::npos ||
+               name.find("rate") != std::string::npos ||
+               name.find("time") != std::string::npos ) {
+               global_context->s->ui.running = true;
+           }
            return;
         }
         throw std::runtime_error( "slider " + name + " invalid type " );
@@ -454,11 +511,13 @@ void set_range_slider_value( std::string name, float value_min, float value_max 
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
             global_context->s->get_fn_ptr< interval_float, range_slider_float >( name )->value = interval_float( value_min, value_max );
+            global_context->s->ui.displayed = false;
             return;
         }
         else if( std::holds_alternative< any_fn< interval_int > >( fn ) ) {
             //std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
             global_context->s->get_fn_ptr< interval_int, range_slider_int >( name )->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+            global_context->s->ui.displayed = false;
             return;
         }
         throw std::runtime_error( "range slider " + name + " invalid type " );
@@ -1271,14 +1330,8 @@ bool ultra_process_camera_with_kaleidoscope() {
         
         std::cout << "✓ Camera buffer verified with image data" << std::endl;
         
-        // STEP 2: CRITICAL - Let the scene system do ALL the work!
-        // This is the key insight: the scene automatically reads frontend control values
-        // and applies effects accordingly. We just need to trigger a render.
-        
-        // Ensure camera is selected as source (should already be set by ultra_start_camera_stream)
         std::cout << "Triggering scene render with current frontend settings..." << std::endl;
         
-        // Mark scene as needing refresh to pick up any parameter changes
         global_context->s->ui.displayed = false;
         
         // Execute scene render - this will:
@@ -1447,6 +1500,350 @@ std::string ultra_get_camera_stats() {
     }
     
     return stats.dump();
+}
+
+// Audio context management functions
+void update_audio_context(float volume, float bass, float mid, float high, bool beat, float time) {
+    if (!global_context || !global_context->s) {
+        std::cout << "🎵 ❌ Audio context update failed: global_context or scene is null" << std::endl;
+        return;
+    }
+    
+    static int log_counter = 0;
+    log_counter++;
+    
+    try {
+        // Update audio values
+        global_context->s->ui.audio.volume = volume;
+        global_context->s->ui.audio.bass_level = bass;
+        global_context->s->ui.audio.mid_level = mid;
+        global_context->s->ui.audio.high_level = high;
+        global_context->s->ui.audio.beat_detected = beat;
+        global_context->s->ui.audio.time_phase = time;
+        
+        // DIVERSE AUDIO-CONTROLLED EFFECTS FOR PARTY MODE
+        if (global_context->s->ui.audio.enabled && 
+            (volume > 0.001f || bass > 0.001f || mid > 0.001f || high > 0.001f)) {
+            
+            float sensitivity = global_context->s->ui.audio.global_sensitivity;
+            
+            // === AGGRESSIVE ANIMATION CONTROL ===
+            // ALWAYS ensure animation is running when audio is detected
+            if (!global_context->s->ui.running) {
+                global_context->s->ui.running = true;
+                std::cout << "🎵 🚀 AUDIO DETECTED - FORCE STARTING ANIMATION!" << std::endl;
+            }
+            
+            // Force continuous redraws for responsiveness
+            global_context->s->ui.displayed = false;
+            
+            // === SOUND TYPE DETECTION ===
+            float bass_ratio = bass / (volume + 0.001f);    // How bass-heavy
+            float high_ratio = high / (volume + 0.001f);    // How treble-heavy  
+            float mid_ratio = mid / (volume + 0.001f);      // How mid-heavy
+            
+            // Sound type classification
+            bool is_music = (bass_ratio > 0.4f && high_ratio > 0.3f);        // Full spectrum
+            bool is_singing = (mid_ratio > 0.5f && volume > 0.15f);          // Mid-heavy, strong
+            bool is_drums = (bass_ratio > 0.6f && beat);                     // Bass + beat
+            bool is_instrument = (high_ratio > 0.4f && !beat);               // High freq, no beat
+            
+            // === DYNAMIC ANIMATION SPEED CONTROL ===
+            float speed_base = 1.0f;
+            
+            if (is_drums) {
+                // Drums: Punchy, rhythmic speed changes
+                speed_base = beat ? 2.5f : 1.2f;
+            } else if (is_singing) {
+                // Singing: Smooth, voice-following speed
+                speed_base = 1.0f + (volume * sensitivity * 1.5f);
+            } else if (is_music) {
+                // Music: Complex speed based on all frequencies
+                speed_base = 1.0f + ((bass * 0.4f + mid * 0.3f + high * 0.3f) * sensitivity * 1.8f);
+            } else if (is_instrument) {
+                // Instruments: High-frequency reactive
+                speed_base = 1.0f + (high * sensitivity * 2.0f);
+            } else {
+                // General audio - ensure minimum speed boost
+                speed_base = 1.0f + (volume * sensitivity * 1.2f);
+            }
+            
+            // Clamp speed to reasonable range but ensure minimum boost
+            speed_base = std::max(1.1f, std::min(4.0f, speed_base)); // Minimum 1.1x when audio detected
+            
+            // Apply speed
+            float base_interval = global_context->s->default_time_interval;
+            global_context->s->time_interval = base_interval * speed_base;
+            
+            // === SUPER ENERGETIC VISUAL EFFECTS ===
+            // Beat-triggered effects: Force extra redraws on beats
+            static bool last_beat = false;
+            if (beat && !last_beat) {
+                // Beat detected! Force multiple redraws for visual punch
+                for (int i = 0; i < 5; i++) { // Increased from 3 to 5 for more impact
+                    global_context->s->ui.displayed = false;
+                }
+                std::cout << "🥁 BEAT PUNCH! Extra redraws triggered" << std::endl;
+            }
+            last_beat = beat;
+            
+            // High-energy continuous updates - more aggressive
+            if (volume > 0.1f || bass > 0.2f || high > 0.2f) {
+                // High energy: Force extra visual updates
+                global_context->s->ui.displayed = false;
+            }
+            
+            // EMERGENCY: Force animation every 10 frames if still not running
+            static int force_counter = 0;
+            force_counter++;
+            if (force_counter % 10 == 0 && !global_context->s->ui.running) {
+                global_context->s->ui.running = true;
+                global_context->s->ui.displayed = false;
+                std::cout << "🎵 🚨 EMERGENCY: Force animation restart!" << std::endl;
+            }
+            
+            // Debug different sound types periodically
+            if (log_counter % 60 == 0) {
+                const char* sound_type = "general";
+                if (is_drums) sound_type = "🥁 DRUMS";
+                else if (is_singing) sound_type = "🎤 SINGING";
+                else if (is_music) sound_type = "🎵 MUSIC";
+                else if (is_instrument) sound_type = "🎸 INSTRUMENT";
+                
+                std::cout << "🎵 " << sound_type << " detected! Speed: " << speed_base 
+                          << "x, Bass ratio: " << bass_ratio << ", High ratio: " << high_ratio 
+                          << ", Mid ratio: " << mid_ratio << ", Beat: " << (beat ? "YES" : "no") 
+                          << ", Animation: " << (global_context->s->ui.running ? "RUNNING" : "STOPPED") << std::endl;
+            }
+            
+        } else {
+            // Reset to default speed when audio is disabled or silent
+            global_context->s->time_interval = global_context->s->default_time_interval;
+        }
+        
+        // Log success periodically
+        if (log_counter % 60 == 0) {
+            std::cout << "🎵 ✅ Audio context updated successfully (values: vol=" << global_context->s->ui.audio.volume 
+                      << ", bass=" << global_context->s->ui.audio.bass_level 
+                      << ", mid=" << global_context->s->ui.audio.mid_level 
+                      << ", high=" << global_context->s->ui.audio.high_level << ")" << std::endl;
+        }
+        
+        // Debug: Show audio function count periodically (every 30 updates)
+        static int update_counter = 0;
+        if (++update_counter % 30 == 0) {
+            int audio_fn_count = 0;
+            for (const auto& [name, fn_variant] : global_context->s->functions) {
+                std::visit([&](const auto& any_fn_variant) {
+                    using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                    if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                        std::visit([&](const auto& inner_ptr) {
+                            using InnerType = std::decay_t<decltype(inner_ptr)>;
+                            if constexpr (std::is_same_v<InnerType, std::shared_ptr<audio_float_fn>> ||
+                                          std::is_same_v<InnerType, std::shared_ptr<audio_additive_fn>> ||
+                                          std::is_same_v<InnerType, std::shared_ptr<audio_multiplicative_fn>> ||
+                                          std::is_same_v<InnerType, std::shared_ptr<audio_modulate_fn>>) {
+                                audio_fn_count++;
+                            }
+                        }, any_fn_variant.any_fn_ptr);
+                    }
+                }, fn_variant);
+            }
+            std::cout << "🎵 📊 Audio functions active: " << audio_fn_count << " (update #" << update_counter << ")" << std::endl;
+        }
+        
+    } catch (const std::exception& e) {
+        std::cout << "🎵 ❌ update_audio_context error: " << e.what() << std::endl;
+    } catch (...) {
+        std::cout << "🎵 ❌ update_audio_context unknown error" << std::endl;
+    }
+}
+
+void enable_audio_input(bool enabled) {
+    if (!global_context || !global_context->s) return;
+    global_context->s->ui.audio.enabled = enabled;
+    
+    // When disabling audio, clear all audio values to prevent residual effects
+    if (!enabled) {
+        global_context->s->ui.audio.volume = 0.0f;
+        global_context->s->ui.audio.bass_level = 0.0f;
+        global_context->s->ui.audio.mid_level = 0.0f;
+        global_context->s->ui.audio.high_level = 0.0f;
+        global_context->s->ui.audio.beat_detected = false;
+        global_context->s->ui.audio.time_phase = 0.0f;
+        std::cout << "🎵 🧹 Audio values cleared on disable" << std::endl;
+    }
+}
+
+void set_audio_sensitivity(float sensitivity) {
+    if (!global_context || !global_context->s) return;
+    global_context->s->ui.audio.global_sensitivity = sensitivity;
+    std::cout << "🎵 🎛️ Global audio sensitivity set to: " << sensitivity << std::endl;
+}
+
+bool is_audio_enabled() {
+    if (!global_context || !global_context->s) return false;
+    return global_context->s->ui.audio.enabled;
+}
+
+float get_audio_channel_value(std::string channel) {
+    if (!global_context || !global_context->s) return 0.0f;
+    return global_context->s->ui.audio.get_audio_value(channel);
+}
+
+// Audio reactivity is now handled automatically by Joy's harness system
+// No need for hard-coded slider manipulation - scenes define their own audio reactivity
+
+
+// REMOVED: get_audio_config() - No longer needed in scene-agnostic architecture
+// Audio functions are automatically processed by the harness system
+// Frontend just sends raw audio data via update_audio_context()
+
+// Get current value of a slider parameter
+float get_slider_value(std::string name) {
+    if (!global_context || !global_context->s) {
+        return 0.0f;
+    }
+    
+    try {
+        scene& s = *global_context->s;
+        
+        if (s.functions.count(name)) {
+            return std::visit([&](const auto& any_fn_variant) -> float {
+                using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                
+                if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                    return std::visit([&](const auto& inner_ptr) -> float {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_float>>) {
+                            return inner_ptr->value;
+                        } else {
+                            return 0.0f;
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else if constexpr (std::is_same_v<VariantType, any_fn<int>>) {
+                    return std::visit([&](const auto& inner_ptr) -> float {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_int>>) {
+                            return static_cast<float>(inner_ptr->value);
+                        } else {
+                            return 0.0f;
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else {
+                    return 0.0f;
+                }
+            }, s.functions[name]);
+        }
+        
+        return 0.0f;
+        
+    } catch (const std::exception& e) {
+        std::cout << "❌ Error getting slider value: " << e.what() << std::endl;
+        return 0.0f;
+    }
+}
+
+// Get slider bounds for a parameter
+std::string get_slider_bounds(std::string name) {
+    if (!global_context || !global_context->s) {
+        return "{\"min\": -20, \"max\": 20, \"step\": 0.1}";
+    }
+    
+    try {
+        scene& s = *global_context->s;
+        
+        if (s.functions.count(name)) {
+            return std::visit([&](const auto& any_fn_variant) -> std::string {
+                using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                
+                if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                    return std::visit([&](const auto& inner_ptr) -> std::string {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_float>>) {
+                            nlohmann::json bounds = {
+                                {"min", inner_ptr->min},
+                                {"max", inner_ptr->max},
+                                {"step", inner_ptr->step}
+                            };
+                            return bounds.dump();
+                        } else {
+                            nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                            return bounds.dump();
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else if constexpr (std::is_same_v<VariantType, any_fn<int>>) {
+                    return std::visit([&](const auto& inner_ptr) -> std::string {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_int>>) {
+                            nlohmann::json bounds = {
+                                {"min", inner_ptr->min},
+                                {"max", inner_ptr->max},
+                                {"step", 1}
+                            };
+                            return bounds.dump();
+                        } else {
+                            nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                            return bounds.dump();
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else {
+                    // Generic bounds for other types
+                    nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                    return bounds.dump();
+                }
+            }, s.functions[name]);
+        }
+        
+        // Fallback bounds
+        nlohmann::json bounds = {
+            {"min", -20},
+            {"max", 20},
+            {"step", 0.1}
+        };
+        return bounds.dump();
+        
+    } catch (const std::exception& e) {
+        std::cout << "❌ Error getting slider bounds: " << e.what() << std::endl;
+        nlohmann::json bounds = {
+            {"min", -20},
+            {"max", 20},
+            {"step", 0.1}
+        };
+        return bounds.dump();
+    }
+}
+
+void set_animation_speed_multiplier(float multiplier) {
+    if (!global_context || !global_context->s) {
+        std::cout << "❌ Cannot set animation speed: global_context or scene is null" << std::endl;
+        return;
+    }
+    
+    // Clamp multiplier to reasonable range
+    multiplier = std::max(0.1f, std::min(10.0f, multiplier));
+    
+    float base_interval = global_context->s->default_time_interval;
+    global_context->s->time_interval = base_interval * multiplier;
+    
+    std::cout << "🏃 Animation speed set to " << multiplier << "x (time_interval=" 
+              << global_context->s->time_interval << ")" << std::endl;
+}
+
+float get_animation_speed_multiplier() {
+    if (!global_context || !global_context->s) {
+        return 1.0f;
+    }
+    
+    return global_context->s->time_interval / global_context->s->default_time_interval;
 }
 
 int main(int argc, char** argv) {
@@ -1668,4 +2065,19 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("ultra_start_camera_stream", &ultra_start_camera_stream);
     function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
     function("ultra_get_camera_stats", &ultra_get_camera_stats);
+<<<<<<< HEAD
+=======
+
+    // audio functions
+    function("update_audio_context", &update_audio_context);
+    function("enable_audio_input", &enable_audio_input);
+    function("set_audio_sensitivity", &set_audio_sensitivity);
+    function("is_audio_enabled", &is_audio_enabled);
+    function("get_audio_channel_value", &get_audio_channel_value);
+    // REMOVED: get_audio_config - No longer needed in scene-agnostic architecture
+    function("get_slider_value", &get_slider_value);
+    function("get_slider_bounds", &get_slider_bounds);
+    function("set_animation_speed_multiplier", &set_animation_speed_multiplier);
+    function("get_animation_speed_multiplier", &get_animation_speed_multiplier);
+>>>>>>> 3c2addf (Audio input first version)
 }

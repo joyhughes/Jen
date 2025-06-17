@@ -19,12 +19,25 @@ import { ControlPanelContext } from './InterfaceContainer';
 const MobileSlider = styled(Slider)(({ theme }) => ({
     height: 8,
     padding: '16px 0',
+    transition: 'all 0.3s ease',
+    '&.audio-influenced': {
+        '& .MuiSlider-track': {
+            background: 'linear-gradient(90deg, #2E7D32, #1A237E) !important',
+            boxShadow: '0 0 8px rgba(46, 125, 50, 0.4)',
+            animation: 'audioGlow 0.3s ease-out',
+        },
+        '& .MuiSlider-thumb': {
+            border: '3px solid #4CAF50 !important',
+            boxShadow: '0 0 12px rgba(76, 175, 80, 0.6), 0 2px 8px rgba(0,0,0,0.2) !important',
+        },
+    },
     '& .MuiSlider-thumb': {
         height: 24,
         width: 24,
         backgroundColor: theme.palette.common.white,
         border: `3px solid ${theme.palette.primary.main}`,
         boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        transition: 'all 0.2s ease',
         '&:hover, &.Mui-focusVisible': {
             boxShadow: `0 0 0 8px ${theme.palette.primary.main}20, 0 2px 12px rgba(0,0,0,0.3)`,
         },
@@ -43,6 +56,7 @@ const MobileSlider = styled(Slider)(({ theme }) => ({
         height: 8,
         borderRadius: 4,
         border: 'none',
+        transition: 'all 0.2s ease',
     },
     '& .MuiSlider-valueLabel': {
         fontSize: '0.85rem',
@@ -60,18 +74,43 @@ const MobileSlider = styled(Slider)(({ theme }) => ({
     '& .MuiSlider-markActive': {
         backgroundColor: theme.palette.common.white,
     },
+    // Audio influence animation
+    '@keyframes audioGlow': {
+        '0%': {
+            boxShadow: '0 0 4px rgba(46, 125, 50, 0.2)',
+        },
+        '50%': {
+            boxShadow: '0 0 12px rgba(46, 125, 50, 0.6)',
+        },
+        '100%': {
+            boxShadow: '0 0 8px rgba(46, 125, 50, 0.4)',
+        },
+    },
 }));
 
 // Desktop-optimized slider
 const DesktopSlider = styled(Slider)(({ theme }) => ({
     height: 4,
     padding: '11px 0',
+    transition: 'all 0.3s ease',
+    '&.audio-influenced': {
+        '& .MuiSlider-track': {
+            background: 'linear-gradient(90deg, #2E7D32, #1A237E) !important',
+            boxShadow: '0 0 6px rgba(46, 125, 50, 0.4)',
+            animation: 'audioGlow 0.3s ease-out',
+        },
+        '& .MuiSlider-thumb': {
+            border: '2px solid #4CAF50 !important',
+            boxShadow: '0 0 10px rgba(76, 175, 80, 0.6), 0 1px 4px rgba(0,0,0,0.2) !important',
+        },
+    },
     '& .MuiSlider-thumb': {
         height: 18,
         width: 18,
         backgroundColor: theme.palette.common.white,
         border: `2px solid ${theme.palette.primary.main}`,
         boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+        transition: 'all 0.2s ease',
         '&:hover, &.Mui-focusVisible': {
             boxShadow: `0 0 0 6px ${theme.palette.primary.main}20, 0 1px 6px rgba(0,0,0,0.3)`,
         },
@@ -88,6 +127,7 @@ const DesktopSlider = styled(Slider)(({ theme }) => ({
         height: 4,
         borderRadius: 2,
         border: 'none',
+        transition: 'all 0.2s ease',
     },
     '& .MuiSlider-valueLabel': {
         fontSize: '0.75rem',
@@ -363,17 +403,6 @@ function JenSlider({ json, width }) {
         //}
     }, [json.min, json.max, json.name, isRange, minFocus, value, onSliderChange]);
 
-    const handleInputFocus = useCallback(() => {
-        setIsInputFocused(true);
-        setInputValue(getDisplayValue().toString());
-        // Select all text on focus for easy editing
-        if (inputRef.current) {
-            setTimeout(() => {
-                inputRef.current.select();
-            }, 0);
-        }
-    }, [getDisplayValue]);
-
     const handleInputBlur = useCallback(() => {
         setIsInputFocused(false);
         
@@ -537,6 +566,16 @@ function JenSlider({ json, width }) {
         };
     }, [json.name, json.default_value, json.min, sliderValues]);
 
+    // Expose the displayed input value globally for audio system access
+    useEffect(() => {
+        if (!window.displayedSliderValues) {
+            window.displayedSliderValues = {};
+        }
+        // Store the actual displayed value (what user sees in the text field)
+        const displayedValue = inputValue || getDisplayValue().toString();
+        window.displayedSliderValues[json.name] = parseFloat(displayedValue);
+    }, [json.name, inputValue, getDisplayValue]);
+
     // Choose components based on device
     const SliderComponent = isMobile ? MobileSlider : DesktopSlider;
     const TextFieldComponent = isMobile ? MobileTextField : DesktopTextField;
@@ -622,7 +661,16 @@ function JenSlider({ json, width }) {
                         ref={inputRef}
                         value={inputValue}
                         onChange={handleInputChange}
-                        onFocus={handleInputFocus}
+                        onFocus={() => {
+                            setIsInputFocused(true);
+                            setInputValue(getDisplayValue().toString());
+                            // Select all text on focus for easy editing
+                            if (inputRef.current) {
+                                setTimeout(() => {
+                                    inputRef.current.select();
+                                }, 0);
+                            }
+                        }}
                         onBlur={handleInputBlur}
                         onKeyDown={handleInputKeyDown}
                         type="number"

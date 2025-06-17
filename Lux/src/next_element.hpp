@@ -616,4 +616,83 @@ struct next_element {
     next_element();
 };
 
+// Audio-reactive function types integrated with Joy's harness system
+// These follow proper Jen harness mathematics: output = f(input, context)
+
+// Pure additive audio function: output = input + (audio_value * sensitivity + offset)
+struct audio_additive_fn {
+    harness< std::string > channel;
+    harness< float > sensitivity;
+    harness< float > offset;
+
+    float operator() ( float& val, element_context& context);
+
+    audio_additive_fn(const std::string& ch = "volume", 
+                    float sens = 1.0f, 
+                    float off = 0.0f) 
+            : channel(ch), sensitivity(sens), offset(off) {}
+};
+
+// Multiplicative audio function: output = input * (base_multiplier + audio_value * sensitivity)
+struct audio_multiplicative_fn {
+    harness< std::string > channel;
+    harness< float > sensitivity;
+    harness< float > base_multiplier;
+
+    float operator() (float& val, element_context& context);
+
+    audio_multiplicative_fn(const std::string& ch = "volume", 
+                            float sens = 1.0f, 
+                            float base = 1.0f) 
+                            : channel(ch), sensitivity(sens), base_multiplier(base) {}
+};
+
+// Modulation audio function: output = input + (input * depth * audio_value * sin(frequency * time))
+struct audio_modulate_fn { 
+    harness< std::string > channel;
+    harness< float > depth;
+    harness< float > frequency;
+
+    float operator() (float& val, element_context& context);
+
+    audio_modulate_fn(const std::string& ch = "volume", 
+                    float depth_init = 0.5f, 
+                    float freq_init = 1.0f) 
+                    : channel(ch), depth(depth_init), frequency(freq_init) {}
+};
+
+// Vec2f additive audio function: output = input + (audio_x * sens_x, audio_y * sens_y) + offset
+struct audio_additive_vec2f_fn {
+    harness< std::string > channel_x, channel_y;
+    harness< float > sensitivity_x, sensitivity_y;
+    harness< vec2f > offset;
+
+    vec2f operator() ( vec2f& val, element_context& context );
+
+    audio_additive_vec2f_fn(const std::string& ch_x = "volume", const std::string& ch_y = "volume", 
+                           float sens_x = 1.0f, float sens_y = 1.0f, const vec2f& off = vec2f(0.0f, 0.0f))
+        : channel_x(ch_x), channel_y(ch_y), sensitivity_x(sens_x), sensitivity_y(sens_y), offset(off) {}
+};
+
+// Vec2f multiplicative audio function: output = input * (base + audio_sensitivity)
+struct audio_multiplicative_vec2f_fn {
+    harness< std::string > channel_x, channel_y;
+    harness< float > sensitivity_x, sensitivity_y;
+    harness< vec2f > base_multiplier;
+
+    vec2f operator() ( vec2f& val, element_context& context );
+
+    audio_multiplicative_vec2f_fn(const std::string& ch_x = "volume", const std::string& ch_y = "volume", 
+                                 float sens_x = 1.0f, float sens_y = 1.0f, const vec2f& base = vec2f(1.0f, 1.0f))
+        : channel_x(ch_x), channel_y(ch_y), sensitivity_x(sens_x), sensitivity_y(sens_y), base_multiplier(base) {}
+};
+
+// Backwards compatibility aliases - these will map to additive functions
+typedef audio_additive_fn audio_float_fn;
+typedef audio_additive_vec2f_fn audio_vec2f_fn;
+
+// Helper functions to make any harness audio-reactive using Joy's type erasure
+template<typename T>
+void make_audio_reactive(harness<T>& h, const std::string& channel, float sensitivity = 1.0f);
+
 #endif // __NEXT_ELEMENT_HPP

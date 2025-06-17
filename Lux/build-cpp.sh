@@ -2,6 +2,7 @@
 
 # Incremental C++ Build Script for Jen
 # Only rebuilds changed source files
+# Usage: ./build-cpp.sh [--force]
 
 set -e
 
@@ -12,7 +13,22 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+# Check for force flag
+FORCE_REBUILD=false
+if [[ "$1" == "--force" || "$1" == "-f" ]]; then
+    FORCE_REBUILD=true
+    echo -e "${RED}🔥 FORCE REBUILD MODE - Rebuilding everything${NC}"
+else
+    echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+fi
+
+# Show JSON files being tracked
+if [[ -d "lux_files" ]]; then
+    json_count=$(find lux_files -name "*.json" -type f | wc -l)
+    if [[ $json_count -gt 0 ]]; then
+        echo -e "${BLUE}📄 Tracking $json_count JSON configuration files${NC}"
+    fi
+fi
 
 # Source Emscripten environment
 source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1
@@ -54,10 +70,42 @@ CORE_SOURCES="lux_web video_recorder"
 # FFmpeg linking flags
 FFMPEG_LIBS="-L/app/external/build/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
 
+# Function to check if JSON configs have changed
+check_json_changes() {
+    local json_timestamp_file="$BUILD_DIR/.json_timestamp"
+    local current_json_hash=""
+    
+    # Calculate hash of all JSON files in lux_files
+    if [[ -d "lux_files" ]]; then
+        current_json_hash=$(find lux_files -name "*.json" -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+    fi
+    
+    # Check if JSON hash has changed
+    if [[ -f "$json_timestamp_file" ]]; then
+        local stored_hash=$(cat "$json_timestamp_file" 2>/dev/null || echo "")
+        if [[ "$current_json_hash" != "$stored_hash" ]]; then
+            echo -e "${YELLOW}📄 JSON configuration files changed${NC}"
+            echo "$current_json_hash" > "$json_timestamp_file"
+            return 0  # JSON changed, need rebuild
+        fi
+    else
+        echo -e "${YELLOW}📄 First time JSON tracking${NC}"
+        echo "$current_json_hash" > "$json_timestamp_file"
+        return 0  # First time, need rebuild
+    fi
+    
+    return 1  # No JSON changes
+}
+
 # Function to check if source is newer than object
 needs_rebuild() {
     local src_file="$1"
     local obj_file="$2"
+    
+    # Force rebuild if flag is set
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        return 0  # Force rebuild
+    fi
     
     if [[ ! -f "$obj_file" ]]; then
         return 0  # Object doesn't exist, need to build
@@ -100,14 +148,31 @@ compile_file() {
     fi
 }
 
+# Check if JSON configuration files have changed
+JSON_CHANGED=false
+if check_json_changes; then
+    JSON_CHANGED=true
+fi
+
 # Track if any files were rebuilt
 REBUILT=false
+CPP_FILES_CHANGED=false
+
+# If force rebuild, clean everything
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${RED}🧹 Force rebuild: Cleaning all object files${NC}"
+    rm -f "$BUILD_DIR"/*.o "$BUILD_DIR"/*.d
+    REBUILT=true
+    CPP_FILES_CHANGED=true
+    JSON_CHANGED=true  # Force linking too
+fi
 
 # Compile core files
 echo -e "${BLUE}Building core files...${NC}"
 for src in $CORE_SOURCES; do
     if compile_file "$src" "$BASE_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
@@ -116,6 +181,7 @@ echo -e "${BLUE}Building optimized files...${NC}"
 for src in $O3_SOURCES; do
     if compile_file "$src" "$BASE_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
@@ -124,13 +190,27 @@ echo -e "${BLUE}Building regular files...${NC}"
 for src in $REGULAR_SOURCES; do
     if compile_file "$src" "$SIMD_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
+# Report what changed
+if [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == false && "$FORCE_REBUILD" == false ]]; then
+    echo -e "${GREEN}📄 Only JSON configs changed - skipping C++ recompilation, relinking only${NC}"
+elif [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == true ]]; then
+    echo -e "${YELLOW}🔄 Both JSON configs and C++ files changed${NC}"
+fi
+
 # Check if final linking is needed
 NEED_LINK=false
-if [[ "$REBUILT" == true ]]; then
+if [[ "$FORCE_REBUILD" == true ]]; then
     NEED_LINK=true
+    echo -e "${RED}🔥 Force rebuild: Will relink${NC}"
+elif [[ "$REBUILT" == true ]]; then
+    NEED_LINK=true
+elif [[ "$JSON_CHANGED" == true ]]; then
+    NEED_LINK=true
+    echo -e "${YELLOW}📄 JSON configs changed, need to relink${NC}"
 elif [[ ! -f "$OUTPUT" ]]; then
     NEED_LINK=true
     echo -e "${YELLOW}📎 Output file missing, need to link${NC}"
@@ -142,6 +222,17 @@ else
             break
         fi
     done
+    
+    # Check if any JSON file is newer than final output
+    if [[ -d "lux_files" ]]; then
+        for json in lux_files/*.json; do
+            if [[ -f "$json" && "$json" -nt "$OUTPUT" ]]; then
+                NEED_LINK=true
+                echo -e "${YELLOW}📄 JSON file $json is newer than output, need to relink${NC}"
+                break
+            fi
+        done
+    fi
 fi
 
 # Link if needed
@@ -177,9 +268,20 @@ if [[ "$NEED_LINK" == true ]]; then
         -msimd128 \
         -lembind $FFMPEG_LIBS
     
-    echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        echo -e "${GREEN}✅ Force rebuild complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    elif [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == false ]]; then
+        echo -e "${GREEN}✅ JSON-only relink complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    else
+        echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    fi
 else
     echo -e "${GREEN}✅ Everything up to date!${NC}"
 fi
 
-echo -e "${BLUE}🎉 Incremental build finished!${NC}" 
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${BLUE}🎉 Force rebuild finished!${NC}"
+else
+    echo -e "${BLUE}🎉 Incremental build finished!${NC}"
+    echo -e "${BLUE}💡 Tip: Use './build-cpp.sh --force' to rebuild everything${NC}"
+fi 

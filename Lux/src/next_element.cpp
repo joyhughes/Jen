@@ -379,6 +379,65 @@ void next_element::add_function(  any_gen_fn fn       ) { functions.push_back( f
 
 void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( c ); }
 
+// Audio function implementations - moved here to access full element_context definition
+
+float audio_additive_fn::operator() ( float& val, element_context& context) {
+    channel( context ); sensitivity( context ); offset( context );
+
+    float audio_val = context.s.ui.audio.get_audio_value(*channel); 
+    float enhancement = *offset + (audio_val * *sensitivity);
+    
+    // Debug: Log audio function execution when significant values detected
+    static int call_count = 0;
+    if (++call_count % 30 == 0 || audio_val > 0.1) {
+        std::cout << "🎵 🔧 audio_additive_fn: channel=" << *channel 
+                  << ", audio_val=" << audio_val << ", sensitivity=" << *sensitivity 
+                  << ", input=" << val << ", output=" << (val + enhancement) << std::endl;
+    }
+
+    return val + enhancement;
+}
+
+float audio_multiplicative_fn::operator() (float& val, element_context& context) {
+    channel( context ); sensitivity( context ); base_multiplier( context );
+    float audio_val = context.s.ui.audio.get_audio_value(*channel);
+
+    float multiplier = *base_multiplier + (audio_val * *sensitivity);
+    return val * multiplier;
+}
+
+float audio_modulate_fn::operator() (float& val, element_context& context) {
+    channel( context ); depth( context ); frequency( context );
+
+    float audio_val = context.s.ui.audio.get_audio_value(*channel);
+    float modulation = *depth * audio_val * sin(*frequency * context.s.time * TAU);
+    return val + (val * modulation);
+}
+
+vec2f audio_additive_vec2f_fn::operator() ( vec2f& val, element_context& context ) {
+    channel_x( context ); channel_y( context );
+    sensitivity_x( context ); sensitivity_y( context );
+    offset( context );
+
+    float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
+    float audio_y = context.s.ui.audio.get_audio_value(*channel_y);
+    
+    vec2f enhancement = *offset + vec2f(audio_x * *sensitivity_x, audio_y * *sensitivity_y);
+    return val + enhancement;
+}
+
+vec2f audio_multiplicative_vec2f_fn::operator() ( vec2f& val, element_context& context ) {
+    channel_x( context ); channel_y( context );
+    sensitivity_x( context ); sensitivity_y( context );
+    base_multiplier( context );
+
+    float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
+    float audio_y = context.s.ui.audio.get_audio_value(*channel_y);
+    
+    vec2f multiplier = *base_multiplier + vec2f(audio_x * *sensitivity_x, audio_y * *sensitivity_y);
+    return vec2f(val.x * multiplier.x, val.y * multiplier.y);
+}
+
 bool next_element::operator () ( element_context& context ) { 
     for( auto& condition: conditions ) if( !condition( context ) ) return false; // if any condition fails, no next element
     cluster& cl = context.cl;

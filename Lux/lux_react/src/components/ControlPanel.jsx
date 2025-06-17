@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState, useCallback} from "react";
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -12,6 +12,7 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
+import AudioPane from "./panes/AudioPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
@@ -26,6 +27,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const maxSetupAttempts = 50;
     const loadingTimeoutRef = useRef(null);
     const previousPaneRef = useRef(activePane);
+    const lastFrameTimeRef = useRef(0);
 
     // Store slider values before scene changes
     const storeSliderValues = () => {
@@ -58,6 +60,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             console.log("Navigated to home pane, triggering widget reload");
             handleWidgetGroupChange();
         }
+        // Update previous pane reference
+        previousPaneRef.current = activePane;
     }, [activePane])
 
     const handleWidgetGroupChange = () => {
@@ -269,6 +273,13 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 return <TargetImagePane {...commonProps} />;
             case "brush":
                 return <BrushPane {...commonProps} />;
+            case "audio":
+                return (
+                    <AudioPane 
+                        dimensions={dimensions} 
+                        panelSize={panelSize}
+                    />
+                );
             case "camera":
                 return (
                     <Box sx={{ p: 1, height: '100%' }}>

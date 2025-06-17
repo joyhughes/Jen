@@ -5,6 +5,7 @@
 #include "uimage.hpp"
 #include "vector_field.hpp"
 #include "UI.hpp"
+#include "json.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -439,6 +440,11 @@ void scene_reader::read_function( const json& j ) {
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
+    // audio functions - proper harness implementations
+    FN( audio_additive_fn, float ) HARNESS( channel ) HARNESS( sensitivity ) HARNESS( offset ) END_FN
+    FN( audio_multiplicative_fn, float ) HARNESS( channel ) HARNESS( sensitivity ) HARNESS( base_multiplier ) END_FN
+    FN( audio_modulate_fn, float ) HARNESS( channel ) HARNESS( depth ) HARNESS( frequency ) END_FN
+
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
     FN( generator_int, int ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
@@ -474,6 +480,9 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( mouse_pos_fn, vec2f ) END_FN
+    FN( audio_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( offset ) END_FN
+    FN( audio_additive_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( offset ) END_FN
+    FN( audio_multiplicative_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( base_multiplier ) END_FN
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
@@ -1149,6 +1158,33 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"default_value", fn->default_value},
                         {"step", fn->step},
                         {"value", *fn->value}
+                    };
+                },
+                [&]( const std::shared_ptr< audio_additive_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "audio_additive_fn"},
+                        {"channel", *fn->channel},
+                        {"sensitivity", *fn->sensitivity},
+                        {"offset", *fn->offset}
+                    };
+                },
+                [&]( const std::shared_ptr< audio_multiplicative_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "audio_multiplicative_fn"},
+                        {"channel", *fn->channel},
+                        {"sensitivity", *fn->sensitivity},
+                        {"base_multiplier", *fn->base_multiplier}
+                    };
+                },
+                [&]( const std::shared_ptr< audio_modulate_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "audio_modulate_fn"},
+                        {"channel", *fn->channel},
+                        {"depth", *fn->depth},
+                        {"frequency", *fn->frequency}
                     };
                 },
                 [&]( const auto& fn ) {

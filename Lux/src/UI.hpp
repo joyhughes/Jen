@@ -263,11 +263,44 @@ struct UI {
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
     std::vector< widget_group > widget_groups;  // should this be a tree?
+    
+    // Audio data - updated by frontend SHO/FFT system
+    struct {
+        float volume = 0.0f;
+        float bass_level = 0.0f;
+        float mid_level = 0.0f;
+        float high_level = 0.0f;
+        bool beat_detected = false;
+        float time_phase = 0.0f;
+        bool enabled = false;
+        float global_sensitivity = 1.0f;
+        
+        float get_audio_value(const std::string& channel) const {
+            if (!enabled) {
+                // Debug: Log when audio is disabled
+                static int disabled_counter = 0;
+                disabled_counter++;
+                if (disabled_counter % 120 == 0) { // Every 2 seconds at 60fps
+                    std::cout << "🎵 🔧 get_audio_value[" << channel << "]: DISABLED (audio.enabled=false)" << std::endl;
+                }
+                return 0.0f;
+            }
+            
+            float result = 0.0f;
+            if (channel == "volume") result = volume;
+            else if (channel == "bass") result = bass_level;
+            else if (channel == "mid") result = mid_level;
+            else if (channel == "high") result = high_level;
+            else if (channel == "beat") result = beat_detected ? 1.0f : 0.0f;
+            
+                        return result;
+        }
+    } audio;
 
     void add_widget_group( const std::string& name, const widget_group& wg );
 
     UI() : 
-        running( true ),
+        running( true ),  // Start playing by default - changed from false
         displayed( false ),
         advance( false ),
         canvas_bounds( bb2i( { 0, 0 }, { 512, 512 } ) ), 
