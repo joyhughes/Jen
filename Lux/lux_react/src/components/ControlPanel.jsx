@@ -15,6 +15,8 @@ import BrushPane from "./panes/BrushPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
+import AudioControlPanel from "./AudioControlPanel.jsx";
+import useAudio from "../hooks/useAudio.js";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -26,6 +28,17 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const maxSetupAttempts = 50;
     const loadingTimeoutRef = useRef(null);
     const previousPaneRef = useRef(activePane);
+
+    // Audio reactive functionality
+    const {
+        isEnabled,
+        hasPermission,
+        audioFeatures,
+        sensitivity,
+        setSensitivity,
+        performance,
+        toggleAudio
+    } = useAudio();
 
     // Store slider values before scene changes
     const storeSliderValues = () => {
@@ -304,6 +317,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             />
 
             <MediaController panelSize={panelSize} />
+
+            <AudioControlPanel
+                isEnabled={isEnabled}
+                hasPermission={hasPermission}
+                audioFeatures={audioFeatures}
+                sensitivity={sensitivity}
+                setSensitivity={setSensitivity}
+                performance={performance}
+                toggleAudio={toggleAudio}
+            />
 
             <Box
                 sx={{

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {
   Alert,
   Box,
@@ -66,71 +66,53 @@ function MediaController({ isOverlay = false }) {
     }
   };
 
-  // Enhanced mobile device detection with logging
-  const isMobileDevice = () => {
+  // Enhanced mobile device detection with logging - MEMOIZED to prevent infinite re-renders
+  const isMobileDevice = useMemo(() => {
     const userAgent = navigator.userAgent;
     const hasTouch = navigator.maxTouchPoints && navigator.maxTouchPoints > 2;
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
 
-    mobileLog('Device detection:', {
-      userAgent: userAgent,
-      maxTouchPoints: navigator.maxTouchPoints,
-      hasTouch: hasTouch,
-      isMobileUA: isMobileUA,
-      result: isMobileUA || hasTouch
-    });
+    const result = isMobileUA || hasTouch;
+    console.log('[MediaController] Device detection (memoized):', { result, userAgent: userAgent.slice(0, 50) + '...' });
 
-    return isMobileUA || hasTouch;
-  };
+    return result;
+  }, []); // Empty deps - only calculate once
 
-  // Safe feature detection for camera roll saving
-  const supportsCameraRollSave = () => {
+  // Safe feature detection for camera roll saving - MEMOIZED to prevent infinite re-renders
+  const cameraRollSupport = useMemo(() => {
     try {
-      mobileLog('Checking camera roll save support...');
+      console.log('[MediaController] Checking camera roll support (memoized)...');
 
       // Check for Web Share API (iOS Safari, Android Chrome)
       const hasWebShare = typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
-      mobileLog('Web Share API available:', hasWebShare);
-
+      
       // Check for File System Access API (Android Chrome)
       const hasFileSystem = typeof window.showSaveFilePicker === 'function';
-      mobileLog('File System Access API available:', hasFileSystem);
-
+      
       // Check for iOS
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      mobileLog('iOS detected:', isIOS);
-
+      
       // Check for Android
       const isAndroid = /Android/.test(navigator.userAgent);
-      mobileLog('Android detected:', isAndroid);
 
+      let result = null;
       if (hasWebShare) {
-        mobileLog('Using Web Share API');
-        return 'webshare';
+        result = 'webshare';
+      } else if (hasFileSystem) {
+        result = 'filesystem';
+      } else if (isIOS) {
+        result = 'ios-fallback';
+      } else if (isAndroid) {
+        result = 'android-fallback';
       }
 
-      if (hasFileSystem) {
-        mobileLog('Using File System Access API');
-        return 'filesystem';
-      }
-
-      if (isIOS) {
-        mobileLog('Using iOS fallback');
-        return 'ios-fallback';
-      }
-
-      if (isAndroid) {
-        mobileLog('Using Android fallback');
-        return 'android-fallback';
-      }
-
-      mobileLog('No camera roll support detected');
-      return null;
+      console.log('[MediaController] Camera roll support (memoized):', result);
+      return result;
     } catch (error) {
-      mobileLog('ERROR in supportsCameraRollSave:', error.message);
+      console.error('[MediaController] Error in camera roll detection:', error.message);
       return null;
     }
-  };
+  }, []); // Empty deps - only calculate once
 
   // Update ref when state changes
   useEffect(() => {
@@ -141,7 +123,7 @@ function MediaController({ isOverlay = false }) {
   useEffect(() => {
     mobileLog('MediaController initializing...');
     mobileLog('Component mount - device info:', {
-      isMobile: isMobileDevice(),
+      isMobile: isMobileDevice,
       userAgent: navigator.userAgent,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       devicePixelRatio: window.devicePixelRatio
@@ -960,11 +942,11 @@ function MediaController({ isOverlay = false }) {
 
   // Recording tooltip
   const getRecordingTooltip = () => {
-    if (!isRecording) {
-      const mobile = isMobileDevice();
-      const saveType = supportsCameraRollSave();
+          if (!isRecording) {
+        const mobile = isMobileDevice;
+        const saveType = cameraRollSupport;
 
-      if (mobile && saveType) {
+        if (mobile && saveType) {
         switch (saveType) {
           case 'webshare':
             return "Start Recording (saves to camera roll via share)";
@@ -989,12 +971,12 @@ function MediaController({ isOverlay = false }) {
   const saveToMobileCameraRoll = async (blob, filename) => {
     mobileLog('=== SAVING TO MOBILE CAMERA ROLL ===');
     mobileLog('Device detection:', {
-      isMobile: isMobileDevice(),
+      isMobile: isMobileDevice,
       userAgent: navigator.userAgent,
-      supportType: supportsCameraRollSave()
+      supportType: cameraRollSupport
     });
 
-    const supportType = supportsCameraRollSave();
+    const supportType = cameraRollSupport;
 
     try {
       switch (supportType) {
@@ -1190,7 +1172,7 @@ function MediaController({ isOverlay = false }) {
           mobileLog('Standard download URL cleaned up');
         }, 5000);
 
-        if (isMobileDevice()) {
+        if (isMobileDevice) {
           showNotification('Video downloaded! Check your Downloads folder', 'info');
         } else {
           showNotification('Video downloaded!', 'success');
@@ -1273,7 +1255,7 @@ function MediaController({ isOverlay = false }) {
               )}
 
               {/* Mobile camera roll indicator */}
-              {!isRecording && !isProcessing && isMobileDevice() && supportsCameraRollSave() && (
+                              {!isRecording && !isProcessing && isMobileDevice && cameraRollSupport && (
                 <Box
                   sx={{
                     position: 'absolute',
