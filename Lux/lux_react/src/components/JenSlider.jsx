@@ -304,6 +304,29 @@ function JenSlider({ json, width }) {
         }
     }, [resetTrigger, json.default_value, json.min, json.max, formatDisplayValue, isRange, minFocus]);
 
+    useEffect(() => {
+        console.log(`Initializing slider callback: ${json.name}`, json);
+        // Register the callback via embind
+        if (window.Module) {
+            window.Module.set_slider_callback(json.name, (newValue) => {
+                // Update the slider's internal value
+                setValue(newValue);
+    
+                // Update the displayed input value
+                if (isRange && Array.isArray(newValue)) {
+                    const displayVal = minFocus ? newValue[0] : newValue[1];
+                    setInputValue(formatDisplayValue(displayVal).toString());
+                } else {
+                    setInputValue(formatDisplayValue(newValue).toString());
+                }
+    
+                // Notify the parent or context about the change
+                onSliderChange(json.name, newValue);
+                console.log(`Slider ${json.name} updated to:`, newValue);
+            });
+        }
+    }, [json.name, onSliderChange, isRange, minFocus, formatDisplayValue]);
+
     // Update input value when slider value changes (but not when user is typing)
     useEffect(() => {
         if (!isInputFocused) {

@@ -39,6 +39,7 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
+    std::shared_ptr< tweaker_float >,
     std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,
@@ -64,6 +65,7 @@ typedef std::variant <
     // harness functions
     std::shared_ptr< identity_int >,
     std::shared_ptr< adder_int >,
+    std::shared_ptr< tweaker_int >,
 
     // ui functions
     std::shared_ptr< slider_int >,

@@ -42,7 +42,13 @@ void switch_condition::reset() { value = default_value; }
 template< Scalar T > void slider< T >::reset() { value = default_value; }
 
 template< Scalar T > T slider< T >::operator () ( T& val, element_context& context ) {
-    return value;
+    T prev_value = *value;
+    value( context );
+    if(  callback ) {
+        std::cout << "Slider value: " << *value << "\n";
+        callback( *value );
+    }
+    return *value;
 }
 
 template struct slider< float >;
