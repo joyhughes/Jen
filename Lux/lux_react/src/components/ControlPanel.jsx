@@ -16,7 +16,7 @@ import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
 import AudioControlPanel from "./AudioControlPanel.jsx";
-import useOptimizedAudio from "../hooks/useAudio.js";
+import useAudio from "../hooks/useAudio.js";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -40,7 +40,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         performance,
         toggleAudio,
         updateAudioParameters
-    } = useOptimizedAudio();
+    } = useAudio();
 
     // Store slider values before scene changes
     const storeSliderValues = () => {
