@@ -60,6 +60,12 @@ function InterfaceContainer({panelSize}) {
         }
     };
 
+    // Expose slider values globally for audio system access
+    useEffect(() => {
+        window.reactSliderValues = sliderValues;
+        console.log('🎵 📊 Updated global slider values:', sliderValues);
+    }, [sliderValues]);
+
     // Trigger UI reset - this will cause all widgets to refresh their values
     const triggerReset = () => {
         setResetTrigger(prev => prev + 1);

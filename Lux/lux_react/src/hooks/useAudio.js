@@ -642,6 +642,77 @@ const useAudio = () => {
   const stopAudio = useCallback(() => {
     console.log('🎵 Stopping configuration-driven audio system');
 
+    // SIMPLE FIX: Send current UI slider values to backend before stopping audio
+    try {
+      const config = audioConfigRef.current;
+      console.log('🎵 🔍 Audio config:', config);
+      
+      if (config.length > 0) {
+        console.log('🎵 📤 Sending displayed UI slider values to backend...');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Use the displayed values that users actually see in the text fields
+        const displayedValues = window.displayedSliderValues || {};
+        console.log('🎵 🔍 Displayed values from UI text fields:', displayedValues);
+        
+        config.forEach(mapping => {
+          const { name } = mapping;
+          console.log(`🎵 🔍 Processing parameter: ${name}`);
+          
+          try {
+            const uiValue = displayedValues[name];
+            console.log(`🎵 🔍 Displayed value for ${name}: ${uiValue}`);
+            
+            if (uiValue !== undefined && !isNaN(uiValue)) {
+              if (window.module && window.module.set_slider_value) {
+                console.log(`🎵 📤 SENDING ${name}: ${uiValue} (from displayed text field)`);
+                window.module.set_slider_value(name, uiValue);
+                
+                // Verify the value was set by reading it back
+                if (window.module.get_slider_value) {
+                  const verifyValue = window.module.get_slider_value(name);
+                  console.log(`🎵 ✅ VERIFIED ${name}: sent=${uiValue}, backend=${verifyValue}`);
+                }
+                
+                successCount++;
+              } else {
+                console.warn(`🎵 ⚠️ WebAssembly module or set_slider_value not available for ${name}`);
+                errorCount++;
+              }
+            } else {
+              console.warn(`🎵 ⚠️ No displayed value available for ${name}`);
+              errorCount++;
+            }
+          } catch (error) {
+            console.warn(`🎵 ❌ Error processing ${name}:`, error);
+            errorCount++;
+          }
+        });
+        
+        console.log(`🎵 📊 SUMMARY: ${successCount} successful, ${errorCount} errors out of ${config.length} parameters`);
+        
+        if (successCount > 0) {
+          console.log('🎵 ✅ Displayed UI slider values sent to backend');
+        } else {
+          console.log('🎵 ⚠️ No displayed slider values were successfully sent to backend!');
+        }
+      } else {
+        console.log('🎵 ⚠️ No audio configuration available');
+      }
+    } catch (error) {
+      console.error('🎵 ❌ Error sending displayed values to backend:', error);
+    }
+
+    // Log state before cleanup
+    console.log('🎵 🔍 State before cleanup:', {
+      isEnabled: isEnabledRef.current,
+      hasAudioContext: !!audioContextRef.current,
+      hasMicrophone: !!microphoneRef.current,
+      hasAnalyzer: !!analyzerRef.current
+    });
+
     if (microphoneRef.current && microphoneRef.current.mediaStream) {
       microphoneRef.current.mediaStream.getTracks().forEach(track => track.stop());
     }
@@ -656,6 +727,7 @@ const useAudio = () => {
     dataArrayRef.current = null;
 
     setIsEnabled(false);
+    isEnabledRef.current = false;
     setAudioFeatures({
       volume: 0,
       bassLevel: 0,
@@ -676,6 +748,16 @@ const useAudio = () => {
       frameCount: 0,
       processingTimes: []
     };
+
+    // Log final state
+    console.log('🎵 🔍 State after cleanup:', {
+      isEnabled: isEnabledRef.current,
+      hasAudioContext: !!audioContextRef.current,
+      hasMicrophone: !!microphoneRef.current,
+      hasAnalyzer: !!analyzerRef.current
+    });
+    
+    console.log('🎵 🛑 Audio system fully stopped');
   }, []);
 
   const toggleAudio = useCallback(() => {

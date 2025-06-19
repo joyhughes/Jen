@@ -380,17 +380,6 @@ function JenSlider({ json, width }) {
         }
     }, [json.min, json.max, json.name, isRange, minFocus, value, onSliderChange]);
 
-    const handleInputFocus = useCallback(() => {
-        setIsInputFocused(true);
-        setInputValue(getDisplayValue().toString());
-        // Select all text on focus for easy editing
-        if (inputRef.current) {
-            setTimeout(() => {
-                inputRef.current.select();
-            }, 0);
-        }
-    }, [getDisplayValue]);
-
     const handleInputBlur = useCallback(() => {
         setIsInputFocused(false);
         
@@ -554,6 +543,16 @@ function JenSlider({ json, width }) {
         };
     }, [json.name, json.default_value, json.min, sliderValues]);
 
+    // Expose the displayed input value globally for audio system access
+    useEffect(() => {
+        if (!window.displayedSliderValues) {
+            window.displayedSliderValues = {};
+        }
+        // Store the actual displayed value (what user sees in the text field)
+        const displayedValue = inputValue || getDisplayValue().toString();
+        window.displayedSliderValues[json.name] = parseFloat(displayedValue);
+    }, [json.name, inputValue, getDisplayValue]);
+
     // Choose components based on device
     const SliderComponent = isMobile ? MobileSlider : DesktopSlider;
     const TextFieldComponent = isMobile ? MobileTextField : DesktopTextField;
@@ -639,7 +638,16 @@ function JenSlider({ json, width }) {
                         ref={inputRef}
                         value={inputValue}
                         onChange={handleInputChange}
-                        onFocus={handleInputFocus}
+                        onFocus={() => {
+                            setIsInputFocused(true);
+                            setInputValue(getDisplayValue().toString());
+                            // Select all text on focus for easy editing
+                            if (inputRef.current) {
+                                setTimeout(() => {
+                                    inputRef.current.select();
+                                }, 0);
+                            }
+                        }}
                         onBlur={handleInputBlur}
                         onKeyDown={handleInputKeyDown}
                         type="number"
