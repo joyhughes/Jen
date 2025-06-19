@@ -84,7 +84,7 @@ const useAudio = () => {
     beatDetected: false,
     dominantFrequency: 0
   });
-  const [sensitivity, setSensitivity] = useState(0.5);
+  const [sensitivity, setSensitivity] = useState(0.8);
   const [performance, setPerformance] = useState({
     fps: 0,
     avgProcessingTime: 0,
@@ -96,7 +96,7 @@ const useAudio = () => {
   const microphoneRef = useRef(null);
   const analyzerRef = useRef(null);
   const dataArrayRef = useRef(null);
-  const sensitivityRef = useRef(0.5);
+  const sensitivityRef = useRef(0.8);
   const isEnabledRef = useRef(false);
   
   // Configuration-driven audio mappings (loaded from scene JSON)
@@ -136,9 +136,11 @@ const useAudio = () => {
         return;
       }
 
+      console.log('🎵 📋 Loading audio config from WebAssembly...');
       const configJson = window.module.get_audio_config();
-      const config = JSON.parse(configJson);
+      console.log('🎵 📋 Raw config JSON:', configJson);
       
+      const config = JSON.parse(configJson);
       console.log('🎵 📋 LOADED AUDIO CONFIG:', config);
       audioConfigRef.current = config;
 
@@ -268,19 +270,20 @@ const useAudio = () => {
   useEffect(() => {
     isEnabledRef.current = isEnabled;
 
-    if (isEnabled) {
-      loadAudioConfig();
-      captureManualValues();
-      manualValuesRestoredRef.current = false;
-    } else {
+    if (!isEnabled) {
       returnToManualValues();
       manualValuesRestoredRef.current = true;
     }
-  }, [isEnabled, loadAudioConfig, captureManualValues, returnToManualValues]);
+  }, [isEnabled, returnToManualValues]);
 
   // MAIN AUDIO UPDATE FUNCTION - Generic and configuration-driven
   const updateAudioParameters = useCallback((deltaTime) => {
     if (!isEnabledRef.current || !analyzerRef.current || !dataArrayRef.current) {
+      console.log('🎵 ⚠️ updateAudioParameters early return:', {
+        enabled: isEnabledRef.current,
+        hasAnalyzer: !!analyzerRef.current,
+        hasDataArray: !!dataArrayRef.current
+      });
       return;
     }
 
@@ -289,6 +292,17 @@ const useAudio = () => {
     const audioState = audioStateRef.current;
     const currentSensitivity = sensitivityRef.current;
     const config = audioConfigRef.current;
+
+    // Heartbeat log every 3 seconds
+    if (!audioState.lastHeartbeat) audioState.lastHeartbeat = 0;
+    if (now - audioState.lastHeartbeat >= 3000) {
+      console.log('🎵 💓 Audio processing heartbeat - system running', {
+        configLength: config.length,
+        sensitivity: currentSensitivity,
+        oscillators: Object.keys(oscillatorsRef.current).length
+      });
+      audioState.lastHeartbeat = now;
+    }
 
     if (config.length === 0) {
       console.log("🎵 ⚠️ No audio configuration loaded");
@@ -393,6 +407,21 @@ const useAudio = () => {
           dominantFrequency: 0
         }));
 
+        // Send audio data to WebAssembly backend
+        if (window.module && window.module.update_audio_context) {
+          const timePhase = now * 0.001;
+          window.module.update_audio_context(volume, bassLevel, midLevel, highLevel, beatDetected, timePhase);
+          
+          // Debug log every 2 seconds
+          if (!audioState.lastBackendLog) audioState.lastBackendLog = 0;
+          if (now - audioState.lastBackendLog >= 2000) {
+            console.log(`🎵 → Backend: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}, beat=${beatDetected}`);
+            audioState.lastBackendLog = now;
+          }
+        } else {
+          console.warn('🎵 ⚠️ WebAssembly module or update_audio_context not available');
+        }
+
         // Audio processing logic - CONFIGURATION DRIVEN
         if (currentSensitivity > 0) {
           const volumeThreshold = 0.02;
@@ -462,13 +491,22 @@ const useAudio = () => {
 
     // Update backend with throttling
     if (shouldUpdateBackend) {
+      const updates = [];
       Object.keys(oscillatorValues).forEach(name => {
         const boundedValue = getBoundedValue(name, oscillatorValues[name]);
         
         if (window.module && window.module.set_slider_value) {
           window.module.set_slider_value(name, boundedValue);
+          updates.push(`${name}=${boundedValue.toFixed(2)}`);
         }
       });
+
+      // Debug log backend updates every 5 seconds
+      if (!audioState.lastSliderLog) audioState.lastSliderLog = 0;
+      if (updates.length > 0 && now - audioState.lastSliderLog >= 5000) {
+        console.log(`🎵 🎛️ Slider updates: ${updates.join(', ')}`);
+        audioState.lastSliderLog = now;
+      }
 
       audioState.lastBackendUpdate = now;
     }
@@ -546,8 +584,48 @@ const useAudio = () => {
       analyzerRef.current = analyzer;
       dataArrayRef.current = dataArray;
 
+      console.log('🎵 🎤 Audio setup complete:', {
+        contextState: audioContext.state,
+        analyzerFFTSize: analyzer.fftSize,
+        dataArrayLength: dataArray.length,
+        sampleRate: audioContext.sampleRate
+      });
+
       setHasPermission(true);
+      
+      // Load configuration and initialize before starting animation loop
+      console.log('🎵 📋 Loading configuration before starting audio...');
+      loadAudioConfig();
+      captureManualValues();
+      
+      // Now set enabled and start animation loop
       setIsEnabled(true);
+      isEnabledRef.current = true;
+
+      // Start animation loop for audio processing
+      console.log('🎵 🔄 Starting animation loop...');
+      let lastTime = getTime();
+      const audioAnimationLoop = () => {
+        if (!isEnabledRef.current) {
+          console.log('🎵 🔄 Animation loop stopped - audio disabled');
+          return;
+        }
+        
+        const currentTime = getTime();
+        const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+        lastTime = currentTime;
+        
+        try {
+          updateAudioParameters(deltaTime);
+        } catch (error) {
+          console.error('🎵 ❌ Animation loop error:', error);
+        }
+        
+        requestAnimationFrame(audioAnimationLoop);
+      };
+      
+      requestAnimationFrame(audioAnimationLoop);
+      console.log('🎵 ✅ Animation loop started');
 
       console.log('🎵 ==========================================');
       console.log('🎵 CONFIGURATION-DRIVEN AUDIO ENABLED');
@@ -559,7 +637,7 @@ const useAudio = () => {
       console.error('🎵 Error starting audio:', error);
       setHasPermission(false);
     }
-  }, []);
+  }, [updateAudioParameters]);
 
   const stopAudio = useCallback(() => {
     console.log('🎵 Stopping configuration-driven audio system');

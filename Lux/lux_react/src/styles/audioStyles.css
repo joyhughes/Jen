@@ -326,6 +326,29 @@
     animation: none !important;
 }
 
+/* Audio activity indicator */
+.audio-activity-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #666;
+    transition: background-color 0.2s ease;
+}
+
+.activity-dot.active {
+    background: #4CAF50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
 /* Reduce GPU usage */
 * {
     transform: translateZ(0);

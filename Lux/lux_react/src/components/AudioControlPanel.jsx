@@ -94,15 +94,15 @@ const AudioControlPanel = ({
           <div className="sensitivity-section">
             <div className="sensitivity-label">
               <span>Sensitivity</span>
-              <span>{Math.round(sensitivity || 0)}%</span>
+              <span>{Math.round((sensitivity || 0) * 100)}%</span>
             </div>
             <input
               type="range"
               min="0"
               max="100"
               step="5"
-              value={sensitivity || 50}
-              onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value))}
+              value={Math.round((sensitivity || 0.8) * 100)}
+              onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value) / 100)}
               className="sensitivity-slider"
             />
           </div>
@@ -116,9 +116,14 @@ const AudioControlPanel = ({
           {performance && (
             <div className="performance-stats">
               <span>FPS: {performance.fps || 0}</span>
-              <span>Quality: {performance.quality || 'high'}</span>
+              <span>Quality: {performance.avgProcessingTime < 2 ? 'high' : 'medium'}</span>
             </div>
           )}
+
+          <div className="audio-activity-indicator">
+            <div className={`activity-dot ${(audioFeatures?.volume || 0) > 0.01 ? 'active' : ''}`} />
+            <span>Audio: {(audioFeatures?.volume || 0) > 0.01 ? 'Detected' : 'Silent'}</span>
+          </div>
         </>
       )}
     </div>
