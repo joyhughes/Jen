@@ -1470,7 +1470,7 @@ float get_audio_channel_value(std::string channel) {
 // No need for hard-coded slider manipulation - scenes define their own audio reactivity
 
 
-// Get audio configuration targeting specific sliders: expand, spin, start, phase
+// Get audio configuration from current scene JSON file  
 std::string get_audio_config() {
     if (!global_context || !global_context->s) {
         std::cout << "🎵 ⚠️ No global context or scene available" << std::endl;
@@ -1479,80 +1479,69 @@ std::string get_audio_config() {
     
     try {
         nlohmann::json config = nlohmann::json::array();
-        scene& s = *global_context->s;
         
-        std::cout << "🎵 📋 DEBUG: Scanning " << s.functions.size() << " scene functions..." << std::endl;
-        
-        // Debug: Print all function names to see what's available
-        std::cout << "🎵 🔍 Available functions: ";
-        for (const auto& [name, func] : s.functions) {
-            std::cout << name << " ";
+        // Get current scene filename - for now use the first scene (kaleido.json)
+        // TODO: Track current scene index properly
+        std::string current_filename;
+        if (global_context->scene_list.contains("scenes") && 
+            global_context->scene_list["scenes"].is_array() && 
+            !global_context->scene_list["scenes"].empty()) {
+            current_filename = global_context->scene_list["scenes"][0]["filename"];
+        } else {
+            std::cout << "🎵 ⚠️ No scene filename available" << std::endl;
+            return "[]";
         }
-        std::cout << std::endl;
         
-        // Target specific sliders with optimized audio mappings
-        std::vector<std::tuple<std::string, std::string, float, float, float, float>> target_sliders = {
-            // name, channel, sensitivity, offset, damping, stiffness
-            {"expand_slider", "bass", 8.0f, 0.0f, 0.05f, 4.0f},
-            {"spin_slider", "mid", 6.0f, 0.0f, 0.01f, 2.0f}, 
-            {"start_slider", "high", 4.0f, 0.0f, 0.08f, 3.0f},
-            {"phase_slider", "volume", 5.0f, 0.0f, 0.06f, 3.5f}
-        };
+        std::cout << "🎵 📋 Loading audio config from: " << current_filename << std::endl;
         
-        // Check each target slider exists in the scene
-        for (const auto& [name, channel, sensitivity, offset, damping, stiffness] : target_sliders) {
-            std::cout << "🎵 📋 Checking for slider: " << name << std::endl;
-            
-            if (s.functions.count(name)) {
-                std::visit([&](const auto& any_fn_variant) {
-                    using VariantType = std::decay_t<decltype(any_fn_variant)>;
+        // Read and parse the scene JSON file
+        std::string scene_json_str = load_file_as_string(current_filename);
+        nlohmann::json scene_json = nlohmann::json::parse(scene_json_str);
+        
+        // Extract audio_reactive configurations from functions array
+        if (scene_json.contains("functions") && scene_json["functions"].is_array()) {
+            for (const auto& func : scene_json["functions"]) {
+                if (func.contains("name") && func.contains("audio_reactive")) {
+                    const auto& audio_config = func["audio_reactive"];
                     
-                    // Check if this is a float or int slider
-                    if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
-                        std::visit([&](const auto& inner_ptr) {
-                            using InnerType = std::decay_t<decltype(inner_ptr)>;
-                            
-                            if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_float>>) {
-                                std::cout << "🎵 🎛️ Found float slider: " << name << std::endl;
-                                
-                                config.push_back({
-                                    {"name", name},
-                                    {"channel", channel},
-                                    {"sensitivity", sensitivity},
-                                    {"offset", offset},
-                                    {"damping", damping},
-                                    {"stiffness", stiffness}
-                                });
-                                
-                                std::cout << "🎵 ✅ Added " << name << " → " << channel 
-                                          << " (sens=" << sensitivity << ", offset=" << offset << ")" << std::endl;
-                            }
-                        }, any_fn_variant.any_fn_ptr);
+                    // Check if audio reactivity is enabled
+                    if (audio_config.contains("enabled") && audio_config["enabled"].get<bool>()) {
+                        std::string name = func["name"];
+                        std::string channel = audio_config.value("channel", "volume");
+                        float sensitivity = audio_config.value("sensitivity", 1.0f);
+                        float offset = audio_config.value("offset", 0.0f);
                         
-                    } else if constexpr (std::is_same_v<VariantType, any_fn<int>>) {
-                        std::visit([&](const auto& inner_ptr) {
-                            using InnerType = std::decay_t<decltype(inner_ptr)>;
-                            
-                            if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_int>>) {
-                                std::cout << "🎵 🎛️ Found int slider: " << name << std::endl;
-                                
-                                config.push_back({
-                                    {"name", name},
-                                    {"channel", channel},
-                                    {"sensitivity", sensitivity},
-                                    {"offset", offset},
-                                    {"damping", damping},
-                                    {"stiffness", stiffness}
-                                });
-                                
-                                std::cout << "🎵 ✅ Added " << name << " → " << channel 
-                                          << " (sens=" << sensitivity << ", offset=" << offset << ")" << std::endl;
-                            }
-                        }, any_fn_variant.any_fn_ptr);
+                        // Set damping and stiffness based on channel characteristics
+                        float damping = 0.05f;
+                        float stiffness = 3.0f;
+                        
+                        if (channel == "bass") {
+                            damping = 0.05f;
+                            stiffness = 4.0f;
+                        } else if (channel == "mid") {
+                            damping = 0.01f;
+                            stiffness = 2.0f;
+                        } else if (channel == "high") {
+                            damping = 0.08f;
+                            stiffness = 3.0f;
+                        } else if (channel == "volume") {
+                            damping = 0.06f;
+                            stiffness = 3.5f;
+                        }
+                        
+                        config.push_back({
+                            {"name", name},
+                            {"channel", channel},
+                            {"sensitivity", sensitivity},
+                            {"offset", offset},
+                            {"damping", damping},
+                            {"stiffness", stiffness}
+                        });
+                        
+                        std::cout << "🎵 ✅ Added " << name << " → " << channel 
+                                  << " (sens=" << sensitivity << ", offset=" << offset << ")" << std::endl;
                     }
-                }, s.functions[name]);
-            } else {
-                std::cout << "🎵 ⚠️ Slider not found: " << name << std::endl;
+                }
             }
         }
         

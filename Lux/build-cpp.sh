@@ -14,6 +14,14 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
 
+# Show JSON files being tracked
+if [[ -d "lux_files" ]]; then
+    json_count=$(find lux_files -name "*.json" -type f | wc -l)
+    if [[ $json_count -gt 0 ]]; then
+        echo -e "${BLUE}📄 Tracking $json_count JSON configuration files${NC}"
+    fi
+fi
+
 # Source Emscripten environment
 source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1
 
@@ -53,6 +61,33 @@ CORE_SOURCES="lux_web video_recorder"
 
 # FFmpeg linking flags
 FFMPEG_LIBS="-L/app/external/build/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
+
+# Function to check if JSON configs have changed
+check_json_changes() {
+    local json_timestamp_file="$BUILD_DIR/.json_timestamp"
+    local current_json_hash=""
+    
+    # Calculate hash of all JSON files in lux_files
+    if [[ -d "lux_files" ]]; then
+        current_json_hash=$(find lux_files -name "*.json" -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+    fi
+    
+    # Check if JSON hash has changed
+    if [[ -f "$json_timestamp_file" ]]; then
+        local stored_hash=$(cat "$json_timestamp_file" 2>/dev/null || echo "")
+        if [[ "$current_json_hash" != "$stored_hash" ]]; then
+            echo -e "${YELLOW}📄 JSON configuration files changed${NC}"
+            echo "$current_json_hash" > "$json_timestamp_file"
+            return 0  # JSON changed, need rebuild
+        fi
+    else
+        echo -e "${YELLOW}📄 First time JSON tracking${NC}"
+        echo "$current_json_hash" > "$json_timestamp_file"
+        return 0  # First time, need rebuild
+    fi
+    
+    return 1  # No JSON changes
+}
 
 # Function to check if source is newer than object
 needs_rebuild() {
@@ -100,8 +135,22 @@ compile_file() {
     fi
 }
 
+# Check if JSON configuration files have changed
+JSON_CHANGED=false
+if check_json_changes; then
+    JSON_CHANGED=true
+fi
+
 # Track if any files were rebuilt
 REBUILT=false
+
+# If JSON changed, force rebuild of scene-related files
+if [[ "$JSON_CHANGED" == true ]]; then
+    echo -e "${YELLOW}🔄 JSON configs changed, forcing rebuild of scene-related files${NC}"
+    # Remove object files that depend on JSON configs
+    rm -f "$BUILD_DIR/scene.o" "$BUILD_DIR/scene_io.o" "$BUILD_DIR/lux_web.o"
+    REBUILT=true
+fi
 
 # Compile core files
 echo -e "${BLUE}Building core files...${NC}"
@@ -131,6 +180,9 @@ done
 NEED_LINK=false
 if [[ "$REBUILT" == true ]]; then
     NEED_LINK=true
+elif [[ "$JSON_CHANGED" == true ]]; then
+    NEED_LINK=true
+    echo -e "${YELLOW}📄 JSON configs changed, need to relink${NC}"
 elif [[ ! -f "$OUTPUT" ]]; then
     NEED_LINK=true
     echo -e "${YELLOW}📎 Output file missing, need to link${NC}"
@@ -142,6 +194,17 @@ else
             break
         fi
     done
+    
+    # Check if any JSON file is newer than final output
+    if [[ -d "lux_files" ]]; then
+        for json in lux_files/*.json; do
+            if [[ -f "$json" && "$json" -nt "$OUTPUT" ]]; then
+                NEED_LINK=true
+                echo -e "${YELLOW}📄 JSON file $json is newer than output, need to relink${NC}"
+                break
+            fi
+        done
+    fi
 fi
 
 # Link if needed

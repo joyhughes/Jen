@@ -65,13 +65,7 @@
             "min": 1,
             "max": 36,
             "step": 1,
-            "default_value": 6,
-            "audio_reactive": {
-                "enabled": true,
-                "channel": "high",
-                "sensitivity": 11.0,
-                "offset": 1.0
-            }
+            "default_value": 6
         },        
         {
             "name": "level_slider",
@@ -81,13 +75,7 @@
             "min": 1,
             "max": 12,
             "step": 1,
-            "default_value": 1,
-            "audio_reactive": {
-                "enabled": true,
-                "channel": "volume",
-                "sensitivity": 7.0,
-                "offset": 1.0
-            }
+            "default_value": 1
         },        
         {
             "name": "level_start_slider",
@@ -107,7 +95,13 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "high",
+                "sensitivity": 4.0,
+                "offset": 0.0
+            }
         },        
         {
             "name": "expand_slider",
@@ -277,7 +271,13 @@
             "min": -20,
             "max": 20,
             "step": 0.5,
-            "default_value": 0.0
+            "default_value": 0.0,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "volume",
+                "sensitivity": 5.0,
+                "offset": 0.0
+            }
         },
         {
             "name": "const_amp_switch",
