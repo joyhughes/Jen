@@ -19,34 +19,45 @@ const AudioControlPanel = ({
   const formatValue = (value) => Math.round((value || 0) * 100);
 
   return (
-    <div className="audio-control-panel">
+    <div className="audio-control-panel enhanced">
       <div className="audio-toggle-section">
         <button 
-          className="audio-toggle-btn"
+          className={`audio-toggle-btn ${isEnabled ? 'active' : ''}`}
           onClick={() => {
             console.log('🎵 Audio toggle button clicked');
             toggleAudio();
           }}
           disabled={hasPermission === false}
         >
-          {isEnabled ? 'Disable Audio' : 'Enable Audio'}
+          <span className="button-icon">🎤</span>
+          <span className="button-text">
+            {isEnabled ? 'Audio Active' : 'Enable Audio'}
+          </span>
         </button>
         
-        <div className="audio-status">
-          {isEnabled ? 'Active' : 'Inactive'}
+        <div className="audio-status-card">
+          <div className="status-indicator">
+            <div className={`status-dot ${isEnabled ? 'active' : 'inactive'}`}></div>
+            <span className="status-text">
+              {isEnabled ? 'Active' : 'Inactive'}
+            </span>
+          </div>
           <div className={`permission-status ${getPermissionStatus()}`}>
-            {getPermissionStatus() === 'granted' && 'Microphone granted'}
-            {getPermissionStatus() === 'denied' && 'Microphone denied'}
-            {getPermissionStatus() === 'prompt' && 'Microphone pending'}
+            {getPermissionStatus() === 'granted' && '✓ Microphone Access'}
+            {getPermissionStatus() === 'denied' && '✗ Microphone Denied'}
+            {getPermissionStatus() === 'prompt' && '⏳ Requesting Access'}
           </div>
         </div>
       </div>
 
       {isEnabled && (
         <>
-          <div className="audio-meters">
+          <div className="audio-meters-grid">
             <div className="frequency-meter">
-              <div className="meter-label">Bass</div>
+              <div className="meter-header">
+                <span className="meter-label">Bass</span>
+                <span className="meter-value">{formatValue(audioFeatures?.bassLevel)}%</span>
+              </div>
               <div className="meter-bar">
                 <div 
                   className="meter-fill bass"
@@ -56,7 +67,10 @@ const AudioControlPanel = ({
             </div>
             
             <div className="frequency-meter">
-              <div className="meter-label">Mid</div>
+              <div className="meter-header">
+                <span className="meter-label">Mid</span>
+                <span className="meter-value">{formatValue(audioFeatures?.midLevel)}%</span>
+              </div>
               <div className="meter-bar">
                 <div 
                   className="meter-fill mid"
@@ -66,7 +80,10 @@ const AudioControlPanel = ({
             </div>
             
             <div className="frequency-meter">
-              <div className="meter-label">High</div>
+              <div className="meter-header">
+                <span className="meter-label">High</span>
+                <span className="meter-value">{formatValue(audioFeatures?.highLevel)}%</span>
+              </div>
               <div className="meter-bar">
                 <div 
                   className="meter-fill high"
@@ -76,7 +93,10 @@ const AudioControlPanel = ({
             </div>
 
             <div className="frequency-meter">
-              <div className="meter-label">Volume</div>
+              <div className="meter-header">
+                <span className="meter-label">Volume</span>
+                <span className="meter-value">{formatValue(audioFeatures?.volume)}%</span>
+              </div>
               <div className="meter-bar">
                 <div 
                   className="meter-fill volume"
@@ -86,45 +106,61 @@ const AudioControlPanel = ({
             </div>
           </div>
 
-          <div className="beat-indicator">
-            <div className={`beat-pulse ${audioFeatures?.beatDetected ? 'active' : ''}`} />
-            <span>Beat: {audioFeatures?.beatDetected ? 'Yes' : 'No'}</span>
+          <div className="audio-features-section">
+            <div className="beat-indicator-card">
+              <div className="beat-indicator">
+                <div className={`beat-pulse ${audioFeatures?.beatDetected ? 'active' : ''}`} />
+                <span className="beat-text">Beat Detection</span>
+              </div>
+              <div className="beat-status">
+                {audioFeatures?.beatDetected ? '🎵 Beat!' : '⏸️ Waiting'}
+              </div>
+            </div>
+
+            <div className="activity-indicator-card">
+              <div className="audio-activity-indicator">
+                <div className={`activity-dot ${(audioFeatures?.volume || 0) > 0.01 ? 'active' : ''}`} />
+                <span className="activity-text">Audio Input</span>
+              </div>
+              <div className="activity-status">
+                {(audioFeatures?.volume || 0) > 0.01 ? '🔊 Detected' : '🔇 Silent'}
+              </div>
+            </div>
           </div>
 
-          <div className="sensitivity-section">
-            <div className="sensitivity-label">
-              <span>Sensitivity</span>
-              <span>{Math.round((sensitivity || 0) * 100)}%</span>
+          <div className="sensitivity-section-enhanced">
+            <div className="sensitivity-header">
+              <span className="sensitivity-title">🎛️ Sensitivity</span>
+              <span className="sensitivity-value">{Math.round((sensitivity || 0) * 100)}%</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={Math.round((sensitivity || 0.8) * 100)}
-              onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value) / 100)}
-              className="sensitivity-slider"
-            />
-          </div>
-
-          {audioFeatures?.dominantFreq && (
-            <div className="frequency-info">
-              <span>Dominant: {Math.round(audioFeatures.dominantFreq)}Hz</span>
+            <div className="sensitivity-slider-container">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={Math.round((sensitivity || 0.8) * 100)}
+                onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value) / 100)}
+                className="sensitivity-slider enhanced"
+              />
+              <div className="slider-marks">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
             </div>
-          )}
-
-          {performance && (
-            <div className="performance-stats">
-              <span>FPS: {performance.fps || 0}</span>
-              <span>Quality: {performance.avgProcessingTime < 2 ? 'high' : 'medium'}</span>
-            </div>
-          )}
-
-          <div className="audio-activity-indicator">
-            <div className={`activity-dot ${(audioFeatures?.volume || 0) > 0.01 ? 'active' : ''}`} />
-            <span>Audio: {(audioFeatures?.volume || 0) > 0.01 ? 'Detected' : 'Silent'}</span>
           </div>
         </>
+      )}
+
+      {!isEnabled && hasPermission === false && (
+        <div className="no-permission-message">
+          <div className="message-icon">🚫</div>
+          <div className="message-text">
+            Microphone access is required for audio reactive features.
+            Please allow microphone access and try again.
+          </div>
+        </div>
       )}
     </div>
   );

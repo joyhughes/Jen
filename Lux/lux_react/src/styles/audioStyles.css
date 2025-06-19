@@ -40,6 +40,22 @@
     }
 }
 
+/* Pulse animation for audio indicator */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 /* OPTIMIZED Audio-influenced slider classes */
 .jen-slider {
     --audio-influence: 0;
@@ -71,13 +87,340 @@
     background: #4CAF50;
 }
 
-/* Audio control panel styling */
+/* Audio control panel styling - BASE */
 .audio-control-panel {
     padding: 12px;
     background: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
     margin-bottom: 16px;
     backdrop-filter: blur(8px);
+}
+
+/* Enhanced mobile-first audio control panel */
+.audio-control-panel.enhanced {
+    padding: 20px;
+    background: rgba(25, 25, 35, 0.95);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);  
+    backdrop-filter: blur(12px);
+    margin: 0;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Enhanced toggle section */
+.audio-control-panel.enhanced .audio-toggle-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 0;
+}
+
+.audio-control-panel.enhanced .audio-toggle-btn {
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 60px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+    transition: all 0.3s ease;
+}
+
+.audio-control-panel.enhanced .audio-toggle-btn.active {
+    background: linear-gradient(135deg, #FF6B35, #FF8A50);
+    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+}
+
+.audio-control-panel.enhanced .audio-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.audio-control-panel.enhanced .audio-toggle-btn.active:hover {
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.audio-control-panel.enhanced .button-icon {
+    font-size: 20px;
+}
+
+.audio-control-panel.enhanced .button-text {
+    font-size: 16px;
+}
+
+/* Enhanced status card */
+.audio-status-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #666;
+    transition: all 0.3s ease;
+}
+
+.status-dot.active {
+    background: #4CAF50;
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+}
+
+/* Enhanced audio meters grid */
+.audio-meters-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 0;
+}
+
+@media (min-width: 480px) {
+    .audio-meters-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.audio-control-panel.enhanced .frequency-meter {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+.meter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.meter-label {
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.meter-value {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 700;
+}
+
+.audio-control-panel.enhanced .meter-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Enhanced features section */
+.audio-features-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.beat-indicator-card,
+.activity-indicator-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.beat-indicator-card .beat-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.beat-text,
+.activity-text {
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.beat-status,
+.activity-status {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+/* Enhanced sensitivity section */
+.sensitivity-section-enhanced {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sensitivity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sensitivity-title {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.sensitivity-value {
+    font-size: 16px;
+    color: #4CAF50;
+    font-weight: 700;
+}
+
+.sensitivity-slider-container {
+    position: relative;
+}
+
+.sensitivity-slider.enhanced {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.sensitivity-slider.enhanced::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    transition: all 0.2s ease;
+}
+
+.sensitivity-slider.enhanced::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+}
+
+.sensitivity-slider.enhanced::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.slider-marks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 10px;
+    color: #666;
+}
+
+/* Enhanced performance stats */
+.performance-stats-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.perf-title {
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.perf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.perf-item {
+    text-align: center;
+}
+
+.perf-label {
+    display: block;
+    font-size: 10px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.perf-value {
+    display: block;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+}
+
+/* No permission message */
+.no-permission-message {
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #F44336;
+}
+
+.message-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.message-text {
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 /* Permission status styling */
@@ -198,9 +541,8 @@
 
 .meter-fill {
     height: 100%;
+    transition: width 0.1s ease;
     border-radius: 2px;
-    transition: width 0.1s ease-out;
-    will-change: width;
 }
 
 .meter-fill.bass { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
@@ -208,7 +550,7 @@
 .meter-fill.high { background: linear-gradient(90deg, #FF9800, #FFB74D); }
 .meter-fill.volume { background: linear-gradient(90deg, #9C27B0, #BA68C8); }
 
-/* Sensitivity Slider */
+/* Sensitivity section */
 .sensitivity-section {
     margin: 12px 0;
 }
@@ -216,7 +558,7 @@
 .sensitivity-label {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-size: 12px;
     color: #ccc;
 }
@@ -224,7 +566,7 @@
 .sensitivity-slider {
     width: 100%;
     height: 4px;
-    background: #444;  
+    background: #333;
     border-radius: 2px;
     outline: none;
     -webkit-appearance: none;
@@ -232,6 +574,7 @@
 
 .sensitivity-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     width: 16px;
     height: 16px;
     background: #4CAF50;
@@ -244,31 +587,31 @@
     height: 16px;
     background: #4CAF50;
     border-radius: 50%;
-    border: none;
     cursor: pointer;
+    border: none;
 }
 
-/* Performance Stats - Minimal */
+/* Performance stats */
 .performance-stats {
-    font-size: 10px;
-    color: #666;
-    margin-top: 8px;
     display: flex;
-    gap: 12px;
+    gap: 16px;
+    justify-content: center;
+    margin: 8px 0;
+    font-size: 11px;
+    color: #999;
 }
 
-/* Audio processing indicator */
+/* Battery optimization classes */
 .audio-processing {
-    animation: audioPulse 1s ease-in-out infinite;
+    opacity: 0.9;
 }
 
-/* Battery optimization indicator */
 .battery-optimized {
-    color: #FF9800;
-    animation: audioPulse 2s ease-in-out infinite;
+    border-left: 3px solid #4CAF50;
+    padding-left: 8px;
 }
 
-/* Performance indicators */
+/* Quality indicators */
 .audio-quality-high {
     color: #4CAF50;
 }
@@ -281,52 +624,51 @@
     color: #F44336;
 }
 
-/* Audio sensitivity slider */
+/* MUI slider overrides for audio sensitivity */
 .audio-sensitivity-slider .MuiSlider-track {
-    background: linear-gradient(90deg, #2E7D32, #1A237E) !important;
+    background: linear-gradient(90deg, #4CAF50, #66BB6A);
 }
 
 .audio-sensitivity-slider .MuiSlider-thumb:hover {
-    box-shadow: 0 0 0 8px rgba(46, 125, 50, 0.16) !important;
+    box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.16);
 }
 
-/* Audio permission status */
+/* Permission status classes */
 .permission-granted {
-    color: #4CAF50;
-    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid #4CAF50;
+    padding-left: 8px;
 }
 
 .permission-denied {
-    color: #F44336;
-    background-color: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #F44336;
+    padding-left: 8px;
 }
 
 .permission-requesting {
-    color: #FF9800;
-    background-color: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #FF9800;
+    padding-left: 8px;
+    animation: audioPulse 1.5s infinite;
 }
 
-/* Accessibility improvements */
+/* Accessibility: Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .jen-slider.audio-influenced,
-    .beat-indicator.active,
-    .audio-processing,
-    .battery-optimized {
+    .jen-slider.audio-influenced::before,
+    .jen-slider.audio-influenced::after {
+        animation: none;
+        transition: none;
+    }
+
+    .jen-slider.audio-influenced::before,
+    .jen-slider.audio-influenced::after {
         animation: none;
     }
-    
-    .jen-slider.audio-influenced::before,
-    .beat-indicator.active::after {
-        display: none;
-    }
 }
 
-/* Remove expensive animations */
 .audio-reactive-glow {
-    animation: none !important;
+    animation: audioGlow 0.3s ease-out;
 }
 
-/* Audio activity indicator */
 .audio-activity-indicator {
     display: flex;
     align-items: center;
@@ -341,17 +683,15 @@
     height: 8px;
     border-radius: 50%;
     background: #666;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .activity-dot.active {
     background: #4CAF50;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
 }
 
-/* Reduce GPU usage */
+/* Remove default margins on all elements in audio panel */
 * {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    perspective: 1000px;
+    box-sizing: border-box;
 } 

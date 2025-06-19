@@ -12,11 +12,11 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
+import AudioPane from "./panes/AudioPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
-import AudioControlPanel from "./AudioControlPanel.jsx";
-import  useAudio   from "../hooks/useAudio.js";
+import useAudio from "../hooks/useAudio.js";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -30,7 +30,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const previousPaneRef = useRef(activePane);
     const lastFrameTimeRef = useRef(0);
 
-    // Audio reactive functionality with SHO-based parameter modulation
+    // Audio reactive functionality - moved back to ControlPanel level to persist across panes
     const { 
         isEnabled, 
         hasPermission, 
@@ -40,6 +40,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         performance, 
         toggleAudio 
     } = useAudio();
+
+    // Debug effect to track audio state persistence
+    useEffect(() => {
+        console.log('🎵 Audio state update:', {
+            isEnabled,
+            hasPermission,
+            activePane,
+            volume: audioFeatures?.volume || 0
+        });
+    }, [isEnabled, hasPermission, activePane, audioFeatures?.volume]);
 
     // Store slider values before scene changes
     const storeSliderValues = () => {
@@ -72,6 +82,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             console.log("Navigated to home pane, triggering widget reload");
             handleWidgetGroupChange();
         }
+        // Update previous pane reference
+        previousPaneRef.current = activePane;
     }, [activePane])
 
     const handleWidgetGroupChange = () => {
@@ -168,9 +180,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             return false;
         }
     };
-
-    // Audio integration is now handled automatically by the useAudio hook
-    console.log("🎵 Audio system ready - integration handled by useAudio hook");
 
     // Initial setup effect - runs once when component mounts
     useEffect(() => {
@@ -286,6 +295,20 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 return <TargetImagePane {...commonProps} />;
             case "brush":
                 return <BrushPane {...commonProps} />;
+            case "audio":
+                return (
+                    <AudioPane 
+                        dimensions={dimensions} 
+                        panelSize={panelSize}
+                        isEnabled={isEnabled}
+                        hasPermission={hasPermission}
+                        audioFeatures={audioFeatures}
+                        sensitivity={sensitivity}
+                        setSensitivity={setSensitivity}
+                        performance={performance}
+                        toggleAudio={toggleAudio}
+                    />
+                );
             case "camera":
                 return (
                     <Box sx={{ p: 1, height: '100%' }}>
@@ -318,19 +341,10 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             <TabNavigation
                 activePane={activePane}
                 onPaneChange={onPaneChange}
+                isAudioEnabled={isEnabled}
             />
 
             <MediaController panelSize={panelSize} />
-
-            <AudioControlPanel
-                isEnabled={isEnabled}
-                hasPermission={hasPermission}
-                audioFeatures={audioFeatures}
-                sensitivity={sensitivity}
-                setSensitivity={setSensitivity}
-                performance={performance}
-                toggleAudio={toggleAudio}
-            />
 
             <Box
                 sx={{

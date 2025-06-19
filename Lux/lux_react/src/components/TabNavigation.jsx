@@ -6,8 +6,9 @@ import { FaBullseye } from 'react-icons/fa';
 import { BsBrush } from 'react-icons/bs';
 import { BsCollectionPlay } from 'react-icons/bs';
 import { BsCameraVideo } from 'react-icons/bs';
+import { HiMicrophone } from 'react-icons/hi';
 
-function TabNavigation({ activePane, onPaneChange }) {
+function TabNavigation({ activePane, onPaneChange, isAudioEnabled = false }) {
     const handleChange = (event, newValue) => {
         console.log("current active panel: " + activePane + ", new value: " + JSON.stringify(newValue));
         onPaneChange(newValue);
@@ -15,6 +16,21 @@ function TabNavigation({ activePane, onPaneChange }) {
 
     const iconStyle = {
         fontSize: '24px'  // Consistent size for all icons
+    };
+
+    const getAudioIconStyle = () => {
+        const baseStyle = { ...iconStyle };
+        
+        if (isAudioEnabled) {
+            // Audio is active - show green glow
+            baseStyle.color = "#4CAF50";
+            baseStyle.filter = "drop-shadow(0 0 4px rgba(76, 175, 80, 0.7))";
+        } else if (activePane === "audio") {
+            // Audio pane is selected but not active - show orange
+            baseStyle.color = "#ff6b35";
+        }
+        
+        return baseStyle;
     };
 
     return (
@@ -100,6 +116,43 @@ function TabNavigation({ activePane, onPaneChange }) {
                     }}
                     aria-label="Brush"
                     title="Brush"
+                />
+
+                <Tab
+                    icon={
+                        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <HiMicrophone style={getAudioIconStyle()} />
+                            {isAudioEnabled && (
+                                <Box 
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -2,
+                                        right: -2,
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        backgroundColor: '#4CAF50',
+                                        border: '1px solid white',
+                                        boxShadow: '0 0 4px rgba(76, 175, 80, 0.7)',
+                                        animation: 'pulse 2s infinite'
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    }
+                    value="audio"
+                    sx={{
+                        minHeight: '50px',
+                        '&.Mui-selected': {
+                            color: 'primary.main',
+                            background: 'rgba(25, 118, 210, 0.08)'
+                        },
+                        '& .MuiTab-iconWrapper': {
+                            position: 'relative'
+                        }
+                    }}
+                    aria-label={isAudioEnabled ? "Audio (Active)" : "Audio"}
+                    title={isAudioEnabled ? "Audio (Active)" : "Audio"}
                 />
 
                 <Tab
