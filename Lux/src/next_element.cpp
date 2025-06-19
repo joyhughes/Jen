@@ -342,6 +342,18 @@ void next_element::add_function(  any_gen_fn fn       ) { functions.push_back( f
 
 void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( c ); }
 
+// Audio function implementations using Joy's harness system
+float audio_float_fn::operator () ( float& val, element_context& context ) {
+    float audio_val = context.s.ui.audio.get_audio_value(channel);
+    return base_value + (audio_val * sensitivity);
+}
+
+vec2f audio_vec2f_fn::operator () ( vec2f& val, element_context& context ) {
+    float audio_x = context.s.ui.audio.get_audio_value(channel_x);
+    float audio_y = context.s.ui.audio.get_audio_value(channel_y);
+    return base_value + vec2f(audio_x * sensitivity_x, audio_y * sensitivity_y);
+}
+
 bool next_element::operator () ( element_context& context ) { 
     for( auto& condition: conditions ) if( !condition( context ) ) return false; // if any condition fails, no next element
     cluster& cl = context.cl;

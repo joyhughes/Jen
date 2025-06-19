@@ -259,6 +259,28 @@ struct UI {
     bool  mouse_over;
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
     std::vector< widget_group > widget_groups;  // should this be a tree?
+    
+    // Audio data - updated by frontend SHO/FFT system
+    struct {
+        float volume = 0.0f;
+        float bass_level = 0.0f;
+        float mid_level = 0.0f;
+        float high_level = 0.0f;
+        bool beat_detected = false;
+        float time_phase = 0.0f;
+        bool enabled = false;
+        
+        float get_audio_value(const std::string& channel) const {
+            if (!enabled) return 0.0f;
+            
+            if (channel == "volume") return volume;
+            if (channel == "bass") return bass_level;
+            if (channel == "mid") return mid_level;
+            if (channel == "high") return high_level;
+            if (channel == "beat") return beat_detected ? 1.0f : 0.0f;
+            return 0.0f;
+        }
+    } audio;
 
     void add_widget_group( const std::string& name, const widget_group& wg );
 

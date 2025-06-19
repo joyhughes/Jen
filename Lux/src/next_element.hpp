@@ -536,4 +536,34 @@ struct next_element {
     next_element();
 };
 
+// Audio-reactive function types integrated with Joy's harness system
+// These work directly with the scene's global context instead of separate audio context
+
+struct audio_float_fn {
+    std::string channel;
+    float sensitivity;
+    float base_value;
+    
+    float operator () ( float& val, element_context& context );
+    
+    audio_float_fn(const std::string& ch = "volume", float sens = 1.0f, float base = 0.0f) 
+        : channel(ch), sensitivity(sens), base_value(base) {}
+};
+
+struct audio_vec2f_fn {
+    std::string channel_x, channel_y;
+    float sensitivity_x, sensitivity_y;
+    vec2f base_value;
+    
+    vec2f operator () ( vec2f& val, element_context& context );
+    
+    audio_vec2f_fn(const std::string& ch_x = "volume", const std::string& ch_y = "volume", 
+                   float sens_x = 1.0f, float sens_y = 1.0f, const vec2f& base = vec2f(0.0f, 0.0f))
+        : channel_x(ch_x), channel_y(ch_y), sensitivity_x(sens_x), sensitivity_y(sens_y), base_value(base) {}
+};
+
+// Helper functions to make any harness audio-reactive using Joy's type erasure
+template<typename T>
+void make_audio_reactive(harness<T>& h, const std::string& channel, float sensitivity = 1.0f);
+
 #endif // __NEXT_ELEMENT_HPP

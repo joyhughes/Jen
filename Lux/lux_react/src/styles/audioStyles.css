@@ -80,6 +80,50 @@
     backdrop-filter: blur(8px);
 }
 
+/* Permission status styling */
+.permission-status {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.permission-status.granted {
+    color: #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.permission-status.denied {
+    color: #F44336;
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.permission-status.prompt {
+    color: #FF9800;
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+/* Frequency info styling */
+.frequency-info {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+    margin: 8px 0;
+}
+
+/* Sensitivity section styling */
+.sensitivity-section {
+    margin: 12px 0;
+}
+
+.sensitivity-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #ccc;
+}
+
 .audio-toggle-section {
     display: flex;
     align-items: center;

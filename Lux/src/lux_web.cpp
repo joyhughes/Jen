@@ -15,11 +15,23 @@
 #include "video_recorder.hpp"
 #include <chrono>
 
+// Audio data stored in scene's UI context - no separate global audio context needed
+// The frontend SHO/FFT system updates scene parameters directly via the harness system
 
-//#include <chrono>
-//#include <thread>
+// Implementation of audio harness helper functions
+template<>
+void make_audio_reactive<float>(harness<float>& h, const std::string& channel, float sensitivity) {
+    auto audio_fn = std::make_shared<audio_float_fn>(channel, sensitivity, h.val);
+    any_fn<float> any_audio_fn(audio_fn, std::ref(*audio_fn), "audio_" + channel);
+    h.add_function(any_audio_fn);
+}
 
-#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+template<>
+void make_audio_reactive<vec2f>(harness<vec2f>& h, const std::string& channel, float sensitivity) {
+    auto audio_fn = std::make_shared<audio_vec2f_fn>(channel, channel, sensitivity, sensitivity, h.val);
+    any_fn<vec2f> any_audio_fn(audio_fn, std::ref(*audio_fn), "audio_" + channel);
+    h.add_function(any_audio_fn);
+}
 
 using namespace emscripten;
 
@@ -241,6 +253,9 @@ void render_and_display( void *arg )
         }
 
         global_context->frame_callback();
+
+        // Apply audio reactivity to scene parameters
+        // Audio reactivity is now handled automatically by the harness system
 
         if( running || advance || !displayed ) {
             global_context->s->render();
@@ -1423,6 +1438,197 @@ std::string ultra_get_camera_stats() {
     return stats.dump();
 }
 
+// Audio context management functions
+void update_audio_context(float volume, float bass, float mid, float high, bool beat, float time) {
+    if (!global_context || !global_context->s) return;
+    
+    global_context->s->ui.audio.volume = volume;
+    global_context->s->ui.audio.bass_level = bass;
+    global_context->s->ui.audio.mid_level = mid;
+    global_context->s->ui.audio.high_level = high;
+    global_context->s->ui.audio.beat_detected = beat;
+    global_context->s->ui.audio.time_phase = time;
+    global_context->s->ui.audio.enabled = true;
+}
+
+void enable_audio_input(bool enabled) {
+    if (!global_context || !global_context->s) return;
+    global_context->s->ui.audio.enabled = enabled;
+}
+
+bool is_audio_enabled() {
+    if (!global_context || !global_context->s) return false;
+    return global_context->s->ui.audio.enabled;
+}
+
+float get_audio_channel_value(std::string channel) {
+    if (!global_context || !global_context->s) return 0.0f;
+    return global_context->s->ui.audio.get_audio_value(channel);
+}
+
+// Audio reactivity is now handled automatically by Joy's harness system
+// No need for hard-coded slider manipulation - scenes define their own audio reactivity
+
+
+// Get audio configuration from current scene JSON file  
+std::string get_audio_config() {
+    if (!global_context || !global_context->s) {
+        std::cout << "🎵 ⚠️ No global context or scene available" << std::endl;
+        return "[]";
+    }
+    
+    try {
+        nlohmann::json config = nlohmann::json::array();
+        
+        // Get current scene filename - for now use the first scene (kaleido.json)
+        // TODO: Track current scene index properly
+        std::string current_filename;
+        if (global_context->scene_list.contains("scenes") && 
+            global_context->scene_list["scenes"].is_array() && 
+            !global_context->scene_list["scenes"].empty()) {
+            current_filename = global_context->scene_list["scenes"][0]["filename"];
+        } else {
+            std::cout << "🎵 ⚠️ No scene filename available" << std::endl;
+            return "[]";
+        }
+        
+        std::cout << "🎵 📋 Loading audio config from: " << current_filename << std::endl;
+        
+        // Read and parse the scene JSON file
+        std::string scene_json_str = load_file_as_string(current_filename);
+        nlohmann::json scene_json = nlohmann::json::parse(scene_json_str);
+        
+        // Extract audio_reactive configurations from functions array
+        if (scene_json.contains("functions") && scene_json["functions"].is_array()) {
+            for (const auto& func : scene_json["functions"]) {
+                if (func.contains("name") && func.contains("audio_reactive")) {
+                    const auto& audio_config = func["audio_reactive"];
+                    
+                    // Check if audio reactivity is enabled
+                    if (audio_config.contains("enabled") && audio_config["enabled"].get<bool>()) {
+                        std::string name = func["name"];
+                        std::string channel = audio_config.value("channel", "volume");
+                        float sensitivity = audio_config.value("sensitivity", 1.0f);
+                        float offset = audio_config.value("offset", 0.0f);
+                        
+                        // Set damping and stiffness based on channel characteristics
+                        float damping = 0.05f;
+                        float stiffness = 3.0f;
+                        
+                        if (channel == "bass") {
+                            damping = 0.05f;
+                            stiffness = 4.0f;
+                        } else if (channel == "mid") {
+                            damping = 0.01f;
+                            stiffness = 2.0f;
+                        } else if (channel == "high") {
+                            damping = 0.08f;
+                            stiffness = 3.0f;
+                        } else if (channel == "volume") {
+                            damping = 0.06f;
+                            stiffness = 3.5f;
+                        }
+                        
+                        config.push_back({
+                            {"name", name},
+                            {"channel", channel},
+                            {"sensitivity", sensitivity},
+                            {"offset", offset},
+                            {"damping", damping},
+                            {"stiffness", stiffness}
+                        });
+                        
+                        std::cout << "🎵 ✅ Added " << name << " → " << channel 
+                                  << " (sens=" << sensitivity << ", offset=" << offset << ")" << std::endl;
+                    }
+                }
+            }
+        }
+        
+        std::cout << "🎵 📋 Final config has " << config.size() << " audio mappings" << std::endl;
+        
+        return config.dump();
+        
+    } catch (const std::exception& e) {
+        std::cout << "❌ Error getting audio config: " << e.what() << std::endl;
+        return "[]";
+    }
+}
+
+// Get slider bounds for a parameter
+std::string get_slider_bounds(std::string name) {
+    if (!global_context || !global_context->s) {
+        return "{\"min\": -20, \"max\": 20, \"step\": 0.1}";
+    }
+    
+    try {
+        scene& s = *global_context->s;
+        
+        if (s.functions.count(name)) {
+            return std::visit([&](const auto& any_fn_variant) -> std::string {
+                using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                
+                if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                    return std::visit([&](const auto& inner_ptr) -> std::string {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_float>>) {
+                            nlohmann::json bounds = {
+                                {"min", inner_ptr->min},
+                                {"max", inner_ptr->max},
+                                {"step", inner_ptr->step}
+                            };
+                            return bounds.dump();
+                        } else {
+                            nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                            return bounds.dump();
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else if constexpr (std::is_same_v<VariantType, any_fn<int>>) {
+                    return std::visit([&](const auto& inner_ptr) -> std::string {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_int>>) {
+                            nlohmann::json bounds = {
+                                {"min", inner_ptr->min},
+                                {"max", inner_ptr->max},
+                                {"step", 1}
+                            };
+                            return bounds.dump();
+                        } else {
+                            nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                            return bounds.dump();
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else {
+                    // Generic bounds for other types
+                    nlohmann::json bounds = {{"min", -20}, {"max", 20}, {"step", 0.1}};
+                    return bounds.dump();
+                }
+            }, s.functions[name]);
+        }
+        
+        // Fallback bounds
+        nlohmann::json bounds = {
+            {"min", -20},
+            {"max", 20},
+            {"step", 0.1}
+        };
+        return bounds.dump();
+        
+    } catch (const std::exception& e) {
+        std::cout << "❌ Error getting slider bounds: " << e.what() << std::endl;
+        nlohmann::json bounds = {
+            {"min", -20},
+            {"max", 20},
+            {"step", 0.1}
+        };
+        return bounds.dump();
+    }
+}
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -1642,4 +1848,11 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
     function("ultra_get_camera_stats", &ultra_get_camera_stats);
 
+    // audio functions
+    function("update_audio_context", &update_audio_context);
+    function("enable_audio_input", &enable_audio_input);
+    function("is_audio_enabled", &is_audio_enabled);
+    function("get_audio_channel_value", &get_audio_channel_value);
+    function("get_audio_config", &get_audio_config);
+    function("get_slider_bounds", &get_slider_bounds);
 }

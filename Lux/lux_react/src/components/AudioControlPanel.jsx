@@ -1,30 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/audioStyles.css';
 
-const AudioControlPanel = ({ 
-  isEnabled, 
-  hasPermission, 
-  audioFeatures, 
-  sensitivity, 
-  setSensitivity, 
-  performance, 
-  toggleAudio 
+const AudioControlPanel = ({
+  isEnabled,
+  hasPermission,
+  audioFeatures,
+  sensitivity,
+  setSensitivity,
+  performance,
+  toggleAudio
 }) => {
-  
   const getPermissionStatus = () => {
     if (hasPermission === true) return 'granted';
     if (hasPermission === false) return 'denied';
     return 'prompt';
   };
 
-  const formatValue = (value) => Math.round(value * 100);
+  const formatValue = (value) => Math.round((value || 0) * 100);
 
   return (
     <div className="audio-control-panel">
       <div className="audio-toggle-section">
         <button 
           className="audio-toggle-btn"
-          onClick={toggleAudio}
+          onClick={() => {
+            console.log('🎵 Audio toggle button clicked');
+            toggleAudio();
+          }}
           disabled={hasPermission === false}
         >
           {isEnabled ? 'Disable Audio' : 'Enable Audio'}
@@ -48,7 +50,7 @@ const AudioControlPanel = ({
               <div className="meter-bar">
                 <div 
                   className="meter-fill bass"
-                  style={{ width: `${formatValue(audioFeatures.bassLevel)}%` }}
+                  style={{ width: `${formatValue(audioFeatures?.bassLevel)}%` }}
                 />
               </div>
             </div>
@@ -58,7 +60,7 @@ const AudioControlPanel = ({
               <div className="meter-bar">
                 <div 
                   className="meter-fill mid"
-                  style={{ width: `${formatValue(audioFeatures.midLevel)}%` }}
+                  style={{ width: `${formatValue(audioFeatures?.midLevel)}%` }}
                 />
               </div>
             </div>
@@ -68,7 +70,7 @@ const AudioControlPanel = ({
               <div className="meter-bar">
                 <div 
                   className="meter-fill high"
-                  style={{ width: `${formatValue(audioFeatures.highLevel)}%` }}
+                  style={{ width: `${formatValue(audioFeatures?.highLevel)}%` }}
                 />
               </div>
             </div>
@@ -78,38 +80,45 @@ const AudioControlPanel = ({
               <div className="meter-bar">
                 <div 
                   className="meter-fill volume"
-                  style={{ width: `${formatValue(audioFeatures.volume)}%` }}
+                  style={{ width: `${formatValue(audioFeatures?.volume)}%` }}
                 />
               </div>
             </div>
           </div>
 
           <div className="beat-indicator">
-            <div className={`beat-pulse ${audioFeatures.beatDetected ? 'active' : ''}`} />
-            <span>Beat: {audioFeatures.beatDetected ? 'Yes' : 'No'}</span>
+            <div className={`beat-pulse ${audioFeatures?.beatDetected ? 'active' : ''}`} />
+            <span>Beat: {audioFeatures?.beatDetected ? 'Yes' : 'No'}</span>
           </div>
 
           <div className="sensitivity-section">
             <div className="sensitivity-label">
               <span>Sensitivity</span>
-              <span>{Math.round(sensitivity * 100)}%</span>
+              <span>{Math.round(sensitivity || 0)}%</span>
             </div>
             <input
               type="range"
               min="0"
-              max="1"
-              step="0.1"
-              value={sensitivity}
-              onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+              max="100"
+              step="5"
+              value={sensitivity || 50}
+              onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value))}
               className="sensitivity-slider"
             />
           </div>
 
-          <div className="performance-stats">
-            <span>FPS: {performance.fps}</span>
-            <span>Avg: {performance.avgProcessingTime.toFixed(1)}ms</span>
-            <span>Drops: {performance.droppedFrames}</span>
-          </div>
+          {audioFeatures?.dominantFreq && (
+            <div className="frequency-info">
+              <span>Dominant: {Math.round(audioFeatures.dominantFreq)}Hz</span>
+            </div>
+          )}
+
+          {performance && (
+            <div className="performance-stats">
+              <span>FPS: {performance.fps || 0}</span>
+              <span>Quality: {performance.quality || 'high'}</span>
+            </div>
+          )}
         </>
       )}
     </div>

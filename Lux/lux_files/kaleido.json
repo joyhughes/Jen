@@ -65,7 +65,13 @@
             "min": 1,
             "max": 36,
             "step": 1,
-            "default_value": 6
+            "default_value": 6,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "high",
+                "sensitivity": 11.0,
+                "offset": 1.0
+            }
         },        
         {
             "name": "level_slider",
@@ -75,7 +81,13 @@
             "min": 1,
             "max": 12,
             "step": 1,
-            "default_value": 1
+            "default_value": 1,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "volume",
+                "sensitivity": 7.0,
+                "offset": 1.0
+            }
         },        
         {
             "name": "level_start_slider",
@@ -105,7 +117,12 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "bass",
+                "sensitivity": 8.0
+            }
         },
         {
             "name": "spin_slider",
@@ -115,7 +132,12 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "audio_reactive": {
+                "enabled": true,
+                "channel": "mid",
+                "sensitivity": 6.0
+            }
         },
         {
             "name": "scope_menu",

@@ -98,12 +98,16 @@ const useAudio = () => {
   const dataArrayRef = useRef(null);
   const sensitivityRef = useRef(0.5);
   const isEnabledRef = useRef(false);
-  const manualSliderValuesRef = useRef({});
+  
+  // Configuration-driven audio mappings (loaded from scene JSON)
+  const audioConfigRef = useRef([]);
+  const oscillatorsRef = useRef({});
+  const manualValuesRef = useRef({});
 
   // Pre-allocated state objects for zero-allocation hot paths
   const audioStateRef = useRef({
     lastVolume: 0,
-    volumeHistory: new Array(4).fill(0), // REDUCED: 4 frames instead of 8 for better performance
+    volumeHistory: new Array(4).fill(0),
     beatCooldown: 0,
     continuousMotionPhase: 0,
     lastAudioUpdate: 0,
@@ -116,15 +120,7 @@ const useAudio = () => {
     fpsStartTime: 0
   });
 
-  // Optimized SHO oscillators
-  const oscillatorsRef = useRef({
-    start_slider: new SimpleSHO(1.0, 0.02, 3.0),     // Ultra-low damping for continuous rotation
-    spin_slider: new SimpleSHO(0.8, 0.01, 2.0),      // Frictionless spin
-    expand_slider: new SimpleSHO(1.2, 0.05, 4.0),    // Smooth breathing
-    phase_slider: new SimpleSHO(1.0, 0.03, 2.5)      // Wave motion
-  });
-
-  // Performance constants - REDUCED for better performance
+  // Performance constants
   const AUDIO_UPDATE_INTERVAL = 100;    // 10fps for audio processing 
   const BACKEND_UPDATE_INTERVAL = 200;  // 5fps for backend calls  
   const PERFORMANCE_LOG_INTERVAL = 5000; // 5 seconds 
@@ -132,42 +128,78 @@ const useAudio = () => {
   const manualValuesRestoredRef = useRef(false);
   const lastAudioDetectedRef = useRef(0);
 
-  // Capture current manual slider values before audio takes over
-  const captureManualSliderValues = useCallback(() => {
+  // Load audio configuration from scene (via WebAssembly)
+  const loadAudioConfig = useCallback(() => {
     try {
-      const defaultValues = {
-        start_slider: 0,
-        spin_slider: 0,
-        expand_slider: 0,
-        phase_slider: 0
-      };
+      if (!window.module || typeof window.module.get_audio_config !== 'function') {
+        console.warn('🎵 No audio config available from WebAssembly');
+        return;
+      }
 
-      const sliderNames = ['start_slider', 'spin_slider', 'expand_slider', 'phase_slider'];
+      const configJson = window.module.get_audio_config();
+      const config = JSON.parse(configJson);
+      
+      console.log('🎵 📋 LOADED AUDIO CONFIG:', config);
+      audioConfigRef.current = config;
+
+      // Initialize oscillators for each configured parameter
+      const newOscillators = {};
+      const newManualValues = {};
+
+      config.forEach(mapping => {
+        const { name, channel, sensitivity, damping = 0.05, stiffness = 3.0 } = mapping;
+        
+        // Create SHO with parameter-specific tuning
+        newOscillators[name] = new SimpleSHO(1.0, damping, stiffness);
+        
+        // Get current manual value
+        try {
+          const currentValue = window.module.get_slider_value 
+            ? window.module.get_slider_value(name) 
+            : 0;
+          newManualValues[name] = currentValue;
+          newOscillators[name].reset(currentValue);
+        } catch (error) {
+          newManualValues[name] = 0;
+          newOscillators[name].reset(0);
+        }
+      });
+
+      oscillatorsRef.current = newOscillators;
+      manualValuesRef.current = newManualValues;
+
+      console.log('🎵 ✅ Initialized oscillators for:', Object.keys(newOscillators));
+      
+    } catch (error) {
+      console.warn('🎵 Error loading audio config:', error);
+      audioConfigRef.current = [];
+    }
+  }, []);
+
+  // Capture current manual values for all configured parameters
+  const captureManualValues = useCallback(() => {
+    try {
+      const config = audioConfigRef.current;
+      if (config.length === 0) return;
+
       const manualValues = {};
 
-      sliderNames.forEach(name => {
-        const slider = document.querySelector(`.jen-slider[data-name="${name}"]`);
-        if (slider) {
-          const value = parseFloat(slider.getAttribute('data-value'));
-          manualValues[name] = !isNaN(value) ? value : defaultValues[name];
-        } else {
-          try {
-            if (window.module && typeof window.module.get_slider_value === 'function') {
-              const backendValue = window.module.get_slider_value(name);
-              manualValues[name] = !isNaN(backendValue) ? backendValue : defaultValues[name];
-            } else {
-              manualValues[name] = defaultValues[name];
-            }
-          } catch (error) {
-            manualValues[name] = defaultValues[name];
-          }
+      config.forEach(mapping => {
+        const { name } = mapping;
+        try {
+          const currentValue = window.module && window.module.get_slider_value
+            ? window.module.get_slider_value(name)
+            : 0;
+          manualValues[name] = !isNaN(currentValue) ? currentValue : 0;
+        } catch (error) {
+          manualValues[name] = 0;
         }
       });
 
       console.log('📊 CAPTURED MANUAL VALUES:', manualValues);
-      manualSliderValuesRef.current = manualValues;
+      manualValuesRef.current = manualValues;
 
-      // Initialize oscillators to current manual positions
+      // Reset oscillators to current manual positions
       Object.keys(manualValues).forEach(name => {
         if (oscillatorsRef.current[name]) {
           oscillatorsRef.current[name].reset(manualValues[name]);
@@ -175,84 +207,55 @@ const useAudio = () => {
       });
     } catch (error) {
       console.warn('🎵 Error capturing manual values:', error);
-      const fallbackValues = {
-        start_slider: 0,
-        spin_slider: 0,
-        expand_slider: 0,
-        phase_slider: 0
-      };
-      manualSliderValuesRef.current = fallbackValues;
-
-      Object.keys(fallbackValues).forEach(name => {
-        if (oscillatorsRef.current[name]) {
-          oscillatorsRef.current[name].reset(fallbackValues[name]);
-        }
-      });
     }
   }, []);
 
-  // CONTINUOUSLY update manual baseline values while audio is enabled
+  // Update manual baseline values while audio is enabled
   const updateManualBaselines = useCallback(() => {
     if (!isEnabledRef.current) return;
 
-    const sliderNames = ['start_slider', 'spin_slider', 'expand_slider', 'phase_slider'];
-    const currentManualValues = { ...manualSliderValuesRef.current };
+    const config = audioConfigRef.current;
+    if (config.length === 0) return;
+
+    const currentManualValues = { ...manualValuesRef.current };
     let hasChanges = false;
 
-    sliderNames.forEach(name => {
-      const slider = document.querySelector(`.jen-slider[data-name="${name}"]`);
-      if (slider) {
-        const currentValue = parseFloat(slider.getAttribute('data-value'));
+    config.forEach(mapping => {
+      const { name } = mapping;
+      try {
+        const currentValue = window.module && window.module.get_slider_value
+          ? window.module.get_slider_value(name)
+          : currentManualValues[name] || 0;
+        
         if (!isNaN(currentValue) && currentValue !== currentManualValues[name]) {
           currentManualValues[name] = currentValue;
           hasChanges = true;
         }
+      } catch (error) {
+        // Keep existing value
       }
     });
 
     if (hasChanges) {
-      manualSliderValuesRef.current = currentManualValues;
+      manualValuesRef.current = currentManualValues;
     }
   }, []);
 
-  // Return sliders to their manual values smoothly using SHO
+  // Return parameters to their manual values with gentle motion
   const returnToManualValues = useCallback(() => {
-    const manualValues = manualSliderValuesRef.current;
+    const manualValues = manualValuesRef.current;
     const currentTime = getTime();
 
     Object.keys(manualValues).forEach(name => {
       if (oscillatorsRef.current[name]) {
         const oscillator = oscillatorsRef.current[name];
-
-        switch (name) {
-          case 'start_slider':
-            const startTarget = Math.max(manualValues[name],
-              manualValues[name] + Math.abs(Math.sin(currentTime * 0.0006)) * 1.5);
-            oscillator.setTarget(startTarget);
-            break;
-
-          case 'spin_slider':
-            const spinTarget = Math.max(manualValues[name],
-              manualValues[name] + Math.abs(Math.sin(currentTime * 0.0008)) * 2.5);
-            oscillator.setTarget(spinTarget);
-            break;
-
-          case 'expand_slider':
-            const expandTarget = Math.max(manualValues[name],
-              manualValues[name] + Math.abs(Math.sin(currentTime * 0.001)) * 1.8 +
-              Math.abs(Math.cos(currentTime * 0.0007)) * 0.8);
-            oscillator.setTarget(expandTarget);
-            break;
-
-          case 'phase_slider':
-            const phaseTarget = Math.max(manualValues[name],
-              manualValues[name] + Math.abs(Math.sin(currentTime * 0.0004)) * 3);
-            oscillator.setTarget(phaseTarget);
-            break;
-
-          default:
-            oscillator.setTarget(manualValues[name]);
-        }
+        const baseValue = manualValues[name];
+        
+        // Add subtle continuous motion above baseline
+        const gentleMotion = Math.abs(Math.sin(currentTime * 0.0005)) * 0.5;
+        const target = Math.max(baseValue, baseValue + gentleMotion);
+        
+        oscillator.setTarget(target);
       }
     });
   }, []);
@@ -266,25 +269,18 @@ const useAudio = () => {
     isEnabledRef.current = isEnabled;
 
     if (isEnabled) {
-      captureManualSliderValues();
+      loadAudioConfig();
+      captureManualValues();
       manualValuesRestoredRef.current = false;
     } else {
       returnToManualValues();
       manualValuesRestoredRef.current = true;
     }
-  }, [isEnabled, captureManualSliderValues, returnToManualValues]);
+  }, [isEnabled, loadAudioConfig, captureManualValues, returnToManualValues]);
 
-  // MAIN AUDIO UPDATE FUNCTION - Integrated with main animation loop
+  // MAIN AUDIO UPDATE FUNCTION - Generic and configuration-driven
   const updateAudioParameters = useCallback((deltaTime) => {
     if (!isEnabledRef.current || !analyzerRef.current || !dataArrayRef.current) {
-      // Log why we're not processing
-      if (!isEnabledRef.current) {
-        console.log("🎵 ⚠️ Audio not enabled, skipping update");
-      } else if (!analyzerRef.current) {
-        console.log("🎵 ⚠️ Analyzer not available, skipping update");
-      } else if (!dataArrayRef.current) {
-        console.log("🎵 ⚠️ Data array not available, skipping update");
-      }
       return;
     }
 
@@ -292,6 +288,12 @@ const useAudio = () => {
     const startTime = now;
     const audioState = audioStateRef.current;
     const currentSensitivity = sensitivityRef.current;
+    const config = audioConfigRef.current;
+
+    if (config.length === 0) {
+      console.log("🎵 ⚠️ No audio configuration loaded");
+      return;
+    }
 
     // FPS TRACKING - Count every frame
     audioState.fpsFrameCount++;
@@ -302,65 +304,48 @@ const useAudio = () => {
 
     // Log FPS every 5 seconds
     if (now - audioState.lastFpsLog >= 5000) {
-      const timeElapsed = (now - audioState.fpsStartTime) / 1000; // Convert to seconds
+      const timeElapsed = (now - audioState.fpsStartTime) / 1000;
       const currentFPS = audioState.fpsFrameCount / timeElapsed;
 
-      console.log("📊 CURRENT FPS REPORT:");
-      console.log(`   🎯 Actual FPS: ${currentFPS.toFixed(1)} fps`);
-      console.log(`   ⏱️ Time Period: ${timeElapsed.toFixed(1)}s`);
-      console.log(`   📈 Frame Count: ${audioState.fpsFrameCount} frames`);
-      console.log(`   🎵 Audio Enabled: ${isEnabledRef.current}`);
-      console.log(`   🔄 Delta Time: ${deltaTime.toFixed(4)}s (${(1 / deltaTime).toFixed(1)} fps target)`);
-      console.log("   ════════════════════════════════════════");
+      console.log("📊 AUDIO FPS REPORT:");
+      console.log(`   🎯 FPS: ${currentFPS.toFixed(1)} | Config: ${config.length} params`);
+      console.log(`   🎵 Mappings: ${config.map(c => `${c.name}→${c.channel}`).join(', ')}`);
 
-      // Reset counters for next measurement period
+      // Reset counters
       audioState.fpsFrameCount = 0;
       audioState.fpsStartTime = now;
       audioState.lastFpsLog = now;
     }
 
-    // Debug log every 2 seconds for audio monitoring
-    if (!audioState.lastDebugLog) audioState.lastDebugLog = 0;
-    if (now - audioState.lastDebugLog > 2000) {
-      console.log("🎵 ✅ Audio processing active - deltaTime:", deltaTime.toFixed(4), "sensitivity:", currentSensitivity);
-      audioState.lastDebugLog = now;
-    }
-
-    // Layer 1: Audio processing throttling (30fps)
+    // Audio processing throttling
     const shouldProcessAudio = now - audioState.lastAudioUpdate >= AUDIO_UPDATE_INTERVAL;
-
-    // Layer 2: Backend update throttling (20fps)
     const shouldUpdateBackend = now - audioState.lastBackendUpdate >= BACKEND_UPDATE_INTERVAL;
 
-    // Always update SHO oscillators for smooth motion (60fps) - CONSTRAIN TO MANUAL MINIMUM
+    // Always update SHO oscillators for smooth motion
     const oscillatorValues = {};
-    const manualValues = manualSliderValuesRef.current;
+    const manualValues = manualValuesRef.current;
+    
     Object.keys(oscillatorsRef.current).forEach(name => {
       const oscillator = oscillatorsRef.current[name];
       const rawValue = oscillator.update(deltaTime);
-
-      // CRITICAL: Never go below manual baseline values
+      // Never go below manual baseline
       oscillatorValues[name] = Math.max(rawValue, manualValues[name] || 0);
     });
 
     // Process audio data if throttle allows
     if (shouldProcessAudio) {
       try {
-        // OPTIMIZED: Direct frequency analysis on main thread
         const dataArray = dataArrayRef.current;
         analyzerRef.current.getByteFrequencyData(dataArray);
 
         const dataLen = dataArray.length;
+        const bassEnd = dataLen >> 3;     // 12.5% for bass
+        const midEnd = dataLen >> 1;      // 50% for mid
 
-        // Bit-shift operations for performance (powers of 2)
-        const bassEnd = dataLen >> 3;     // Divide by 8 (12.5% for bass)
-        const midEnd = dataLen >> 1;      // Divide by 2 (50% for mid)
-
-        // Stack variables for zero allocation
         let bassSum = 0, midSum = 0, highSum = 0, totalSum = 0;
 
-        // PERFORMANCE: Single-pass frequency analysis with 4x sampling optimization (skip more samples)
-        for (let i = 1; i < dataLen; i += 4) { // Skip 3 out of 4 samples for better performance
+        // Single-pass frequency analysis with 4x sampling optimization
+        for (let i = 1; i < dataLen; i += 4) {
           const val = dataArray[i];
           totalSum += val;
 
@@ -369,20 +354,19 @@ const useAudio = () => {
           else highSum += val;
         }
 
-        // Fast normalization with bit operations (adjusted for 4x sampling)
-        const quarterLen = dataLen >> 2; // Divide by 4 since we sample every 4th element
+        // Fast normalization
+        const quarterLen = dataLen >> 2;
         const bassCount = bassEnd >> 2;
         const midCount = (midEnd - bassEnd) >> 2;
         const highCount = quarterLen - bassCount - midCount;
 
-        // Optimized normalization (power-of-2 constant for CPU optimization)
-        const norm = 64; // Tuned for better sensitivity
+        const norm = 64;
         const volume = Math.min(totalSum / (quarterLen * norm), 1);
         const bassLevel = bassCount > 0 ? Math.min(bassSum / (bassCount * norm), 1) : 0;
         const midLevel = midCount > 0 ? Math.min(midSum / (midCount * norm), 1) : 0;
         const highLevel = highCount > 0 ? Math.min(highSum / (highCount * norm), 1) : 0;
 
-        // Advanced beat detection with temporal analysis
+        // Beat detection
         audioState.volumeHistory.shift();
         audioState.volumeHistory.push(volume);
 
@@ -393,7 +377,7 @@ const useAudio = () => {
         let beatDetected = false;
         if (audioState.beatCooldown <= 0 && volumeIncrease > beatThreshold && volume > 0.05) {
           beatDetected = true;
-          audioState.beatCooldown = 8; // Prevent rapid fire
+          audioState.beatCooldown = 8;
         } else {
           audioState.beatCooldown = Math.max(0, audioState.beatCooldown - 1);
         }
@@ -409,77 +393,60 @@ const useAudio = () => {
           dominantFrequency: 0
         }));
 
-        // Audio processing logic
+        // Audio processing logic - CONFIGURATION DRIVEN
         if (currentSensitivity > 0) {
           const volumeThreshold = 0.02;
 
           if (volume > volumeThreshold) {
             manualValuesRestoredRef.current = false;
             lastAudioDetectedRef.current = now;
-
             updateManualBaselines();
-            const manualValues = manualSliderValuesRef.current;
 
-            // Perceptually-tuned power curves for better audio responsiveness (INCREASED STRENGTH)
-            const volumeInfluence = Math.pow(volume, 0.7) * currentSensitivity * 2.0; // 2x stronger
-            const bassInfluence = Math.pow(bassLevel, 0.8) * currentSensitivity * 2.5; // 2.5x stronger
-            const midInfluence = Math.pow(midLevel, 0.6) * currentSensitivity * 2.2; // 2.2x stronger
-            const highInfluence = Math.pow(highLevel, 0.9) * currentSensitivity * 2.8; // 2.8x stronger
-
-            // Temporal modulation for organic motion
+            const manualValues = manualValuesRef.current;
+            const audioChannels = { volume, bass: bassLevel, mid: midLevel, high: highLevel };
             const timePhase = now * 0.001;
 
-            // Calculate audio targets with UNIDIRECTIONAL motion - ALWAYS ABOVE MANUAL VALUES
-            const audioTargets = {
-              start_slider: Math.max(manualValues.start_slider,
-                manualValues.start_slider +
-                volumeInfluence * 6 +
-                Math.abs(Math.sin(timePhase * 0.8)) * volumeInfluence * 3),
-
-              spin_slider: Math.max(manualValues.spin_slider,
-                manualValues.spin_slider +
-                highInfluence * 8 +
-                (beatDetected ? 5 * currentSensitivity : 0) +
-                Math.abs(Math.sin(timePhase * 0.6)) * highInfluence * 2.5),
-
-              expand_slider: Math.max(manualValues.expand_slider,
-                manualValues.expand_slider +
-                bassInfluence * 6 +
-                midInfluence * 4 +
-                Math.abs(Math.sin(timePhase * 1.2)) * bassInfluence * 2),
-
-              phase_slider: Math.max(manualValues.phase_slider,
-                manualValues.phase_slider +
-                midInfluence * 12 +
-                Math.abs(Math.sin(timePhase * 0.4)) * midInfluence * 3)
-            };
-
-            // 🎵 DETAILED AUDIO LOGGING
-            console.log("🎵 AUDIO → SLIDER TARGETS:");
-            console.log(`   📊 Raw Audio: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}, beat=${beatDetected}`);
-            console.log(`   🎛️ Influences: vol=${volumeInfluence.toFixed(3)}, bass=${bassInfluence.toFixed(3)}, mid=${midInfluence.toFixed(3)}, high=${highInfluence.toFixed(3)}`);
-            console.log(`   📍 Manual Base: start=${manualValues.start_slider.toFixed(2)}, spin=${manualValues.spin_slider.toFixed(2)}, expand=${manualValues.expand_slider.toFixed(2)}, phase=${manualValues.phase_slider.toFixed(2)}`);
-            console.log(`   🎯 Audio Targets: start=${audioTargets.start_slider.toFixed(2)}, spin=${audioTargets.spin_slider.toFixed(2)}, expand=${audioTargets.expand_slider.toFixed(2)}, phase=${audioTargets.phase_slider.toFixed(2)}`);
-            console.log(`   📈 Deltas: start=+${(audioTargets.start_slider - manualValues.start_slider).toFixed(2)}, spin=+${(audioTargets.spin_slider - manualValues.spin_slider).toFixed(2)}, expand=+${(audioTargets.expand_slider - manualValues.expand_slider).toFixed(2)}, phase=+${(audioTargets.phase_slider - manualValues.phase_slider).toFixed(2)}`);
-            console.log("   ────────────────────────────────────────");
-
-            // Set oscillator targets
-            Object.keys(audioTargets).forEach(name => {
-              if (oscillatorsRef.current[name]) {
-                oscillatorsRef.current[name].setTarget(audioTargets[name]);
+            // Process each configured parameter
+            config.forEach(mapping => {
+              const { name, channel, sensitivity: paramSensitivity, offset = 0 } = mapping;
+              const channelValue = audioChannels[channel] || 0;
+              
+              if (channelValue > 0 && oscillatorsRef.current[name]) {
+                const influence = Math.pow(channelValue, 0.7) * currentSensitivity * paramSensitivity;
+                const baseValue = manualValues[name] || 0;
+                
+                // Add temporal modulation for organic motion
+                const temporalMod = Math.abs(Math.sin(timePhase * 0.6)) * influence * 0.3;
+                const beatBonus = beatDetected && channel === 'high' ? 2 * currentSensitivity : 0;
+                
+                const target = Math.max(baseValue, baseValue + offset + influence + temporalMod + beatBonus);
+                oscillatorsRef.current[name].setTarget(target);
               }
             });
 
-          } else {
-            // No significant audio - continuous motion
-            const timeSinceLastAudio = now - lastAudioDetectedRef.current;
+            // Log audio processing (reduced frequency)
+            if (!audioState.audioLogCount) audioState.audioLogCount = 0;
+            audioState.audioLogCount++;
+            if (audioState.audioLogCount % 20 === 0) {
+              console.log("🎵 AUDIO → TARGETS:");
+              console.log(`   📊 Channels: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}`);
+              config.forEach(mapping => {
+                const { name, channel } = mapping;
+                const currentTarget = oscillatorsRef.current[name]?.target || 0;
+                const baseValue = manualValues[name] || 0;
+                console.log(`   🎯 ${name}: ${baseValue.toFixed(2)} → ${currentTarget.toFixed(2)} (${channel})`);
+              });
+            }
 
+          } else {
+            // No significant audio - return to manual values
+            const timeSinceLastAudio = now - lastAudioDetectedRef.current;
             if (!manualValuesRestoredRef.current && timeSinceLastAudio > 200) {
               returnToManualValues();
               manualValuesRestoredRef.current = true;
             } else if (manualValuesRestoredRef.current) {
               updateManualBaselines();
-              returnToManualValues(); // Continuous motion targets
+              returnToManualValues();
             }
           }
         } else {
@@ -495,27 +462,13 @@ const useAudio = () => {
 
     // Update backend with throttling
     if (shouldUpdateBackend) {
-      const backendValues = {};
       Object.keys(oscillatorValues).forEach(name => {
         const boundedValue = getBoundedValue(name, oscillatorValues[name]);
-        backendValues[name] = boundedValue;
-
+        
         if (window.module && window.module.set_slider_value) {
           window.module.set_slider_value(name, boundedValue);
         }
       });
-
-      // Log final backend values every few updates
-      if (!audioState.backendLogCount) audioState.backendLogCount = 0;
-      audioState.backendLogCount++;
-      if (audioState.backendLogCount % 10 === 0) { // Every 10th backend update
-        const manualVals = manualSliderValuesRef.current;
-        console.log("🎵 BACKEND VALUES SENT:");
-        console.log(`   📍 Manual Baseline: start=${manualVals.start_slider?.toFixed(2)}, spin=${manualVals.spin_slider?.toFixed(2)}, expand=${manualVals.expand_slider?.toFixed(2)}, phase=${manualVals.phase_slider?.toFixed(2)}`);
-        console.log(`   🎛️ Final Slider Values: start=${backendValues.start_slider?.toFixed(2)}, spin=${backendValues.spin_slider?.toFixed(2)}, expand=${backendValues.expand_slider?.toFixed(2)}, phase=${backendValues.phase_slider?.toFixed(2)}`);
-        console.log(`   ✅ Above Baseline: start=${backendValues.start_slider >= manualVals.start_slider}, spin=${backendValues.spin_slider >= manualVals.spin_slider}, expand=${backendValues.expand_slider >= manualVals.expand_slider}, phase=${backendValues.phase_slider >= manualVals.phase_slider}`);
-        console.log("   ════════════════════════════════════════");
-      }
 
       audioState.lastBackendUpdate = now;
     }
@@ -532,10 +485,7 @@ const useAudio = () => {
       const avgTime = audioState.processingTimes.reduce((a, b) => a + b, 0) / audioState.processingTimes.length;
       const fps = audioState.frameCount;
 
-      console.log(`🎵 OPTIMIZED AUDIO PERFORMANCE:`);
-      console.log(`   Processing FPS: ${fps}/60 (${fps < 55 ? '⚠️ DROPPED' : '✅ SMOOTH'})`);
-      console.log(`   Avg Time: ${avgTime.toFixed(2)}ms (${(avgTime / 16.67 * 100).toFixed(1)}% of 60fps budget)`);
-      console.log(`   CPU Load: ${avgTime > 3 ? '🔥 HIGH' : avgTime > 1.5 ? '⚠️ MEDIUM' : '✅ LOW'}`);
+      console.log(`🎵 PERFORMANCE: ${fps}/60 fps, ${avgTime.toFixed(2)}ms avg`);
 
       setPerformance({
         fps,
@@ -548,50 +498,48 @@ const useAudio = () => {
     }
   }, [updateManualBaselines, returnToManualValues]);
 
-  // Helper function for parameter bounds
+  // Helper function for parameter bounds (generic)
   const getBoundedValue = useCallback((name, value) => {
-    switch (name) {
-      case 'start_slider':
-      case 'spin_slider':
-      case 'expand_slider':
-        return Math.round(Math.min(10, Math.max(-10, value)) * 10) / 10;
-      case 'phase_slider':
-        return Math.round(Math.min(20, Math.max(-20, value)) * 2) / 2;
-      default:
-        return value;
+    // Use WebAssembly to get parameter bounds if available
+    try {
+      if (window.module && window.module.get_slider_bounds) {
+        const bounds = window.module.get_slider_bounds(name);
+        const { min, max, step } = JSON.parse(bounds);
+        const clampedValue = Math.min(max, Math.max(min, value));
+        return step ? Math.round(clampedValue / step) * step : clampedValue;
+      }
+    } catch (error) {
+      // Fallback to generic bounds
     }
+    
+    // Generic fallback bounds
+    return Math.round(Math.min(20, Math.max(-20, value)) * 10) / 10;
   }, []);
 
   const startAudio = useCallback(async () => {
-    console.log('🎵 Starting optimized audio system...');
+    console.log('🎵 Starting configuration-driven audio system...');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: 44100, // Standard rate for better frequency resolution
+          sampleRate: 44100,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false
         }
       });
 
-      console.log('🎵 Got microphone stream');
-
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const microphone = audioContext.createMediaStreamSource(stream);
       const analyzer = audioContext.createAnalyser();
 
-      // Optimized analyzer settings
       analyzer.fftSize = 1024;
       analyzer.smoothingTimeConstant = 0.3;
       analyzer.minDecibels = -90;
       analyzer.maxDecibels = -10;
 
       microphone.connect(analyzer);
-
       const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-
-      console.log('🎵 Audio context created, FFT size:', analyzer.fftSize, 'Buffer size:', dataArray.length);
 
       audioContextRef.current = audioContext;
       microphoneRef.current = microphone;
@@ -602,10 +550,9 @@ const useAudio = () => {
       setIsEnabled(true);
 
       console.log('🎵 ==========================================');
-      console.log('🎵 OPTIMIZED AUDIO ENABLED');
-      console.log('🎵 Integration: Function export (no RAF)');
-      console.log('🎵 Processing: Direct main thread (optimized)');
-      console.log('🎵 SHO: Analytical solutions');
+      console.log('🎵 CONFIGURATION-DRIVEN AUDIO ENABLED');
+      console.log('🎵 Type-erased harness integration');
+      console.log('🎵 Scene-agnostic architecture');
       console.log('🎵 ==========================================');
 
     } catch (error) {
@@ -615,9 +562,7 @@ const useAudio = () => {
   }, []);
 
   const stopAudio = useCallback(() => {
-    console.log('🎵 ==========================================');
-    console.log('🎵 STOPPING OPTIMIZED AUDIO SYSTEM');
-    console.log('🎵 ==========================================');
+    console.log('🎵 Stopping configuration-driven audio system');
 
     if (microphoneRef.current && microphoneRef.current.mediaStream) {
       microphoneRef.current.mediaStream.getTracks().forEach(track => track.stop());
@@ -645,7 +590,7 @@ const useAudio = () => {
     // Reset audio state
     audioStateRef.current = {
       lastVolume: 0,
-      volumeHistory: new Array(8).fill(0),
+      volumeHistory: new Array(4).fill(0),
       beatCooldown: 0,
       continuousMotionPhase: 0,
       lastAudioUpdate: 0,
@@ -684,4 +629,4 @@ const useAudio = () => {
   };
 };
 
-export default useAudio; 
+export default useAudio;
