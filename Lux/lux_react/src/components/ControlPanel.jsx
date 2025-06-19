@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState, useCallback} from "react";
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -15,6 +15,8 @@ import BrushPane from "./panes/BrushPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
+import AudioControlPanel from "./AudioControlPanel.jsx";
+import useAudio from "../hooks/useAudio.js";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -26,6 +28,19 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const maxSetupAttempts = 50;
     const loadingTimeoutRef = useRef(null);
     const previousPaneRef = useRef(activePane);
+    const lastFrameTimeRef = useRef(0);
+
+    // Audio reactive functionality
+    const {
+        isEnabled,
+        hasPermission,
+        audioFeatures,
+        sensitivity,
+        setSensitivity,
+        performance,
+        toggleAudio,
+        updateAudioParameters
+    } = useAudio();
 
     // Store slider values before scene changes
     const storeSliderValues = () => {
@@ -155,6 +170,34 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
     };
 
+    // Setup audio integration with main animation loop
+    const setupAudioIntegration = useCallback(() => {
+        if (!updateAudioParameters) {
+            console.log("🎵 ⚠️ updateAudioParameters not available yet, skipping integration setup");
+            return;
+        }
+        
+        console.log("🎵 Setting up audio integration with WebAssembly main loop...");
+        
+        // Store the audio update function globally so ImagePortCanvas can use it
+        window.audioUpdateFunction = (deltaTime) => {
+            if (isEnabled && updateAudioParameters) {
+                updateAudioParameters(deltaTime || 0.016667);
+            }
+        };
+        
+        console.log("🎵 ✅ Audio integration complete - available for main animation loop");
+        console.log("🎵 Audio enabled:", isEnabled);
+        console.log("🎵 Update function available:", !!updateAudioParameters);
+    }, [updateAudioParameters, isEnabled]);
+
+    // Set up audio integration whenever the audio system changes
+    useEffect(() => {
+        if (updateAudioParameters) {
+            setupAudioIntegration();
+        }
+    }, [setupAudioIntegration, updateAudioParameters, isEnabled]);
+
     // Initial setup effect - runs once when component mounts
     useEffect(() => {
         const initializeModule = () => {
@@ -172,6 +215,10 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                             handleWidgetGroupChange()
                         }, 100)
                     });
+                    
+                    // Integrate audio update with main animation loop
+                    console.log("Setting up audio integration with main animation loop...");
+                    setupAudioIntegration();
                 } else {
                     // If setup failed but we haven't exceeded max attempts, try again
                     if (setupAttempts.current < maxSetupAttempts) {
@@ -304,6 +351,16 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             />
 
             <MediaController panelSize={panelSize} />
+
+            <AudioControlPanel
+                isEnabled={isEnabled}
+                hasPermission={hasPermission}
+                audioFeatures={audioFeatures}
+                sensitivity={sensitivity}
+                setSensitivity={setSensitivity}
+                performance={performance}
+                toggleAudio={toggleAudio}
+            />
 
             <Box
                 sx={{

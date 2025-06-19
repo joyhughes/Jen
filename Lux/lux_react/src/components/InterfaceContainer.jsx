@@ -53,6 +53,11 @@ function InterfaceContainer({panelSize}) {
             }
             return newValues;
         });
+        
+        // Notify audio system about manual slider changes
+        if (window.audioHook && window.audioHook.handleManualSliderChange) {
+            window.audioHook.handleManualSliderChange(name, value);
+        }
     };
 
     // Trigger UI reset - this will cause all widgets to refresh their values

@@ -7,13 +7,16 @@ function ImagePortCanvas({ width, height }) {
   const [isModuleReady, setModuleReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const prevSizeRef = useRef({ width, height });
+  const lastFrameTimeRef = useRef(0);
 
   // Add logging control to prevent spam
   const loggingRef = useRef({
     frameCount: 0,
     lastLogTime: 0,
     logInterval: 1000, // Log every 1000ms instead of every frame
-    debugEnabled: false // Set to true only for debugging
+    debugEnabled: false, // Disable for better performance
+    audioCallCount: 0,
+    lastAudioLog: 0
   });
 
   // Mouse event handlers
@@ -59,7 +62,7 @@ function ImagePortCanvas({ width, height }) {
     }
   }, []);
 
-  // DUAL-MODE Canvas rendering function with color format detection
+  // DUAL-MODE Canvas rendering function with color format detection + Audio Integration
   const updateCanvas = useCallback(async () => {
     if (!window.module || !canvasRef.current) return;
 
@@ -67,10 +70,35 @@ function ImagePortCanvas({ width, height }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Controlled logging
+    // Controlled logging - MUST BE FIRST
     const logging = loggingRef.current;
     const currentTime = performance.now();
     const shouldLog = currentTime - logging.lastLogTime > logging.logInterval;
+
+    // AUDIO INTEGRATION: Update audio parameters with main animation loop
+    const frameTime = performance.now();
+    const deltaTime = lastFrameTimeRef.current > 0 ? 
+        (frameTime - lastFrameTimeRef.current) / 1000 : 0.016667; // Default to 60fps
+    
+    // Call audio update function if available
+    if (window.audioUpdateFunction && typeof window.audioUpdateFunction === 'function') {
+        window.audioUpdateFunction(deltaTime);
+        logging.audioCallCount++;
+        
+        // Log audio calls every 2 seconds
+        if (frameTime - logging.lastAudioLog > 2000) {
+            console.log(`[Canvas] 🎵 Audio update called ${logging.audioCallCount} times, deltaTime: ${deltaTime.toFixed(4)}s`);
+            logging.lastAudioLog = frameTime;
+            logging.audioCallCount = 0;
+        }
+    } else if (shouldLog && logging.debugEnabled) {
+        console.log('[Canvas] 🎵 Audio update function not available:', {
+            exists: !!window.audioUpdateFunction,
+            type: typeof window.audioUpdateFunction
+        });
+    }
+    
+    lastFrameTimeRef.current = frameTime;
     
     if (shouldLog) {
       logging.lastLogTime = currentTime;

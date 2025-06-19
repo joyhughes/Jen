@@ -1,0 +1,290 @@
+/* Audio-influenced slider animations */
+@keyframes audioGlow {
+    0% {
+        box-shadow: 0 0 4px rgba(46, 125, 50, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(46, 125, 50, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(46, 125, 50, 0.4);
+    }
+}
+
+@keyframes audioPulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes audioWave {
+    0% {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(10px);
+        opacity: 0;
+    }
+}
+
+/* OPTIMIZED Audio-influenced slider classes */
+.jen-slider {
+    --audio-influence: 0;
+}
+
+.jen-slider[data-audio-active="true"] {
+    border-color: rgba(76, 175, 80, calc(var(--audio-influence, 0) * 0.6));
+    box-shadow: 0 0 8px rgba(76, 175, 80, calc(var(--audio-influence, 0) * 0.3));
+}
+
+/* Beat detection indicator */
+.beat-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    font-size: 12px;
+}
+
+.beat-pulse {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #333;
+    transition: background-color 0.1s ease;
+}
+
+.beat-pulse.active {
+    background: #4CAF50;
+}
+
+/* Audio control panel styling */
+.audio-control-panel {
+    padding: 12px;
+    background: rgba(40, 40, 40, 0.85);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(8px);
+}
+
+.audio-toggle-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.audio-toggle-btn {
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.audio-toggle-btn:hover {
+    background: #45a049;
+}
+
+.audio-toggle-btn:disabled {
+    background: #666;
+    cursor: not-allowed;  
+}
+
+.audio-status {
+    font-size: 12px;
+    color: #ccc;
+}
+
+.permission-status {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.permission-status.granted { color: #4CAF50; }
+.permission-status.denied { color: #f44336; }
+.permission-status.prompt { color: #ff9800; }
+
+/* Audio Meters - Simplified */
+.audio-meters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.frequency-meter {
+    background: rgba(60, 60, 60, 0.8);
+    border-radius: 4px;
+    padding: 8px;
+    text-align: center;
+}
+
+.meter-label {
+    font-size: 10px;
+    color: #aaa;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.meter-bar {
+    height: 20px;
+    background: #333;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.1s ease-out;
+    will-change: width;
+}
+
+.meter-fill.bass { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
+.meter-fill.mid { background: linear-gradient(90deg, #2196F3, #42A5F5); }
+.meter-fill.high { background: linear-gradient(90deg, #FF9800, #FFB74D); }
+.meter-fill.volume { background: linear-gradient(90deg, #9C27B0, #BA68C8); }
+
+/* Sensitivity Slider */
+.sensitivity-section {
+    margin: 12px 0;
+}
+
+.sensitivity-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.sensitivity-slider {
+    width: 100%;
+    height: 4px;
+    background: #444;  
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.sensitivity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.sensitivity-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #4CAF50;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+/* Performance Stats - Minimal */
+.performance-stats {
+    font-size: 10px;
+    color: #666;
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+}
+
+/* Audio processing indicator */
+.audio-processing {
+    animation: audioPulse 1s ease-in-out infinite;
+}
+
+/* Battery optimization indicator */
+.battery-optimized {
+    color: #FF9800;
+    animation: audioPulse 2s ease-in-out infinite;
+}
+
+/* Performance indicators */
+.audio-quality-high {
+    color: #4CAF50;
+}
+
+.audio-quality-medium {
+    color: #FF9800;
+}
+
+.audio-quality-low {
+    color: #F44336;
+}
+
+/* Audio sensitivity slider */
+.audio-sensitivity-slider .MuiSlider-track {
+    background: linear-gradient(90deg, #2E7D32, #1A237E) !important;
+}
+
+.audio-sensitivity-slider .MuiSlider-thumb:hover {
+    box-shadow: 0 0 0 8px rgba(46, 125, 50, 0.16) !important;
+}
+
+/* Audio permission status */
+.permission-granted {
+    color: #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.permission-denied {
+    color: #F44336;
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.permission-requesting {
+    color: #FF9800;
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .jen-slider.audio-influenced,
+    .beat-indicator.active,
+    .audio-processing,
+    .battery-optimized {
+        animation: none;
+    }
+    
+    .jen-slider.audio-influenced::before,
+    .beat-indicator.active::after {
+        display: none;
+    }
+}
+
+/* Remove expensive animations */
+.audio-reactive-glow {
+    animation: none !important;
+}
+
+/* Reduce GPU usage */
+* {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+} 
