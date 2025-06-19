@@ -1555,6 +1555,55 @@ std::string get_audio_config() {
     }
 }
 
+// Get current value of a slider parameter
+float get_slider_value(std::string name) {
+    if (!global_context || !global_context->s) {
+        return 0.0f;
+    }
+    
+    try {
+        scene& s = *global_context->s;
+        
+        if (s.functions.count(name)) {
+            return std::visit([&](const auto& any_fn_variant) -> float {
+                using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                
+                if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                    return std::visit([&](const auto& inner_ptr) -> float {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_float>>) {
+                            return inner_ptr->value;
+                        } else {
+                            return 0.0f;
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else if constexpr (std::is_same_v<VariantType, any_fn<int>>) {
+                    return std::visit([&](const auto& inner_ptr) -> float {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<slider_int>>) {
+                            return static_cast<float>(inner_ptr->value);
+                        } else {
+                            return 0.0f;
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                    
+                } else {
+                    return 0.0f;
+                }
+            }, s.functions[name]);
+        }
+        
+        return 0.0f;
+        
+    } catch (const std::exception& e) {
+        std::cout << "❌ Error getting slider value: " << e.what() << std::endl;
+        return 0.0f;
+    }
+}
+
 // Get slider bounds for a parameter
 std::string get_slider_bounds(std::string name) {
     if (!global_context || !global_context->s) {
@@ -1854,5 +1903,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("is_audio_enabled", &is_audio_enabled);
     function("get_audio_channel_value", &get_audio_channel_value);
     function("get_audio_config", &get_audio_config);
+    function("get_slider_value", &get_slider_value);
     function("get_slider_bounds", &get_slider_bounds);
 }
