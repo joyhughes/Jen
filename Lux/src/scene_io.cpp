@@ -410,7 +410,7 @@ void scene_reader::read_function( const json& j ) {
 
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN
-    FN( tweaker_float, float ) HARNESS( p ) HARNESS( amount ) END_FN
+    FN( tweaker_float, float ) HARNESS( p ) HARNESS( amount ) HARNESS( enabled ) END_FN
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN

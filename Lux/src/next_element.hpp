@@ -9,6 +9,14 @@
 #include "joy_rand.hpp"
 #include "life_hacks.hpp"
 
+typedef enum probability_distribution
+{
+    PROB_UNIFORM,
+    PROB_NORMAL,
+    PROB_POISSON,
+    PROB_EXPONENTIAL
+} probability_distribution;
+
 struct element;
 struct cluster;
 struct scene;
@@ -119,25 +127,42 @@ typedef adder< frgb   > adder_frgb;
 typedef adder< ucolor > adder_ucolor;
 
 template< Additive U > struct tweaker {
+    harness< bool > enabled; // whether to apply the tweak
     harness< float > p; // change probability
     harness< int > amount; // amount to change by
     
     U operator () ( U& u, element_context& context ) { 
+        enabled( context );
+        if( !*enabled ) return u; // if not enabled, return original value
+        // if enabled, check probability
         p( context );
         if( rand_range( 0.0f, 1.0f ) < *p ) {
             amount( context );
             U v = rand_range( - *amount, *amount );
             u += v;
         }
-        return u;   
+        return u;
     }
 
-    tweaker( const float& p_init = 0.001f, const int& amount_init = 1 ) : p( p_init ), amount( amount_init ) {}
+    tweaker( const bool& enabled_init = false, const float& p_init = 0.001f, const int& amount_init = 1 ) : enabled( enabled_init ), p( p_init ), amount( amount_init ) {}
 };
 
 typedef tweaker< int    > tweaker_int;
 typedef tweaker< float  > tweaker_float;
 
+/*template< class U > struct generator {
+    harness< float > p; // change probability
+    harness< u > a, b; // parameters for distribution
+    probability_distribution distribution; // distribution type
+
+    U operator () ( U& u, element_context& context );
+
+    generator( std::function< U ( element_context& ) > gen_fn_init = []( element_context& ) { return U(); } ) : gen_fn( gen_fn_init ) {}
+};
+
+typedef generator< int > generator_int;
+typedef generator< float > generator_float;
+*/
 struct log_fn {
     harness< float > scale;
     harness< float > shift;

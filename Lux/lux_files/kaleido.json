@@ -58,10 +58,18 @@
     "functions":
     [
         {
+            "name": "autoplay_switch",
+            "type": "switch_fn",
+            "label": "Autoplay",
+            "description": "Makes random changes to the kaleidoscope",
+            "default_value": false
+        },
+        {
             "name": "segment_tweaker",
             "type": "tweaker_float",
             "p": 0.01,
-            "amount": 2
+            "amount": 2,
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "segment_slider",
@@ -513,7 +521,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "scope_menu", "funky_menu" ]
+            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch" ]
         },
         {
             "name": "source_image_group",

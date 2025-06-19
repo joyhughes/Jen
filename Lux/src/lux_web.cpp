@@ -432,13 +432,13 @@ void set_slider_callback( std::string name, val callback ) {
     if( global_context->s->functions.contains( name ) ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
-            global_context->s->get_fn_ptr< float, slider_float >( name )->callback = [callback](float value) {
+            global_context->s->get_fn_ptr< float, slider_float >( name )->callback = [callback](float value) mutable {
                 callback(value);
             };
             return;
         }
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
-            global_context->s->get_fn_ptr< int, slider_int >( name )->callback = [callback](int value) {
+            global_context->s->get_fn_ptr< int, slider_int >( name )->callback = [callback](int value) mutable {
                 callback(value);
             };
             return;
