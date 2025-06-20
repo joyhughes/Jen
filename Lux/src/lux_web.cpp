@@ -1440,15 +1440,62 @@ std::string ultra_get_camera_stats() {
 
 // Audio context management functions
 void update_audio_context(float volume, float bass, float mid, float high, bool beat, float time) {
-    if (!global_context || !global_context->s) return;
+    std::cout << "🎵 🔧 update_audio_context called with: vol=" << volume 
+              << ", bass=" << bass << ", mid=" << mid << ", high=" << high 
+              << ", beat=" << (beat ? "true" : "false") << ", time=" << time << std::endl;
     
-    global_context->s->ui.audio.volume = volume;
-    global_context->s->ui.audio.bass_level = bass;
-    global_context->s->ui.audio.mid_level = mid;
-    global_context->s->ui.audio.high_level = high;
-    global_context->s->ui.audio.beat_detected = beat;
-    global_context->s->ui.audio.time_phase = time;
-    global_context->s->ui.audio.enabled = true;
+    if (!global_context) {
+        std::cout << "🎵 ⚠️ update_audio_context: No global context" << std::endl;
+        return;
+    }
+    
+    if (!global_context->s) {
+        std::cout << "🎵 ⚠️ update_audio_context: No scene in global context" << std::endl;
+        return;
+    }
+    
+    try {
+        std::cout << "🎵 🔧 Setting audio values in scene..." << std::endl;
+        global_context->s->ui.audio.volume = volume;
+        global_context->s->ui.audio.bass_level = bass;
+        global_context->s->ui.audio.mid_level = mid;
+        global_context->s->ui.audio.high_level = high;
+        global_context->s->ui.audio.beat_detected = beat;
+        global_context->s->ui.audio.time_phase = time;
+        global_context->s->ui.audio.enabled = true;
+        
+        // Debug: Verify audio values are actually being set
+        std::cout << "🎵 🔧 Audio values set: vol=" << global_context->s->ui.audio.volume 
+                  << ", bass=" << global_context->s->ui.audio.bass_level 
+                  << ", mid=" << global_context->s->ui.audio.mid_level 
+                  << ", high=" << global_context->s->ui.audio.high_level 
+                  << ", enabled=" << (global_context->s->ui.audio.enabled ? "true" : "false") << std::endl;
+        
+        std::cout << "🎵 ✅ Audio context updated successfully" << std::endl;
+        
+        // Debug: Show how many audio functions are in the scene
+        int audio_fn_count = 0;
+        for (const auto& [name, fn_variant] : global_context->s->functions) {
+            std::visit([&](const auto& any_fn_variant) {
+                using VariantType = std::decay_t<decltype(any_fn_variant)>;
+                if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
+                    std::visit([&](const auto& inner_ptr) {
+                        using InnerType = std::decay_t<decltype(inner_ptr)>;
+                        if constexpr (std::is_same_v<InnerType, std::shared_ptr<audio_float_fn>>) {
+                            audio_fn_count++;
+                            std::cout << "🎵 🔧 Found audio_float_fn: " << name << std::endl;
+                        }
+                    }, any_fn_variant.any_fn_ptr);
+                }
+            }, fn_variant);
+        }
+        std::cout << "🎵 📊 Total audio functions in scene: " << audio_fn_count << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cout << "🎵 ❌ update_audio_context error: " << e.what() << std::endl;
+    } catch (...) {
+        std::cout << "🎵 ❌ update_audio_context unknown error" << std::endl;
+    }
 }
 
 void enable_audio_input(bool enabled) {
@@ -1498,18 +1545,18 @@ std::string get_audio_config() {
         std::string scene_json_str = load_file_as_string(current_filename);
         nlohmann::json scene_json = nlohmann::json::parse(scene_json_str);
         
-        // Extract audio_reactive configurations from functions array
+        // Extract native audio functions from functions array
         if (scene_json.contains("functions") && scene_json["functions"].is_array()) {
             for (const auto& func : scene_json["functions"]) {
-                if (func.contains("name") && func.contains("audio_reactive")) {
-                    const auto& audio_config = func["audio_reactive"];
+                if (func.contains("name") && func.contains("type")) {
+                    std::string type = func["type"];
                     
-                    // Check if audio reactivity is enabled
-                    if (audio_config.contains("enabled") && audio_config["enabled"].get<bool>()) {
+                    // Look for native audio functions
+                    if (type == "audio_float_fn") {
                         std::string name = func["name"];
-                        std::string channel = audio_config.value("channel", "volume");
-                        float sensitivity = audio_config.value("sensitivity", 1.0f);
-                        float offset = audio_config.value("offset", 0.0f);
+                        std::string channel = func.value("channel", "volume");
+                        float sensitivity = func.value("sensitivity", 1.0f);
+                        float base_value = func.value("base_value", 0.0f);
                         
                         // Set damping and stiffness based on channel characteristics
                         float damping = 0.05f;
@@ -1533,13 +1580,42 @@ std::string get_audio_config() {
                             {"name", name},
                             {"channel", channel},
                             {"sensitivity", sensitivity},
-                            {"offset", offset},
+                            {"offset", base_value},
                             {"damping", damping},
                             {"stiffness", stiffness}
                         });
                         
-                        std::cout << "🎵 ✅ Added " << name << " → " << channel 
-                                  << " (sens=" << sensitivity << ", offset=" << offset << ")" << std::endl;
+                        std::cout << "🎵 ✅ Added audio_float_fn " << name << " → " << channel 
+                                  << " (sens=" << sensitivity << ", base=" << base_value << ")" << std::endl;
+                    }
+                    else if (type == "audio_vec2f_fn") {
+                        std::string name = func["name"];
+                        std::string channel_x = func.value("channel_x", "volume");
+                        std::string channel_y = func.value("channel_y", "volume");
+                        float sensitivity_x = func.value("sensitivity_x", 1.0f);
+                        float sensitivity_y = func.value("sensitivity_y", 1.0f);
+                        
+                        // Add separate entries for X and Y components
+                        config.push_back({
+                            {"name", name + "_x"},
+                            {"channel", channel_x},
+                            {"sensitivity", sensitivity_x},
+                            {"offset", 0.0f},
+                            {"damping", 0.05f},
+                            {"stiffness", 3.0f}
+                        });
+                        
+                        config.push_back({
+                            {"name", name + "_y"},
+                            {"channel", channel_y},
+                            {"sensitivity", sensitivity_y},
+                            {"offset", 0.0f},
+                            {"damping", 0.05f},
+                            {"stiffness", 3.0f}
+                        });
+                        
+                        std::cout << "🎵 ✅ Added audio_vec2f_fn " << name << " → " << channel_x << "/" << channel_y 
+                                  << " (sens=" << sensitivity_x << "/" << sensitivity_y << ")" << std::endl;
                     }
                 }
             }

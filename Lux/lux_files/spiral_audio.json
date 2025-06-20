@@ -1,0 +1,113 @@
+{
+    "name": "Spiral Audio",
+    "time_interval": 0.1,
+    "images": [
+        {
+            "name": "white",
+            "type": "solid",
+            "dim": [ 512, 512 ],
+            "color": "0xffffffff"
+        }
+    ],
+    "functions": [
+        {
+            "name": "audio_scale",
+            "type": "audio_float_fn",
+            "channel": "volume",
+            "sensitivity": 2.0,
+            "base_value": 5.0
+        },
+        {
+            "name": "audio_rotation",
+            "type": "audio_float_fn", 
+            "channel": "bass",
+            "sensitivity": 180.0,
+            "base_value": 0.0
+        },
+        {
+            "name": "audio_position",
+            "type": "audio_vec2f_fn",
+            "channel_x": "mid",
+            "channel_y": "high", 
+            "sensitivity_x": 50.0,
+            "sensitivity_y": 50.0,
+            "base_value": [0.0, 0.0]
+        },
+        {
+            "name": "time_rotation",
+            "type": "time_fn"
+        },
+        {
+            "name": "spiral_scale",
+            "type": "adder_float",
+            "r": "audio_scale"
+        },
+        {
+            "name": "spiral_rotation", 
+            "type": "adder_float",
+            "r": "audio_rotation"
+        },
+        {
+            "name": "spiral_position",
+            "type": "adder_vec2f",
+            "r": "audio_position"
+        }
+    ],
+    "elements": [
+        {
+            "name": "spiral_element",
+            "img": "white",
+            "scale": 3.0,
+            "position": [ 0.0, 0.0 ]
+        }
+    ],
+    "clusters": [
+        {
+            "name": "spiral_cluster",
+            "element": "spiral_element",
+            "next_element": "spiral_next",
+            "max_n": 50,
+            "max_depth": 8
+        }
+    ],
+    "next_elements": [
+        {
+            "name": "spiral_next",
+            "functions": [
+                "spiral_scale_gen",
+                "spiral_rotation_gen", 
+                "spiral_position_gen"
+            ]
+        }
+    ],
+    "gen_functions": [
+        {
+            "name": "spiral_scale_gen",
+            "type": "scale_gen_fn",
+            "scale": "spiral_scale"
+        },
+        {
+            "name": "spiral_rotation_gen",
+            "type": "rotation_gen_fn",
+            "r": "spiral_rotation"
+        },
+        {
+            "name": "spiral_position_gen",
+            "type": "advect_element",
+            "flow": "spiral_position",
+            "step": "time_rotation",
+            "proportional": true,
+            "orientation_sensitive": true
+        }
+    ],
+    "queue": [
+        {
+            "name": "output",
+            "self_generated": true,
+            "dim": [ 512, 512 ],
+            "pixel_type": "ucolor",
+            "render_mode": "ephemeral",
+            "effects": [ "spiral_cluster" ]
+        }
+    ]
+} 

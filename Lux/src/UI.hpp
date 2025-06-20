@@ -271,14 +271,38 @@ struct UI {
         bool enabled = false;
         
         float get_audio_value(const std::string& channel) const {
-            if (!enabled) return 0.0f;
+            if (!enabled) {
+                // Debug: Log when audio is disabled
+                static int disabled_counter = 0;
+                disabled_counter++;
+                if (disabled_counter % 120 == 0) { // Every 2 seconds at 60fps
+                    std::cout << "🎵 🔧 get_audio_value[" << channel << "]: DISABLED (audio.enabled=false)" << std::endl;
+                }
+                return 0.0f;
+            }
             
-            if (channel == "volume") return volume;
-            if (channel == "bass") return bass_level;
-            if (channel == "mid") return mid_level;
-            if (channel == "high") return high_level;
-            if (channel == "beat") return beat_detected ? 1.0f : 0.0f;
-            return 0.0f;
+            float result = 0.0f;
+            if (channel == "volume") result = volume;
+            else if (channel == "bass") result = bass_level;
+            else if (channel == "mid") result = mid_level;
+            else if (channel == "high") result = high_level;
+            else if (channel == "beat") result = beat_detected ? 1.0f : 0.0f;
+            
+            // Debug: Log audio values every 60 frames (about once per second at 60fps)
+            static int debug_counter = 0;
+            debug_counter++;
+            if (debug_counter % 60 == 0) {
+                std::cout << "🎵 🔧 get_audio_value[" << channel << "]: " 
+                          << "enabled=" << (enabled ? "true" : "false")
+                          << ", vol=" << volume 
+                          << ", bass=" << bass_level 
+                          << ", mid=" << mid_level 
+                          << ", high=" << high_level 
+                          << ", beat=" << (beat_detected ? "true" : "false")
+                          << " → result=" << result << std::endl;
+            }
+            
+            return result;
         }
     } audio;
 

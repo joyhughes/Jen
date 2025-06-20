@@ -43,7 +43,9 @@ function TabNavigation({ activePane, onPaneChange, isAudioEnabled = false }) {
             <Tabs
                 value={activePane}
                 onChange={handleChange}
-                variant="fullWidth"
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
                 indicatorColor="primary"
                 textColor="primary"
                 aria-label="navigation tabs"

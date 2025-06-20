@@ -344,8 +344,24 @@ void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( 
 
 // Audio function implementations using Joy's harness system
 float audio_float_fn::operator () ( float& val, element_context& context ) {
+    // ALWAYS log to debug if functions are being called
+    static int call_counter = 0;
+    call_counter++;
+    
     float audio_val = context.s.ui.audio.get_audio_value(channel);
-    return base_value + (audio_val * sensitivity);
+    float result = base_value + (audio_val * sensitivity);
+    
+    // Debug logging every 10 frames to see if functions are being called
+    if (call_counter % 10 == 0) {
+        std::cout << "🎵 🔥 audio_float_fn[" << channel << "] CALLED #" << call_counter 
+                  << ": enabled=" << (context.s.ui.audio.enabled ? "true" : "false")
+                  << ", audio_val=" << audio_val 
+                  << ", sensitivity=" << sensitivity 
+                  << ", base=" << base_value 
+                  << " → result=" << result << std::endl;
+    }
+    
+    return result;
 }
 
 vec2f audio_vec2f_fn::operator () ( vec2f& val, element_context& context ) {

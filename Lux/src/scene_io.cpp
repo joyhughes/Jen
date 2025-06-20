@@ -418,6 +418,9 @@ void scene_reader::read_function( const json& j ) {
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
+    // audio functions
+    FN( audio_float_fn, float ) READ( channel ) READ( sensitivity ) READ( base_value ) END_FN
+
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
     FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
@@ -451,6 +454,7 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( mouse_pos_fn, vec2f ) END_FN
+    FN( audio_vec2f_fn, vec2f ) READ( channel_x ) READ( channel_y ) READ( sensitivity_x ) READ( sensitivity_y ) READ( base_value ) END_FN
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN

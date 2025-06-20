@@ -2,6 +2,7 @@
 
 # Incremental C++ Build Script for Jen
 # Only rebuilds changed source files
+# Usage: ./build-cpp.sh [--force]
 
 set -e
 
@@ -12,7 +13,14 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+# Check for force flag
+FORCE_REBUILD=false
+if [[ "$1" == "--force" || "$1" == "-f" ]]; then
+    FORCE_REBUILD=true
+    echo -e "${RED}🔥 FORCE REBUILD MODE - Rebuilding everything${NC}"
+else
+    echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+fi
 
 # Show JSON files being tracked
 if [[ -d "lux_files" ]]; then
@@ -94,6 +102,11 @@ needs_rebuild() {
     local src_file="$1"
     local obj_file="$2"
     
+    # Force rebuild if flag is set
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        return 0  # Force rebuild
+    fi
+    
     if [[ ! -f "$obj_file" ]]; then
         return 0  # Object doesn't exist, need to build
     fi
@@ -144,8 +157,16 @@ fi
 # Track if any files were rebuilt
 REBUILT=false
 
+# If force rebuild, clean everything
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${RED}🧹 Force rebuild: Cleaning all object files${NC}"
+    rm -f "$BUILD_DIR"/*.o "$BUILD_DIR"/*.d
+    REBUILT=true
+    JSON_CHANGED=true  # Force linking too
+fi
+
 # If JSON changed, force rebuild of scene-related files
-if [[ "$JSON_CHANGED" == true ]]; then
+if [[ "$JSON_CHANGED" == true && "$FORCE_REBUILD" == false ]]; then
     echo -e "${YELLOW}🔄 JSON configs changed, forcing rebuild of scene-related files${NC}"
     # Remove object files that depend on JSON configs
     rm -f "$BUILD_DIR/scene.o" "$BUILD_DIR/scene_io.o" "$BUILD_DIR/lux_web.o"
@@ -178,7 +199,10 @@ done
 
 # Check if final linking is needed
 NEED_LINK=false
-if [[ "$REBUILT" == true ]]; then
+if [[ "$FORCE_REBUILD" == true ]]; then
+    NEED_LINK=true
+    echo -e "${RED}🔥 Force rebuild: Will relink${NC}"
+elif [[ "$REBUILT" == true ]]; then
     NEED_LINK=true
 elif [[ "$JSON_CHANGED" == true ]]; then
     NEED_LINK=true
@@ -240,9 +264,18 @@ if [[ "$NEED_LINK" == true ]]; then
         -msimd128 \
         -lembind $FFMPEG_LIBS
     
-    echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        echo -e "${GREEN}✅ Force rebuild complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    else
+        echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    fi
 else
     echo -e "${GREEN}✅ Everything up to date!${NC}"
 fi
 
-echo -e "${BLUE}🎉 Incremental build finished!${NC}" 
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${BLUE}🎉 Force rebuild finished!${NC}"
+else
+    echo -e "${BLUE}🎉 Incremental build finished!${NC}"
+    echo -e "${BLUE}💡 Tip: Use './build-cpp.sh --force' to rebuild everything${NC}"
+fi 

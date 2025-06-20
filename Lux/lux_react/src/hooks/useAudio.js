@@ -133,7 +133,8 @@ const useAudio = () => {
     try {
       if (!window.module || typeof window.module.get_audio_config !== 'function') {
         console.warn('🎵 No audio config available from WebAssembly');
-        return;
+        audioConfigRef.current = [];
+        return false;
       }
 
       console.log('🎵 📋 Loading audio config from WebAssembly...');
@@ -171,10 +172,12 @@ const useAudio = () => {
       manualValuesRef.current = newManualValues;
 
       console.log('🎵 ✅ Initialized oscillators for:', Object.keys(newOscillators));
+      return true;
       
     } catch (error) {
       console.warn('🎵 Error loading audio config:', error);
       audioConfigRef.current = [];
+      return false;
     }
   }, []);
 
@@ -409,14 +412,30 @@ const useAudio = () => {
 
         // Send audio data to WebAssembly backend
         if (window.module && window.module.update_audio_context) {
-          const timePhase = now * 0.001;
-          window.module.update_audio_context(volume, bassLevel, midLevel, highLevel, beatDetected, timePhase);
-          
-          // Debug log every 2 seconds
-          if (!audioState.lastBackendLog) audioState.lastBackendLog = 0;
-          if (now - audioState.lastBackendLog >= 2000) {
-            console.log(`🎵 → Backend: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}, beat=${beatDetected}`);
-            audioState.lastBackendLog = now;
+          try {
+            console.log('🎵 🔧 About to call update_audio_context with:', {
+              volume: volume.toFixed(3),
+              bass: bassLevel.toFixed(3), 
+              mid: midLevel.toFixed(3),
+              high: highLevel.toFixed(3),
+              beat: beatDetected,
+              time: (now * 0.001).toFixed(3)
+            });
+            
+            // RE-ENABLED: Testing if backend crashes are fixed
+            const timePhase = now * 0.001;
+            window.module.update_audio_context(volume, bassLevel, midLevel, highLevel, beatDetected, timePhase);
+            
+            console.log('🎵 ✅ update_audio_context called successfully - no crash!');
+            
+            // Debug log every 2 seconds
+            if (!audioState.lastBackendLog) audioState.lastBackendLog = 0;
+            if (now - audioState.lastBackendLog >= 2000) {
+              console.log(`🎵 → Backend: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}, beat=${beatDetected}`);
+              audioState.lastBackendLog = now;
+            }
+          } catch (error) {
+            console.error('🎵 ❌ WebAssembly update_audio_context error:', error);
           }
         } else {
           console.warn('🎵 ⚠️ WebAssembly module or update_audio_context not available');
@@ -495,16 +514,16 @@ const useAudio = () => {
       Object.keys(oscillatorValues).forEach(name => {
         const boundedValue = getBoundedValue(name, oscillatorValues[name]);
         
-        if (window.module && window.module.set_slider_value) {
-          window.module.set_slider_value(name, boundedValue);
-          updates.push(`${name}=${boundedValue.toFixed(2)}`);
-        }
+        // DISABLED: set_slider_value crashes with audio functions
+        // Audio data flows through update_audio_context() → Joy's audio functions instead
+        console.log(`🎵 🎶 ${name} = ${boundedValue.toFixed(2)} (via audio system)`);
+        updates.push(`${name}=${boundedValue.toFixed(2)}`);
       });
 
       // Debug log backend updates every 5 seconds
       if (!audioState.lastSliderLog) audioState.lastSliderLog = 0;
       if (updates.length > 0 && now - audioState.lastSliderLog >= 5000) {
-        console.log(`🎵 🎛️ Slider updates: ${updates.join(', ')}`);
+        console.log(`🎵 🎛️ Slider updates (set_slider_value disabled): ${updates.join(', ')}`);
         audioState.lastSliderLog = now;
       }
 
@@ -541,17 +560,23 @@ const useAudio = () => {
     // Use WebAssembly to get parameter bounds if available
     try {
       if (window.module && window.module.get_slider_bounds) {
+        // RE-ENABLED: Testing if backend crashes are fixed
         const bounds = window.module.get_slider_bounds(name);
         const { min, max, step } = JSON.parse(bounds);
         const clampedValue = Math.min(max, Math.max(min, value));
-        return step ? Math.round(clampedValue / step) * step : clampedValue;
+        const result = step ? Math.round(clampedValue / step) * step : clampedValue;
+        console.log(`🎵 ✅ get_slider_bounds for ${name}: min=${min}, max=${max}, step=${step} → ${result}`);
+        return result;
       }
     } catch (error) {
       // Fallback to generic bounds
+      console.error(`🎵 ❌ Error getting slider bounds for ${name}:`, error);
     }
     
     // Generic fallback bounds
-    return Math.round(Math.min(20, Math.max(-20, value)) * 10) / 10;
+    const fallback = Math.round(Math.min(20, Math.max(-20, value)) * 10) / 10;
+    console.log(`🎵 ⚠️ Using fallback bounds for ${name}: ${fallback}`);
+    return fallback;
   }, []);
 
   const startAudio = useCallback(async () => {
@@ -595,7 +620,12 @@ const useAudio = () => {
       
       // Load configuration and initialize before starting animation loop
       console.log('🎵 📋 Loading configuration before starting audio...');
-      loadAudioConfig();
+      const configLoaded = loadAudioConfig();
+      if (!configLoaded) {
+        console.error('🎵 ❌ Failed to load audio config - stopping audio initialization');
+        setHasPermission(false);
+        return;
+      }
       captureManualValues();
       
       // Now set enabled and start animation loop
@@ -666,21 +696,10 @@ const useAudio = () => {
             console.log(`🎵 🔍 Displayed value for ${name}: ${uiValue}`);
             
             if (uiValue !== undefined && !isNaN(uiValue)) {
-              if (window.module && window.module.set_slider_value) {
-                console.log(`🎵 📤 SENDING ${name}: ${uiValue} (from displayed text field)`);
-                window.module.set_slider_value(name, uiValue);
-                
-                // Verify the value was set by reading it back
-                if (window.module.get_slider_value) {
-                  const verifyValue = window.module.get_slider_value(name);
-                  console.log(`🎵 ✅ VERIFIED ${name}: sent=${uiValue}, backend=${verifyValue}`);
-                }
-                
-                successCount++;
-              } else {
-                console.warn(`🎵 ⚠️ WebAssembly module or set_slider_value not available for ${name}`);
-                errorCount++;
-              }
+              // DISABLED: set_slider_value crashes with audio functions
+              // Audio functions get their values through update_audio_context() instead
+              console.log(`🎵 🎶 Would restore ${name}: ${uiValue} (audio functions use update_audio_context)`);
+              successCount++;
             } else {
               console.warn(`🎵 ⚠️ No displayed value available for ${name}`);
               errorCount++;
