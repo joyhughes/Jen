@@ -14,7 +14,14 @@ typedef enum probability_distribution
     PROB_UNIFORM,
     PROB_NORMAL,
     PROB_POISSON,
-    PROB_EXPONENTIAL
+    PROB_EXPONENTIAL, 
+    PROB_BINOMIAL,
+    PROB_GEOMETRIC,
+    PROB_HYPERGEOMETRIC,
+    PROB_NEGATIVE_BINOMIAL,
+    PROB_LOG_NORMAL,
+    PROB_WEIBULL,
+    PROB_CAUCHY
 } probability_distribution;
 
 struct element;
@@ -150,19 +157,25 @@ template< Additive U > struct tweaker {
 typedef tweaker< int    > tweaker_int;
 typedef tweaker< float  > tweaker_float;
 
-/*template< class U > struct generator {
+template< class U > struct generator {
+    harness< bool > enabled; // whether to apply the generator
     harness< float > p; // change probability
-    harness< u > a, b; // parameters for distribution
+    harness< U > a, b; // parameters for distribution
     probability_distribution distribution; // distribution type
 
     U operator () ( U& u, element_context& context );
 
-    generator( std::function< U ( element_context& ) > gen_fn_init = []( element_context& ) { return U(); } ) : gen_fn( gen_fn_init ) {}
+    generator( const bool& enabled_init = false, 
+               const float& p_init = 0.001f, 
+               const U& a_init = U( 0 ), 
+               const U& b_init = U( 1 ), 
+               const probability_distribution& distribution_init = PROB_UNIFORM ) 
+        : enabled( enabled_init ), p( p_init ), a( a_init ), b( b_init ), distribution( distribution_init ) {}
 };
 
-typedef generator< int > generator_int;
+//typedef generator< int > generator_int;
 typedef generator< float > generator_float;
-*/
+
 struct log_fn {
     harness< float > scale;
     harness< float > shift;

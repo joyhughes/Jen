@@ -228,6 +228,25 @@ CA_hood scene_reader::read_hood( const json& j ) {
     return h;
 }
 
+probability_distribution scene_reader::read_probability_distribution( const json& j ) {
+    probability_distribution pd;
+    std::string s;
+    j.get_to( s );
+    if(      s == "uniform"       ) pd = PROB_UNIFORM;
+    else if( s == "normal"        ) pd = PROB_NORMAL;
+    else if( s == "poisson"       ) pd = PROB_POISSON;
+    else if( s == "exponential"   ) pd = PROB_EXPONENTIAL;
+    else if( s == "binomial"      ) pd = PROB_BINOMIAL;
+    else if( s == "geometric"     ) pd = PROB_GEOMETRIC;
+    else if( s == "hypergeometric") pd = PROB_HYPERGEOMETRIC;
+    else if( s == "negative_binomial" ) pd = PROB_NEGATIVE_BINOMIAL;
+    else if( s == "log_normal"    ) pd = PROB_LOG_NORMAL;
+    else if( s == "weibull"       ) pd = PROB_WEIBULL;
+    else if( s == "cauchy"        ) pd = PROB_CAUCHY;
+    else ERROR( "Invalid probability_distribution string: " + s )
+    return pd;
+}
+
 menu_type scene_reader::read_menu_type( const json& j ) { 
     std::string s;
     menu_type t;
@@ -411,6 +430,7 @@ void scene_reader::read_function( const json& j ) {
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN
     FN( tweaker_float, float ) HARNESS( p ) HARNESS( amount ) HARNESS( enabled ) END_FN
+    FN( generator_float, float ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
@@ -446,7 +466,6 @@ void scene_reader::read_function( const json& j ) {
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
-
 
     // harness vec2f functions
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN

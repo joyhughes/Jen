@@ -40,6 +40,7 @@ typedef std::variant <
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
     std::shared_ptr< tweaker_float >,
+    std::shared_ptr< generator_float >,
     std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,

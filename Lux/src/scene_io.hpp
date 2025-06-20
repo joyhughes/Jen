@@ -43,6 +43,7 @@ struct scene_reader {
     void read( image_extend& e, const json& j ) { e = read_image_extend( j ); }
     void read( render_mode& r,  const json& j ) { r = read_render_mode( j ); }
     void read( CA_hood& h,      const json& j ) { h = read_hood( j ); }
+    void read( probability_distribution& p, const json& j ) { p = read_probability_distribution( j ); }
     void read( menu_type& m,    const json& j ) { m = read_menu_type( j ); }
     void read( switch_type& s,  const json& j ) { s = read_switch_type( j ); }
     void read( std::optional< int   >& i, const json& j ) { i = j.get<int>();  }    
@@ -68,6 +69,7 @@ struct scene_reader {
     image_extend read_image_extend( const json& j );
     render_mode  read_render_mode(  const json& j );
     CA_hood      read_hood(         const json& j );
+    probability_distribution read_probability_distribution( const json& j );
     menu_type    read_menu_type(    const json& j );
     switch_type  read_switch_type(  const json& j );
 

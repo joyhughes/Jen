@@ -72,6 +72,15 @@
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
+            "name": "segment_generator",
+            "type": "generator_float",
+            "p": 0.01,
+            "a": 6.0,
+            "b": 1.0,
+            "distribution": "log_normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "segment_slider",
             "type": "slider_float",
             "label": "Segments",
@@ -80,7 +89,7 @@
             "max": 36,
             "step": 1,
             "default_value": 6,
-            "value": { "functions": [ "segment_tweaker" ] }
+            "value": { "functions": [ "segment_generator" ] }
         },        
         {
             "name": "level_slider",
