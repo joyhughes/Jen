@@ -289,7 +289,7 @@ function JenSlider({ json, width }) {
     }, [getCurrentValue, formatDisplayValue]);
 
     // Reset to default value when resetTrigger changes
-    useEffect(() => {
+    /*useEffect(() => {
         if (resetTrigger > 0) {
             const resetValue = getInitialValue();
             setValue(resetValue);
@@ -303,7 +303,7 @@ function JenSlider({ json, width }) {
             }
         }
     }, [resetTrigger, json.default_value, json.min, json.max, formatDisplayValue, isRange, minFocus]);
-
+*/
     useEffect(() => {
         console.log(`Initializing slider callback: ${json.name}`, json);
         // Register the callback via embind

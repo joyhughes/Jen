@@ -54,13 +54,23 @@ template< class U > U generator< U >::operator () ( U& u, element_context& conte
     enabled( context );
     if( !*enabled ) return u; // if not enabled, return original value
     // if enabled, check probability
-    p( context ); a( context ); b( context );
+    p( context ); a( context ); b( context ); min(context ); max( context );
     if( rand_range( 0.0f, 1.0f ) < *p ) {
         std::cout << "generator: p = " << *p << std::endl;
         switch( distribution ) {
             case PROB_UNIFORM: 
                 u = rand_range( *a, *b ); 
                 break;
+            case PROB_NORMAL: {
+                if( *b <= 0.0f ) return u; // invalid parameters
+                std::normal_distribution<float> dist( *a, *b ); 
+                u = std::round(dist( gen ));
+            }
+            case PROB_GEOMETRIC: {
+                if( *b <= 0.0f ) return u; // invalid parameters
+                std::geometric_distribution<int> dist( *b ); 
+                u = dist( gen ) + *a; // shift by a
+            }
             case PROB_LOG_NORMAL: {
                 if( *a < 1.0f ) return u;
                 std::lognormal_distribution<float> dist( std::log(*a), *b ); 
@@ -69,6 +79,8 @@ template< class U > U generator< U >::operator () ( U& u, element_context& conte
             break;
         }
     }
+    if( u < *min ) u = *min; // clamp to min
+    if( u > *max ) u = *max; // clamp to max
     return u;
 }
 

@@ -160,17 +160,20 @@ typedef tweaker< float  > tweaker_float;
 template< class U > struct generator {
     harness< bool > enabled; // whether to apply the generator
     harness< float > p; // change probability
-    harness< U > a, b; // parameters for distribution
+    harness< float > a, b; // parameters for distribution
+    harness< U > min, max; // range for uniform distribution
     probability_distribution distribution; // distribution type
 
     U operator () ( U& u, element_context& context );
 
     generator( const bool& enabled_init = false, 
                const float& p_init = 0.001f, 
-               const U& a_init = U( 0 ), 
-               const U& b_init = U( 1 ), 
+               const float& a_init = U( 0 ), 
+               const float& b_init = U( 1 ), 
+               const U& min_init = U( 1 ),
+               const U& max_init = U( 1000000 ),
                const probability_distribution& distribution_init = PROB_UNIFORM ) 
-        : enabled( enabled_init ), p( p_init ), a( a_init ), b( b_init ), distribution( distribution_init ) {}
+        : enabled( enabled_init ), p( p_init ), a( a_init ), b( b_init ), min( min_init ), max( max_init ), distribution( distribution_init ) {}
 };
 
 //typedef generator< int > generator_int;

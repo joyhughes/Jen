@@ -429,7 +429,7 @@ function MediaController({ isOverlay = false }) {
     if (window.module && triggerReset) {
       // Reset all scene parameters to defaults first
       if (typeof window.module.reset_scene_parameters === 'function') {
-        window.module.reset_scene_parameters();
+        //window.module.reset_scene_parameters();
       }
       
       // Then restart the scene

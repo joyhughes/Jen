@@ -74,9 +74,11 @@
         {
             "name": "segment_generator",
             "type": "generator_float",
-            "p": 0.01,
+            "p": 0.005,
             "a": 6.0,
             "b": 1.0,
+            "min": 1,
+            "max": 1000000,
             "distribution": "log_normal",
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
@@ -90,6 +92,17 @@
             "step": 1,
             "default_value": 6,
             "value": { "functions": [ "segment_generator" ] }
+        },
+        {
+            "name": "level_generator",
+            "type": "generator_float",
+            "p": 0.005,
+            "a": 1.0,
+            "b": 2.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "geometric",
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },        
         {
             "name": "level_slider",
@@ -99,8 +112,20 @@
             "min": 1,
             "max": 12,
             "step": 1,
-            "default_value": 1
-        },        
+            "default_value": 1,
+            "value": { "functions": [ "level_generator" ] }
+        },   
+        {
+            "name": "level_start_generator",
+            "type": "generator_float",
+            "p": 0.005,
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },           
         {
             "name": "level_start_slider",
             "type": "slider_float",
@@ -109,8 +134,20 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "level_start_generator" ] }
         },
+        {
+            "name": "start_generator",
+            "type": "generator_float",
+            "p": 0.005,
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "start_slider",
             "type": "slider_float",
@@ -119,8 +156,20 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "start_generator" ] }
         },        
+        {
+            "name": "expand_generator",
+            "type": "generator_float",
+            "p": 0.005,
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "expand_slider",
             "type": "slider_float",
@@ -129,8 +178,20 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "expand_generator" ] }
         },
+        {
+            "name": "spin_generator",
+            "type": "generator_float",
+            "p": 0.005,
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "spin_slider",
             "type": "slider_float",
@@ -139,7 +200,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "spin_generator" ] }
         },
         {
             "name": "scope_menu",
