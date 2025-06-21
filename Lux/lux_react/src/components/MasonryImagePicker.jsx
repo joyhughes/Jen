@@ -519,34 +519,51 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
 
             {/* Live Camera Status with Controls */}
             {isLiveCameraActive && (
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                     <Chip 
-                        icon={<Radio size={16} />}
-                        label={`Live Camera: ${liveCameraInfo.isFrontCamera ? 'Front' : 'Back'}`}
-                        color="success"
-                        variant="outlined"
-                        size="small"
+                        icon={<Radio size={18} />}
+                        label={`🔴 LIVE ${liveCameraInfo.isFrontCamera ? 'FRONT' : 'BACK'} CAMERA`}
+                        color="error"
+                        variant="filled"
+                        size="medium"
                         sx={{ 
                             fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            letterSpacing: '0.5px',
+                            animation: 'pulse 2s infinite',
+                            '@keyframes pulse': {
+                                '0%': { opacity: 1 },
+                                '50%': { opacity: 0.7 },
+                                '100%': { opacity: 1 }
+                            },
                             transition: 'none' // Remove transition to prevent flashing
                         }}
                     />
                     
-                    {/* Camera Switch Button - Only show on mobile */}
-                    {isMobile && liveCameraInfo.availableCameras.length > 1 && (
+                    {/* Camera Switch Button - Show when multiple cameras available */}
+                    {liveCameraInfo.availableCameras.length > 1 && (
                         <Button
                             size="small"
-                            variant="outlined"
-                            startIcon={isSwitchingCamera ? <CircularProgress size={16} /> : <RotateCcw size={16} />}
+                            variant="contained"
+                            color="primary"
+                            startIcon={isSwitchingCamera ? <CircularProgress size={16} /> : <FlipHorizontal size={16} />}
                             onClick={switchLiveCamera}
                             disabled={isSwitchingCamera}
                             sx={{ 
                                 minWidth: 'auto', 
-                                px: 1,
-                                transition: 'opacity 0.2s ease' // Only animate opacity
+                                px: 2,
+                                py: 0.5,
+                                borderRadius: 1.5,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                boxShadow: 1,
+                                '&:hover': {
+                                    boxShadow: 2,
+                                },
+                                transition: 'box-shadow 0.2s ease'
                             }}
                         >
-                            {isSwitchingCamera ? 'Switching...' : (liveCameraInfo.isFrontCamera ? 'Switch to Back' : 'Switch to Front')}
+                            {isSwitchingCamera ? 'Switching...' : `${liveCameraInfo.isFrontCamera ? '📱' : '📷'} ${liveCameraInfo.isFrontCamera ? 'Front' : 'Back'}`}
                         </Button>
                     )}
                 </Box>
@@ -589,7 +606,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     {/* Live Camera button - only show if supported */}
                     {isCameraSupported() && isLiveCameraSupported() && (
-                        <Tooltip title={isLiveCameraActive ? "Stop Live Camera" : "Start Live Camera"}>
+                        <Tooltip title={isLiveCameraActive ? "Stop Live Camera" : `Start Live Camera`}>
                             <IconButton
                                 onClick={() => toggleLiveCamera()}
                                 disabled={isLoading}
@@ -599,15 +616,22 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                                     borderRadius: 1,
                                     width: 48,
                                     height: 48,
+                                    position: 'relative',
                                     '&:hover': {
                                         bgcolor: isLiveCameraActive ? '#45a049' : '#e64a19',
+                                        transform: 'scale(1.05)',
                                     },
                                     '&:disabled': {
                                         bgcolor: 'grey.300',
+                                    },
+                                    transition: 'transform 0.2s ease, background-color 0.2s ease',
+                                    boxShadow: 3,
+                                    '&:active': {
+                                        transform: 'scale(0.95)',
                                     }
                                 }}
                             >
-                                {isLiveCameraActive ? <Radio size={20} /> : <Play size={20} />}
+                                {isLiveCameraActive ? <Radio size={24} /> : <Video size={24} />}
                             </IconButton>
                         </Tooltip>
                     )}
