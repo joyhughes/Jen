@@ -269,6 +269,7 @@ struct UI {
         bool beat_detected = false;
         float time_phase = 0.0f;
         bool enabled = false;
+        float global_sensitivity = 1.0f;
         
         float get_audio_value(const std::string& channel) const {
             if (!enabled) {

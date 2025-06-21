@@ -344,7 +344,8 @@ void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( 
 
 float audio_float_fn::operator () ( float& val, element_context& context ) {
     float audio_val = context.s.ui.audio.get_audio_value(channel);
-    float enhancement = base_value + (audio_val * sensitivity);
+    float global_sens = context.s.ui.audio.global_sensitivity;
+    float enhancement = base_value + (audio_val * sensitivity * global_sens);
     
     // If manual_reference is specified, get the current manual slider value and add enhancement
     if (!manual_reference.empty()) {

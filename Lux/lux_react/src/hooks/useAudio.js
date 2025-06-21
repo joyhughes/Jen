@@ -84,7 +84,7 @@ const useAudio = () => {
     beatDetected: false,
     dominantFrequency: 0
   });
-  const [sensitivity, setSensitivity] = useState(0.8);
+  const [sensitivity, setSensitivity] = useState(1.0);
   const [performance, setPerformance] = useState({
     fps: 0,
     avgProcessingTime: 0,
@@ -96,7 +96,7 @@ const useAudio = () => {
   const microphoneRef = useRef(null);
   const analyzerRef = useRef(null);
   const dataArrayRef = useRef(null);
-  const sensitivityRef = useRef(0.8);
+  const sensitivityRef = useRef(1.0);
   const isEnabledRef = useRef(false);
   
   // Configuration-driven audio mappings (loaded from scene JSON)
@@ -284,6 +284,16 @@ const useAudio = () => {
   // Update refs when state changes
   useEffect(() => {
     sensitivityRef.current = sensitivity;
+    
+    // Update backend sensitivity
+    try {
+      if (window.module && window.module.set_audio_sensitivity) {
+        window.module.set_audio_sensitivity(sensitivity);
+        console.log(`🎵 🎛️ Backend sensitivity updated to: ${sensitivity}`);
+      }
+    } catch (error) {
+      console.warn('🎵 ⚠️ Could not update backend sensitivity:', error);
+    }
   }, [sensitivity]);
 
   useEffect(() => {

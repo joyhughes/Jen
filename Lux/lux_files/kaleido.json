@@ -61,7 +61,7 @@
             "name": "start_audio",
             "type": "audio_float_fn",
             "channel": "high",
-            "sensitivity": 3.0,
+            "sensitivity": 4.0,
             "base_value": 0.0,
             "manual_reference": "start_slider"
         },
@@ -69,7 +69,7 @@
             "name": "expand_audio",
             "type": "audio_float_fn",
             "channel": "bass",
-            "sensitivity": 6.0,
+            "sensitivity": 5.0,
             "base_value": 0.0,
             "manual_reference": "expand_slider"
         },
@@ -77,7 +77,7 @@
             "name": "spin_audio",
             "type": "audio_float_fn",
             "channel": "mid",
-            "sensitivity": 5.0,
+            "sensitivity": 6.0,
             "base_value": 0.0,
             "manual_reference": "spin_slider"
         },
@@ -85,9 +85,25 @@
             "name": "phase_audio",
             "type": "audio_float_fn",
             "channel": "volume",
-            "sensitivity": 2.5,
+            "sensitivity": 4.0,
             "base_value": 0.0,
             "manual_reference": "phase_slider"
+        },
+        {
+            "name": "swirl_audio",
+            "type": "audio_float_fn",
+            "channel": "bass",
+            "sensitivity": 3.0,
+            "base_value": 0.0,
+            "manual_reference": "swirl_slider"
+        },
+        {
+            "name": "alternate_audio",
+            "type": "audio_float_fn",
+            "channel": "volume",
+            "sensitivity": 2.0,
+            "base_value": 0.0,
+            "manual_reference": "alternate_slider"
         },
         {
             "name": "segment_slider",
@@ -300,7 +316,7 @@
             "name": "start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "start_slider", "start_audio" ] },
-            "scale": 0.15,
+            "scale": 0.12,
             "val": 0
         },        
         {
@@ -314,21 +330,35 @@
             "name": "expand_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "expand_slider", "expand_audio" ] },
-            "scale": 0.003,
+            "scale": 0.004,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "spin_slider", "spin_audio" ] },
-            "scale": 0.22,
+            "scale": 0.18,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "phase_slider", "phase_audio" ] },
-            "scale": 0.01,
+            "scale": 0.08,
+            "val": 0
+        },
+        {
+            "name": "swirl_integrator",
+            "type": "integrator_float",
+            "delta": { "functions": [ "swirl_slider", "swirl_audio" ] },
+            "scale": 0.5,
+            "val": 0
+        },
+        {
+            "name": "alternate_integrator",
+            "type": "integrator_float",
+            "delta": { "functions": [ "alternate_slider", "alternate_audio" ] },
+            "scale": 0.3,
             "val": 0
         },
         {
@@ -437,14 +467,14 @@
         {
             "name": "theta_swirl",
             "type": "eff_theta_swirl_vec2f",
-            "amount": { "functions": [ "swirl_slider" ] }
+            "amount": { "functions": [ "swirl_integrator" ] }
         },
         {
             "name": "theta rings",
             "type": "eff_theta_rings_vec2f",
             "n": { "functions": [ "rings_slider" ] },
-            "swirl": { "functions": [ "swirl_slider" ] },
-            "alternate": { "functions": [ "alternate_slider" ] }
+            "swirl": { "functions": [ "swirl_integrator" ] },
+            "alternate": { "functions": [ "alternate_integrator" ] }
         },
         {
             "name": "theta waves",

@@ -131,22 +131,22 @@ const AudioControlPanel = ({
           <div className="sensitivity-section-enhanced">
             <div className="sensitivity-header">
               <span className="sensitivity-title">🎛️ Sensitivity</span>
-              <span className="sensitivity-value">{Math.round((sensitivity || 0) * 100)}%</span>
+              <span className="sensitivity-value">{Math.round((sensitivity ?? 1.0) * 100)}%</span>
             </div>
             <div className="sensitivity-slider-container">
               <input
                 type="range"
                 min="0"
-                max="100"
+                max="200"
                 step="5"
-                value={Math.round((sensitivity || 0.8) * 100)}
+                value={Math.round((sensitivity ?? 1.0) * 100)}
                 onChange={(e) => setSensitivity && setSensitivity(parseInt(e.target.value) / 100)}
                 className="sensitivity-slider enhanced"
               />
-              <div className="slider-marks">
+              <div className="slider-marks">  
                 <span>0%</span>
-                <span>50%</span>
                 <span>100%</span>
+                <span>200%</span>
               </div>
             </div>
           </div>

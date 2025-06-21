@@ -1510,6 +1510,12 @@ void enable_audio_input(bool enabled) {
     global_context->s->ui.audio.enabled = enabled;
 }
 
+void set_audio_sensitivity(float sensitivity) {
+    if (!global_context || !global_context->s) return;
+    global_context->s->ui.audio.global_sensitivity = sensitivity;
+    std::cout << "🎵 🎛️ Global audio sensitivity set to: " << sensitivity << std::endl;
+}
+
 bool is_audio_enabled() {
     if (!global_context || !global_context->s) return false;
     return global_context->s->ui.audio.enabled;
@@ -1986,6 +1992,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     // audio functions
     function("update_audio_context", &update_audio_context);
     function("enable_audio_input", &enable_audio_input);
+    function("set_audio_sensitivity", &set_audio_sensitivity);
     function("is_audio_enabled", &is_audio_enabled);
     function("get_audio_channel_value", &get_audio_channel_value);
     function("get_audio_config", &get_audio_config);
