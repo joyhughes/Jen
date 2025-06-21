@@ -76,7 +76,7 @@
         {
             "name": "target_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": 0.001,
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -124,7 +124,7 @@
         {
             "name": "edge_block_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": 0.001,
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -149,7 +149,7 @@
         {
             "name": "bright_block_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": 0.001,
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -192,7 +192,7 @@
         {
             "name": "source_image_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": 0.001,
             "a": 0,
             "b": 9,
             "min": 0,
@@ -213,7 +213,7 @@
         {
             "name": "targ_image_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": 0.001,
             "a": 0,
             "b": 9,
             "min": 0,
@@ -234,7 +234,7 @@
         {
             "name": "rule_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": 0.001,
             "a": 0,
             "b": 8,
             "min": 0,
@@ -345,7 +345,7 @@
         {
             "name": "box_blur_bug_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": 0.001,
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -360,7 +360,7 @@
         {
             "name": "bb_random_copy_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": 0.001,
             "enabled": { "functions": [ "autoplay_switch" ] }
         },        
         {
