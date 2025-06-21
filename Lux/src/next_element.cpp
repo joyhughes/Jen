@@ -85,6 +85,7 @@ template< class U > U generator< U >::operator () ( U& u, element_context& conte
 }
 
 template struct generator< float >;
+template struct generator< int >;
 
 float time_fn::operator () ( float& val, element_context& context  ) { 
     return context.s.time; 

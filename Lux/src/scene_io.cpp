@@ -441,6 +441,7 @@ void scene_reader::read_function( const json& j ) {
 
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
+    FN( generator_int, int ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
     FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
@@ -451,7 +452,8 @@ void scene_reader::read_function( const json& j ) {
         READ( default_choice )
         READ( tool )
         READ( affects_widget_groups )
-        READ( rerender ) 
+        READ( rerender )
+        HARNESS( choice ) 
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -463,6 +465,7 @@ void scene_reader::read_function( const json& j ) {
         READ( tool ) 
         READ( affects_widget_groups ) 
         READ( rerender ) 
+        HARNESS( choice )
         fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
@@ -509,6 +512,7 @@ void scene_reader::read_function( const json& j ) {
     END_FN
 
     // harness bool functions
+    FN( random_toggle , bool ) HARNESS( enabled ) HARNESS( p ) END_FN
     FN( random_fn, bool ) HARNESS( p ) END_FN
     FN( random_sticky_fn, bool ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
    // equality functions
@@ -526,7 +530,7 @@ void scene_reader::read_function( const json& j ) {
 
 
     // ui functions
-    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) HARNESS( value ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
     // special case for widget switch
     FN( widget_switch_fn, bool ) READ( switcher ) READ( widget ) READ( label ) READ( description )  END_FN
 
@@ -548,7 +552,7 @@ void scene_reader::read_function( const json& j ) {
     // position_list should go here - figure out how to work the vector of positions
 
     // condition functions
-    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
+    COND_FN( switch_condition ) READ( tool ) READ( label ) READ( description ) HARNESS( value ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
     COND_FN( random_condition ) HARNESS( p ) END_FN
     COND_FN( random_sticky_condition ) HARNESS( p_start ) HARNESS( p_change_true ) HARNESS( p_change_false ) END_FN
     // equality conditions
@@ -1000,7 +1004,7 @@ void to_json( nlohmann::json& j, const switch_fn& s) {
     j = nlohmann::json{
         {"label", s.label},
         {"description", s.description},
-        {"value", s.value},
+        {"value", *(s.value)},
         {"default_value", s.default_value},
         {"tool", s.tool == SWITCH_SWITCH ? "switch" : "checkbox"}
     };
@@ -1048,7 +1052,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "switch_fn"},
                         {"label", fn->label},
                         {"description", fn->description},
-                        {"value", fn->value},
+                        {"value", *fn->value},
                         {"default_value", fn->default_value},
                         {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
                         {"affects_widget_groups", fn->affects_widget_groups}
@@ -1095,7 +1099,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "menu_int"},
                         {"label", fn->label},
                         {"description", fn->description},
-                        {"choice", fn->choice},
+                        {"choice", *fn->choice},
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
@@ -1267,7 +1271,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "menu_string"},
                         {"label", fn->label},
                         {"description", fn->description},
-                        {"choice", fn->choice},
+                        {"choice", *fn->choice},
                         {"default_choice", fn->default_choice},
                         {"tool", fn->tool},
                         {"items", fn->items},
@@ -1386,7 +1390,7 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"type", "switch_condition"},
                         {"label", fn->label},
                         {"description", fn->description},
-                        {"value", fn->value},
+                        {"value", *fn->value},
                         {"default_value", fn->default_value},
                         {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
                         {"affects_widget_groups", fn->affects_widget_groups}

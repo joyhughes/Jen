@@ -30,11 +30,13 @@ bool mouseclick_condition::operator () ( bool& val, element_context& context ) {
 }
 
 bool switch_condition::operator () ( element_context& context ) { 
-    return value; 
+    value( context );
+    return *value; 
 }
 
 bool switch_condition::operator () ( bool& val, element_context& context ) { 
-    return value; 
+    value( context );
+    return *value; 
 }
 
 void switch_condition::reset() { value = default_value; }
@@ -65,16 +67,18 @@ template struct range_slider< int >;
 
 int menu::operator () ( int& val, element_context& context ) {
     //std::cout << "Menu operator () (int): nitems=" << items.size() << " choice=" << choice << "\n";
-    return choice;
+    choice( context );
+    return *choice;
 }
 
 std::string menu::operator () ( std::string& val, element_context& context ) {
     //std::cout << "Menu operator () (int): nitems=" << items.size() << " val=" << val << "\n";
+    choice( context );
     return get_chosen_item();
 }
 
 std::string menu::get_chosen_item() {
-    return items[ choice ];
+    return items[ *choice ];
 }
 
 void menu::choose( int c ) {
@@ -169,7 +173,7 @@ bool widget_switch::operator() ( element_context& context ) {
     auto sw = context.s.get_fn_ptr< bool, switch_fn >( switcher );
     if ( sw ) {
         sw->operator()( context );
-        return sw->value;
+        return *sw->value;
     }
     else return true; // no switcher, defaults to just the widget
 }
@@ -178,7 +182,7 @@ bool widget_switch::operator() ( bool& val, element_context& context ) {
     auto sw = context.s.get_fn_ptr< bool, switch_fn >( switcher );
     if ( sw ) {
         sw->operator()( context );
-        return sw->value;
+        return *sw->value;
     }
     else return true; // no switcher, defaults to just the widget
 }

@@ -46,7 +46,8 @@ typedef mouseclick_condition mouseclick_fn;
 struct switch_condition {
     switch_type tool;
     std::string label, description;
-    bool value, default_value;
+    harness< bool > value; // value is a harness, so it can be used in any function
+    bool default_value;
     bool affects_widget_groups;
 
     bool operator () ( element_context& context );
@@ -129,7 +130,8 @@ struct menu {
     menu_type tool;
     std::string label, description;
     std::vector< std::string > items;
-    int choice, default_choice;
+    harness< int > choice; 
+    int default_choice;
     //bool user_defined_item;
     bool affects_widget_groups;
     bool rerender;

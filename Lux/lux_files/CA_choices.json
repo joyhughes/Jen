@@ -67,12 +67,26 @@
     "functions":
     [
         {
+            "name": "autoplay_switch",
+            "type": "switch_fn",
+            "label": "Autoplay",
+            "description": "Makes random changes to the scene",
+            "default_value": false
+        },
+        {
+            "name": "target_toggle",
+            "type": "random_toggle",
+            "p": 0.0001,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "target_switch",
             "type": "switch_fn",
             "label": "Target",
             "description": "Image becomes more similar to target image",
             "tool": "switch",
-            "default_value": false
+            "default_value": false,
+            "value": { "functions": [ "target_toggle" ] }
         },
         {
             "name": "brush_fn",
@@ -108,12 +122,19 @@
             "description": "Direction of funkiness"
         },
         {
+            "name": "edge_block_toggle",
+            "type": "random_toggle",
+            "p": 0.0001,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "edge_block_switch",
             "type": "switch_fn",
             "label": "Edge block",
             "description": "Freezes pixels on the edge of the image",
             "tool": "switch",
-            "default_value": true
+            "default_value": true,
+            "value": { "functions": [ "edge_block_toggle" ] }
         },
         {
             "name": "bright_block_slider",
@@ -126,12 +147,19 @@
             "step": 1
         },
         {
+            "name": "bright_block_toggle",
+            "type": "random_toggle",
+            "p": 0.0001,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "bright_block_switch",
             "type": "switch_fn",
             "label": "Brightness block",
             "description": "Freezes pixels with brightness outside the range",
             "tool": "switch",
-            "default_value": false
+            "default_value": false,
+            "value": { "functions": [ "bright_block_toggle" ] }
         },
         {
             "name": "bright_block_widget_switch",
@@ -162,14 +190,37 @@
             "step": 1
         },
         {
+            "name": "source_image_menu_generator",
+            "type": "generator_int",
+            "p": 0.0001,
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
+        {
             "name": "source_image_menu",
             "type": "menu_string",
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
             "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 2
-        },        
+            "default_choice": 2,
+            "value": { "functions": [ "source_image_menu_generator" ] }
+        },      
+        {
+            "name": "targ_image_menu_generator",
+            "type": "generator_int",
+            "p": 0.0001,
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "targ_image_menu",
             "type": "menu_string",
@@ -177,8 +228,20 @@
             "label": "Target Image",
             "description": "Choose a target image.",
             "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 5
+            "default_choice": 5,
+            "value": { "functions": [ "targ_image_menu_generator" ] }
         },
+        {
+            "name": "rule_menu_generator",
+            "type": "generator_int",
+            "p": 0.0001,
+            "a": 0,
+            "b": 8,
+            "min": 0,
+            "max": 8,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
         {
             "name": "rule_menu",
             "type": "menu_int",
@@ -187,7 +250,8 @@
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
             "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Threadfall", "Borg", "Box blur", "Blurriffic" ],
             "default_choice": 4,
-            "affects_widget_groups": true
+            "affects_widget_groups": true,
+            "value": { "functions": [ "rule_menu_generator" ] }
         },
         {
             "name": "rule_menu_0",
@@ -279,20 +343,34 @@
             "pickers": [ [ 17, 17 ], [ 68, 68 ] ]
         },
         {
+            "name": "box_blur_bug_toggle",
+            "type": "random_toggle",
+            "p": 0.0001,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "box_blur_bug_switch",
             "type": "switch_fn",
             "label": "Bug mode",
             "description": "Bug mode runs the rule incorrectly with interesting results. Switch has the largest effect when sort threshold is low.",
             "tool": "switch",
-            "default_value": false
+            "default_value": false,
+            "value": { "functions": [ "box_blur_bug_toggle" ] }
         },
+        {
+            "name": "bb_random_copy_toggle",
+            "type": "random_toggle",
+            "p": 0.0001,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },        
         {
             "name": "bb_random_copy_switch",
             "type": "switch_fn",
             "label": "Random copy",
             "description": "Random copy mode copies a random pixel from the neighborhood.",
             "tool": "switch",
-            "default_value": false
+            "default_value": false,
+            "value": { "functions": [ "bb_random_copy_toggle" ] }
         }
     ],
     "clusters":
@@ -496,7 +574,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "rule_menu", "edge_block_switch", "target_switch" ]
+            "widgets": [ "autoplay_switch", "rule_menu", "edge_block_switch", "target_switch" ]
         },
         { 
             "name": "targ_image_group",

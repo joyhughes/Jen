@@ -75,8 +75,9 @@ template< class U > struct harness {
 
     void operator () ( element_context& context );
 
-    U  operator *  () { return  val; }
-    U* operator -> () { return &val; }
+    U operator * ()       { return val; }
+    U operator * () const { return val; }
+    U* operator -> ()     { return &val; }
     harness< U >& operator = ( const U& u ) { val = u; return *this; }
 
     void add_function( const any_fn< U >& fn );
@@ -176,9 +177,27 @@ template< class U > struct generator {
         : enabled( enabled_init ), p( p_init ), a( a_init ), b( b_init ), min( min_init ), max( max_init ), distribution( distribution_init ) {}
 };
 
-//typedef generator< int > generator_int;
+typedef generator< int > generator_int;
 typedef generator< float > generator_float;
 
+struct random_toggle {
+    harness< bool > enabled; 
+    harness< float > p; // probability of changing 
+
+    bool operator () ( bool &val, element_context& context ) {
+        enabled( context );
+        if( !*enabled ) return val; // if not active, return original value
+        // if active, check probability
+        p( context );
+        if( rand_range( 0.0f, 1.0f ) < *p ) {
+            val = !val; // toggle state
+        }
+        return val;
+    }
+
+    random_toggle( const float& enabled_init = false, const float& p_init = 0.001f ) 
+        : enabled( enabled_init ), p( p_init ) {}
+};
 struct log_fn {
     harness< float > scale;
     harness< float > shift;
@@ -525,7 +544,7 @@ struct random_sticky_condition {
     bool operator () ( element_context& context );
     bool operator () ( bool& val, element_context& context );
 
-    random_sticky_condition( float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
+    random_sticky_condition( bool active_init = true, float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
 typedef random_sticky_condition random_sticky_fn;
