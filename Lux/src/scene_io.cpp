@@ -419,7 +419,9 @@ void scene_reader::read_function( const json& j ) {
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // audio functions
-    FN( audio_float_fn, float ) READ( channel ) READ( sensitivity ) READ( base_value ) END_FN
+    FN( audio_float_fn, float ) READ( channel ) READ( sensitivity ) READ( base_value ) 
+        if( j.contains( "manual_reference" ) ) read( fn->manual_reference, j[ "manual_reference" ] );
+    END_FN
 
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
@@ -1130,6 +1132,18 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"step", fn->step},
                         {"value", fn->value}
                     };
+                },
+                [&]( const std::shared_ptr< audio_float_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "audio_float_fn"},
+                        {"channel", fn->channel},
+                        {"sensitivity", fn->sensitivity},
+                        {"base_value", fn->base_value}
+                    };
+                    if (!fn->manual_reference.empty()) {
+                        j["manual_reference"] = fn->manual_reference;
+                    }
                 },
                 [&]( const auto& fn ) {
                     // Placeholder for other types

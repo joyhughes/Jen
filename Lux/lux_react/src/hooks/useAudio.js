@@ -150,9 +150,10 @@ const useAudio = () => {
       const newManualValues = {};
 
       config.forEach(mapping => {
-        const { name, channel, sensitivity, damping = 0.05, stiffness = 3.0 } = mapping;
+        const { name, channel, sensitivity, damping = 0.15, stiffness = 2.0 } = mapping;
         
-        // Create SHO with parameter-specific tuning
+        // Create SHO with parameter-specific tuning for slower, smoother motion
+        // Increased damping and reduced stiffness for less aggressive response
         newOscillators[name] = new SimpleSHO(1.0, damping, stiffness);
         
         // Get current manual value
@@ -172,6 +173,21 @@ const useAudio = () => {
       manualValuesRef.current = newManualValues;
 
       console.log('🎵 ✅ Initialized oscillators for:', Object.keys(newOscillators));
+      console.log('🎵 📋 Final config has ' + config.length + ' audio mappings');
+      
+      // Auto-enable audio in backend if configuration was successfully loaded
+      if (config.length > 0) {
+        console.log('🎵 🔧 Auto-enabling audio in backend since config was loaded...');
+        try {
+          if (window.module && window.module.enable_audio_input) {
+            window.module.enable_audio_input(true);
+            console.log('🎵 ✅ Audio enabled in backend');
+          }
+        } catch (error) {
+          console.warn('🎵 ⚠️ Could not enable audio in backend:', error);
+        }
+      }
+      
       return true;
       
     } catch (error) {
@@ -296,14 +312,10 @@ const useAudio = () => {
     const currentSensitivity = sensitivityRef.current;
     const config = audioConfigRef.current;
 
-    // Heartbeat log every 3 seconds
+    // Heartbeat log every 10 seconds
     if (!audioState.lastHeartbeat) audioState.lastHeartbeat = 0;
-    if (now - audioState.lastHeartbeat >= 3000) {
-      console.log('🎵 💓 Audio processing heartbeat - system running', {
-        configLength: config.length,
-        sensitivity: currentSensitivity,
-        oscillators: Object.keys(oscillatorsRef.current).length
-      });
+    if (now - audioState.lastHeartbeat >= 10000) {
+      console.log('🎵 Audio system running');
       audioState.lastHeartbeat = now;
     }
 
@@ -413,27 +425,11 @@ const useAudio = () => {
         // Send audio data to WebAssembly backend
         if (window.module && window.module.update_audio_context) {
           try {
-            console.log('🎵 🔧 About to call update_audio_context with:', {
-              volume: volume.toFixed(3),
-              bass: bassLevel.toFixed(3), 
-              mid: midLevel.toFixed(3),
-              high: highLevel.toFixed(3),
-              beat: beatDetected,
-              time: (now * 0.001).toFixed(3)
-            });
-            
             // RE-ENABLED: Testing if backend crashes are fixed
             const timePhase = now * 0.001;
             window.module.update_audio_context(volume, bassLevel, midLevel, highLevel, beatDetected, timePhase);
             
-            console.log('🎵 ✅ update_audio_context called successfully - no crash!');
-            
-            // Debug log every 2 seconds
-            if (!audioState.lastBackendLog) audioState.lastBackendLog = 0;
-            if (now - audioState.lastBackendLog >= 2000) {
-              console.log(`🎵 → Backend: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}, beat=${beatDetected}`);
-              audioState.lastBackendLog = now;
-            }
+            // Removed excessive debug logs
           } catch (error) {
             console.error('🎵 ❌ WebAssembly update_audio_context error:', error);
           }
@@ -460,12 +456,13 @@ const useAudio = () => {
               const channelValue = audioChannels[channel] || 0;
               
               if (channelValue > 0 && oscillatorsRef.current[name]) {
-                const influence = Math.pow(channelValue, 0.7) * currentSensitivity * paramSensitivity;
+                // Reduced influence calculation for gentler response
+                const influence = Math.pow(channelValue, 0.8) * currentSensitivity * paramSensitivity * 0.7;
                 const baseValue = manualValues[name] || 0;
                 
-                // Add temporal modulation for organic motion
-                const temporalMod = Math.abs(Math.sin(timePhase * 0.6)) * influence * 0.3;
-                const beatBonus = beatDetected && channel === 'high' ? 2 * currentSensitivity : 0;
+                // Reduced temporal modulation for smoother motion
+                const temporalMod = Math.abs(Math.sin(timePhase * 0.4)) * influence * 0.2;
+                const beatBonus = beatDetected && channel === 'high' ? 1.5 * currentSensitivity : 0;
                 
                 const target = Math.max(baseValue, baseValue + offset + influence + temporalMod + beatBonus);
                 oscillatorsRef.current[name].setTarget(target);
@@ -475,15 +472,8 @@ const useAudio = () => {
             // Log audio processing (reduced frequency)
             if (!audioState.audioLogCount) audioState.audioLogCount = 0;
             audioState.audioLogCount++;
-            if (audioState.audioLogCount % 20 === 0) {
-              console.log("🎵 AUDIO → TARGETS:");
-              console.log(`   📊 Channels: vol=${volume.toFixed(3)}, bass=${bassLevel.toFixed(3)}, mid=${midLevel.toFixed(3)}, high=${highLevel.toFixed(3)}`);
-              config.forEach(mapping => {
-                const { name, channel } = mapping;
-                const currentTarget = oscillatorsRef.current[name]?.target || 0;
-                const baseValue = manualValues[name] || 0;
-                console.log(`   🎯 ${name}: ${baseValue.toFixed(2)} → ${currentTarget.toFixed(2)} (${channel})`);
-              });
+            if (audioState.audioLogCount % 100 === 0) {
+              console.log("🎵 Audio processing active");
             }
 
           } else {
@@ -793,6 +783,47 @@ const useAudio = () => {
       stopAudio();
     };
   }, [stopAudio]);
+
+  // DEBUG: Expose loadAudioConfig function globally for testing
+  useEffect(() => {
+    window.debugLoadAudioConfig = loadAudioConfig;
+    window.debugAudioConfig = () => {
+      console.log('🔍 Current audio config:', audioConfigRef.current);
+      console.log('🔍 Current oscillators:', Object.keys(oscillatorsRef.current));
+      console.log('🔍 Manual values:', manualValuesRef.current);
+      console.log('🔍 Audio enabled:', isEnabledRef.current);
+      
+      // Test WebAssembly functions
+      if (window.module) {
+        console.log('🔍 WebAssembly module available');
+        console.log('🔍 get_audio_config function:', typeof window.module.get_audio_config);
+        console.log('🔍 enable_audio_input function:', typeof window.module.enable_audio_input);
+        console.log('🔍 is_audio_enabled function:', typeof window.module.is_audio_enabled);
+        
+        if (typeof window.module.is_audio_enabled === 'function') {
+          try {
+            const backendEnabled = window.module.is_audio_enabled();
+            console.log('🔍 Backend audio enabled:', backendEnabled);
+          } catch (error) {
+            console.warn('🔍 Error checking backend audio status:', error);
+          }
+        }
+        
+        if (typeof window.module.get_audio_config === 'function') {
+          try {
+            const configJson = window.module.get_audio_config();
+            console.log('🔍 Raw config from backend:', configJson);
+            const config = JSON.parse(configJson);
+            console.log('🔍 Parsed config:', config);
+          } catch (error) {
+            console.warn('🔍 Error loading config from backend:', error);
+          }
+        }
+      } else {
+        console.log('🔍 WebAssembly module not available');
+      }
+    };
+  }, [loadAudioConfig]);
 
   return {
     isEnabled,

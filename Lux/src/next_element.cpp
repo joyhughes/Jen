@@ -342,26 +342,42 @@ void next_element::add_function(  any_gen_fn fn       ) { functions.push_back( f
 
 void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( c ); }
 
-// Audio function implementations using Joy's harness system
 float audio_float_fn::operator () ( float& val, element_context& context ) {
-    // ALWAYS log to debug if functions are being called
-    static int call_counter = 0;
-    call_counter++;
-    
     float audio_val = context.s.ui.audio.get_audio_value(channel);
-    float result = base_value + (audio_val * sensitivity);
+    float enhancement = base_value + (audio_val * sensitivity);
     
-    // Debug logging every 10 frames to see if functions are being called
-    if (call_counter % 10 == 0) {
-        std::cout << "🎵 🔥 audio_float_fn[" << channel << "] CALLED #" << call_counter 
-                  << ": enabled=" << (context.s.ui.audio.enabled ? "true" : "false")
-                  << ", audio_val=" << audio_val 
-                  << ", sensitivity=" << sensitivity 
-                  << ", base=" << base_value 
-                  << " → result=" << result << std::endl;
+    // If manual_reference is specified, get the current manual slider value and add enhancement
+    if (!manual_reference.empty()) {
+        try {
+            // Access slider value directly from the scene's functions map
+            if (context.s.functions.contains(manual_reference)) {
+                auto& fn = context.s.functions[manual_reference];
+                
+                // Handle float sliders
+                if (std::holds_alternative<any_fn<float>>(fn)) {
+                    auto float_fn = std::get<any_fn<float>>(fn);
+                    if (std::holds_alternative<std::shared_ptr<slider_float>>(float_fn.any_fn_ptr)) {
+                        auto slider = std::get<std::shared_ptr<slider_float>>(float_fn.any_fn_ptr);
+                        float manual_val = slider->value;
+                        return manual_val + enhancement;
+                    }
+                }
+                // Handle int sliders
+                else if (std::holds_alternative<any_fn<int>>(fn)) {
+                    auto int_fn = std::get<any_fn<int>>(fn);
+                    if (std::holds_alternative<std::shared_ptr<slider_int>>(int_fn.any_fn_ptr)) {
+                        auto slider = std::get<std::shared_ptr<slider_int>>(int_fn.any_fn_ptr);
+                        float manual_val = static_cast<float>(slider->value);
+                        return manual_val + enhancement;
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            // If manual slider access fails, just return enhancement
+        }
     }
     
-    return result;
+    return enhancement;
 }
 
 vec2f audio_vec2f_fn::operator () ( vec2f& val, element_context& context ) {

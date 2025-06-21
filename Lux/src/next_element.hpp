@@ -541,13 +541,14 @@ struct next_element {
 
 struct audio_float_fn {
     std::string channel;
+    std::string manual_reference; // Optional reference to manual slider
     float sensitivity;
     float base_value;
     
     float operator () ( float& val, element_context& context );
     
-    audio_float_fn(const std::string& ch = "volume", float sens = 1.0f, float base = 0.0f) 
-        : channel(ch), sensitivity(sens), base_value(base) {}
+    audio_float_fn(const std::string& ch = "volume", float sens = 1.0f, float base = 0.0f, const std::string& manual_ref = "") 
+        : channel(ch), sensitivity(sens), base_value(base), manual_reference(manual_ref) {}
 };
 
 struct audio_vec2f_fn {

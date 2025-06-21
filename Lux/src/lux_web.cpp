@@ -1559,21 +1559,21 @@ std::string get_audio_config() {
                         float base_value = func.value("base_value", 0.0f);
                         
                         // Set damping and stiffness based on channel characteristics
-                        float damping = 0.05f;
-                        float stiffness = 3.0f;
+                        float damping = 0.15f;  // Updated defaults
+                        float stiffness = 2.0f;
                         
                         if (channel == "bass") {
-                            damping = 0.05f;
-                            stiffness = 4.0f;
+                            damping = 0.15f;
+                            stiffness = 2.5f;
                         } else if (channel == "mid") {
-                            damping = 0.01f;
-                            stiffness = 2.0f;
+                            damping = 0.10f;
+                            stiffness = 1.8f;
                         } else if (channel == "high") {
-                            damping = 0.08f;
-                            stiffness = 3.0f;
+                            damping = 0.20f;
+                            stiffness = 2.2f;
                         } else if (channel == "volume") {
-                            damping = 0.06f;
-                            stiffness = 3.5f;
+                            damping = 0.18f;
+                            stiffness = 2.3f;
                         }
                         
                         config.push_back({
@@ -1582,10 +1582,11 @@ std::string get_audio_config() {
                             {"sensitivity", sensitivity},
                             {"offset", base_value},
                             {"damping", damping},
-                            {"stiffness", stiffness}
+                            {"stiffness", stiffness},
+                            {"type", type}  // Track which type for debugging
                         });
                         
-                        std::cout << "🎵 ✅ Added audio_float_fn " << name << " → " << channel 
+                        std::cout << "🎵 ✅ Added " << type << " " << name << " → " << channel 
                                   << " (sens=" << sensitivity << ", base=" << base_value << ")" << std::endl;
                     }
                     else if (type == "audio_vec2f_fn") {
@@ -1601,8 +1602,9 @@ std::string get_audio_config() {
                             {"channel", channel_x},
                             {"sensitivity", sensitivity_x},
                             {"offset", 0.0f},
-                            {"damping", 0.05f},
-                            {"stiffness", 3.0f}
+                            {"damping", 0.15f},
+                            {"stiffness", 2.0f},
+                            {"type", type}
                         });
                         
                         config.push_back({
@@ -1610,8 +1612,9 @@ std::string get_audio_config() {
                             {"channel", channel_y},
                             {"sensitivity", sensitivity_y},
                             {"offset", 0.0f},
-                            {"damping", 0.05f},
-                            {"stiffness", 3.0f}
+                            {"damping", 0.15f},
+                            {"stiffness", 2.0f},
+                            {"type", type}
                         });
                         
                         std::cout << "🎵 ✅ Added audio_vec2f_fn " << name << " → " << channel_x << "/" << channel_y 

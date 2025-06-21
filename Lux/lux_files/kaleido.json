@@ -61,29 +61,33 @@
             "name": "start_audio",
             "type": "audio_float_fn",
             "channel": "high",
-            "sensitivity": 4.0,
-            "base_value": 0.0
+            "sensitivity": 1.5,
+            "base_value": 0.0,
+            "manual_reference": "start_slider"
         },
         {
             "name": "expand_audio",
             "type": "audio_float_fn",
             "channel": "bass",
-            "sensitivity": 8.0,
-            "base_value": 0.0
+            "sensitivity": 2.0,
+            "base_value": 0.0,
+            "manual_reference": "expand_slider"
         },
         {
             "name": "spin_audio",
             "type": "audio_float_fn",
             "channel": "mid",
-            "sensitivity": 6.0,
-            "base_value": 0.0
+            "sensitivity": 1.8,
+            "base_value": 0.0,
+            "manual_reference": "spin_slider"
         },
         {
             "name": "phase_audio",
             "type": "audio_float_fn",
             "channel": "volume",
-            "sensitivity": 5.0,
-            "base_value": 0.0
+            "sensitivity": 2.5,
+            "base_value": 0.0,
+            "manual_reference": "phase_slider"
         },
         {
             "name": "segment_slider",
@@ -310,21 +314,21 @@
             "name": "expand_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "expand_slider", "expand_audio" ] },
-            "scale": 0.01,
+            "scale": 0.001,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "spin_slider", "spin_audio" ] },
-            "scale": 0.1,
+            "scale": 0.12,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "phase_slider", "phase_audio" ] },
-            "scale": 0.1,
+            "scale": 0.06,
             "val": 0
         },
         {
