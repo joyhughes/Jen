@@ -299,6 +299,10 @@ void reset_scene_parameters() {
                     if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
                         fn_ptr->reset();
                     }
+                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<integrator_float>>) {
+                        fn_ptr->val = fn_ptr->starting_val;
+                        fn_ptr->last_time = 0.0f;
+                    }
                 }, func_wrapper.any_fn_ptr);
             }
             else if constexpr (std::is_same_v<T, any_fn<int>>) {
@@ -389,6 +393,9 @@ void reset_scene_parameters() {
             }
                  }, fn);
      }
+     
+     // Disable audio when resetting to default state
+     global_context->s->ui.audio.enabled = false;
      
      // Force re-render
      global_context->s->ui.displayed = false;

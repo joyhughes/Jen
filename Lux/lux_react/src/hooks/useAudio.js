@@ -737,6 +737,17 @@ const useAudio = () => {
 
     setIsEnabled(false);
     isEnabledRef.current = false;
+    
+    // Disable audio in backend
+    try {
+      if (window.module && window.module.enable_audio_input) {
+        window.module.enable_audio_input(false);
+        console.log('🎵 ✅ Audio disabled in backend');
+      }
+    } catch (error) {
+      console.warn('🎵 ⚠️ Could not disable audio in backend:', error);
+    }
+    
     setAudioFeatures({
       volume: 0,
       bassLevel: 0,

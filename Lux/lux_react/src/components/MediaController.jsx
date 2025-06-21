@@ -409,13 +409,13 @@ function MediaController({ isOverlay = false }) {
   // Handle media controls
   const handleRestart = () => {
     if (window.module && triggerReset) {
-      // Reset all scene parameters to defaults first
+      // First restart the scene (resets time to 0.0f)
+      window.module.restart();
+      
+      // Then reset all scene parameters to defaults (this will trigger integrator reset due to time change)
       if (typeof window.module.reset_scene_parameters === 'function') {
         window.module.reset_scene_parameters();
       }
-      
-      // Then restart the scene
-      window.module.restart();
       
       // Trigger UI reset to refresh all widget displays
       triggerReset();
