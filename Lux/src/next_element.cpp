@@ -50,6 +50,43 @@ template< class U > U identity_fn< U >::operator () ( U& in, element_context& co
 }
 */
 
+template< class U > U generator< U >::operator () ( U& u, element_context& context ) { 
+    enabled( context );
+    if( !*enabled ) return u; // if not enabled, return original value
+    // if enabled, check probability
+    p( context ); a( context ); b( context ); min(context ); max( context );
+    if( rand_range( 0.0f, 1.0f ) < *p ) {
+        std::cout << "generator: p = " << *p << std::endl;
+        switch( distribution ) {
+            case PROB_UNIFORM: 
+                u = rand_range( *a, *b ); 
+                break;
+            case PROB_NORMAL: {
+                if( *b <= 0.0f ) return u; // invalid parameters
+                std::normal_distribution<float> dist( *a, *b ); 
+                u = std::round(dist( gen ));
+            }
+            case PROB_GEOMETRIC: {
+                if( *b <= 0.0f ) return u; // invalid parameters
+                std::geometric_distribution<int> dist( *b ); 
+                u = dist( gen ) + *a; // shift by a
+            }
+            case PROB_LOG_NORMAL: {
+                if( *a < 1.0f ) return u;
+                std::lognormal_distribution<float> dist( std::log(*a), *b ); 
+                u = std::round(dist( gen ));
+            }
+            break;
+        }
+    }
+    if( u < *min ) u = *min; // clamp to min
+    if( u > *max ) u = *max; // clamp to max
+    return u;
+}
+
+template struct generator< float >;
+template struct generator< int >;
+
 float time_fn::operator () ( float& val, element_context& context  ) { 
     return context.s.time; 
 }

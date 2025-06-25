@@ -68,7 +68,8 @@ function JenMenu({ json, onChange }) {
     const [internalItems, setInternalItems] = useState(json.items || []);
     
     // Get reset trigger from context
-    const { resetTrigger } = React.useContext(ControlPanelContext);
+    //const { resetTrigger } = React.useContext(ControlPanelContext);
+    const { resetTrigger } = 0;
 
     // Handle menu change
     const handleMenuChange = (event) => {
@@ -229,12 +230,12 @@ function JenMenu({ json, onChange }) {
     };
 
     // Reset to default choice when resetTrigger changes
-    useEffect(() => {
+    /*useEffect(() => {
         if (resetTrigger > 0) {
             const defaultChoice = json.default_choice ?? 0;
             setSelectedMenuChoice(defaultChoice);
         }
-    }, [resetTrigger, json.default_choice]);
+    }, [resetTrigger, json.default_choice]);*/
 
     useEffect(() => {
         setInternalItems(json.items || []);

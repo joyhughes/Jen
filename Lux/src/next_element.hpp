@@ -9,6 +9,21 @@
 #include "joy_rand.hpp"
 #include "life_hacks.hpp"
 
+typedef enum probability_distribution
+{
+    PROB_UNIFORM,
+    PROB_NORMAL,
+    PROB_POISSON,
+    PROB_EXPONENTIAL, 
+    PROB_BINOMIAL,
+    PROB_GEOMETRIC,
+    PROB_HYPERGEOMETRIC,
+    PROB_NEGATIVE_BINOMIAL,
+    PROB_LOG_NORMAL,
+    PROB_WEIBULL,
+    PROB_CAUCHY
+} probability_distribution;
+
 struct element;
 struct cluster;
 struct scene;
@@ -60,8 +75,9 @@ template< class U > struct harness {
 
     void operator () ( element_context& context );
 
-    U  operator *  () { return  val; }
-    U* operator -> () { return &val; }
+    U operator * ()       { return val; }
+    U operator * () const { return val; }
+    U* operator -> ()     { return &val; }
     harness< U >& operator = ( const U& u ) { val = u; return *this; }
 
     void add_function( const any_fn< U >& fn );
@@ -119,25 +135,69 @@ typedef adder< frgb   > adder_frgb;
 typedef adder< ucolor > adder_ucolor;
 
 template< Additive U > struct tweaker {
+    harness< bool > enabled; // whether to apply the tweak
     harness< float > p; // change probability
     harness< int > amount; // amount to change by
     
     U operator () ( U& u, element_context& context ) { 
+        enabled( context );
+        if( !*enabled ) return u; // if not enabled, return original value
+        // if enabled, check probability
         p( context );
         if( rand_range( 0.0f, 1.0f ) < *p ) {
             amount( context );
             U v = rand_range( - *amount, *amount );
             u += v;
         }
-        return u;   
+        return u;
     }
 
-    tweaker( const float& p_init = 0.001f, const int& amount_init = 1 ) : p( p_init ), amount( amount_init ) {}
+    tweaker( const bool& enabled_init = false, const float& p_init = 0.001f, const int& amount_init = 1 ) : enabled( enabled_init ), p( p_init ), amount( amount_init ) {}
 };
 
 typedef tweaker< int    > tweaker_int;
 typedef tweaker< float  > tweaker_float;
 
+template< class U > struct generator {
+    harness< bool > enabled; // whether to apply the generator
+    harness< float > p; // change probability
+    harness< float > a, b; // parameters for distribution
+    harness< U > min, max; // range for uniform distribution
+    probability_distribution distribution; // distribution type
+
+    U operator () ( U& u, element_context& context );
+
+    generator( const bool& enabled_init = false, 
+               const float& p_init = 0.001f, 
+               const float& a_init = U( 0 ), 
+               const float& b_init = U( 1 ), 
+               const U& min_init = U( 1 ),
+               const U& max_init = U( 1000000 ),
+               const probability_distribution& distribution_init = PROB_UNIFORM ) 
+        : enabled( enabled_init ), p( p_init ), a( a_init ), b( b_init ), min( min_init ), max( max_init ), distribution( distribution_init ) {}
+};
+
+typedef generator< int > generator_int;
+typedef generator< float > generator_float;
+
+struct random_toggle {
+    harness< bool > enabled; 
+    harness< float > p; // probability of changing 
+
+    bool operator () ( bool &val, element_context& context ) {
+        enabled( context );
+        if( !*enabled ) return val; // if not active, return original value
+        // if active, check probability
+        p( context );
+        if( rand_range( 0.0f, 1.0f ) < *p ) {
+            val = !val; // toggle state
+        }
+        return val;
+    }
+
+    random_toggle( const float& enabled_init = false, const float& p_init = 0.001f ) 
+        : enabled( enabled_init ), p( p_init ) {}
+};
 struct log_fn {
     harness< float > scale;
     harness< float > shift;
@@ -484,7 +544,7 @@ struct random_sticky_condition {
     bool operator () ( element_context& context );
     bool operator () ( bool& val, element_context& context );
 
-    random_sticky_condition( float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
+    random_sticky_condition( bool active_init = true, float p_start_init = 0.5f, float p_change_true_init = 0.0f, float p_change_false_init = 0.0f ) :
         p_start( p_start_init ), p_change_true( p_change_true_init ), p_change_false( p_change_false_init ), initialized( false ), on( true ) {}
 };
 typedef random_sticky_condition random_sticky_fn;

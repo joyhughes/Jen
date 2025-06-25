@@ -22,14 +22,15 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
     const theme = useTheme();
     
     // Get reset trigger from context
-    const { resetTrigger } = React.useContext(ControlPanelContext);
+    //const { resetTrigger } = React.useContext(ControlPanelContext);
+    const { resetTrigger } = false;
 
     const getBreakpointColumns = () => {
         // If we have the actual container width, use it, otherwise use panelSize
         const availableWidth = containerWidth || panelSize || 400;
 
         // More aggressively create columns - minimum width reduced to 192px
-        const MIN_COLUMN_WIDTH = 192;
+        const MIN_COLUMN_WIDTH = 176;
 
         // Calculate how many columns can fit, ensuring at least 1
         const maxColumns = Math.max(1, Math.floor(availableWidth / MIN_COLUMN_WIDTH));

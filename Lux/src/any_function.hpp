@@ -40,6 +40,7 @@ typedef std::variant <
     std::shared_ptr< identity_float >,
     std::shared_ptr< adder_float >,
     std::shared_ptr< tweaker_float >,
+    std::shared_ptr< generator_float >,
     std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,
@@ -66,6 +67,7 @@ typedef std::variant <
     std::shared_ptr< identity_int >,
     std::shared_ptr< adder_int >,
     std::shared_ptr< tweaker_int >,
+    std::shared_ptr< generator_int >,
 
     // ui functions
     std::shared_ptr< slider_int >,
@@ -215,6 +217,7 @@ typedef std::variant <
     std::shared_ptr< following_element_fn >,
     std::shared_ptr< top_level_fn >,
     std::shared_ptr< lower_level_fn >,
+    std::shared_ptr< random_toggle >,
     std::shared_ptr< random_fn >,
     std::shared_ptr< random_sticky_fn >,
 

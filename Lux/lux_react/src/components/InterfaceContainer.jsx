@@ -57,9 +57,9 @@ function InterfaceContainer({panelSize}) {
 
     // Trigger UI reset - this will cause all widgets to refresh their values
     const triggerReset = () => {
-        setResetTrigger(prev => prev + 1);
+        /*setResetTrigger(prev => prev + 1);
         // Clear stored slider values since they're now reset to defaults
-        setSliderValues({});
+        setSliderValues({});*/
     };
 
     // Store initial slider values when panel is first loaded

@@ -289,7 +289,7 @@ function JenSlider({ json, width }) {
     }, [getCurrentValue, formatDisplayValue]);
 
     // Reset to default value when resetTrigger changes
-    useEffect(() => {
+    /*useEffect(() => {
         if (resetTrigger > 0) {
             const resetValue = getInitialValue();
             setValue(resetValue);
@@ -303,7 +303,7 @@ function JenSlider({ json, width }) {
             }
         }
     }, [resetTrigger, json.default_value, json.min, json.max, formatDisplayValue, isRange, minFocus]);
-
+*/
     useEffect(() => {
         console.log(`Initializing slider callback: ${json.name}`, json);
         // Register the callback via embind
@@ -351,7 +351,7 @@ function JenSlider({ json, width }) {
         
         // Update slider value in real-time if it's a valid number
         const newValue = parseFloat(newInputValue);
-        if (!isNaN(newValue) && newValue >= json.min && newValue <= json.max) {
+        //if (!isNaN(newValue) && newValue >= json.min && newValue <= json.max) {
             if (isRange && Array.isArray(value)) {
                 const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
                 setValue(rangeValue);
@@ -360,7 +360,7 @@ function JenSlider({ json, width }) {
                 setValue(newValue);
                 onSliderChange(json.name, newValue);
             }
-        }
+        //}
     }, [json.min, json.max, json.name, isRange, minFocus, value, onSliderChange]);
 
     const handleInputFocus = useCallback(() => {
@@ -384,7 +384,7 @@ function JenSlider({ json, width }) {
         }
         
         // Clamp to min/max
-        newValue = Math.max(json.min, Math.min(json.max, newValue));
+        //newValue = Math.max(json.min, Math.min(json.max, newValue));
         
         if (isRange && Array.isArray(value)) {
             const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
@@ -408,7 +408,7 @@ function JenSlider({ json, width }) {
             }
             
             // Clamp to min/max
-            newValue = Math.max(json.min, Math.min(json.max, newValue));
+            //newValue = Math.max(json.min, Math.min(json.max, newValue));
             
             if (isRange && Array.isArray(value)) {
                 const rangeValue = minFocus ? [newValue, value[1]] : [value[0], newValue];
@@ -436,7 +436,7 @@ function JenSlider({ json, width }) {
             if (json.type === 'range_slider_int') {
                 newVal = Math.floor(newVal);
             }
-            newVal = Math.min(json.max, newVal);
+            //newVal = Math.min(json.max, newVal);
             const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
             setValue(newValue);
             onSliderChange(json.name, newValue);
@@ -445,7 +445,7 @@ function JenSlider({ json, width }) {
             if (json.type === 'slider_int') {
                 newVal = Math.floor(newVal);
             }
-            newVal = Math.min(json.max, newVal);
+            //newVal = Math.min(json.max, newVal);
             setValue(newVal);
             onSliderChange(json.name, newVal);
         }
@@ -459,7 +459,7 @@ function JenSlider({ json, width }) {
             if (json.type === 'range_slider_int') {
                 newVal = Math.floor(newVal);
             }
-            newVal = Math.max(json.min, newVal);
+            //newVal = Math.max(json.min, newVal);
             const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
             setValue(newValue);
             onSliderChange(json.name, newValue);
@@ -468,7 +468,7 @@ function JenSlider({ json, width }) {
             if (json.type === 'slider_int') {
                 newVal = Math.floor(newVal);
             }
-            newVal = Math.max(json.min, newVal);
+            //newVal = Math.max(json.min, newVal);
             setValue(newVal);
             onSliderChange(json.name, newVal);
         }

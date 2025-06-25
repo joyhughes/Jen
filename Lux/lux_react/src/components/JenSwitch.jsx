@@ -68,7 +68,8 @@ function JenSwitch({ json, onChange }) {
     const [switchValue, setSwitchValue] = useState(json.value ?? false);
     
     // Get reset trigger from context
-    const { resetTrigger } = React.useContext(ControlPanelContext);
+    //const { resetTrigger } = React.useContext(ControlPanelContext);
+    const { resetTrigger } = 0;
 
     // Handle switch change
     const handleSwitchChange = (event) => {
