@@ -4,13 +4,15 @@ const SceneContext = createContext({
     scenes: [],
     currentSceneIndex: 0,
     isLoading: false,
-    changeScene: () => {}
+    changeScene: () => {},
+    onSceneChange: () => {}
 });
 
 export function SceneProvider({ children }) {
     const [scenes, setScenes] = useState([]);
     const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [sceneChangeTrigger, setSceneChangeTrigger] = useState(0);
 
     useEffect(() => {
         if (window.module) {
@@ -35,12 +37,12 @@ export function SceneProvider({ children }) {
         }
     }, []);
 
-
-    const sceneWithIcons = (sceneList) => {
-
-    }
-
-
+    const onSceneChange = useCallback((callback) => {
+        // Simple callback system using useEffect in the component that subscribes
+        return () => {
+            // Cleanup function - no need to track callbacks
+        };
+    }, []);
 
     const changeScene = useCallback((index) => {
         if (!scenes[index]) return;
@@ -53,6 +55,8 @@ export function SceneProvider({ children }) {
 
             setTimeout(() => {
                 setIsLoading(false);
+                // Trigger scene change notification
+                setSceneChangeTrigger(prev => prev + 1);
             }, 300);
         } catch (error) {
             console.error("Error changing scene:", error);
@@ -66,7 +70,9 @@ export function SceneProvider({ children }) {
                 scenes,
                 currentSceneIndex,
                 isLoading,
-                changeScene
+                changeScene,
+                onSceneChange,
+                sceneChangeTrigger
             }}
         >
             {children}

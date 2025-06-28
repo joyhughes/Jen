@@ -446,8 +446,9 @@ void set_slider_value( std::string name, float value ) {
             // Force redraw when any slider changes
             global_context->s->ui.displayed = false;
             
-            // Smart animation control: start animation for sliders that feed integrators
-            if( name.find("start") != std::string::npos || 
+            // Smart animation control: start animation for sliders that feed integrators ONLY if already running
+            if( global_context->s->ui.running && (
+                name.find("start") != std::string::npos || 
                 name.find("spin") != std::string::npos || 
                 name.find("expand") != std::string::npos ||
                 name.find("phase") != std::string::npos ||
@@ -455,8 +456,8 @@ void set_slider_value( std::string name, float value ) {
                 name.find("alternate") != std::string::npos ||
                 name.find("speed") != std::string::npos ||
                 name.find("rate") != std::string::npos ||
-                name.find("time") != std::string::npos ) {
-                // These sliders typically feed integrators - start animation to see effect
+                name.find("time") != std::string::npos ) ) {
+                // These sliders typically feed integrators - start animation to see effect ONLY if already running
                 global_context->s->ui.running = true;
             }
             return;
@@ -467,7 +468,8 @@ void set_slider_value( std::string name, float value ) {
            // Force redraw and smart animation control for int sliders too
            global_context->s->ui.displayed = false;
            
-           if( name.find("start") != std::string::npos || 
+           if( global_context->s->ui.running && (
+               name.find("start") != std::string::npos || 
                name.find("spin") != std::string::npos || 
                name.find("expand") != std::string::npos ||
                name.find("phase") != std::string::npos ||
@@ -475,7 +477,7 @@ void set_slider_value( std::string name, float value ) {
                name.find("alternate") != std::string::npos ||
                name.find("speed") != std::string::npos ||
                name.find("rate") != std::string::npos ||
-               name.find("time") != std::string::npos ) {
+               name.find("time") != std::string::npos ) ) {
                global_context->s->ui.running = true;
            }
            return;
@@ -1731,6 +1733,14 @@ bool is_live_camera_supported() {
     return global_context->s->liveCamera;
 }
 
+// Get current animation running state
+bool get_animation_running() {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    return global_context->s->ui.running;
+}
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -1903,4 +1913,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     // slider value retrieval functions
     function("get_slider_value", &get_slider_value);
     function("get_slider_bounds", &get_slider_bounds);
+    
+    // animation state functions
+    function("get_animation_running", &get_animation_running);
 }

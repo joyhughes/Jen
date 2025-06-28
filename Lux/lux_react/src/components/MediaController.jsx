@@ -22,14 +22,18 @@ import {
   Camera
 } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
+import { useScene } from './SceneContext';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isRunning, setIsRunning] = useState(false); // Start paused by default
+  const [isRunning, setIsRunning] = useState(true); // Start playing by default to match backend
   
   // Get reset functionality from context
   const { triggerReset } = React.useContext(ControlPanelContext);
+  
+  // Get scene context to listen for scene changes
+  const { sceneChangeTrigger } = useScene();
 
   // Video recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -119,9 +123,35 @@ function MediaController({ isOverlay = false }) {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  // REMOVED: Auto-start animation on mount
-  // Animation should only start when user manually enables it or when audio is enabled
-  // This prevents unexpected animation when app loads with audio disabled
+  // Sync frontend running state with backend state on mount and when scenes change
+  useEffect(() => {
+    const syncWithBackend = () => {
+      if (window.module && typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        console.log('[MediaController] Syncing with backend animation state:', backendRunning);
+        setIsRunning(backendRunning);
+      }
+    };
+
+    // Sync immediately
+    syncWithBackend();
+
+    // Set up interval to sync periodically (in case scene changes externally)
+    const syncInterval = setInterval(syncWithBackend, 1000);
+
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, []);
+
+  // Sync when scene changes
+  useEffect(() => {
+    if (window.module && typeof window.module.get_animation_running === 'function') {
+      const backendRunning = window.module.get_animation_running();
+      console.log('[MediaController] Scene changed - syncing animation state:', backendRunning);
+      setIsRunning(backendRunning);
+    }
+  }, [sceneChangeTrigger]);
 
   // Initialize worker on component mount
   useEffect(() => {
@@ -190,7 +220,7 @@ function MediaController({ isOverlay = false }) {
 
       mobileLog('MediaController cleanup complete');
     };
-  }, []); // Empty dependency array since we only want to initialize once
+  }, []);
 
   // Update elapsed time during recording
   useEffect(() => {
@@ -431,16 +461,30 @@ function MediaController({ isOverlay = false }) {
   const handleAdvance = () => {
     if (window.module && typeof window.module.advance_frame === 'function') {
       window.module.advance_frame();
-      setIsRunning(false); // Update UI state to reflect that we're now paused
-      showNotification('Advanced one frame', 'info');
+      
+      // Sync with backend state after calling advance_frame
+      if (typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        setIsRunning(backendRunning);
+      } else {
+        // Fallback: advance_frame should pause animation
+        setIsRunning(false);
+      }
     }
   };
 
   const handleRunPause = () => {
     if (window.module && typeof window.module.run_pause === 'function') {
       window.module.run_pause();
-      setIsRunning(!isRunning); // Toggle UI state
-      showNotification(isRunning ? 'Paused' : 'Playing', 'info');
+      
+      // Sync with backend state after calling run_pause
+      if (typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        setIsRunning(backendRunning);
+      } else {
+        // Fallback to toggle if get_animation_running is not available
+        setIsRunning(!isRunning);
+      }
     }
   };
 

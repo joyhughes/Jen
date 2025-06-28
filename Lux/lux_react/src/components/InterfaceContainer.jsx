@@ -23,14 +23,21 @@ function InterfaceContainer({panelSize}) {
     const handleSliderChange = (name, value) => {
         setSliderValues(prev => {
             const newValues = { ...prev, [name]: value };
-            // Only update backend when values actually change from user interaction
+            
+            if (window.module && typeof window.module.get_animation_running === 'function') {
+                const isRunning = window.module.get_animation_running();
+                if (!isRunning) {
+                    console.log(`[InterfaceContainer] Animation paused - not sending slider ${name} = ${value} to backend`);
+                    return newValues;
+                }
+            }
+            
+            // Only update backend when values actually change from user interaction and animation is running
             if (window.module && prev[name] !== value) {
                 try {
-                    // Handle range sliders vs single sliders differently
                     if (Array.isArray(value) && value.length === 2) {
                         // For range sliders, call set_range_slider_value with two separate parameters
                         if (typeof window.module.set_range_slider_value === 'function') {
-                            // Ensure values are proper numbers
                             const val1 = parseFloat(value[0]);
                             const val2 = parseFloat(value[1]);
                             

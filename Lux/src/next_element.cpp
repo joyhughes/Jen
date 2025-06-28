@@ -387,14 +387,6 @@ float audio_additive_fn::operator() ( float& val, element_context& context) {
     float audio_val = context.s.ui.audio.get_audio_value(*channel); 
     float enhancement = *offset + (audio_val * *sensitivity);
     
-    // Debug: Log audio function execution when significant values detected
-    static int call_count = 0;
-    if (++call_count % 30 == 0 || audio_val > 0.1) {
-        std::cout << "🎵 🔧 audio_additive_fn: channel=" << *channel 
-                  << ", audio_val=" << audio_val << ", sensitivity=" << *sensitivity 
-                  << ", input=" << val << ", output=" << (val + enhancement) << std::endl;
-    }
-
     return val + enhancement;
 }
 
