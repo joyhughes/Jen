@@ -95,34 +95,6 @@ function TabNavigation({ activePane, onPaneChange }) {
                 />
 
                 <Tab
-                    icon={<FaBullseye style={{...iconStyle, color: activePane === "target" ? "#e63946" : undefined}} />}
-                    value="target"
-                    sx={{
-                        minHeight: '50px',
-                        '&.Mui-selected': {
-                            color: 'primary.main',
-                            background: 'rgba(25, 118, 210, 0.08)'
-                        }
-                    }}
-                    aria-label="Target Image"
-                    title="Target Image"
-                />
-
-                <Tab
-                    icon={<BsBrush style={iconStyle} />}
-                    value="brush"
-                    sx={{
-                        minHeight: '50px',
-                        '&.Mui-selected': {
-                            color: 'primary.main',
-                            background: 'rgba(25, 118, 210, 0.08)'
-                        }
-                    }}
-                    aria-label="Brush"
-                    title="Brush"
-                />
-
-                <Tab
                     icon={
                         <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <HiMicrophone style={getAudioIconStyle()} />
@@ -157,6 +129,34 @@ function TabNavigation({ activePane, onPaneChange }) {
                     }}
                     aria-label={isAudioEnabled ? "Audio (Active)" : "Audio"}
                     title={isAudioEnabled ? "Audio (Active)" : "Audio"}
+                />
+
+                <Tab
+                    icon={<FaBullseye style={{...iconStyle, color: activePane === "target" ? "#e63946" : undefined}} />}
+                    value="target"
+                    sx={{
+                        minHeight: '50px',
+                        '&.Mui-selected': {
+                            color: 'primary.main',
+                            background: 'rgba(25, 118, 210, 0.08)'
+                        }
+                    }}
+                    aria-label="Target Image"
+                    title="Target Image"
+                />
+
+                <Tab
+                    icon={<BsBrush style={iconStyle} />}
+                    value="brush"
+                    sx={{
+                        minHeight: '50px',
+                        '&.Mui-selected': {
+                            color: 'primary.main',
+                            background: 'rgba(25, 118, 210, 0.08)'
+                        }
+                    }}
+                    aria-label="Brush"
+                    title="Brush"
                 />
 
                 <Tab

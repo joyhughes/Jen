@@ -82,20 +82,8 @@
             "min": 1,
             "max": 12,
             "step": 1,
-            "default_value": 1,
-            "value": { "functions": [ "level_generator" ] }
-        },   
-        {
-            "name": "level_start_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 0.0,
-            "b": 2.0,
-            "min": -1000000,
-            "max": 1000000,
-            "distribution": "normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },           
+            "default_value": 1
+        },        
         {
             "name": "level_start_slider",
             "type": "slider_float",
@@ -104,20 +92,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0,
-            "value": { "functions": [ "level_start_generator" ] }
+            "default_value": 0
         },
-        {
-            "name": "start_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 0.0,
-            "b": 2.0,
-            "min": -1000000,
-            "max": 1000000,
-            "distribution": "normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
         {
             "name": "start_slider",
             "type": "slider_float",
@@ -126,20 +102,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0,
-            "value": { "functions": [ "start_generator" ] }
+            "default_value": 0
         },        
-        {
-            "name": "expand_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 0.0,
-            "b": 2.0,
-            "min": -1000000,
-            "max": 1000000,
-            "distribution": "normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
         {
             "name": "expand_slider",
             "type": "slider_float",
@@ -148,20 +112,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0,
-            "value": { "functions": [ "expand_generator" ] }
+            "default_value": 0
         },
-        {
-            "name": "spin_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 0.0,
-            "b": 2.0,
-            "min": -1000000,
-            "max": 1000000,
-            "distribution": "normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
         {
             "name": "spin_slider",
             "type": "slider_float",
@@ -170,20 +122,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0,
-            "value": { "functions": [ "spin_generator" ] }
+            "default_value": 0
         },
-        {
-            "name": "scope_menu_generator",
-            "type": "generator_int",
-            "p": 0.0001,
-            "a": 0,
-            "b": 3,
-            "min": 0,
-            "max": 3,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
         {
             "name": "scope_menu",
             "type": "menu_int",
@@ -192,7 +132,6 @@
             "description": "Choose the kaleidoscope effect to apply.",
             "items": [ "None", "Kaleido", "Multiples", "Tile" ],
             "default_choice": 1,
-            "choice": { "functions": [ "scope_menu_generator" ] },
             "affects_widget_groups": true
         },
         {
@@ -220,17 +159,6 @@
             "b": 3
         },
         {
-            "name": "funky_menu_generator",
-            "type": "generator_int",
-            "p": 0.0001,
-            "a": 0,
-            "b": 5,
-            "min": 0,
-            "max": 5,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        }, 
-        {
             "name": "funky_menu",
             "type": "menu_int",
             "tool": "pull_down",
@@ -238,7 +166,6 @@
             "description": "Modify the kaleidoscope with swirl, rings, wiggles, etc.",
             "items": [ "None", "Swirl", "Rings", "Waves", "Saw", "Smoosh" ],
             "default_choice": 0,
-            "choice": { "functions": [ "funky_menu_generator" ] },
             "affects_widget_groups": true
         },
         {
@@ -426,19 +353,7 @@
             "min": -360.0,
             "max": 360.0,
             "step": 1,
-            "default_value": 60.0,
-            "value": { "functions": [ "swirl_generator" ] }
-        },
-        {
-            "name": "alternate_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": -180.0,
-            "b": 180.0,
-            "min": -180.0,
-            "max": 180.0,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "default_value": 60.0
         },
         {
             "name": "alternate_slider",
@@ -448,19 +363,7 @@
             "min": -180.0,
             "max": 180.0,
             "step": 1,
-            "default_value": 30.0,
-            "value": { "functions": [ "alternate_generator" ] }
-        },
-        {
-            "name": "rings_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 10.0,
-            "b": 1.0,
-            "min": 1,
-            "max": 1000000,
-            "distribution": "log_normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "default_value": 30.0
         },
         {
             "name": "rings_slider",
@@ -470,19 +373,7 @@
             "min": 1,
             "max": 100,
             "step": 1,
-            "default_value": 10,
-            "value": { "functions": [ "rings_generator" ] }
-        },
-        {
-            "name": "freq_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 6.0,
-            "b": 1.0,
-            "min": 1,
-            "max": 1000000,
-            "distribution": "log_normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "default_value": 10
         },        
         {
             "name": "freq_slider",
@@ -492,19 +383,7 @@
             "min": 0,
             "max": 36,
             "step": 1,
-            "default_value": 6.0,
-            "value": { "functions": [ "freq_generator" ] }
-        },
-        {
-            "name": "amp_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 6.0,
-            "b": 1.0,
-            "min": 1,
-            "max": 1000000,
-            "distribution": "log_normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "default_value": 6.0
         },
         {
             "name": "amp_slider", 
@@ -514,20 +393,8 @@
             "min": 0.0,
             "max": 30.0,
             "step": 0.1,
-            "default_value": 5.0,
-            "value": { "functions": [ "amp_generator" ] }
+            "default_value": 5.0
         },
-        {
-            "name": "phase_generator",
-            "type": "generator_float",
-            "p": 0.0001,
-            "a": 0.0,
-            "b": 20.0,
-            "min": -1000000,
-            "max": 1000000,
-            "distribution": "normal",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },  
         {
             "name": "phase_slider",
             "type": "slider_float",
@@ -536,22 +403,14 @@
             "min": -20,
             "max": 20,
             "step": 0.5,
-            "default_value": 0.0,
-            "value": { "functions": [ "phase_generator" ] }
-        },
-        {
-            "name": "const_amp_toggle",
-            "type": "random_toggle",
-            "p": 0.0001,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "default_value": 0.0
         },
         {
             "name": "const_amp_switch",
             "type": "switch_fn",
             "label": "Same Waviness",
             "description": "Constant width of the wiggles in the kaleidoscope image",
-            "default_value": false,
-            "value": { "functions": [ "const_amp_toggle" ] }
+            "default_value": false
         },
         {
             "name": "start_integrator",
@@ -610,44 +469,19 @@
             "val": 0
         },
         {
-            "name": "reflect_toggle",
-            "type": "random_toggle",
-            "p": 0.0001,
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },
-        {
             "name": "reflect_switch",
             "type": "switch_fn",
             "label": "Reflect",
             "description": "Reflect alternate segments of the kaleidoscope image",
-            "default_value": true,
-            "value": { "functions": [ "reflect_toggle" ] }
+            "default_value": true
         },        
-        {
-            "name": "reflect_level_toggle",
-            "type": "random_toggle",
-            "p": 0.0001,
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },
         {
             "name": "reflect_level_switch",
             "type": "switch_fn",
             "label": "Reflect Levels",
             "description": "Reflect alternate levels of the kaleidoscope image",
-            "default_value": true,
-            "value": { "functions": [ "reflect_level_toggle" ] }
+            "default_value": true
         },
-        {
-            "name": "source_image_menu_generator",
-            "type": "generator_int",
-            "p": 0.0001,
-            "a": 0,
-            "b": 9,
-            "min": 0,
-            "max": 9,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        }, 
         {
             "name": "source_image_menu",
             "type": "menu_string",
@@ -655,8 +489,7 @@
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
             "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 1,
-            "choice": { "functions": [ "source_image_menu_generator" ] }
+            "default_choice": 1
         },
         {
             "name": "source_image_dim",
@@ -842,7 +675,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch" ]
+            "widgets": [ "scope_menu", "funky_menu" ]
         },
         {
             "name": "source_image_group",

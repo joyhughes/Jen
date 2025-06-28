@@ -4,7 +4,26 @@
 # Only rebuilds changed source files
 # Usage: ./build-cpp.sh [--force]
 
+# Exit immediately if any command fails
 set -e
+# Exit if any command in a pipeline fails
+set -o pipefail
+# Exit if any undefined variable is used
+set -u
+
+# Error trap to provide helpful information when script fails
+error_trap() {
+    local exit_code=$?
+    echo -e "\n${RED}❌ BUILD FAILED!${NC}"
+    echo -e "${RED}   Exit code: $exit_code${NC}"
+    echo -e "${RED}   Line: $1${NC}"
+    echo -e "${RED}   Command: $2${NC}"
+    echo -e "${YELLOW}💡 Check the error messages above for details${NC}"
+    exit $exit_code
+}
+
+# Set up error trap
+trap 'error_trap $LINENO "$BASH_COMMAND"' ERR
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -13,9 +32,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Check for force flag
+# Check for force flag - handle undefined variables safely  
 FORCE_REBUILD=false
-if [[ "$1" == "--force" || "$1" == "-f" ]]; then
+if [[ "${1:-}" == "--force" || "${1:-}" == "-f" ]]; then
     FORCE_REBUILD=true
     echo -e "${RED}🔥 FORCE REBUILD MODE - Rebuilding everything${NC}"
 else
@@ -31,7 +50,12 @@ if [[ -d "lux_files" ]]; then
 fi
 
 # Source Emscripten environment
-source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1
+echo -e "${BLUE}🔧 Setting up Emscripten environment...${NC}"
+if ! source /opt/emsdk/emsdk_env.sh > /dev/null; then
+    echo -e "${RED}❌ ERROR: Failed to source Emscripten environment${NC}"
+    echo -e "${RED}   Make sure emsdk is properly installed at /opt/emsdk/${NC}"
+    exit 1
+fi
 
 # Directories
 SRC_DIR="/app/src"
@@ -45,9 +69,21 @@ mkdir -p "$BUILD_DIR"
 STB_DIR="/app/stb_image"
 if [[ ! -d "$STB_DIR" || ! -f "$STB_DIR/stb_image.h" ]]; then
     echo -e "${YELLOW}📥 Downloading STB image library...${NC}"
-    mkdir -p "$STB_DIR"
-    wget -q -O "$STB_DIR/stb_image.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image.h
-    wget -q -O "$STB_DIR/stb_image_write.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h
+    mkdir -p "$STB_DIR" || {
+        echo -e "${RED}❌ ERROR: Failed to create STB directory: $STB_DIR${NC}"
+        exit 1
+    }
+    
+    if ! wget -q -O "$STB_DIR/stb_image.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image.h; then
+        echo -e "${RED}❌ ERROR: Failed to download stb_image.h${NC}"
+        exit 1
+    fi
+    
+    if ! wget -q -O "$STB_DIR/stb_image_write.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h; then
+        echo -e "${RED}❌ ERROR: Failed to download stb_image_write.h${NC}"
+        exit 1
+    fi
+    
     echo -e "${GREEN}✓ STB image library downloaded${NC}"
 fi
 
@@ -138,9 +174,19 @@ compile_file() {
     local src_file="$SRC_DIR/${src_name}.cpp"
     local obj_file="$BUILD_DIR/${src_name}.o"
     
+    # Check if source file exists
+    if [[ ! -f "$src_file" ]]; then
+        echo -e "${RED}❌ ERROR: Source file not found: $src_file${NC}"
+        exit 1
+    fi
+    
     if needs_rebuild "$src_file" "$obj_file"; then
         echo -e "${YELLOW}🔨 Compiling ${src_name}.cpp${NC}"
-        em++ $flags -c "$src_file" -o "$obj_file"
+        if ! em++ $flags -c "$src_file" -o "$obj_file"; then
+            echo -e "${RED}❌ ERROR: Compilation failed for ${src_name}.cpp${NC}"
+            echo -e "${RED}   Command: em++ $flags -c $src_file -o $obj_file${NC}"
+            exit 1
+        fi
         return 0
     else
         echo -e "${GREEN}✓ ${src_name}.cpp up to date${NC}"
@@ -239,11 +285,24 @@ fi
 if [[ "$NEED_LINK" == true ]]; then
     echo -e "${BLUE}🔗 Linking final WebAssembly...${NC}"
     
+    # Verify object files exist
+    if ! ls "$BUILD_DIR"/*.o 1> /dev/null 2>&1; then
+        echo -e "${RED}❌ ERROR: No object files found in $BUILD_DIR${NC}"
+        exit 1
+    fi
+    
     # Remove any test files that might interfere
     rm -f "$BUILD_DIR"/test_*.o
     
+    # Verify lux_files directory exists
+    if [[ ! -d "lux_files" ]]; then
+        echo -e "${RED}❌ ERROR: lux_files directory not found${NC}"
+        exit 1
+    fi
+    
     # Link all object files
-    em++ "$BUILD_DIR"/*.o -o "$OUTPUT" \
+    echo -e "${BLUE}🔗 Running final link command...${NC}"
+    if ! em++ "$BUILD_DIR"/*.o -o "$OUTPUT" \
         --embed-file lux_files \
         -s MODULARIZE=1 \
         -s SINGLE_FILE=1 \
@@ -266,7 +325,17 @@ if [[ "$NEED_LINK" == true ]]; then
         -flto \
         -s DISABLE_EXCEPTION_CATCHING=1 \
         -msimd128 \
-        -lembind $FFMPEG_LIBS
+        -lembind $FFMPEG_LIBS; then
+        echo -e "${RED}❌ ERROR: Linking failed${NC}"
+        echo -e "${RED}   Output file: $OUTPUT${NC}"
+        exit 1
+    fi
+    
+    # Verify output file was created
+    if [[ ! -f "$OUTPUT" ]]; then
+        echo -e "${RED}❌ ERROR: Output file was not created: $OUTPUT${NC}"
+        exit 1
+    fi
     
     if [[ "$FORCE_REBUILD" == true ]]; then
         echo -e "${GREEN}✅ Force rebuild complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
@@ -284,4 +353,7 @@ if [[ "$FORCE_REBUILD" == true ]]; then
 else
     echo -e "${BLUE}🎉 Incremental build finished!${NC}"
     echo -e "${BLUE}💡 Tip: Use './build-cpp.sh --force' to rebuild everything${NC}"
-fi 
+fi
+
+# Clear error trap on successful completion
+trap - ERR 
