@@ -443,10 +443,8 @@ void set_slider_value( std::string name, float value ) {
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
             global_context->s->get_fn_ptr< float, slider_float >( name )->value = value;
             
-            // Force redraw when any slider changes
             global_context->s->ui.displayed = false;
             
-            // Smart animation control: start animation for sliders that feed integrators ONLY if already running
             if( global_context->s->ui.running && (
                 name.find("start") != std::string::npos || 
                 name.find("spin") != std::string::npos || 
@@ -457,7 +455,6 @@ void set_slider_value( std::string name, float value ) {
                 name.find("speed") != std::string::npos ||
                 name.find("rate") != std::string::npos ||
                 name.find("time") != std::string::npos ) ) {
-                // These sliders typically feed integrators - start animation to see effect ONLY if already running
                 global_context->s->ui.running = true;
             }
             return;
@@ -465,7 +462,6 @@ void set_slider_value( std::string name, float value ) {
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
            global_context->s->get_fn_ptr< int, slider_int >( name )->value = (int)std::roundf( value );
            
-           // Force redraw and smart animation control for int sliders too
            global_context->s->ui.displayed = false;
            
            if( global_context->s->ui.running && (
@@ -1131,7 +1127,7 @@ void save_camera_image_with_metadata(std::string name, std::string filepath, val
     }
 }
 
-// ULTRA-OPTIMIZED Camera processing with persistent buffers and zero-copy operations
+// Camera processing with persistent buffers and zero-copy operations
 struct UltraCameraContext {
     // Persistent buffers - allocated once, reused forever
     std::shared_ptr<buffer_pair<ucolor>> camera_buffer;
@@ -1529,15 +1525,14 @@ void update_audio_context(float volume, float bass, float mid, float high, bool 
             
             float sensitivity = global_context->s->ui.audio.global_sensitivity;
             
-            // === AGGRESSIVE ANIMATION CONTROL ===
-            // ALWAYS ensure animation is running when audio is detected
-            if (!global_context->s->ui.running) {
-                global_context->s->ui.running = true;
-                std::cout << "🎵 🚀 AUDIO DETECTED - FORCE STARTING ANIMATION!" << std::endl;
-            }
+            // === RESPECT USER'S PAUSE STATE ===
+            // Don't force animation to start when audio is detected - respect user's choice
+            bool should_control_animation = global_context->s->ui.running;
             
-            // Force continuous redraws for responsiveness
-            global_context->s->ui.displayed = false;
+            // Force continuous redraws for responsiveness when animation is running
+            if (should_control_animation) {
+                global_context->s->ui.displayed = false;
+            }
             
             // === SOUND TYPE DETECTION ===
             float bass_ratio = bass / (volume + 0.001f);    // How bass-heavy
@@ -1551,107 +1546,53 @@ void update_audio_context(float volume, float bass, float mid, float high, bool 
             bool is_instrument = (high_ratio > 0.4f && !beat);               // High freq, no beat
             
             // === DYNAMIC ANIMATION SPEED CONTROL ===
-            float speed_base = 1.0f;
-            
-            if (is_drums) {
-                // Drums: Punchy, rhythmic speed changes
-                speed_base = beat ? 2.5f : 1.2f;
-            } else if (is_singing) {
-                // Singing: Smooth, voice-following speed
-                speed_base = 1.0f + (volume * sensitivity * 1.5f);
-            } else if (is_music) {
-                // Music: Complex speed based on all frequencies
-                speed_base = 1.0f + ((bass * 0.4f + mid * 0.3f + high * 0.3f) * sensitivity * 1.8f);
-            } else if (is_instrument) {
-                // Instruments: High-frequency reactive
-                speed_base = 1.0f + (high * sensitivity * 2.0f);
-            } else {
-                // General audio - ensure minimum speed boost
-                speed_base = 1.0f + (volume * sensitivity * 1.2f);
-            }
-            
-            // Clamp speed to reasonable range but ensure minimum boost
-            speed_base = std::max(1.1f, std::min(4.0f, speed_base)); // Minimum 1.1x when audio detected
-            
-            // Apply speed
-            float base_interval = global_context->s->default_time_interval;
-            global_context->s->time_interval = base_interval * speed_base;
-            
-            // === SUPER ENERGETIC VISUAL EFFECTS ===
-            // Beat-triggered effects: Force extra redraws on beats
-            static bool last_beat = false;
-            if (beat && !last_beat) {
-                // Beat detected! Force multiple redraws for visual punch
-                for (int i = 0; i < 5; i++) { // Increased from 3 to 5 for more impact
+            if (should_control_animation) {
+                float speed_base = 1.0f;
+                
+                if (is_drums) {
+                    // Drums: Punchy, rhythmic speed changes
+                    speed_base = beat ? 2.5f : 1.2f;
+                } else if (is_singing) {
+                    // Singing: Smooth, voice-following speed
+                    speed_base = 1.0f + (volume * sensitivity * 1.5f);
+                } else if (is_music) {
+                    // Music: Complex speed based on all frequencies
+                    speed_base = 1.0f + ((bass * 0.4f + mid * 0.3f + high * 0.3f) * sensitivity * 1.8f);
+                } else if (is_instrument) {
+                    // Instruments: High-frequency reactive
+                    speed_base = 1.0f + (high * sensitivity * 2.0f);
+                } else {
+                    // General audio - ensure minimum speed boost
+                    speed_base = 1.0f + (volume * sensitivity * 1.2f);
+                }
+                
+                // Clamp speed to reasonable range but ensure minimum boost
+                speed_base = std::max(1.1f, std::min(4.0f, speed_base)); // Minimum 1.1x when audio detected
+                
+                // Apply speed
+                float base_interval = global_context->s->default_time_interval;
+                global_context->s->time_interval = base_interval * speed_base;
+                
+                // Beat-triggered effects: Force extra redraws on beats
+                static bool last_beat = false;
+                if (beat && !last_beat) {
+                    for (int i = 0; i < 5; i++) { 
+                        global_context->s->ui.displayed = false;
+                    }
+                    std::cout << "🥁 BEAT PUNCH! Extra redraws triggered" << std::endl;
+                }
+                last_beat = beat;
+                
+                // High-energy continuous updates - more aggressive
+                if (volume > 0.1f || bass > 0.2f || high > 0.2f) {
+                    // High energy: Force extra visual updates
                     global_context->s->ui.displayed = false;
                 }
-                std::cout << "🥁 BEAT PUNCH! Extra redraws triggered" << std::endl;
-            }
-            last_beat = beat;
-            
-            // High-energy continuous updates - more aggressive
-            if (volume > 0.1f || bass > 0.2f || high > 0.2f) {
-                // High energy: Force extra visual updates
-                global_context->s->ui.displayed = false;
-            }
-            
-            // EMERGENCY: Force animation every 10 frames if still not running
-            static int force_counter = 0;
-            force_counter++;
-            if (force_counter % 10 == 0 && !global_context->s->ui.running) {
-                global_context->s->ui.running = true;
-                global_context->s->ui.displayed = false;
-                std::cout << "🎵 🚨 EMERGENCY: Force animation restart!" << std::endl;
-            }
-            
-            // Debug different sound types periodically
-            if (log_counter % 60 == 0) {
-                const char* sound_type = "general";
-                if (is_drums) sound_type = "🥁 DRUMS";
-                else if (is_singing) sound_type = "🎤 SINGING";
-                else if (is_music) sound_type = "🎵 MUSIC";
-                else if (is_instrument) sound_type = "🎸 INSTRUMENT";
-                
-                std::cout << "🎵 " << sound_type << " detected! Speed: " << speed_base 
-                          << "x, Bass ratio: " << bass_ratio << ", High ratio: " << high_ratio 
-                          << ", Mid ratio: " << mid_ratio << ", Beat: " << (beat ? "YES" : "no") 
-                          << ", Animation: " << (global_context->s->ui.running ? "RUNNING" : "STOPPED") << std::endl;
             }
             
         } else {
             // Reset to default speed when audio is disabled or silent
             global_context->s->time_interval = global_context->s->default_time_interval;
-        }
-        
-        // Log success periodically
-        if (log_counter % 60 == 0) {
-            std::cout << "🎵 ✅ Audio context updated successfully (values: vol=" << global_context->s->ui.audio.volume 
-                      << ", bass=" << global_context->s->ui.audio.bass_level 
-                      << ", mid=" << global_context->s->ui.audio.mid_level 
-                      << ", high=" << global_context->s->ui.audio.high_level << ")" << std::endl;
-        }
-        
-        // Debug: Show audio function count periodically (every 30 updates)
-        static int update_counter = 0;
-        if (++update_counter % 30 == 0) {
-            int audio_fn_count = 0;
-            for (const auto& [name, fn_variant] : global_context->s->functions) {
-                std::visit([&](const auto& any_fn_variant) {
-                    using VariantType = std::decay_t<decltype(any_fn_variant)>;
-                    if constexpr (std::is_same_v<VariantType, any_fn<float>>) {
-                        std::visit([&](const auto& inner_ptr) {
-                            using InnerType = std::decay_t<decltype(inner_ptr)>;
-                            if constexpr (std::is_same_v<InnerType, std::shared_ptr<audio_float_fn>> ||
-                                          std::is_same_v<InnerType, std::shared_ptr<audio_additive_fn>> ||
-                                          std::is_same_v<InnerType, std::shared_ptr<audio_multiplicative_fn>> ||
-                                          std::is_same_v<InnerType, std::shared_ptr<audio_modulate_fn>>) {
-                                audio_fn_count++;
-                            }
-                        }, any_fn_variant.any_fn_ptr);
-                    }
-                }, fn_variant);
-            }
-            std::cout << "🎵 📊 Audio functions active: " << audio_fn_count << " (update #" << update_counter << ")" << std::endl;
         }
         
     } catch (const std::exception& e) {
@@ -1697,32 +1638,6 @@ float get_slider_value(std::string name) {
         }
     }
     return 0.0f;
-}
-
-std::string get_slider_bounds(std::string name) {
-    if (!global_context || !global_context->s) return "{}";
-    
-    nlohmann::json bounds;
-    
-    if (global_context->s->functions.contains(name)) {
-        any_function& fn = global_context->s->functions[name];
-        if (std::holds_alternative<any_fn<float>>(fn)) {
-            auto slider = global_context->s->get_fn_ptr<float, slider_float>(name);
-            bounds["min"] = slider->min;
-            bounds["max"] = slider->max;
-            bounds["default"] = slider->default_value;
-            bounds["type"] = "float";
-        }
-        else if (std::holds_alternative<any_fn<int>>(fn)) {
-            auto slider = global_context->s->get_fn_ptr<int, slider_int>(name);
-            bounds["min"] = slider->min;
-            bounds["max"] = slider->max;
-            bounds["default"] = slider->default_value;
-            bounds["type"] = "int";
-        }
-    }
-    
-    return bounds.dump();
 }
 
 // Check if current scene supports live camera
@@ -1912,7 +1827,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
     
     // slider value retrieval functions
     function("get_slider_value", &get_slider_value);
-    function("get_slider_bounds", &get_slider_bounds);
     
     // animation state functions
     function("get_animation_running", &get_animation_running);

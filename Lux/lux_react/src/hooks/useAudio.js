@@ -364,44 +364,9 @@ const useAudio = () => {
         return;
       }
       
-      // ROBUST ANIMATION STARTING - Multiple approaches for deployed version
-      if (window.module) {
-        try {
-          // Method 1: Force animation to start directly
-          if (typeof window.module.run_pause === 'function') {
-            console.log('🎵 🎬 Starting animation via run_pause()...');
-            window.module.run_pause(); // Toggle to start
-          }
-          
-          // Method 2: Force a frame advance to wake up the system
-          if (typeof window.module.advance_frame === 'function') {
-            console.log('🎵 🎬 Advancing frame to wake up animation...');
-            window.module.advance_frame();
-          }
-          
-          // Method 3: Force redraw by touching a slider (guaranteed to work)
-          if (typeof window.module.set_slider_value === 'function') {
-            try {
-              // Touch a common slider to force animation start
-              console.log('🎵 🎬 Triggering animation via slider touch...');
-              window.module.set_slider_value('start_slider', 0.001); // Tiny change to wake up system
-              setTimeout(() => {
-                window.module.set_slider_value('start_slider', 0.0); // Reset
-              }, 100);
-            } catch (sliderError) {
-              console.log('🎵 ⚠️ Slider method failed, continuing anyway...');
-            }
-          }
-          
-          console.log('🎵 ✅ Animation start commands sent');
-          
-        } catch (error) {
-          console.warn('🎵 ⚠️ Could not start animation:', error);
-          console.log('🎵 🔄 Audio will still work, animation should start when audio is detected');
-        }
-      } else {
-        console.warn('🎵 ⚠️ window.module not available, animation may need manual start');
-      }
+      // RESPECT USER'S ANIMATION STATE - Don't force animation to start
+      // Audio will work with whatever animation state the user has set
+      console.log('🎵 ✅ Audio enabled - respecting current animation state');
       
       // Now set enabled and start animation loop
       setIsEnabled(true);

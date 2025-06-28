@@ -5,6 +5,9 @@ import './AudioPane.css';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
 import { Typography, Box, Button } from '@mui/material';
+import { HiMicrophone } from 'react-icons/hi';
+import { FaMicrophoneSlash } from "react-icons/fa6";
+
 
 const AudioPane = () => {
   const {
@@ -91,9 +94,11 @@ const AudioPane = () => {
           <button 
             className={`audio-toggle ${isEnabled ? 'enabled' : 'disabled'}`}
             onClick={handleToggleAudio}
+            title={isEnabled ? 'Click to mute microphone' : 'Click to unmute microphone'}
           >
-            <span className="toggle-icon">{isEnabled ? '🎵' : '🔇'}</span>
-            <span className="toggle-text">{isEnabled ? 'Audio ON' : 'Audio OFF'}</span>
+            <span className="toggle-icon">
+              {isEnabled ? <HiMicrophone size={24} /> : <FaMicrophoneSlash size={24} />}
+            </span>
           </button>
           
           <button 
@@ -101,25 +106,8 @@ const AudioPane = () => {
             onClick={handlePartyModeToggle}
             title="Birthday Party Mode - Enhanced sensitivity for celebration!"
           >
-            🎂 Party Mode
+            🎂
           </button>
-        </div>
-
-        {/* Status Indicators */}
-        <div className="status-bar">
-          <div className="status-chip">
-            <span className={isEnabled ? 'status-active' : 'status-inactive'}>
-              {isEnabled ? '🟢 Active' : '🔴 Inactive'}
-            </span>
-          </div>
-          {partyMode && (
-            <div className="status-chip party">
-              🎉 Birthday Mode
-            </div>
-          )}
-          <div className="status-chip">
-            Scene-Agnostic
-          </div>
         </div>
       </div>
 
@@ -217,14 +205,6 @@ const AudioPane = () => {
 
             {/* Master Sensitivity - Middle of mixer */}
             <div className="master-sensitivity">
-              {mixerExpanded ? (
-                <div className="collapsible-header" onClick={() => setShowMasterSensitivity(!showMasterSensitivity)}>
-                  <h4>🎚️ Master Sensitivity</h4>
-                  <span className="collapse-icon">{showMasterSensitivity ? '▲' : '▼'}</span>
-                </div>
-              ) : (
-                <h4>🎚️ Master Sensitivity</h4>
-              )}
               {(mixerExpanded ? showMasterSensitivity : true) && (
                 <div className="sensitivity-content">
                   <div className="sensitivity-header">
