@@ -58,10 +58,90 @@
     "functions":
     [
         {
+            "name": "autoplay_switch",
+            "type": "switch_fn",
+            "label": "Autoplay",
+            "description": "Enables random changes to kaleidoscope parameters",
+            "default_value": false
+        },
+        {
+            "name": "autoplay_intensity",
+            "type": "slider_float",
+            "label": "Autoplay Intensity",
+            "description": "Controls how often autoplay makes changes",
+            "min": 0.0001,
+            "max": 0.01,
+            "step": 0.0001,
+            "default_value": 0.002
+        },
+        {
             "name": "segment_tweaker",
             "type": "tweaker_float",
-            "p": 0.01,
-            "amount": 2
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "amount": 2,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "scope_autoplay_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "a": 0,
+            "b": 3,
+            "min": 0,
+            "max": 3,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "funky_autoplay_generator", 
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "a": 0,
+            "b": 5,
+            "min": 0,
+            "max": 5,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "level_tweaker",
+            "type": "tweaker_float",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "amount": 1,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "expand_tweaker",
+            "type": "tweaker_float", 
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "amount": 1.5,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "spin_tweaker",
+            "type": "tweaker_float",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "amount": 3.0,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "swirl_tweaker",
+            "type": "tweaker_float",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "amount": 20.0,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "reflect_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "reflect_level_toggle",
+            "type": "random_toggle", 
+            "p": { "functions": [ "autoplay_intensity" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "segment_slider",
@@ -82,7 +162,8 @@
             "min": 1,
             "max": 12,
             "step": 1,
-            "default_value": 1
+            "default_value": 1,
+            "value": { "functions": [ "level_tweaker" ] }
         },        
         {
             "name": "level_start_slider",
@@ -112,7 +193,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "expand_tweaker" ] }
         },
         {
             "name": "spin_slider",
@@ -122,7 +204,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "spin_tweaker" ] }
         },
         {
             "name": "scope_menu",
@@ -132,7 +215,8 @@
             "description": "Choose the kaleidoscope effect to apply.",
             "items": [ "None", "Kaleido", "Multiples", "Tile" ],
             "default_choice": 1,
-            "affects_widget_groups": true
+            "affects_widget_groups": true,
+            "value": { "functions": [ "scope_autoplay_generator" ] }
         },
         {
             "name": "scope_menu_0",
@@ -166,7 +250,8 @@
             "description": "Modify the kaleidoscope with swirl, rings, wiggles, etc.",
             "items": [ "None", "Swirl", "Rings", "Waves", "Saw", "Smoosh" ],
             "default_choice": 0,
-            "affects_widget_groups": true
+            "affects_widget_groups": true,
+            "value": { "functions": [ "funky_autoplay_generator" ] }
         },
         {
             "name": "funky_menu_0",
@@ -208,140 +293,140 @@
             "name": "start_audio_volume",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 2.0,
+            "sensitivity": 0.5,
             "offset": 0.0
         },
         {
             "name": "start_audio_bass",
             "type": "audio_additive_fn",
             "channel": "bass",
-            "sensitivity": 3.0,
+            "sensitivity": 0.8,
             "offset": 0.0
         },
         {
             "name": "start_audio_mid",
             "type": "audio_additive_fn",
             "channel": "mid",
-            "sensitivity": 2.5,
+            "sensitivity": 0.6,
             "offset": 0.0
         },
         {
             "name": "start_audio_high",
             "type": "audio_additive_fn",
             "channel": "high",
-            "sensitivity": 1.5,
+            "sensitivity": 0.4,
             "offset": 0.0
         },
         {
             "name": "expand_audio_volume",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 3.0,
+            "sensitivity": 0.8,
             "offset": 0.0
         },
         {
             "name": "expand_audio_bass",
             "type": "audio_additive_fn",
             "channel": "bass",
-            "sensitivity": 4.0,
+            "sensitivity": 1.0,
             "offset": 0.0
         },
         {
             "name": "spin_audio_volume",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 5.0,
+            "sensitivity": 1.2,
             "offset": 0.0
         },
         {
             "name": "spin_audio_mid",
             "type": "audio_additive_fn",
             "channel": "mid",
-            "sensitivity": 4.5,
+            "sensitivity": 1.0,
             "offset": 0.0
         },
         {
             "name": "phase_audio_volume",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 2.5,
+            "sensitivity": 0.6,
             "offset": 0.0
         },
         {
             "name": "phase_audio_high",
             "type": "audio_additive_fn",
             "channel": "high",
-            "sensitivity": 3.0,
+            "sensitivity": 0.8,
             "offset": 0.0
         },
         {
             "name": "swirl_audio_volume",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 4.0,
+            "sensitivity": 1.0,
             "offset": 0.0
         },
         {
             "name": "swirl_audio_bass",
             "type": "audio_additive_fn",
             "channel": "bass",
-            "sensitivity": 3.5,
+            "sensitivity": 0.9,
             "offset": 0.0
         },
         {
             "name": "birthday_bass_boost",
             "type": "audio_multiplicative_fn",
             "channel": "bass",
-            "base_multiplier": 1.05,
-            "sensitivity": 0.5
+            "base_multiplier": 1.02,
+            "sensitivity": 0.1
         },
         {
             "name": "celebration_sparkle",
             "type": "audio_modulate_fn",
             "channel": "high",
-            "depth": 2.0,
-            "frequency": 8.0
+            "depth": 0.5,
+            "frequency": 4.0
         },
         {
             "name": "party_energy",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 1.0,
+            "sensitivity": 0.3,
             "offset": 0.0
         },
         {
             "name": "start_audio_total",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 2.0,
+            "sensitivity": 0.5,
             "offset": 0.0
         },
         {
             "name": "expand_audio_total",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 3.0,
+            "sensitivity": 0.8,
             "offset": 0.0
         },
         {
             "name": "spin_audio_total",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 5.0,
+            "sensitivity": 1.2,
             "offset": 0.0
         },
         {
             "name": "phase_audio_total",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 2.5,
+            "sensitivity": 0.6,
             "offset": 0.0
         },
         {
             "name": "swirl_audio_total",
             "type": "audio_additive_fn",
             "channel": "volume",
-            "sensitivity": 4.0,
+            "sensitivity": 1.0,
             "offset": 0.0
         },
 
@@ -353,7 +438,8 @@
             "min": -360.0,
             "max": 360.0,
             "step": 1,
-            "default_value": 60.0
+            "default_value": 60.0,
+            "value": { "functions": [ "swirl_tweaker" ] }
         },
         {
             "name": "alternate_slider",
@@ -416,56 +502,56 @@
             "name": "start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "start_slider", "start_audio_total" ] },
-            "scale": 0.5,
+            "scale": 0.2,
             "val": 0
         },
         {
             "name": "level_start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "level_start_slider", "start_audio_mid" ] },
-            "scale": 0.02,
+            "scale": 0.01,
             "val": 0
         },
         {
             "name": "expand_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "expand_slider", "expand_audio_total", "party_energy" ] },
-            "scale": 0.01,
+            "scale": 0.005,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "spin_slider", "spin_audio_total", "celebration_sparkle" ] },
-            "scale": 0.3,
+            "scale": 0.15,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "phase_slider", "phase_audio_total", "celebration_sparkle" ] },
-            "scale": 0.3,
+            "scale": 0.15,
             "val": 0
         },
         {
             "name": "swirl_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "swirl_slider" ] },
-            "scale": 0.8,
+            "scale": 0.4,
             "val": 0
         },
         {
             "name": "swirl_integrator_with_audio",
             "type": "integrator_float",
             "delta": { "functions": [ "swirl_slider", "swirl_audio_total" ] },
-            "scale": 0.8,
+            "scale": 0.4,
             "val": 0
         },
         {
             "name": "alternate_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "alternate_slider", "phase_audio_volume" ] },
-            "scale": 1.0,
+            "scale": 0.5,
             "val": 0
         },
         {
@@ -473,14 +559,16 @@
             "type": "switch_fn",
             "label": "Reflect",
             "description": "Reflect alternate segments of the kaleidoscope image",
-            "default_value": true
+            "default_value": true,
+            "value": { "functions": [ "reflect_toggle" ] }
         },        
         {
             "name": "reflect_level_switch",
             "type": "switch_fn",
             "label": "Reflect Levels",
             "description": "Reflect alternate levels of the kaleidoscope image",
-            "default_value": true
+            "default_value": true,
+            "value": { "functions": [ "reflect_level_toggle" ] }
         },
         {
             "name": "source_image_menu",
@@ -675,7 +763,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "scope_menu", "funky_menu" ]
+            "widgets": [ "autoplay_switch", "autoplay_intensity", "scope_menu", "funky_menu" ]
         },
         {
             "name": "source_image_group",

@@ -30,6 +30,10 @@ const AudioPane = () => {
   const [showFrequencyBands, setShowFrequencyBands] = useState(false);
   const [showMasterSensitivity, setShowMasterSensitivity] = useState(false);
   const [showMixerPresets, setShowMixerPresets] = useState(true);
+  const [showIntegrationStatus, setShowIntegrationStatus] = useState(false);
+  
+  // Integration status state
+  const [integrationStatus, setIntegrationStatus] = useState(null);
 
   // Log when component mounts/unmounts to debug navigation issues
   React.useEffect(() => {
@@ -37,6 +41,32 @@ const AudioPane = () => {
     return () => {
       console.log('🎵 📱 AudioPane unmounting, keeping audio running...');
     };
+  }, [isEnabled]);
+
+  // Check integration status when audio is enabled
+  useEffect(() => {
+    if (isEnabled) {
+      const checkIntegration = () => {
+        try {
+          if (window.module && window.module.get_autoplay_audio_status) {
+            const statusJson = window.module.get_autoplay_audio_status();
+            const status = JSON.parse(statusJson);
+            setIntegrationStatus(status);
+            console.log('🎵 🎲 Autoplay+Audio integration status:', status);
+          }
+        } catch (error) {
+          console.warn('🎵 ⚠️ Could not check integration status:', error);
+        }
+      };
+      
+      // Check immediately and then every 5 seconds
+      checkIntegration();
+      const interval = setInterval(checkIntegration, 5000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setIntegrationStatus(null);
+    }
   }, [isEnabled]);
 
   // Set sensitivity based on party mode (only when party mode changes)
@@ -85,6 +115,66 @@ const AudioPane = () => {
   // Convert sensitivity from decimal to percentage for display
   const sensitivityPercentage = Math.round(sensitivity * 100);
   const maxSensitivity = 200; // 0-200% range for all modes
+
+  // Enhanced integration status check
+  const checkIntegrationStatus = useCallback(() => {
+    if (!window.module) return;
+    
+    try {
+      // Get scene-agnostic autoplay info
+      const autoplayInfo = window.module.get_scene_autoplay_info ? 
+        JSON.parse(window.module.get_scene_autoplay_info()) : null;
+      
+      // Get audio status  
+      const audioStatus = window.module.get_autoplay_audio_status ? 
+        JSON.parse(window.module.get_autoplay_audio_status()) : null;
+      
+      setIntegrationStatus({
+        ...audioStatus,
+        ...autoplayInfo,
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('🎵 ❌ Error checking integration status:', error);
+    }
+  }, []);
+
+  // Autoplay control handlers
+  const [autoplayIntensity, setAutoplayIntensity] = useState(0.002);
+  
+  const handleToggleAutoplay = useCallback(() => {
+    if (!window.module || !window.module.enable_scene_autoplay) return;
+    
+    try {
+      const newState = !integrationStatus?.autoplay_active;
+      const success = window.module.enable_scene_autoplay(newState);
+      
+      if (success) {
+        console.log(`🎲 Autoplay ${newState ? 'enabled' : 'disabled'} for current scene`);
+        // Refresh status
+        setTimeout(checkIntegrationStatus, 100);
+      }
+    } catch (error) {
+      console.error('🎲 ❌ Error toggling autoplay:', error);
+    }
+  }, [integrationStatus?.autoplay_active, checkIntegrationStatus]);
+  
+  const handleIntensityChange = useCallback((e) => {
+    const intensity = parseFloat(e.target.value);
+    setAutoplayIntensity(intensity);
+    
+    if (window.module && window.module.set_autoplay_intensity) {
+      try {
+        const success = window.module.set_autoplay_intensity(intensity);
+        if (success) {
+          console.log(`🎲 Autoplay intensity set to: ${intensity}`);
+        }
+      } catch (error) {
+        console.error('🎲 ❌ Error setting autoplay intensity:', error);
+      }
+    }
+  }, []);
 
   return (
     <div className={`audio-pane ${partyMode ? 'party-mode' : ''}`}>
@@ -262,34 +352,75 @@ const AudioPane = () => {
 
                     {/* Birthday Party Mode Info - Only in advanced view */}
                     {partyMode && (
-                      <div className="party-info">
+                      <div className="party-mode-info">
                         <div className="party-header">
-                          <span>🎂</span>
-                          <h3>Birthday Party Mode</h3>
-                          <span>🎈</span>
-                        </div>
-                        <div className="party-features">
-                          <div className="feature-item">
-                            <span>🎵</span>
-                            <span>Enhanced sensitivity for singing & music</span>
-                          </div>
-                          <div className="feature-item">
-                            <span>🎸</span>
-                            <span>Boosted bass response for party vibes</span>
-                          </div>
-                          <div className="feature-item">
-                            <span>✨</span>
-                            <span>Dynamic high-frequency sparkle</span>
-                          </div>
-                          <div className="feature-item">
-                            <span>🥁</span>
-                            <span>Improved beat detection for dancing</span>
-                          </div>
+                          <h4>🎂 Birthday Party Mode Active!</h4>
+                          <p>Enhanced sensitivity and celebration effects enabled</p>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* Scene-Agnostic Autoplay Controls */}
+                <div className="collapsible-section">
+                  <div className="collapsible-header" onClick={() => setShowIntegrationStatus(!showIntegrationStatus)}>
+                    <h4>🎲 Scene Autoplay</h4>
+                    <span className="collapse-icon">{showIntegrationStatus ? '▲' : '▼'}</span>
+                  </div>
+                  {showIntegrationStatus && (
+                    <div className="autoplay-controls">
+                      <div className="autoplay-status">
+                        <p>Universal autoplay system that works with any scene</p>
+                        {integrationStatus && (
+                          <div className="status-info">
+                            <span className={`status-badge ${integrationStatus.has_autoplay ? 'active' : 'inactive'}`}>
+                              {integrationStatus.has_autoplay ? '✅ Scene supports autoplay' : '❌ No autoplay in scene'}
+                            </span>
+                            {integrationStatus.has_autoplay && (
+                              <div className="autoplay-scene-controls">
+                                <button 
+                                  className={`autoplay-toggle ${integrationStatus.autoplay_active ? 'active' : ''}`}
+                                  onClick={handleToggleAutoplay}
+                                >
+                                  {integrationStatus.autoplay_active ? '⏸️ Disable Autoplay' : '▶️ Enable Autoplay'}
+                                </button>
+                                
+                                <div className="intensity-control">
+                                  <label>Autoplay Intensity:</label>
+                                  <input 
+                                    type="range"
+                                    min="0.0001"
+                                    max="0.01"
+                                    step="0.0001"
+                                    value={autoplayIntensity}
+                                    onChange={handleIntensityChange}
+                                    className="intensity-slider"
+                                  />
+                                  <span className="intensity-value">{(autoplayIntensity * 100).toFixed(2)}%</span>
+                                </div>
+                                
+                                {integrationStatus.autoplay_parameters && integrationStatus.autoplay_parameters.length > 0 && (
+                                  <div className="autoplay-parameters">
+                                    <h5>Autoplay-Influenced Parameters:</h5>
+                                    <ul>
+                                      {integrationStatus.autoplay_parameters.map((param, index) => (
+                                        <li key={index} className={`param-${param.type}`}>
+                                          <span className="param-name">{param.name}</span>
+                                          <span className="param-type">{param.type}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

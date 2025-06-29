@@ -107,6 +107,21 @@ const useAudio = () => {
           console.warn('🎵 ⚠️ Could not enable audio in backend:', error);
       }
       
+      // Check if autoplay is active and log the state for debugging
+      try {
+        if (window.module && window.module.get_slider_value) {
+          const autoplayState = window.module.get_slider_value('autoplay_switch');
+          console.log('🎵 🎲 Autoplay state detected:', autoplayState ? 'ACTIVE' : 'INACTIVE');
+          if (autoplayState) {
+            console.log('🎵 ✨ Audio + Autoplay: Both systems active - expect dynamic behavior!');
+          } else {
+            console.log('🎵 🎛️ Audio only: Manual control mode');
+          }
+        }
+      } catch (error) {
+        console.log('🎵 ℹ️ Could not check autoplay state (scene may not have autoplay)');
+      }
+      
       return true;
       
     } catch (error) {
@@ -475,6 +490,55 @@ const useAudio = () => {
     }
   }, []);
 
+  // Test function to verify audio+autoplay integration
+  const testIntegration = useCallback(() => {
+    if (!isEnabled) {
+      console.log('🎵 ❌ Cannot test integration: Audio is disabled');
+      return false;
+    }
+    
+    try {
+      // Test 1: Check if audio values are being sent to backend
+      if (window.module && window.module.update_audio_context) {
+        window.module.update_audio_context(0.5, 0.3, 0.4, 0.2, true, Date.now());
+        console.log('🎵 ✅ Test 1 passed: Audio context update successful');
+      } else {
+        console.log('🎵 ❌ Test 1 failed: Audio context update not available');
+        return false;
+      }
+      
+      // Test 2: Check autoplay status
+      if (window.module && window.module.get_autoplay_audio_status) {
+        const statusJson = window.module.get_autoplay_audio_status();
+        const status = JSON.parse(statusJson);
+        console.log('🎵 ✅ Test 2 passed: Integration status check successful', status);
+        
+        if (status.has_autoplay) {
+          console.log('🎵 🎲 Autoplay detected - integration ready!');
+        } else {
+          console.log('🎵 🎛️ Audio-only mode - no autoplay in this scene');
+        }
+      } else {
+        console.log('🎵 ⚠️ Test 2 warning: Integration status check not available');
+      }
+      
+      // Test 3: Check if audio functions are working
+      const hasAudioFunctions = mixerState.volume > 0 || mixerState.bass > 0 || mixerState.mid > 0 || mixerState.high > 0;
+      if (hasAudioFunctions) {
+        console.log('🎵 ✅ Test 3 passed: Audio functions are processing data');
+      } else {
+        console.log('🎵 ⚠️ Test 3 warning: No audio data detected (may be silent)');
+      }
+      
+      console.log('🎵 🎉 Integration test completed successfully!');
+      return true;
+      
+    } catch (error) {
+      console.log('🎵 ❌ Integration test failed:', error);
+      return false;
+    }
+  }, [isEnabled, mixerState]);
+
   return {
     isEnabled,
     mixerState,
@@ -483,7 +547,8 @@ const useAudio = () => {
     setSensitivity,
     enableAudio,
     disableAudio,
-    handleMixerGainChange
+    handleMixerGainChange,
+    testIntegration
   };
 };
 

@@ -384,6 +384,11 @@ void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( 
 float audio_additive_fn::operator() ( float& val, element_context& context) {
     channel( context ); sensitivity( context ); offset( context );
 
+    // Safety check: return original value if audio is disabled
+    if (!context.s.ui.audio.enabled) {
+        return val;
+    }
+
     float audio_val = context.s.ui.audio.get_audio_value(*channel); 
     float enhancement = *offset + (audio_val * *sensitivity);
     
@@ -392,6 +397,12 @@ float audio_additive_fn::operator() ( float& val, element_context& context) {
 
 float audio_multiplicative_fn::operator() (float& val, element_context& context) {
     channel( context ); sensitivity( context ); base_multiplier( context );
+    
+    // Safety check: return original value if audio is disabled
+    if (!context.s.ui.audio.enabled) {
+        return val;
+    }
+    
     float audio_val = context.s.ui.audio.get_audio_value(*channel);
 
     float multiplier = *base_multiplier + (audio_val * *sensitivity);
@@ -400,6 +411,11 @@ float audio_multiplicative_fn::operator() (float& val, element_context& context)
 
 float audio_modulate_fn::operator() (float& val, element_context& context) {
     channel( context ); depth( context ); frequency( context );
+
+    // Safety check: return original value if audio is disabled
+    if (!context.s.ui.audio.enabled) {
+        return val;
+    }
 
     float audio_val = context.s.ui.audio.get_audio_value(*channel);
     float modulation = *depth * audio_val * sin(*frequency * context.s.time * TAU);
@@ -411,6 +427,10 @@ vec2f audio_additive_vec2f_fn::operator() ( vec2f& val, element_context& context
     sensitivity_x( context ); sensitivity_y( context );
     offset( context );
 
+    // Safety check: return original value if audio is disabled
+    if (!context.s.ui.audio.enabled) {
+        return val;
+    }
     float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
     float audio_y = context.s.ui.audio.get_audio_value(*channel_y);
     
@@ -422,6 +442,11 @@ vec2f audio_multiplicative_vec2f_fn::operator() ( vec2f& val, element_context& c
     channel_x( context ); channel_y( context );
     sensitivity_x( context ); sensitivity_y( context );
     base_multiplier( context );
+
+    // Safety check: return original value if audio is disabled
+    if (!context.s.ui.audio.enabled) {
+        return val;
+    }
 
     float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
     float audio_y = context.s.ui.audio.get_audio_value(*channel_y);

@@ -288,6 +288,7 @@ function JenSlider({ json, width }) {
     const [showValueLabel, setShowValueLabel] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [isInputFocused, setIsInputFocused] = useState(false);
+    const [isAutoplayInfluenced, setIsAutoplayInfluenced] = useState(false);
     const touchTimer = useRef(null);
     const inputRef = useRef(null);
     const { sliderValues, onSliderChange, resetTrigger } = React.useContext(ControlPanelContext);
@@ -576,6 +577,35 @@ function JenSlider({ json, width }) {
         window.displayedSliderValues[json.name] = parseFloat(displayedValue);
     }, [json.name, inputValue, getDisplayValue]);
 
+    // Check if this slider is influenced by autoplay
+    const checkAutoplayInfluence = useCallback(() => {
+        if (json.value && json.value.functions) {
+            // Check if any of the functions are autoplay-related
+            return json.value.functions.some(funcName => 
+                funcName.includes('tweaker') || 
+                funcName.includes('generator') || 
+                funcName.includes('toggle')
+            );
+        }
+        return false;
+    }, [json.value]);
+
+    // Determine if we should show real-time updates for this slider
+    const shouldShowRealtimeUpdates = useCallback(() => {
+        if (!json.value || !json.value.functions) return false;
+        
+        // Show real-time updates for tweaker functions (smooth parameter changes)
+        // Hide updates for generators/toggles (discrete jumps that might be jarring)
+        return json.value.functions.some(funcName => 
+            funcName.includes('tweaker') || funcName.includes('audio_')
+        );
+    }, [json.value]);
+
+    // Initialize autoplay influence detection
+    useEffect(() => {
+        setIsAutoplayInfluenced(checkAutoplayInfluence());
+    }, [checkAutoplayInfluence]);
+
     // Choose components based on device
     const SliderComponent = isMobile ? MobileSlider : DesktopSlider;
     const TextFieldComponent = isMobile ? MobileTextField : DesktopTextField;
@@ -589,6 +619,12 @@ function JenSlider({ json, width }) {
                 py: isMobile ? 0.5 : 0.25,
                 position: 'relative',
                 overflow: 'hidden',
+                // Add subtle visual indicator for autoplay-influenced sliders
+                ...(isAutoplayInfluenced && {
+                    background: 'linear-gradient(90deg, rgba(156, 39, 176, 0.03) 0%, rgba(63, 81, 181, 0.03) 100%)',
+                    borderLeft: '3px solid rgba(156, 39, 176, 0.2)',
+                    borderRadius: '4px',
+                }),
             }}
         >
             <Stack
