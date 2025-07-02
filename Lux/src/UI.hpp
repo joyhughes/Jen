@@ -264,28 +264,54 @@ struct UI {
     bool  mouse_click;  // true for one frame when mouse clicked over canvas
     std::vector< widget_group > widget_groups;  // should this be a tree?
     
-    // Audio data - updated by frontend SHO/FFT system
-    struct {
+    // Audio data structure - follows same pattern as other UI components
+    struct audio_data {
         float volume = 0.0f;
         float bass_level = 0.0f;
         float mid_level = 0.0f;
         float high_level = 0.0f;
         bool beat_detected = false;
         float time_phase = 0.0f;
-        bool enabled = false;
-        float global_sensitivity = 1.0f;
+        bool enabled = true;
         
-        float get_audio_value(const std::string& channel) const {
-            if (!enabled) {
-                return 0.0f;
-            }
-            float result = 0.0f;
-            if (channel == "volume") result = volume;
-            else if (channel == "bass") result = bass_level;
-            else if (channel == "mid") result = mid_level;
-            else if (channel == "high") result = high_level;
-            return result;
+        // Get audio value for a specific channel
+        float get_value(const std::string& channel) const {
+            if (!enabled) return 0.0f;
+            
+            if (channel == "volume") return volume;
+            else if (channel == "bass") return bass_level;
+            else if (channel == "mid") return mid_level;
+            else if (channel == "high") return high_level;
+            else return 0.0f;
         }
+        
+        // Update audio values
+        void update(float vol, float bass, float mid, float high, bool beat, float phase) {
+            volume = vol;
+            bass_level = bass;
+            mid_level = mid;
+            high_level = high;
+            beat_detected = beat;
+            time_phase = phase;
+        }
+        
+        // Reset to default values
+        void reset() {
+            volume = 0.0f;
+            bass_level = 0.0f;
+            mid_level = 0.0f;
+            high_level = 0.0f;
+            beat_detected = false;
+            time_phase = 0.0f;
+        }
+        
+        // Check if audio is active
+        bool is_active() const {
+            return enabled && (volume > 0.001f || bass_level > 0.001f || mid_level > 0.001f || high_level > 0.001f);
+        }
+        
+        audio_data() : volume(0.0f), bass_level(0.0f), mid_level(0.0f), high_level(0.0f), 
+                      beat_detected(false), time_phase(0.0f), enabled(true) {}
     } audio;
 
     void add_widget_group( const std::string& name, const widget_group& wg );

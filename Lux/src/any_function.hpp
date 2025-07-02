@@ -52,10 +52,8 @@ typedef std::variant <
     std::shared_ptr< scale_param< float > >,
     std::shared_ptr< time_param<  float > >,
 
-    // audio functions
-    std::shared_ptr< audio_additive_fn >,
-    std::shared_ptr< audio_multiplicative_fn >,
-    std::shared_ptr< audio_modulate_fn >,
+    // audio function - combines multiple channels and effects
+    std::shared_ptr< audio_adder_fn >,
 
     // ui functions
     std::shared_ptr< slider_float >,
@@ -114,11 +112,7 @@ typedef std::variant <
     std::shared_ptr< identity_vec2f >,
     std::shared_ptr< adder_vec2f >,
     std::shared_ptr< ratio_vec2f >,
-    std::shared_ptr< mouse_pos_fn >,
-
-    // audio functions
-    std::shared_ptr< audio_additive_vec2f_fn >,
-    std::shared_ptr< audio_multiplicative_vec2f_fn >
+    std::shared_ptr< mouse_pos_fn >
 > any_vec2f_fn_ptr;
 
 ANY_FN( vec2f )

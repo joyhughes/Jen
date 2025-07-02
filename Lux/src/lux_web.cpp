@@ -18,24 +18,8 @@
 // Audio data stored in scene's UI context - no separate global audio context needed
 // The frontend SHO/FFT system updates scene parameters directly via the harness system
 
-// Implementation of audio harness helper functions
-template<>
-void make_audio_reactive<float>(harness<float>& h, const std::string& channel, float sensitivity) {
-    auto audio_fn = std::make_shared<audio_additive_fn>(channel, sensitivity, 0.0f);
-    float_fn fn_ref = std::ref(*audio_fn);
-    any_float_fn_ptr variant_ptr = audio_fn;  // Cast to variant type
-    any_fn<float> any_audio_fn(variant_ptr, fn_ref, "audio_" + channel);
-    h.add_function(any_audio_fn);
-}
-
-template<>
-void make_audio_reactive<vec2f>(harness<vec2f>& h, const std::string& channel, float sensitivity) {
-    auto audio_fn = std::make_shared<audio_additive_vec2f_fn>(channel, channel, sensitivity, sensitivity, vec2f(0.0f, 0.0f));
-    vec2f_fn fn_ref = std::ref(*audio_fn);
-    any_vec2f_fn_ptr variant_ptr = audio_fn;  // Cast to variant type
-    any_fn<vec2f> any_audio_fn(variant_ptr, fn_ref, "audio_" + channel);
-    h.add_function(any_audio_fn);
-}
+// Audio reactivity is now handled through configuration-based audio_adder_fn functions
+// These are defined in scene JSON files and use the harness system
 
 using namespace emscripten;
 
@@ -1511,19 +1495,11 @@ void update_audio_context(float volume, float bass, float mid, float high, bool 
     log_counter++;
     
     try {
-        // Update audio values
-        global_context->s->ui.audio.volume = volume;
-        global_context->s->ui.audio.bass_level = bass;
-        global_context->s->ui.audio.mid_level = mid;
-        global_context->s->ui.audio.high_level = high;
-        global_context->s->ui.audio.beat_detected = beat;
-        global_context->s->ui.audio.time_phase = time;
+        // Update audio values using the audio_data struct method
+        global_context->s->ui.audio.update(volume, bass, mid, high, beat, time);
         
         // DIVERSE AUDIO-CONTROLLED EFFECTS FOR PARTY MODE
-        if (global_context->s->ui.audio.enabled && 
-            (volume > 0.001f || bass > 0.001f || mid > 0.001f || high > 0.001f)) {
-            
-            float sensitivity = global_context->s->ui.audio.global_sensitivity;
+        if (global_context->s->ui.audio.is_active()) {
             
             // === RESPECT USER'S PAUSE STATE ===
             // Don't force animation to start when audio is detected - respect user's choice
@@ -1548,6 +1524,7 @@ void update_audio_context(float volume, float bass, float mid, float high, bool 
             // === DYNAMIC ANIMATION SPEED CONTROL ===
             if (should_control_animation) {
                 float speed_base = 1.0f;
+                float sensitivity = 2.5f; // Fixed sensitivity for animation speed control
                 
                 if (is_drums) {
                     // Drums: Punchy, rhythmic speed changes
@@ -1608,20 +1585,15 @@ void enable_audio_input(bool enabled) {
     
     // When disabling audio, clear all audio values to prevent residual effects
     if (!enabled) {
-        global_context->s->ui.audio.volume = 0.0f;
-        global_context->s->ui.audio.bass_level = 0.0f;
-        global_context->s->ui.audio.mid_level = 0.0f;
-        global_context->s->ui.audio.high_level = 0.0f;
-        global_context->s->ui.audio.beat_detected = false;
-        global_context->s->ui.audio.time_phase = 0.0f;
+        global_context->s->ui.audio.reset();
         std::cout << "🎵 🧹 Audio values cleared on disable" << std::endl;
     }
 }
 
 void set_audio_sensitivity(float sensitivity) {
     if (!global_context || !global_context->s) return;
-    global_context->s->ui.audio.global_sensitivity = sensitivity;
-    std::cout << "🎵 🎛️ Global audio sensitivity set to: " << sensitivity << std::endl;
+    // Audio sensitivity is now handled by individual audio functions in the scene
+    std::cout << "🎵 🎛️ Audio sensitivity is now configured per-function in scene files" << std::endl;
 }
 
 // Check autoplay integration status
@@ -1632,7 +1604,7 @@ std::string get_autoplay_audio_status() {
     
     nlohmann::json status;
     status["audio_enabled"] = global_context->s->ui.audio.enabled;
-    status["audio_sensitivity"] = global_context->s->ui.audio.global_sensitivity;
+    status["audio_active"] = global_context->s->ui.audio.is_active();
     status["animation_running"] = global_context->s->ui.running;
     
     // Check if autoplay_switch exists

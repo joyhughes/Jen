@@ -379,80 +379,35 @@ void next_element::add_function(  any_gen_fn fn       ) { functions.push_back( f
 
 void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( c ); }
 
-// Audio function implementations - moved here to access full element_context definition
+// Audio function implementation - combines multiple channels and effects
 
-float audio_additive_fn::operator() ( float& val, element_context& context) {
-    channel( context ); sensitivity( context ); offset( context );
+float audio_adder_fn::operator() ( float& val, element_context& context) {
+    // Evaluate all harness values
+    volume_channel( context ); volume_weight( context ); volume_sensitivity( context );
+    bass_channel( context ); bass_weight( context ); bass_sensitivity( context );
+    mid_channel( context ); mid_weight( context ); mid_sensitivity( context );
+    high_channel( context ); high_weight( context ); high_sensitivity( context );
+    offset( context ); global_sensitivity( context );
 
-    // Safety check: return original value if audio is disabled
-    if (!context.s.ui.audio.enabled) {
-        return val;
-    }
+    // Get audio values using the audio_data struct methods
+    float volume_val = context.s.ui.audio.get_value(*volume_channel);
+    float bass_val = context.s.ui.audio.get_value(*bass_channel);
+    float mid_val = context.s.ui.audio.get_value(*mid_channel);
+    float high_val = context.s.ui.audio.get_value(*high_channel);
 
-    float audio_val = context.s.ui.audio.get_audio_value(*channel); 
-    float enhancement = *offset + (audio_val * *sensitivity);
+    // Apply weights and sensitivities
+    float volume_contribution = volume_val * *volume_weight * *volume_sensitivity;
+    float bass_contribution = bass_val * *bass_weight * *bass_sensitivity;
+    float mid_contribution = mid_val * *mid_weight * *mid_sensitivity;
+    float high_contribution = high_val * *high_weight * *high_sensitivity;
+
+    // Combine all contributions
+    float total_audio = volume_contribution + bass_contribution + mid_contribution + high_contribution;
     
-    return val + enhancement;
-}
-
-float audio_multiplicative_fn::operator() (float& val, element_context& context) {
-    channel( context ); sensitivity( context ); base_multiplier( context );
+    // Apply global sensitivity and offset
+    float final_audio = (total_audio * *global_sensitivity) + *offset;
     
-    // Safety check: return original value if audio is disabled
-    if (!context.s.ui.audio.enabled) {
-        return val;
-    }
-    
-    float audio_val = context.s.ui.audio.get_audio_value(*channel);
-
-    float multiplier = *base_multiplier + (audio_val * *sensitivity);
-    return val * multiplier;
-}
-
-float audio_modulate_fn::operator() (float& val, element_context& context) {
-    channel( context ); depth( context ); frequency( context );
-
-    // Safety check: return original value if audio is disabled
-    if (!context.s.ui.audio.enabled) {
-        return val;
-    }
-
-    float audio_val = context.s.ui.audio.get_audio_value(*channel);
-    float modulation = *depth * audio_val * sin(*frequency * context.s.time * TAU);
-    return val + (val * modulation);
-}
-
-vec2f audio_additive_vec2f_fn::operator() ( vec2f& val, element_context& context ) {
-    channel_x( context ); channel_y( context );
-    sensitivity_x( context ); sensitivity_y( context );
-    offset( context );
-
-    // Safety check: return original value if audio is disabled
-    if (!context.s.ui.audio.enabled) {
-        return val;
-    }
-    float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
-    float audio_y = context.s.ui.audio.get_audio_value(*channel_y);
-    
-    vec2f enhancement = *offset + vec2f(audio_x * *sensitivity_x, audio_y * *sensitivity_y);
-    return val + enhancement;
-}
-
-vec2f audio_multiplicative_vec2f_fn::operator() ( vec2f& val, element_context& context ) {
-    channel_x( context ); channel_y( context );
-    sensitivity_x( context ); sensitivity_y( context );
-    base_multiplier( context );
-
-    // Safety check: return original value if audio is disabled
-    if (!context.s.ui.audio.enabled) {
-        return val;
-    }
-
-    float audio_x = context.s.ui.audio.get_audio_value(*channel_x);
-    float audio_y = context.s.ui.audio.get_audio_value(*channel_y);
-    
-    vec2f multiplier = *base_multiplier + vec2f(audio_x * *sensitivity_x, audio_y * *sensitivity_y);
-    return vec2f(val.x * multiplier.x, val.y * multiplier.y);
+    return val + final_audio;
 }
 
 bool next_element::operator () ( element_context& context ) { 

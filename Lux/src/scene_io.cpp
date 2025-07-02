@@ -440,10 +440,14 @@ void scene_reader::read_function( const json& j ) {
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
-    // audio functions - proper harness implementations
-    FN( audio_additive_fn, float ) HARNESS( channel ) HARNESS( sensitivity ) HARNESS( offset ) END_FN
-    FN( audio_multiplicative_fn, float ) HARNESS( channel ) HARNESS( sensitivity ) HARNESS( base_multiplier ) END_FN
-    FN( audio_modulate_fn, float ) HARNESS( channel ) HARNESS( depth ) HARNESS( frequency ) END_FN
+    // audio function - combines multiple channels and effects
+    FN( audio_adder_fn, float ) 
+        HARNESS( volume_channel ) HARNESS( volume_weight ) HARNESS( volume_sensitivity )
+        HARNESS( bass_channel ) HARNESS( bass_weight ) HARNESS( bass_sensitivity )
+        HARNESS( mid_channel ) HARNESS( mid_weight ) HARNESS( mid_sensitivity )
+        HARNESS( high_channel ) HARNESS( high_weight ) HARNESS( high_sensitivity )
+        HARNESS( offset ) HARNESS( global_sensitivity )
+    END_FN
 
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
@@ -480,9 +484,7 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( mouse_pos_fn, vec2f ) END_FN
-    FN( audio_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( offset ) END_FN
-    FN( audio_additive_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( offset ) END_FN
-    FN( audio_multiplicative_vec2f_fn, vec2f ) HARNESS( channel_x ) HARNESS( channel_y ) HARNESS( sensitivity_x ) HARNESS( sensitivity_y ) HARNESS( base_multiplier ) END_FN
+
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
@@ -1160,31 +1162,24 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"value", *fn->value}
                     };
                 },
-                [&]( const std::shared_ptr< audio_additive_fn >& fn ) {
+                [&]( const std::shared_ptr< audio_adder_fn >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "audio_additive_fn"},
-                        {"channel", *fn->channel},
-                        {"sensitivity", *fn->sensitivity},
-                        {"offset", *fn->offset}
-                    };
-                },
-                [&]( const std::shared_ptr< audio_multiplicative_fn >& fn ) {
-                    j = nlohmann::json{
-                        {"name", wrapper.name},
-                        {"type", "audio_multiplicative_fn"},
-                        {"channel", *fn->channel},
-                        {"sensitivity", *fn->sensitivity},
-                        {"base_multiplier", *fn->base_multiplier}
-                    };
-                },
-                [&]( const std::shared_ptr< audio_modulate_fn >& fn ) {
-                    j = nlohmann::json{
-                        {"name", wrapper.name},
-                        {"type", "audio_modulate_fn"},
-                        {"channel", *fn->channel},
-                        {"depth", *fn->depth},
-                        {"frequency", *fn->frequency}
+                        {"type", "audio_adder_fn"},
+                        {"volume_channel", *fn->volume_channel},
+                        {"volume_weight", *fn->volume_weight},
+                        {"volume_sensitivity", *fn->volume_sensitivity},
+                        {"bass_channel", *fn->bass_channel},
+                        {"bass_weight", *fn->bass_weight},
+                        {"bass_sensitivity", *fn->bass_sensitivity},
+                        {"mid_channel", *fn->mid_channel},
+                        {"mid_weight", *fn->mid_weight},
+                        {"mid_sensitivity", *fn->mid_sensitivity},
+                        {"high_channel", *fn->high_channel},
+                        {"high_weight", *fn->high_weight},
+                        {"high_sensitivity", *fn->high_sensitivity},
+                        {"offset", *fn->offset},
+                        {"global_sensitivity", *fn->global_sensitivity}
                     };
                 },
                 [&]( const auto& fn ) {
