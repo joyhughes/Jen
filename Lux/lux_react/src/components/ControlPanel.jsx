@@ -1,10 +1,11 @@
-import React, {useEffect, useRef, useState} from "react";
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
-import JenSlider from './JenSlider';
-import { ControlPanelContext } from './InterfaceContainer';
+import React, { useEffect, useRef, useState } from "react";
+import Paper from "@mui/material/Paper";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
+import JenSlider from "./JenSlider";
+import { ControlPanelContext } from "./InterfaceContainer";
+import Button from "@mui/material/Button";
 
 import MediaController from "./MediaController";
 import TabNavigation from "./TabNavigation";
@@ -12,330 +13,361 @@ import HomePane from "./panes/HomePane";
 import SourceImagePane from "./panes/SourceImagePane";
 import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
-import {SceneChooserPane} from "./panes/SceneChooserPane";
-import {PaneContext} from "./panes/PaneContext.jsx";
+import { SceneChooserPane } from "./panes/SceneChooserPane";
+import { PaneContext } from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
+import SceneEditor from "./panes/SceneEditor";
+import Dialog from "@mui/material/Dialog";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
-    const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
-    const [panelJSON, setPanelJSON] = useState([]);
-    const [activeGroups, setActiveGroups] = useState([]);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const setupAttempts = useRef(0);
-    const maxSetupAttempts = 50;
-    const loadingTimeoutRef = useRef(null);
-    const previousPaneRef = useRef(activePane);
+  const { sliderValues, onSliderChange } =
+    React.useContext(ControlPanelContext);
+  const [panelJSON, setPanelJSON] = useState([]);
+  const [activeGroups, setActiveGroups] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const setupAttempts = useRef(0);
+  const maxSetupAttempts = 50;
+  const loadingTimeoutRef = useRef(null);
+  const previousPaneRef = useRef(activePane);
+  const [sceneEditorOpen, setSceneEditorOpen] = useState(false);
 
-    // Store slider values before scene changes
-    const storeSliderValues = () => {
-        const values = {};
-        document.querySelectorAll('.jen-slider').forEach(slider => {
-            const name = slider.getAttribute('data-name');
-            const value = parseFloat(slider.getAttribute('data-value'));
-            if (name && !isNaN(value)) {
-                values[name] = value;
-            }
-        });
-        onSliderChange(values);
-    };
+  // Store slider values before scene changes
+  const storeSliderValues = () => {
+    const values = {};
+    document.querySelectorAll(".jen-slider").forEach((slider) => {
+      const name = slider.getAttribute("data-name");
+      const value = parseFloat(slider.getAttribute("data-value"));
+      if (name && !isNaN(value)) {
+        values[name] = value;
+      }
+    });
+    onSliderChange(values);
+  };
 
-    // Restore slider values after scene changes
-    const restoreSliderValues = () => {
-        if (!window.module) return;
-        
-        Object.entries(sliderValues).forEach(([name, value]) => {
-            const slider = document.querySelector(`.jen-slider[data-name="${name}"]`);
-            if (slider) {
-                window.module.set_slider_value(name, value);
-            }
-        });
-    };
+  // Restore slider values after scene changes
+  const restoreSliderValues = () => {
+    if (!window.module) return;
 
-    useEffect(() => {
-        console.log(`Pane changed from ${previousPaneRef.current} to ${activePane}`);
-        if (activePane === "home" && previousPaneRef.current !== "home"){
-            console.log("Navigated to home pane, triggering widget reload");
-            handleWidgetGroupChange();
-        }
-    }, [activePane])
+    Object.entries(sliderValues).forEach(([name, value]) => {
+      const slider = document.querySelector(`.jen-slider[data-name="${name}"]`);
+      if (slider) {
+        window.module.set_slider_value(name, value);
+      }
+    });
+  };
 
-    const handleWidgetGroupChange = () => {
-        if (!window.module) {
-            console.warn("Module not available when updating widget groups");
-            return;
-        }
+  useEffect(() => {
+    console.log(
+      `Pane changed from ${previousPaneRef.current} to ${activePane}`
+    );
+    if (activePane === "home" && previousPaneRef.current !== "home") {
+      console.log("Navigated to home pane, triggering widget reload");
+      handleWidgetGroupChange();
+    }
+  }, [activePane]);
 
-        if (!panelJSON || panelJSON.length === 0) {
-            console.warn("Panel JSON empty during widget group update");
-            return;
-        }
-
-        console.log("Updating active widget groups...");
-
-        try {
-            // Get active groups from the module
-            const active = panelJSON.filter(group => {
-                try {
-                    return window.module.is_widget_group_active(group.name);
-                } catch (error) {
-                    console.error(`Error checking if group '${group.name}' is active:`, error);
-                    return false;
-                }
-            });
-
-            console.log("Active groups:", active.map(g => g.name).join(", "));
-
-            if (active.length === 0 && activeGroups.length === 0) {
-                console.warn("No active widget groups found");
-            }
-
-            setActiveGroups(active);
-        } catch (error) {
-            console.error("Error in handleWidgetGroupChange:", error);
-        }
-    };
-
-    const setupPanel = (force = false) => {
-        if (!window.module) {
-            console.warn("Module not available when setting up panel");
-            return false;
-        }
-
-        try {
-            console.log("Setting up panel...");
-            setIsLoading(true);
-
-            // Store current slider values before setup
-            storeSliderValues();
-
-            // Clear any existing loading timeout
-            if (loadingTimeoutRef.current) {
-                clearTimeout(loadingTimeoutRef.current);
-            }
-
-            const panelJSONString = window.module.get_panel_JSON();
-
-            if (!panelJSONString) {
-                console.warn("Empty panel JSON received from module");
-                return false;
-            }
-
-            try {
-                const parsedJSON = JSON.parse(panelJSONString);
-
-                if (!parsedJSON || parsedJSON.length === 0) {
-                    console.warn("Parsed panel JSON is empty");
-                    return false;
-                }
-
-                console.log("Successfully parsed panel JSON with", parsedJSON.length, "items");
-                setPanelJSON(parsedJSON);
-
-                // Use requestAnimationFrame to ensure state updates have been processed
-                requestAnimationFrame(() => {
-                    handleWidgetGroupChange();
-                    setIsInitialized(true);
-                    setIsLoading(false);
-                    
-                    // Restore slider values after setup
-                    setTimeout(restoreSliderValues, 100);
-                });
-
-                return true;
-            } catch (error) {
-                console.error("Error parsing panel JSON:", error);
-                setIsLoading(false);
-                return false;
-            }
-        } catch (error) {
-            console.error("Error in setupPanel:", error);
-            setIsLoading(false);
-            return false;
-        }
-    };
-
-    // Initial setup effect - runs once when component mounts
-    useEffect(() => {
-        const initializeModule = () => {
-            if (window.module) {
-                console.log("Module detected, initializing panel...");
-                const success = setupPanel();
-
-                if (success) {
-                    console.log("Setting scene callback...");
-                    window.module.set_scene_callback(() => {
-                        console.log("Scene callback triggered");
-                        setupPanel(true);
-
-                        setTimeout(() => {
-                            handleWidgetGroupChange()
-                        }, 100)
-                    });
-                } else {
-                    // If setup failed but we haven't exceeded max attempts, try again
-                    if (setupAttempts.current < maxSetupAttempts) {
-                        setupAttempts.current += 1;
-                        console.log(`Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 1...`);
-
-                        setTimeout(initializeModule, 1000);
-                    } else {
-                        console.error("Max setup attempts reached, giving up");
-                        setIsLoading(false);
-                    }
-                }
-            } else {
-                // Module not ready yet, poll for it
-                setupAttempts.current += 1;
-
-                if (setupAttempts.current < maxSetupAttempts) { // Allow more attempts for initial module loading
-                    console.log(`Module not ready (attempt ${setupAttempts.current}/${maxSetupAttempts}), checking again in 100ms...`);
-                    setTimeout(initializeModule, 100);
-                } else {
-                    console.error("Module not available after maximum attempts");
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        // Start the initialization process
-        initializeModule();
-
-        loadingTimeoutRef.current = setTimeout(() => {
-            console.warn("Loading timeout reached, forcing loading state to complete");
-            setIsLoading(false);
-        }, 10000); // 10 second safety timeout
-
-        return () => {
-            if (loadingTimeoutRef.current) {
-                clearTimeout(loadingTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    // Run when panelJSON changes
-    useEffect(() => {
-        if (panelJSON && panelJSON.length > 0) {
-            console.log("Panel JSON changed, updating widget groups");
-            handleWidgetGroupChange();
-        }
-    }, [panelJSON]);
-
-    // Re-attempt handling widgets if active groups are empty but should have content
-    useEffect(() => {
-        if (isInitialized && activeGroups.length === 0 && !isLoading) {
-            console.log("No active groups found after initialization, retrying...");
-
-            const retryTimeout = setTimeout(() => {
-                handleWidgetGroupChange();
-            }, 300);
-
-            return () => clearTimeout(retryTimeout);
-        }
-    }, [isInitialized, activeGroups.length, isLoading]);
-
-
-    const paneContextValue = {
-        activePane,
-        setActivePane: onPaneChange
+  const handleWidgetGroupChange = () => {
+    if (!window.module) {
+      console.warn("Module not available when updating widget groups");
+      return;
     }
 
-    const renderActivePane = () => {
-        const commonProps = {
-            dimensions,
-            panelSize,
-            panelJSON,
-            activeGroups,
-            onWidgetGroupChange: handleWidgetGroupChange,
-            isLoading
-        };
+    if (!panelJSON || panelJSON.length === 0) {
+      console.warn("Panel JSON empty during widget group update");
+      return;
+    }
 
-        switch (activePane) {
-            case "home":
-                return <HomePane {...commonProps} />;
-            case "scenes":
-                return (
-                    <PaneContext.Provider value={paneContextValue}>
-                        <SceneChooserPane />
-                    </PaneContext.Provider>
-                );
-            case "source":
-                return (
-                    <PaneContext.Provider value={paneContextValue}>
-                        <SourceImagePane {...commonProps}/>
-                    </PaneContext.Provider>
-                )
-            case "target":
-                return <TargetImagePane {...commonProps} />;
-            case "brush":
-                return <BrushPane {...commonProps} />;
-            case "camera":
-                return (
-                    <Box sx={{ p: 1, height: '100%' }}>
-                        <RealtimeCamera 
-                            width={Math.min(dimensions.width - 20, 512)}
-                            height={Math.min(dimensions.height - 100, 512)}
-                            onClose={() => onPaneChange("home")}
-                        />
-                    </Box>
-                );
-            default:
-                return <HomePane {...commonProps} />;
+    console.log("Updating active widget groups...");
+
+    try {
+      // Get active groups from the module
+      const active = panelJSON.filter((group) => {
+        try {
+          return window.module.is_widget_group_active(group.name);
+        } catch (error) {
+          console.error(
+            `Error checking if group '${group.name}' is active:`,
+            error
+          );
+          return false;
         }
+      });
+
+      console.log("Active groups:", active.map((g) => g.name).join(", "));
+
+      if (active.length === 0 && activeGroups.length === 0) {
+        console.warn("No active widget groups found");
+      }
+
+      setActiveGroups(active);
+    } catch (error) {
+      console.error("Error in handleWidgetGroupChange:", error);
+    }
+  };
+
+  const setupPanel = (force = false) => {
+    if (!window.module) {
+      console.warn("Module not available when setting up panel");
+      return false;
+    }
+
+    try {
+      console.log("Setting up panel...");
+      setIsLoading(true);
+
+      // Store current slider values before setup
+      storeSliderValues();
+
+      // Clear any existing loading timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+
+      const panelJSONString = window.module.get_panel_JSON();
+
+      if (!panelJSONString) {
+        console.warn("Empty panel JSON received from module");
+        return false;
+      }
+
+      try {
+        const parsedJSON = JSON.parse(panelJSONString);
+
+        if (!parsedJSON || parsedJSON.length === 0) {
+          console.warn("Parsed panel JSON is empty");
+          return false;
+        }
+
+        console.log(
+          "Successfully parsed panel JSON with",
+          parsedJSON.length,
+          "items"
+        );
+        setPanelJSON(parsedJSON);
+
+        // Use requestAnimationFrame to ensure state updates have been processed
+        requestAnimationFrame(() => {
+          handleWidgetGroupChange();
+          setIsInitialized(true);
+          setIsLoading(false);
+
+          // Restore slider values after setup
+          setTimeout(restoreSliderValues, 100);
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error parsing panel JSON:", error);
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error in setupPanel:", error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Initial setup effect - runs once when component mounts
+  useEffect(() => {
+    const initializeModule = () => {
+      if (window.module) {
+        console.log("Module detected, initializing panel...");
+        const success = setupPanel();
+
+        if (success) {
+          console.log("Setting scene callback...");
+          window.module.set_scene_callback(() => {
+            console.log("Scene callback triggered");
+            setupPanel(true);
+
+            setTimeout(() => {
+              handleWidgetGroupChange();
+            }, 100);
+          });
+        } else {
+          // If setup failed but we haven't exceeded max attempts, try again
+          if (setupAttempts.current < maxSetupAttempts) {
+            setupAttempts.current += 1;
+            console.log(
+              `Setup attempt ${setupAttempts.current}/${maxSetupAttempts} failed, retrying in 1...`
+            );
+
+            setTimeout(initializeModule, 1000);
+          } else {
+            console.error("Max setup attempts reached, giving up");
+            setIsLoading(false);
+          }
+        }
+      } else {
+        // Module not ready yet, poll for it
+        setupAttempts.current += 1;
+
+        if (setupAttempts.current < maxSetupAttempts) {
+          // Allow more attempts for initial module loading
+          console.log(
+            `Module not ready (attempt ${setupAttempts.current}/${maxSetupAttempts}), checking again in 100ms...`
+          );
+          setTimeout(initializeModule, 100);
+        } else {
+          console.error("Module not available after maximum attempts");
+          setIsLoading(false);
+        }
+      }
     };
 
-    return (
-        <Paper
-            elevation={3}
+    // Start the initialization process
+    initializeModule();
+
+    loadingTimeoutRef.current = setTimeout(() => {
+      console.warn(
+        "Loading timeout reached, forcing loading state to complete"
+      );
+      setIsLoading(false);
+    }, 10000); // 10 second safety timeout
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Run when panelJSON changes
+  useEffect(() => {
+    if (panelJSON && panelJSON.length > 0) {
+      console.log("Panel JSON changed, updating widget groups");
+      handleWidgetGroupChange();
+    }
+  }, [panelJSON]);
+
+  // Re-attempt handling widgets if active groups are empty but should have content
+  useEffect(() => {
+    if (isInitialized && activeGroups.length === 0 && !isLoading) {
+      console.log("No active groups found after initialization, retrying...");
+
+      const retryTimeout = setTimeout(() => {
+        handleWidgetGroupChange();
+      }, 300);
+
+      return () => clearTimeout(retryTimeout);
+    }
+  }, [isInitialized, activeGroups.length, isLoading]);
+
+  const paneContextValue = {
+    activePane,
+    setActivePane: onPaneChange,
+  };
+
+  const onOpenSceneEditor = () => setSceneEditorOpen(true);
+  const onCloseSceneEditor = () => setSceneEditorOpen(false);
+
+  const renderActivePane = () => {
+    const commonProps = {
+      dimensions,
+      panelSize,
+      panelJSON,
+      activeGroups,
+      onWidgetGroupChange: handleWidgetGroupChange,
+      isLoading,
+    };
+
+    switch (activePane) {
+      case "home":
+        return <HomePane {...commonProps} />;
+      case "scenes":
+        return (
+          <PaneContext.Provider value={paneContextValue}>
+            <SceneChooserPane />
+          </PaneContext.Provider>
+        );
+      case "source":
+        return (
+          <PaneContext.Provider value={paneContextValue}>
+            <SourceImagePane {...commonProps} />
+          </PaneContext.Provider>
+        );
+      case "target":
+        return <TargetImagePane {...commonProps} />;
+      case "brush":
+        return <BrushPane {...commonProps} />;
+      case "camera":
+        return (
+          <Box
             sx={{
-                minWidth: dimensions.width,
-                minHeight: dimensions.height,
-                display: 'flex',
-                flexDirection: 'column',
-                flexGrow: 1,
-                alignSelf: 'stretch',
-                overflow: 'hidden',
-                maxWidth: dimensions.width
+              padding: 1,
+              height: "100%",
+              overflowY: "auto",
+              width: "100%",
             }}
-        >
-            <TabNavigation
-                activePane={activePane}
-                onPaneChange={onPaneChange}
+          >
+            <RealtimeCamera
+              width={Math.min(dimensions.width - 20, 512)}
+              height={Math.min(dimensions.height - 100, 512)}
+              onClose={() => onPaneChange("home")}
             />
+          </Box>
+        );
+      default:
+        return <HomePane {...commonProps} />;
+    }
+  };
 
-            <MediaController panelSize={panelSize} />
+  return (
+    <Paper
+      elevation={3}
+      sx={{ p: 1, m: 0.5, height: "100%", overflow: "auto", minWidth: 320 }}
+    >
+      <TabNavigation activePane={activePane} onPaneChange={onPaneChange} />
 
-            <Box
-                sx={{
-                    flex: 1,
-                    overflow: 'auto',
-                    position: 'relative'
-                }}
-            >
-                {isLoading && (
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            padding: 2,
-                            zIndex: 5,
-                            borderRadius: 1
-                        }}
-                    >
-                        <CircularProgress size={24} sx={{ mr: 2 }} />
-                        <Typography variant="body2" color="white">
-                            Loading widgets...
-                        </Typography>
-                    </Box>
-                )}
-                {renderActivePane()}
-            </Box>
-        </Paper>
-    );
+      <MediaController panelSize={panelSize} />
+
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          position: "relative",
+        }}
+      >
+        {isLoading && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              display: "flex",
+              justifyContent: "center",
+              padding: 2,
+              zIndex: 5,
+              borderRadius: 1,
+            }}
+          >
+            <CircularProgress size={24} sx={{ mr: 2 }} />
+            <Typography variant="body2" color="white">
+              Loading widgets...
+            </Typography>
+          </Box>
+        )}
+        {renderActivePane()}
+      </Box>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <Button variant="outlined" size="small" onClick={onOpenSceneEditor}>
+          Scene Editor
+        </Button>
+      </Box>
+      <Dialog
+        open={sceneEditorOpen}
+        onClose={onCloseSceneEditor}
+        maxWidth="lg"
+        fullWidth
+      >
+        <SceneEditor onClose={onCloseSceneEditor} />
+      </Dialog>
+    </Paper>
+  );
 }
 
 export default ControlPanel;
