@@ -202,18 +202,8 @@ void render_and_display( void *arg )
     bool &running = global_context->s->ui.running;
     bool &advance = global_context->s->ui.advance;
     bool &displayed = global_context->s->ui.displayed;
-    //using namespace std::this_thread;     // sleep_for, sleep_until
-    //using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
-    //using std::chrono::system_clock;
 
-    //sleep_until(system_clock::now() + 1s);
-    //emscripten_run_script("console.log('render and display');");
     if( global_context->frame_callback_ready ) {
-        //emscripten_run_script("console.log('callback and bitmaps ready');");
-
-        // Check for dirty buffers (e.g. after source image change)
-        //for( auto q : global_context->s->queue ) if( !q.rendered ) displayed = false;
-
         // Check for buffer resize (e.g. after source image change)
         vec2i dim = global_context->buf->get_image().get_dim();
         if( dim != global_context->buf_dim ) {
@@ -242,9 +232,6 @@ void render_and_display( void *arg )
 
         global_context->frame_callback();
 
-        // Apply audio reactivity to scene parameters
-        // Audio reactivity is now handled automatically by the harness system
-
         if( running || advance || !displayed ) {
             global_context->s->render();
         }
@@ -252,10 +239,6 @@ void render_and_display( void *arg )
         global_context->s->ui.mouse_click = false;
         displayed = true;
         advance = false;
-    }
-    else {
-        //if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
-        //else emscripten_run_script("console.log('bitmaps not ready');");
     }
 }
 
@@ -1596,137 +1579,7 @@ void set_audio_sensitivity(float sensitivity) {
     std::cout << "🎵 🎛️ Audio sensitivity is now configured per-function in scene files" << std::endl;
 }
 
-// Check autoplay integration status
-std::string get_autoplay_audio_status() {
-    if (!global_context || !global_context->s) {
-        return "{\"error\": \"No scene context\"}";
-    }
-    
-    nlohmann::json status;
-    status["audio_enabled"] = global_context->s->ui.audio.enabled;
-    status["audio_active"] = global_context->s->ui.audio.is_active();
-    status["animation_running"] = global_context->s->ui.running;
-    
-    // Check if autoplay_switch exists
-    bool has_autoplay = global_context->s->functions.contains("autoplay_switch");
-    status["has_autoplay"] = has_autoplay;
-    
-    if (has_autoplay) {
-        try {
-            auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
-            if (autoplay_fn) {
-                status["autoplay_active"] = *autoplay_fn->value;
-                status["integration_status"] = "compatible";
-                
-                // Count autoplay-enabled functions
-                int autoplay_functions = 0;
-                for (const auto& [name, fn] : global_context->s->functions) {
-                    // This is a simplified check - in real implementation you'd need to traverse the harness
-                    if (name.find("_toggle") != std::string::npos || name.find("_generator") != std::string::npos) {
-                        autoplay_functions++;
-                    }
-                }
-                status["autoplay_functions_count"] = autoplay_functions;
-            } else {
-                status["integration_status"] = "autoplay_function_not_accessible";
-            }
-        } catch (const std::exception& e) {
-            status["integration_status"] = "error_accessing_autoplay";
-            status["error"] = e.what();
-        }
-    } else {
-        status["integration_status"] = "no_autoplay_in_scene";
-    }
-    
-    // Audio function count
-    int audio_functions = 0;
-    for (const auto& [name, fn] : global_context->s->functions) {
-        if (name.find("audio_") != std::string::npos) {
-            audio_functions++;
-        }
-    }
-    status["audio_functions_count"] = audio_functions;
-    
-    return status.dump();
-}
 
-// Get information about which sliders are influenced by autoplay
-std::string get_autoplay_slider_info() {
-    if (!global_context || !global_context->s) {
-        return "{\"error\": \"No scene context\"}";
-    }
-    
-    nlohmann::json info;
-    info["autoplay_sliders"] = nlohmann::json::array();
-    
-    // Check each function to see if it's a slider with autoplay influence
-    for (const auto& [name, fn] : global_context->s->functions) {
-        std::visit([&](auto&& func_wrapper) {
-            using T = std::decay_t<decltype(func_wrapper)>;
-            
-            if constexpr (std::is_same_v<T, any_fn<float>>) {
-                std::visit([&](auto&& fn_ptr) {
-                    using FnType = std::decay_t<decltype(fn_ptr)>;
-                    if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
-                        nlohmann::json slider_info;
-                        slider_info["name"] = name;
-                        slider_info["type"] = "float";
-                        slider_info["has_autoplay"] = false;
-                        slider_info["should_show_realtime"] = false;
-                        
-                        // Check if this slider's value harness contains autoplay functions
-                        // This is a simplified check - would need proper harness traversal for full implementation
-                        if (name.find("segment") != std::string::npos || 
-                            name.find("level") != std::string::npos ||
-                            name.find("expand") != std::string::npos ||
-                            name.find("spin") != std::string::npos ||
-                            name.find("swirl") != std::string::npos) {
-                            slider_info["has_autoplay"] = true;
-                            // Show realtime for tweaker functions (smooth changes)
-                            slider_info["should_show_realtime"] = true;
-                        }
-                        
-                        info["autoplay_sliders"].push_back(slider_info);
-                    }
-                }, func_wrapper.any_fn_ptr);
-            }
-            else if constexpr (std::is_same_v<T, any_fn<int>>) {
-                std::visit([&](auto&& fn_ptr) {
-                    using FnType = std::decay_t<decltype(fn_ptr)>;
-                    if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_int>>) {
-                        nlohmann::json slider_info;
-                        slider_info["name"] = name;
-                        slider_info["type"] = "int";
-                        slider_info["has_autoplay"] = false;
-                        slider_info["should_show_realtime"] = false;
-                        
-                        info["autoplay_sliders"].push_back(slider_info);
-                    }
-                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<menu_int>>) {
-                        nlohmann::json menu_info;
-                        menu_info["name"] = name;
-                        menu_info["type"] = "menu_int";
-                        menu_info["has_autoplay"] = false;
-                        menu_info["should_show_realtime"] = false;
-                        
-                        // Menus with generators should NOT show realtime (discrete jumps)
-                        if (name.find("scope") != std::string::npos || 
-                            name.find("funky") != std::string::npos) {
-                            menu_info["has_autoplay"] = true;
-                            menu_info["should_show_realtime"] = false; // Discrete changes
-                        }
-                        
-                        info["autoplay_sliders"].push_back(menu_info);
-                    }
-                }, func_wrapper.any_fn_ptr);
-            }
-        }, fn);
-    }
-    
-    return info.dump();
-}
-
-// Slider value retrieval functions needed by frontend
 float get_slider_value(std::string name) {
     if (!global_context || !global_context->s) return 0.0f;
     
@@ -1758,8 +1611,7 @@ bool get_animation_running() {
     return global_context->s->ui.running;
 }
 
-// Scene-agnostic autoplay system
-bool enable_scene_autoplay(bool enabled) {
+bool enable_autoplay(bool enabled) {
     if (!global_context || !global_context->s) {
         return false;
     }
@@ -1824,77 +1676,6 @@ bool set_autoplay_intensity(float intensity) {
     }
     
     return false;
-}
-
-// Get list of autoplay-influenced parameters for current scene
-std::string get_scene_autoplay_info() {
-    if (!global_context || !global_context->s) {
-        return "{\"error\": \"No scene context\"}";
-    }
-    
-    nlohmann::json info;
-    info["scene_name"] = global_context->s->name;
-    info["has_autoplay"] = global_context->s->functions.contains("autoplay_switch");
-    info["autoplay_active"] = get_autoplay_status();
-    info["autoplay_parameters"] = nlohmann::json::array();
-    
-    // Scan all functions for autoplay influence
-    for (const auto& [name, fn] : global_context->s->functions) {
-        if (name.find("tweaker") != std::string::npos || 
-            name.find("generator") != std::string::npos || 
-            name.find("toggle") != std::string::npos) {
-            
-            nlohmann::json param;
-            param["name"] = name;
-            param["type"] = "autoplay_function";
-            info["autoplay_parameters"].push_back(param);
-        }
-        
-        // Check for sliders/menus that use autoplay functions
-        std::visit([&](auto&& func_wrapper) {
-            using T = std::decay_t<decltype(func_wrapper)>;
-            
-            if constexpr (std::is_same_v<T, any_fn<float>>) {
-                std::visit([&](auto&& fn_ptr) {
-                    using FnType = std::decay_t<decltype(fn_ptr)>;
-                    if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
-                        // This is a simplified check - full implementation would traverse harness
-                        if (name.find("segment") != std::string::npos || 
-                            name.find("level") != std::string::npos ||
-                            name.find("expand") != std::string::npos ||
-                            name.find("spin") != std::string::npos ||
-                            name.find("swirl") != std::string::npos) {
-                            
-                            nlohmann::json param;
-                            param["name"] = name;
-                            param["type"] = "autoplay_influenced_slider";
-                            param["data_type"] = "float";
-                            info["autoplay_parameters"].push_back(param);
-                        }
-                    }
-                }, func_wrapper.any_fn_ptr);
-            }
-            else if constexpr (std::is_same_v<T, any_fn<int>>) {
-                std::visit([&](auto&& fn_ptr) {
-                    using FnType = std::decay_t<decltype(fn_ptr)>;
-                    if constexpr (std::is_same_v<FnType, std::shared_ptr<menu_int>>) {
-                        if (name.find("scope") != std::string::npos || 
-                            name.find("funky") != std::string::npos ||
-                            name.find("rule") != std::string::npos) {
-                            
-                            nlohmann::json param;
-                            param["name"] = name;
-                            param["type"] = "autoplay_influenced_menu";
-                            param["data_type"] = "int";
-                            info["autoplay_parameters"].push_back(param);
-                        }
-                    }
-                }, func_wrapper.any_fn_ptr);
-            }
-        }, fn);
-    }
-    
-    return info.dump();
 }
 
 int main(int argc, char** argv) {
@@ -2065,16 +1846,13 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("update_audio_context", &update_audio_context);
     function("enable_audio_input", &enable_audio_input);
     function("set_audio_sensitivity", &set_audio_sensitivity);
-    function("get_autoplay_audio_status", &get_autoplay_audio_status);
-    function("get_autoplay_slider_info", &get_autoplay_slider_info);
     
     // slider value retrieval functions
     function("get_slider_value", &get_slider_value);
     
     // animation state functions
     function("get_animation_running", &get_animation_running);
-    function("enable_scene_autoplay", &enable_scene_autoplay);
+    function("enable_autoplay", &enable_autoplay);
     function("get_autoplay_status", &get_autoplay_status);
     function("set_autoplay_intensity", &set_autoplay_intensity);
-    function("get_scene_autoplay_info", &get_scene_autoplay_info);
 }
