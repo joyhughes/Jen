@@ -317,7 +317,14 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
   return (
     <Paper
       elevation={3}
-      sx={{ p: 1, m: 0.5, height: "100%", overflow: "auto", minWidth: 320 }}
+      sx={{
+        p: 1,
+        m: 0.5,
+        height: "100%",
+        overflow: "auto",
+        minWidth: 320,
+        width: "100%",
+      }}
     >
       <TabNavigation activePane={activePane} onPaneChange={onPaneChange} />
 
