@@ -25,7 +25,7 @@ const SceneEditor = ({ onClose }) => {
         bgcolor: "background.paper",
         borderRadius: 2,
         boxShadow: 3,
-        maxWidth: 600,
+        width: "80%",
         mx: "auto",
         my: 4,
       }}

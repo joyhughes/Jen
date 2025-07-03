@@ -363,6 +363,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         onClose={onCloseSceneEditor}
         maxWidth="lg"
         fullWidth
+        sx={{
+          height: "100%",
+        }}
       >
         <SceneEditor onClose={onCloseSceneEditor} />
       </Dialog>
