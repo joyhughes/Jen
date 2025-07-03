@@ -67,81 +67,95 @@
         {
             "name": "autoplay_intensity",
             "type": "slider_float",
-            "label": "Autoplay Intensity",
-            "description": "Controls how often autoplay makes changes",
-            "min": 0.0001,
-            "max": 0.01,
-            "step": 0.0001,
-            "default_value": 0.002
+            "label": "Autoplay Sensitivity",
+            "description": "Controls how often autoplay makes changes (1=slowest, 5=fastest)",
+            "min": 1,
+            "max": 5,
+            "step": 0.1,
+            "default_value": 2.0
+        },
+        {
+            "name": "autoplay_probability",
+            "type": "constant_float",
+            "value": 0.00005
         },
         {
             "name": "segment_tweaker",
             "type": "tweaker_float",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "amount": 2,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 5.0
         },
         {
             "name": "scope_autoplay_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0,
             "b": 3,
             "min": 0,
             "max": 3,
             "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 8.0
         },
         {
             "name": "funky_autoplay_generator", 
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0,
             "b": 5,
             "min": 0,
             "max": 5,
             "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 7.0
         },
         {
             "name": "level_tweaker",
             "type": "tweaker_float",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "amount": 1,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 5.5
         },
         {
             "name": "expand_tweaker",
             "type": "tweaker_float", 
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "amount": 1.5,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 5.2
         },
         {
             "name": "spin_tweaker",
             "type": "tweaker_float",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "amount": 3.0,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 10
         },
         {
             "name": "swirl_tweaker",
             "type": "tweaker_float",
-            "p": { "functions": [ "autoplay_intensity" ] },
+            "p": { "functions": [ "autoplay_probability" ] },
             "amount": 20.0,
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 10
         },
         {
             "name": "reflect_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_intensity" ] },
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "p": { "functions": [ "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 10.0
         },
         {
             "name": "reflect_level_toggle",
             "type": "random_toggle", 
-            "p": { "functions": [ "autoplay_intensity" ] },
-            "enabled": { "functions": [ "autoplay_switch" ] }
+            "p": { "functions": [ "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 12.0
         },
         {
             "name": "segment_slider",
@@ -665,13 +679,44 @@
             "value": { "functions": [ "reflect_level_toggle" ] }
         },
         {
+            "name": "image_switch_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.003,
+            "volume_sensitivity": 0.01,
+            "bass_channel": "bass",
+            "bass_weight": 0.0025,
+            "bass_sensitivity": 0.007,
+            "mid_channel": "mid",
+            "mid_weight": 0.0,
+            "mid_sensitivity": 0.003,
+            "high_channel": "high",
+            "high_weight": 0.004,
+            "high_sensitivity": 0.013,
+            "offset": 0.000003,
+            "global_sensitivity": 0.007
+        },
+        {
+            "name": "source_image_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] },
+            "min_interval": 1000
+        },
+        {
             "name": "source_image_menu",
             "type": "menu_string",
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
             "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 1
+            "default_choice": 1,
+            "choice": { "functions": [ "source_image_menu_generator" ] }
         },
         {
             "name": "source_image_dim",

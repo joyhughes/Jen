@@ -56,7 +56,6 @@ template< class U > U generator< U >::operator () ( U& u, element_context& conte
     // if enabled, check probability
     p( context ); a( context ); b( context ); min(context ); max( context );
     if( rand_range( 0.0f, 1.0f ) < *p ) {
-        std::cout << "generator: p = " << *p << std::endl;
         switch( distribution ) {
             case PROB_UNIFORM: 
                 u = rand_range( *a, *b ); 
