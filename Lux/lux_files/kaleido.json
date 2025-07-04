@@ -2,20 +2,21 @@
     "name": "Kaleidoswirl",
     "title": "Kaleidoscopic collage",
     "liveCamera": true,
-    "images": [
+    "images": 
+    [
         {
             "type": "uimage",
             "filename": "lux_files/Ada.jpg",
             "name": "Ada"
-        },
+        },        
         {
             "type": "uimage",
             "filename": "lux_files/apples.jpg",
             "name": "Apples"
         },
-        {
-            "type": "uimage",
-            "filename": "lux_files/crab_nebula.jpg",
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/crab_nebula.jpg", 
             "name": "Crab Nebula"
         },
         {
@@ -38,9 +39,9 @@
             "filename": "lux_files/forest.jpg",
             "name": "Forest"
         },
-        {
-            "type": "uimage",
-            "filename": "lux_files/hk_square_512.jpg",
+        { 
+            "type": "uimage", 
+            "filename": "lux_files/hk_square_512.jpg", 
             "name": "Hong Kong"
         },
         {
@@ -54,12 +55,13 @@
             "name": "Sunrise"
         }
     ],
-    "functions": [
+    "functions":
+    [
         {
             "name": "autoplay_switch",
             "type": "switch_fn",
             "label": "Autoplay",
-            "description": "Enables random changes to kaleidoscope parameters",
+            "description": "Makes random changes to the kaleidoscope",
             "default_value": false
         },
         {
@@ -78,13 +80,6 @@
             "value": 0.0001
         },
         {
-            "name": "autoplay_intensity_tweaker",
-            "type": "tweaker_float",
-            "value": { "functions": [ "autoplay_intensity" ] },
-            "scale": 0.0,
-            "offset": -4.0
-        },
-        {
             "name": "gentle_audio_boost",
             "type": "audio_adder_fn",
             "volume_channel": "volume",
@@ -101,158 +96,6 @@
             "high_sensitivity": 0.25,
             "offset": 0.0,
             "global_sensitivity": 0.5
-        },
-        {
-            "name": "scope_autoplay_generator",
-            "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
-            "a": 0,
-            "b": 3,
-            "min": 0,
-            "max": 3,
-            "distribution": "uniform",
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "funky_autoplay_generator",
-            "type": "generator_int",
-            "p": {
-                "functions": [
-                    "autoplay_probability"
-                ]
-            },
-            "a": 0,
-            "b": 5,
-            "min": 0,
-            "max": 5,
-            "distribution": "uniform",
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "level_tweaker",
-            "type": "tweaker_float",
-            "p": { "functions": [ "autoplay_probability" ] },
-            "amount": 1,
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "expand_tweaker",
-            "type": "tweaker_float",
-            "p": {
-                "functions": [
-                    "autoplay_probability"
-                ]
-            },
-            "amount": 1.5,
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "spin_tweaker",
-            "type": "tweaker_float",
-            "p": {
-                "functions": [
-                    "autoplay_probability"
-                ]
-            },
-            "amount": 3.0,
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "swirl_tweaker",
-            "type": "tweaker_float",
-            "p": {
-                "functions": [
-                    "autoplay_probability"
-                ]
-            },
-            "amount": 20.0,
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "reflect_toggle",
-            "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "reflect_level_toggle",
-            "type": "random_toggle",
-            "p": {
-                "functions": [
-                    "autoplay_probability"
-                ]
-            },
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
-        },
-        {
-            "name": "very_gentle_image_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 0.00001,
-            "volume_sensitivity": 0.00005,
-            "bass_channel": "bass",
-            "bass_weight": 0.000008,
-            "bass_sensitivity": 0.00003,
-            "mid_channel": "mid",
-            "mid_weight": 0.0,
-            "mid_sensitivity": 0.00002,
-            "high_channel": "high",
-            "high_weight": 0.000005,
-            "high_sensitivity": 0.00002,
-            "offset": 0.0,
-            "global_sensitivity": 0.00002
-        },
-        {
-            "name": "source_image_menu_generator",
-            "type": "generator_int",
-            "p": {
-                "functions": [
-                    "autoplay_probability",
-                    "very_gentle_image_audio"
-                ]
-            },
-            "a": 0,
-            "b": 9,
-            "min": 0,
-            "max": 9,
-            "distribution": "uniform",
-            "enabled": {
-                "functions": [
-                    "autoplay_switch"
-                ]
-            }
         },
         {
             "name": "controlled_spin_audio",
@@ -327,6 +170,24 @@
             "global_sensitivity": 0.6
         },
         {
+            "name": "segment_tweaker",
+            "type": "tweaker_float",
+            "p": 0.01,
+            "amount": 2,
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "segment_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 6.0,
+            "b": 1.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "log_normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
             "name": "segment_slider",
             "type": "slider_float",
             "label": "Segments",
@@ -334,8 +195,20 @@
             "min": 1,
             "max": 36,
             "step": 1,
-            "default_value": 6
+            "default_value": 6,
+            "value": { "functions": [ "segment_generator" ] }
         },
+        {
+            "name": "level_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 1.0,
+            "b": 2.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "geometric",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },        
         {
             "name": "level_slider",
             "type": "slider_float",
@@ -345,12 +218,19 @@
             "max": 12,
             "step": 1,
             "default_value": 1,
-            "value": {
-                "functions": [
-                    "level_tweaker"
-                ]
-            }
-        },
+            "value": { "functions": [ "level_generator" ] }
+        },   
+        {
+            "name": "level_start_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },           
         {
             "name": "level_start_slider",
             "type": "slider_float",
@@ -359,8 +239,20 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "level_start_generator" ] }
         },
+        {
+            "name": "start_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "start_slider",
             "type": "slider_float",
@@ -369,8 +261,20 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
-        },
+            "default_value": 0,
+            "value": { "functions": [ "start_generator" ] }
+        },        
+        {
+            "name": "expand_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "expand_slider",
             "type": "slider_float",
@@ -380,12 +284,24 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": {
-                "functions": [
-                    "expand_tweaker"
+            "value": { 
+                "functions": [ 
+                    "expand_generator",
+                    "controlled_expand_audio"
                 ]
             }
         },
+        {
+            "name": "spin_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0.0,
+            "b": 2.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "spin_slider",
             "type": "slider_float",
@@ -395,153 +311,127 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": {
-                "functions": [
-                    "spin_tweaker"
+            "value": { 
+                "functions": [ 
+                    "spin_generator",
+                    "controlled_spin_audio"
                 ]
             }
         },
+        {
+            "name": "scope_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0,
+            "b": 3,
+            "min": 0,
+            "max": 3,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
         {
             "name": "scope_menu",
             "type": "menu_int",
             "tool": "pull_down",
             "label": "Scope",
             "description": "Choose the kaleidoscope effect to apply.",
-            "items": [
-                "None",
-                "Kaleido",
-                "Multiples",
-                "Tile"
-            ],
+            "items": [ "None", "Kaleido", "Multiples", "Tile" ],
             "default_choice": 1,
-            "affects_widget_groups": true,
-            "choice": {
-                "functions": [
-                    "scope_autoplay_generator"
-                ]
-            }
+            "choice": { "functions": [ "scope_menu_generator" ] },
+            "affects_widget_groups": true
         },
         {
             "name": "scope_menu_0",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "scope_menu"
-                ]
-            },
+            "a": { "functions": [ "scope_menu" ] },
             "b": 0
-        },
+        },        
         {
             "name": "scope_menu_1",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "scope_menu"
-                ]
-            },
+            "a": { "functions": [ "scope_menu" ] },
             "b": 1
-        },
+        },        
         {
             "name": "scope_menu_2",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "scope_menu"
-                ]
-            },
+            "a": { "functions": [ "scope_menu" ] },
             "b": 2
         },
         {
             "name": "scope_menu_3",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "scope_menu"
-                ]
-            },
+            "a": { "functions": [ "scope_menu" ] },
             "b": 3
         },
+        {
+            "name": "funky_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0,
+            "b": 5,
+            "min": 0,
+            "max": 5,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
         {
             "name": "funky_menu",
             "type": "menu_int",
             "tool": "pull_down",
             "label": "Funky",
             "description": "Modify the kaleidoscope with swirl, rings, wiggles, etc.",
-            "items": [
-                "None",
-                "Swirl",
-                "Rings",
-                "Waves",
-                "Saw",
-                "Smoosh"
-            ],
+            "items": [ "None", "Swirl", "Rings", "Waves", "Saw", "Smoosh" ],
             "default_choice": 0,
-            "affects_widget_groups": true,
-            "choice": {
-                "functions": [
-                    "funky_autoplay_generator"
-                ]
-            }
+            "choice": { "functions": [ "funky_menu_generator" ] },
+            "affects_widget_groups": true
         },
         {
             "name": "funky_menu_0",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 0
-        },
+        },        
         {
             "name": "funky_menu_1",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 1
-        },
+        },        
         {
             "name": "funky_menu_2",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 2
         },
         {
             "name": "funky_menu_3",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 3
         },
         {
             "name": "funky_menu_4",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 4
         },
         {
             "name": "funky_menu_5",
             "type": "equal_int_condition",
-            "a": {
-                "functions": [
-                    "funky_menu"
-                ]
-            },
+            "a": { "functions": [ "funky_menu" ] },
             "b": 5
+        },
+        {
+            "name": "swirl_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": -360.0,
+            "b": 360.0,
+            "min": -360.0,
+            "max": 360.0,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "swirl_slider",
@@ -552,11 +442,23 @@
             "max": 360.0,
             "step": 1,
             "default_value": 60.0,
-            "value": {
-                "functions": [
-                    "swirl_tweaker"
+            "value": { 
+                "functions": [ 
+                    "swirl_generator",
+                    "controlled_swirl_audio"
                 ]
             }
+        },
+        {
+            "name": "alternate_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": -180.0,
+            "b": 180.0,
+            "min": -180.0,
+            "max": 180.0,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "alternate_slider",
@@ -566,7 +468,19 @@
             "min": -180.0,
             "max": 180.0,
             "step": 1,
-            "default_value": 30.0
+            "default_value": 30.0,
+            "value": { "functions": [ "alternate_generator" ] }
+        },
+        {
+            "name": "rings_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 10.0,
+            "b": 1.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "log_normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "rings_slider",
@@ -576,8 +490,20 @@
             "min": 1,
             "max": 100,
             "step": 1,
-            "default_value": 10
+            "default_value": 10,
+            "value": { "functions": [ "rings_generator" ] }
         },
+        {
+            "name": "freq_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 6.0,
+            "b": 1.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "log_normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },        
         {
             "name": "freq_slider",
             "type": "slider_float",
@@ -586,18 +512,42 @@
             "min": 0,
             "max": 36,
             "step": 1,
-            "default_value": 6.0
+            "default_value": 6.0,
+            "value": { "functions": [ "freq_generator" ] }
         },
         {
-            "name": "amp_slider",
+            "name": "amp_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 6.0,
+            "b": 1.0,
+            "min": 1,
+            "max": 1000000,
+            "distribution": "log_normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "amp_slider", 
             "type": "slider_float",
             "label": "Waviness",
             "description": "Amplitude of the wiggles in the kaleidoscope image",
             "min": 0.0,
             "max": 30.0,
             "step": 0.1,
-            "default_value": 5.0
+            "default_value": 5.0,
+            "value": { "functions": [ "amp_generator" ] }
         },
+        {
+            "name": "phase_generator",
+            "type": "generator_float",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0.0,
+            "b": 20.0,
+            "min": -1000000,
+            "max": 1000000,
+            "distribution": "normal",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },  
         {
             "name": "phase_slider",
             "type": "slider_float",
@@ -606,106 +556,68 @@
             "min": -20,
             "max": 20,
             "step": 0.5,
-            "default_value": 0.0
+            "default_value": 0.0,
+            "value": { 
+                "functions": [ 
+                    "phase_generator",
+                    "controlled_phase_audio"
+                ]
+            }
+        },
+        {
+            "name": "const_amp_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "const_amp_switch",
             "type": "switch_fn",
             "label": "Same Waviness",
             "description": "Constant width of the wiggles in the kaleidoscope image",
-            "default_value": false
+            "default_value": false,
+            "value": { "functions": [ "const_amp_toggle" ] }
         },
         {
             "name": "start_integrator",
             "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "start_slider"
-                ]
-            },
-            "scale": 0.2,
+            "delta": { "functions": [ "start_slider" ] },
+            "scale": 0.1,
             "val": 0
-        },
+        },        
         {
             "name": "level_start_integrator",
             "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "level_start_slider"
-                ]
-            },
-            "scale": 0.01,
+            "delta": { "functions": [ "level_start_slider" ] },
+            "scale": 0.0001,
             "val": 0
-        },
+        },        
         {
             "name": "expand_integrator",
             "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "expand_slider",
-                    "controlled_expand_audio"
-                ]
-            },
-            "scale": 0.005,
+            "delta": { "functions": [ "expand_slider" ] },
+            "scale": 0.0001,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "spin_slider",
-                    "controlled_spin_audio"
-                ]
-            },
-            "scale": 0.15,
+            "delta": { "functions": [ "spin_slider" ] },
+            "scale": 0.1,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "phase_slider",
-                    "controlled_phase_audio"
-                ]
-            },
-            "scale": 0.15,
+            "delta": { "functions": [ "phase_slider" ] },
+            "scale": 0.1,
             "val": 0
         },
         {
-            "name": "swirl_integrator",
-            "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "swirl_slider"
-                ]
-            },
-            "scale": 0.4,
-            "val": 0
-        },
-        {
-            "name": "swirl_integrator_with_audio",
-            "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "swirl_slider",
-                    "controlled_swirl_audio"
-                ]
-            },
-            "scale": 0.4,
-            "val": 0
-        },
-        {
-            "name": "alternate_integrator",
-            "type": "integrator_float",
-            "delta": {
-                "functions": [
-                    "alternate_slider"
-                ]
-            },
-            "scale": 0.5,
-            "val": 0
+            "name": "reflect_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "reflect_switch",
@@ -713,11 +625,13 @@
             "label": "Reflect",
             "description": "Reflect alternate segments of the kaleidoscope image",
             "default_value": true,
-            "value": {
-                "functions": [
-                    "reflect_toggle"
-                ]
-            }
+            "value": { "functions": [ "reflect_toggle" ] }
+        },        
+        {
+            "name": "reflect_level_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
             "name": "reflect_level_switch",
@@ -725,53 +639,42 @@
             "label": "Reflect Levels",
             "description": "Reflect alternate levels of the kaleidoscope image",
             "default_value": true,
-            "value": {
-                "functions": [
-                    "reflect_level_toggle"
-                ]
-            }
+            "value": { "functions": [ "reflect_level_toggle" ] }
         },
+        {
+            "name": "source_image_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_probability" ] },
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
         {
             "name": "source_image_menu",
             "type": "menu_string",
             "tool": "image",
             "label": "Source Image",
             "description": "Choose an image to apply the transition rule to.",
-            "items": [
-                "Ada",
-                "Apples",
-                "Crab Nebula",
-                "Earth",
-                "Everest",
-                "Flower",
-                "Forest",
-                "Hong Kong",
-                "Lighthouse",
-                "Sunrise"
-            ],
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
             "default_choice": 1,
-            "choice": {
-                "functions": [
-                    "source_image_menu_generator"
-                ]
-            }
+            "choice": { "functions": [ "source_image_menu_generator" ] }
         },
         {
             "name": "source_image_dim",
             "type": "buffer_dim_fn",
-            "buf_name": {
-                "functions": [
-                    "source_image_menu"
-                ]
-            }
+            "buf_name": { "functions": [ "source_image_menu" ] }
         }
     ],
-    "effects": [
+    "effects":
+    [
         {
             "name": "position fill",
             "type": "eff_position_fill_vec2f"
         },
-        {
+        { 
             "name": "radial",
             "type": "eff_radial_vec2f"
         },
@@ -782,96 +685,34 @@
         {
             "name": "kaleidoscope",
             "type": "eff_kaleidoscope_vec2f",
-            "segments": {
-                "functions": [
-                    "segment_slider"
-                ]
-            },
-            "levels": {
-                "functions": [
-                    "level_slider"
-                ]
-            },
-            "start": {
-                "functions": [
-                    "start_integrator"
-                ]
-            },
-            "spin": {
-                "functions": [
-                    "spin_integrator"
-                ]
-            },
-            "expand": {
-                "functions": [
-                    "expand_integrator"
-                ]
-            },
-            "level_start": {
-                "functions": [
-                    "level_start_integrator"
-                ]
-            },
-            "reflect": {
-                "functions": [
-                    "reflect_switch"
-                ]
-            },
-            "reflect_levels": {
-                "functions": [
-                    "reflect_level_switch"
-                ]
-            }
+            "segments": { "functions": [ "segment_slider" ] },
+            "levels": { "functions": [ "level_slider" ] },
+            "start": { "functions": [ "start_integrator" ] },
+            "spin": { "functions": [ "spin_integrator" ] },
+            "expand": { "functions": [ "expand_integrator" ] },
+            "level_start": { "functions": [ "level_start_integrator" ] },
+            "reflect": { "functions": [ "reflect_switch" ] },
+            "reflect_levels": { "functions": [ "reflect_level_switch" ] }
         },
         {
             "name": "kaleidoscope_cartesian",
             "type": "eff_composite",
-            "effects": [
-                "kaleidoscope",
-                "cartesian"
-            ]
+            "effects": [ "kaleidoscope", "cartesian" ]
         },
         {
             "name": "radial_multiply",
             "type": "eff_radial_multiply_vec2f",
-            "segments": {
-                "functions": [
-                    "segment_slider"
-                ]
-            },
-            "levels": {
-                "functions": [
-                    "level_slider"
-                ]
-            },
-            "spin": {
-                "functions": [
-                    "spin_integrator"
-                ]
-            },
-            "expand": {
-                "functions": [
-                    "expand_integrator"
-                ]
-            },
-            "reflect": {
-                "functions": [
-                    "reflect_switch"
-                ]
-            },
-            "reflect_levels": {
-                "functions": [
-                    "reflect_level_switch"
-                ]
-            }
+            "segments": { "functions": [ "segment_slider" ] },
+            "levels": { "functions": [ "level_slider" ] },
+            "spin": { "functions": [ "spin_integrator" ] },
+            "expand": { "functions": [ "expand_integrator" ] },
+            "reflect": { "functions": [ "reflect_switch" ] },
+            "reflect_levels": { "functions": [ "reflect_level_switch" ] }
         },
-        {
+        { 
             "name": "radial_multiply_cartesian",
             "type": "eff_composite",
-            "effects": [
-                "radial_multiply",
-                "cartesian"
-            ]
+            "effects": [ "radial_multiply", "cartesian" ]
         },
         {
             "name": "identity",
@@ -880,189 +721,74 @@
         {
             "name": "theta_rotate",
             "type": "eff_theta_rotate_vec2f",
-            "angle": {
-                "functions": [
-                    "spin_integrator"
-                ]
-            }
+            "angle": { "functions": [ "spin_integrator" ] }
         },
         {
             "name": "theta_rotate_cartesian",
             "type": "eff_composite",
-            "effects": [
-                "theta_rotate",
-                "cartesian"
-            ]
+            "effects": [ "theta_rotate", "cartesian" ]
         },
         {
             "name": "radial_tile",
             "type": "eff_radial_tile_vec2f",
-            "segments": {
-                "functions": [
-                    "segment_slider"
-                ]
-            },
-            "levels": {
-                "functions": [
-                    "level_slider"
-                ]
-            },
+            "segments": { "functions": [ "segment_slider" ] },
+            "levels": { "functions": [ "level_slider" ] },
             "offset_x": 0.0,
             "offset_y": 0.0,
-            "spin": {
-                "functions": [
-                    "spin_integrator"
-                ]
-            },
-            "expand": {
-                "functions": [
-                    "expand_integrator"
-                ]
-            },
+            "spin": { "functions": [ "spin_integrator" ] },
+            "expand": { "functions": [ "expand_integrator" ] },
             "zoom_x": 1.0,
             "zoom_y": 1.0,
-            "reflect_x": {
-                "functions": [
-                    "reflect_switch"
-                ]
-            },
-            "reflect_y": {
-                "functions": [
-                    "reflect_level_switch"
-                ]
-            }
+            "reflect_x": { "functions": [ "reflect_switch" ] },
+            "reflect_y": { "functions": [ "reflect_level_switch" ] }
         },
         {
             "name": "theta_swirl",
             "type": "eff_theta_swirl_vec2f",
-            "amount": {
-                "functions": [
-                    "swirl_integrator_with_audio"
-                ]
-            }
+            "amount": { "functions": [ "swirl_slider" ] }
         },
         {
             "name": "theta rings",
             "type": "eff_theta_rings_vec2f",
-            "n": {
-                "functions": [
-                    "rings_slider"
-                ]
-            },
-            "swirl": {
-                "functions": [
-                    "swirl_integrator_with_audio"
-                ]
-            },
-            "alternate": {
-                "functions": [
-                    "alternate_integrator"
-                ]
-            }
+            "n": { "functions": [ "rings_slider" ] },
+            "swirl": { "functions": [ "swirl_slider" ] },
+            "alternate": { "functions": [ "alternate_slider" ] }
         },
         {
             "name": "theta waves",
             "type": "eff_theta_waves_vec2f",
-            "freq": {
-                "functions": [
-                    "freq_slider"
-                ]
-            },
-            "amp": {
-                "functions": [
-                    "amp_slider"
-                ]
-            },
-            "phase": {
-                "functions": [
-                    "phase_integrator"
-                ]
-            },
-            "const_amp": {
-                "functions": [
-                    "const_amp_switch"
-                ]
-            }
+            "freq": { "functions": [ "freq_slider" ] },
+            "amp": { "functions": [ "amp_slider" ] },
+            "phase": { "functions": [ "phase_integrator" ] },
+            "const_amp": { "functions": [ "const_amp_switch" ] }
         },
         {
             "name": "theta saw",
             "type": "eff_theta_saw_vec2f",
-            "freq": {
-                "functions": [
-                    "freq_slider"
-                ]
-            },
-            "amp": {
-                "functions": [
-                    "amp_slider"
-                ]
-            },
-            "phase": {
-                "functions": [
-                    "phase_integrator"
-                ]
-            },
-            "const_amp": {
-                "functions": [
-                    "const_amp_switch"
-                ]
-            }
+            "freq": { "functions": [ "freq_slider" ] },
+            "amp": { "functions": [ "amp_slider" ] },
+            "phase": { "functions": [ "phase_integrator" ] },
+            "const_amp": { "functions": [ "const_amp_switch" ] }
         },
         {
             "name": "theta compression waves",
             "type": "eff_theta_compression_waves_vec2f",
-            "freq": {
-                "functions": [
-                    "freq_slider"
-                ]
-            },
-            "amp": {
-                "functions": [
-                    "amp_slider"
-                ]
-            },
-            "phase": {
-                "functions": [
-                    "phase_integrator"
-                ]
-            },
-            "const_amp": {
-                "functions": [
-                    "const_amp_switch"
-                ]
-            }
+            "freq": { "functions": [ "freq_slider" ] },
+            "amp": { "functions": [ "amp_slider" ] },
+            "phase": { "functions": [ "phase_integrator" ] },
+            "const_amp": { "functions": [ "const_amp_switch" ] }
         },
         {
             "name": "scope_chooser",
             "type": "eff_chooser",
-            "effects": [
-                "theta_rotate_cartesian",
-                "kaleidoscope_cartesian",
-                "radial_multiply_cartesian",
-                "radial_tile"
-            ],
-            "choice": {
-                "functions": [
-                    "scope_menu"
-                ]
-            }
+            "effects": [ "theta_rotate_cartesian", "kaleidoscope_cartesian", "radial_multiply_cartesian", "radial_tile" ],
+            "choice": { "functions": [ "scope_menu" ] }
         },
         {
             "name": "funky chooser",
             "type": "eff_chooser",
-            "effects": [
-                "identity",
-                "theta_swirl",
-                "theta rings",
-                "theta waves",
-                "theta saw",
-                "theta compression waves"
-            ],
-            "choice": {
-                "functions": [
-                    "funky_menu"
-                ]
-            }
+            "effects": [ "identity", "theta_swirl", "theta rings", "theta waves", "theta saw", "theta compression waves" ],
+            "choice": { "functions": [ "funky_menu" ] }
         },
         {
             "name": "fill warp field",
@@ -1083,182 +809,93 @@
             "type": "eff_hsv_to_rgb_ucolor"
         }
     ],
-    "queue": [
+    "queue": 
+    [
         {
             "name": "base radial field",
             "self_generated": true,
-            "dim": {
-                "functions": [
-                    "source_image_dim"
-                ]
-            },
+            "dim": { "functions": [ "source_image_dim" ] },
             "type": "vector_field",
             "mode": "static",
-            "effects": [
-                "position fill",
-                "radial"
-            ]
+            "effects": [ "position fill", "radial" ]
         },
         {
             "name": "kaleido_vf",
             "source": "base radial field",
             "type": "vector_field",
-            "mode": "ephemeral",
-            "effects": [
-                "funky chooser",
-                "scope_chooser"
-            ]
+            "mode": "ephemeral",  
+            "effects": [ "funky chooser", "scope_chooser" ]
         },
         {
             "name": "warper",
             "self_generated": true,
-            "dim": {
-                "functions": [
-                    "source_image_dim"
-                ]
-            },
+            "dim": { "functions": [ "source_image_dim" ] },
             "type": "warp_field",
-            "mode": "ephemeral",
-            "effects": [
-                "fill warp field"
-            ]
+            "mode": "ephemeral",  
+            "effects": [ "fill warp field" ]
         },
         {
             "name": "warped_image",
-            "source": {
-                "functions": [
-                    "source_image_menu"
-                ]
-            },
+            "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
-            "mode": "ephemeral",
-            "effects": [
-                "warp image"
-            ]
+            "mode": "ephemeral",  
+            "effects": [ "warp image" ]
         }
     ],
-    "widget groups": [
+    "widget groups":
+    [
         {
             "name": "home_group",
-            "widgets": [
-                "autoplay_switch",
-                "autoplay_intensity",
-                "scope_menu",
-                "funky_menu"
-            ]
+            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch", "autoplay_intensity" ]
         },
         {
             "name": "source_image_group",
-            "widgets": [
-                "source_image_menu"
-            ]
+            "widgets": [ "source_image_menu" ]
         },
         {
             "name": "none_group",
-            "conditions": [
-                "scope_menu_0"
-            ],
-            "widgets": [
-                "spin_slider"
-            ]
+            "conditions": [ "scope_menu_0" ],
+            "widgets": [ "spin_slider"]
         },
         {
             "name": "kaleido_group",
-            "conditions": [
-                "scope_menu_1"
-            ],
-            "widgets": [
-                "segment_slider",
-                "start_slider",
-                "spin_slider",
-                "level_slider",
-                "expand_slider",
-                "level_start_slider",
-                "reflect_switch",
-                "reflect_level_switch"
-            ]
+            "conditions": [ "scope_menu_1" ],
+            "widgets": [ "segment_slider",  "start_slider",  "spin_slider", "level_slider", "expand_slider", "level_start_slider", "reflect_switch", "reflect_level_switch" ]
         },
         {
             "name": "multiples_group",
-            "conditions": [
-                "scope_menu_2"
-            ],
-            "widgets": [
-                "segment_slider",
-                "level_slider",
-                "spin_slider",
-                "expand_slider",
-                "reflect_switch",
-                "reflect_level_switch"
-            ]
+            "conditions": [ "scope_menu_2" ],
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
         },
         {
             "name": "tile_group",
             "conditions": "scope_menu_3",
-            "widgets": [
-                "segment_slider",
-                "level_slider",
-                "spin_slider",
-                "expand_slider",
-                "reflect_switch",
-                "reflect_level_switch"
-            ]
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
         },
         {
             "name": "swirl_group",
-            "conditions": [
-                "funky_menu_1"
-            ],
-            "widgets": [
-                "swirl_slider"
-            ]
+            "conditions": [ "funky_menu_1" ],
+            "widgets": [ "swirl_slider" ]
         },
         {
             "name": "rings_group",
-            "conditions": [
-                "funky_menu_2"
-            ],
-            "widgets": [
-                "swirl_slider",
-                "alternate_slider",
-                "rings_slider"
-            ]
+            "conditions": [ "funky_menu_2" ],
+            "widgets": [ "swirl_slider", "alternate_slider", "rings_slider" ]
         },
         {
             "name": "waves_group",
-            "conditions": [
-                "funky_menu_3"
-            ],
-            "widgets": [
-                "freq_slider",
-                "amp_slider",
-                "phase_slider",
-                "const_amp_switch"
-            ]
+            "conditions": [ "funky_menu_3" ],
+            "widgets": [ "freq_slider", "amp_slider", "phase_slider", "const_amp_switch" ]
         },
         {
             "name": "saw_group",
-            "conditions": [
-                "funky_menu_4"
-            ],
-            "widgets": [
-                "freq_slider",
-                "amp_slider",
-                "phase_slider",
-                "const_amp_switch"
-            ]
+            "conditions": [ "funky_menu_4" ],
+            "widgets": [ "freq_slider", "amp_slider", "phase_slider", "const_amp_switch" ]
         },
         {
             "name": "smoosh_group",
-            "conditions": [
-                "funky_menu_5"
-            ],
-            "widgets": [
-                "freq_slider",
-                "amp_slider",
-                "phase_slider",
-                "const_amp_switch"
-            ]
+            "conditions": [ "funky_menu_5" ],
+            "widgets": [ "freq_slider", "amp_slider", "phase_slider", "const_amp_switch" ]
         }
     ]
 }
