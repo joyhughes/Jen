@@ -4,6 +4,7 @@ import ControlPanel from "./ControlPanel";
 import ImagePort from "./ImagePort";
 import {SceneProvider} from './SceneContext';
 import {PaneContext} from "./panes/PaneContext.jsx";
+import {AudioProvider} from './AudioContext';
 
 // Create a context for control panel state
 export const ControlPanelContext = React.createContext();
@@ -22,14 +23,21 @@ function InterfaceContainer({panelSize}) {
     const handleSliderChange = (name, value) => {
         setSliderValues(prev => {
             const newValues = { ...prev, [name]: value };
-            // Only update backend when values actually change from user interaction
+            
+            if (window.module && typeof window.module.get_animation_running === 'function') {
+                const isRunning = window.module.get_animation_running();
+                if (!isRunning) {
+                    console.log(`[InterfaceContainer] Animation paused - not sending slider ${name} = ${value} to backend`);
+                    return newValues;
+                }
+            }
+            
+            // Only update backend when values actually change from user interaction and animation is running
             if (window.module && prev[name] !== value) {
                 try {
-                    // Handle range sliders vs single sliders differently
                     if (Array.isArray(value) && value.length === 2) {
                         // For range sliders, call set_range_slider_value with two separate parameters
                         if (typeof window.module.set_range_slider_value === 'function') {
-                            // Ensure values are proper numbers
                             const val1 = parseFloat(value[0]);
                             const val2 = parseFloat(value[1]);
                             
@@ -53,7 +61,18 @@ function InterfaceContainer({panelSize}) {
             }
             return newValues;
         });
+        
+        // Notify audio system about manual slider changes
+        if (window.audioHook && window.audioHook.handleManualSliderChange) {
+            window.audioHook.handleManualSliderChange(name, value);
+        }
     };
+
+    // Expose slider values globally for audio system access
+    useEffect(() => {
+        window.reactSliderValues = sliderValues;
+        console.log('🎵 📊 Updated global slider values:', sliderValues);
+    }, [sliderValues]);
 
     // Trigger UI reset - this will cause all widgets to refresh their values
     const triggerReset = () => {
@@ -222,44 +241,46 @@ function InterfaceContainer({panelSize}) {
 
     return (
         <SceneProvider>
-            <PaneContext.Provider value={paneContextValue}>
-                <ControlPanelContext.Provider value={controlPanelContextValue}>
-                    <Box
-                        ref={containerRef}
-                        sx={{
-                            display: "flex",
-                            flexDirection: isRowDirection ? "column" : "row",
-                            width: "100vw",
-                            height: "100vh",
-                            top: 0,
-                            left: 0,
-                            justifyContent: "center",
-                            alignItems: "center",
-                            overflow: "hidden",
-                            background: "#121212"
-                        }}
-                    >
+            <AudioProvider>
+                <PaneContext.Provider value={paneContextValue}>
+                    <ControlPanelContext.Provider value={controlPanelContextValue}>
                         <Box
+                            ref={containerRef}
                             sx={{
                                 display: "flex",
+                                flexDirection: isRowDirection ? "column" : "row",
+                                width: "100vw",
+                                height: "100vh",
+                                top: 0,
+                                left: 0,
                                 justifyContent: "center",
                                 alignItems: "center",
-                                width: isRowDirection ? "100%" : "auto",
-                                height: isRowDirection ? "auto" : "100%"
+                                overflow: "hidden",
+                                background: "#121212"
                             }}
                         >
-                            <ImagePort dimensions={imagePortDimensions}/>
-                        </Box>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    width: isRowDirection ? "100%" : "auto",
+                                    height: isRowDirection ? "auto" : "100%"
+                                }}
+                            >
+                                <ImagePort dimensions={imagePortDimensions}/>
+                            </Box>
 
-                        <ControlPanel
-                            dimensions={controlPanelDimensions}
-                            panelSize={panelSize}
-                            activePane={activePane}
-                            onPaneChange={handlePaneChange}
-                        />
-                    </Box>
-                </ControlPanelContext.Provider>
-            </PaneContext.Provider>
+                            <ControlPanel
+                                dimensions={controlPanelDimensions}
+                                panelSize={panelSize}
+                                activePane={activePane}
+                                onPaneChange={handlePaneChange}
+                            />
+                        </Box>
+                    </ControlPanelContext.Provider>
+                </PaneContext.Provider>
+            </AudioProvider>
         </SceneProvider>
     );
 }

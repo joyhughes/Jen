@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState, useMemo} from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
@@ -8,19 +8,19 @@ import WidgetGroup from '../WidgetGroup';
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
     const containerRef = useRef(null);
-    const [containerWidth, setContainerWidth] = useState(0);
+    const [containerWidth, setContainerWidth] = useState(null);
 
-    // Use ResizeObserver to detect actual width changes
+    // Set up ResizeObserver to track container width
     useEffect(() => {
-        if (!containerRef.current) return;
-
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 setContainerWidth(entry.contentRect.width);
             }
         });
 
-        resizeObserver.observe(containerRef.current);
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
+        }
 
         return () => {
             if (containerRef.current) {
@@ -29,8 +29,8 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         };
     }, []);
 
-    // Calculate responsive breakpoints for the group masonry layout
-    const getBreakpointColumns = () => {
+    // Calculate responsive breakpoints for the group masonry layout - MEMOIZED
+    const breakpointColumns = useMemo(() => {
         // Minimum width for a group column
         const MIN_GROUP_WIDTH = 300;
 
@@ -47,9 +47,10 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
             600: 1                         // Single column on small screens
         };
 
+        // Only log when values actually change
         console.log("Home group breakpoints:", breakpoints, "Available width:", availableWidth);
         return breakpoints;
-    };
+    }, [containerWidth, panelSize]); // Only recalculate when width changes
 
     // Filter out any group that has image picker widgets for the Home pane
     const nonImageGroups = activeGroups.filter(group => {
@@ -141,7 +142,7 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
     };
 
     const renderWidgetGroup = (groupedWidget, index) => {
-        const breakpoints = getBreakpointColumns();
+        const breakpoints = breakpointColumns;
         const panelWidth = (containerWidth || panelSize) / breakpoints.default;
 
         if (groupedWidget.type === 'row') {

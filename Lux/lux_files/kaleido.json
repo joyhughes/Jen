@@ -65,6 +65,111 @@
             "default_value": false
         },
         {
+            "name": "autoplay_intensity",
+            "type": "slider_float",
+            "label": "Autoplay Sensitivity",
+            "description": "Controls how often autoplay makes changes (1=slowest, 5=fastest)",
+            "min": 1,
+            "max": 5,
+            "step": 0.1,
+            "default_value": 2.0
+        },
+        {
+            "name": "autoplay_probability",
+            "type": "constant_float",
+            "value": 0.0001
+        },
+        {
+            "name": "gentle_audio_boost",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.15,
+            "volume_sensitivity": 0.4,
+            "bass_channel": "bass",
+            "bass_weight": 0.12,
+            "bass_sensitivity": 0.3,
+            "mid_channel": "mid",
+            "mid_weight": 0.08,
+            "mid_sensitivity": 0.2,
+            "high_channel": "high",
+            "high_weight": 0.1,
+            "high_sensitivity": 0.25,
+            "offset": 0.0,
+            "global_sensitivity": 0.5
+        },
+        {
+            "name": "controlled_spin_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.3,
+            "volume_sensitivity": 0.6,
+            "bass_channel": "bass",
+            "bass_weight": 0.0,
+            "bass_sensitivity": 1.0,
+            "mid_channel": "mid",
+            "mid_weight": 0.2,
+            "mid_sensitivity": 0.4,
+            "high_channel": "high",
+            "high_weight": 0.0,
+            "high_sensitivity": 1.0,
+            "offset": 0.0,
+            "global_sensitivity": 1.0
+        },
+        {
+            "name": "controlled_expand_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.25,
+            "volume_sensitivity": 0.5,
+            "bass_channel": "bass",
+            "bass_weight": 0.2,
+            "bass_sensitivity": 0.4,
+            "mid_channel": "mid",
+            "mid_weight": 0.0,
+            "mid_sensitivity": 1.0,
+            "high_channel": "high",
+            "high_weight": 0.0,
+            "high_sensitivity": 1.0,
+            "offset": 0.0,
+            "global_sensitivity": 0.8
+        },
+        {
+            "name": "controlled_swirl_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.4,
+            "volume_sensitivity": 0.8,
+            "bass_channel": "bass",
+            "bass_weight": 0.3,
+            "bass_sensitivity": 0.6,
+            "mid_channel": "mid",
+            "mid_weight": 0.0,
+            "mid_sensitivity": 1.0,
+            "high_channel": "high",
+            "high_weight": 0.0,
+            "high_sensitivity": 1.0,
+            "offset": 0.0,
+            "global_sensitivity": 1.2
+        },
+        {
+            "name": "controlled_phase_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.2,
+            "volume_sensitivity": 0.4,
+            "bass_channel": "bass",
+            "bass_weight": 0.0,
+            "bass_sensitivity": 1.0,
+            "mid_channel": "mid",
+            "mid_weight": 0.0,
+            "mid_sensitivity": 1.0,
+            "high_channel": "high",
+            "high_weight": 0.15,
+            "high_sensitivity": 0.3,
+            "offset": 0.0,
+            "global_sensitivity": 0.6
+        },
+        {
             "name": "segment_tweaker",
             "type": "tweaker_float",
             "p": 0.01,
@@ -74,7 +179,7 @@
         {
             "name": "segment_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -96,7 +201,7 @@
         {
             "name": "level_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 1.0,
             "b": 2.0,
             "min": 1,
@@ -118,7 +223,7 @@
         {
             "name": "level_start_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -140,7 +245,7 @@
         {
             "name": "start_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -162,7 +267,7 @@
         {
             "name": "expand_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -179,12 +284,17 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "expand_generator" ] }
+            "value": { 
+                "functions": [ 
+                    "expand_generator",
+                    "controlled_expand_audio"
+                ]
+            }
         },
         {
             "name": "spin_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -201,12 +311,17 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "spin_generator" ] }
+            "value": { 
+                "functions": [ 
+                    "spin_generator",
+                    "controlled_spin_audio"
+                ]
+            }
         },
         {
             "name": "scope_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0,
             "b": 3,
             "min": 0,
@@ -252,7 +367,7 @@
         {
             "name": "funky_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0,
             "b": 5,
             "min": 0,
@@ -310,7 +425,7 @@
         {
             "name": "swirl_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": -360.0,
             "b": 360.0,
             "min": -360.0,
@@ -327,12 +442,17 @@
             "max": 360.0,
             "step": 1,
             "default_value": 60.0,
-            "value": { "functions": [ "swirl_generator" ] }
+            "value": { 
+                "functions": [ 
+                    "swirl_generator",
+                    "controlled_swirl_audio"
+                ]
+            }
         },
         {
             "name": "alternate_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": -180.0,
             "b": 180.0,
             "min": -180.0,
@@ -354,7 +474,7 @@
         {
             "name": "rings_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 10.0,
             "b": 1.0,
             "min": 1,
@@ -376,7 +496,7 @@
         {
             "name": "freq_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -398,7 +518,7 @@
         {
             "name": "amp_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -420,7 +540,7 @@
         {
             "name": "phase_generator",
             "type": "generator_float",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0.0,
             "b": 20.0,
             "min": -1000000,
@@ -437,12 +557,17 @@
             "max": 20,
             "step": 0.5,
             "default_value": 0.0,
-            "value": { "functions": [ "phase_generator" ] }
+            "value": { 
+                "functions": [ 
+                    "phase_generator",
+                    "controlled_phase_audio"
+                ]
+            }
         },
         {
             "name": "const_amp_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -491,7 +616,7 @@
         {
             "name": "reflect_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -505,7 +630,7 @@
         {
             "name": "reflect_level_toggle",
             "type": "random_toggle",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -519,7 +644,7 @@
         {
             "name": "source_image_menu_generator",
             "type": "generator_int",
-            "p": 0.0001,
+            "p": { "functions": [ "autoplay_probability" ] },
             "a": 0,
             "b": 9,
             "min": 0,
@@ -721,7 +846,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch" ]
+            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch", "autoplay_intensity" ]
         },
         {
             "name": "source_image_group",

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {
   Alert,
   Box,
@@ -22,14 +22,18 @@ import {
   Camera
 } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
+import { useScene } from './SceneContext';
 
 function MediaController({ isOverlay = false }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(true); // Start playing by default to match backend
   
   // Get reset functionality from context
   const { triggerReset } = React.useContext(ControlPanelContext);
+  
+  // Get scene context to listen for scene changes
+  const { sceneChangeTrigger } = useScene();
 
   // Video recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -66,82 +70,94 @@ function MediaController({ isOverlay = false }) {
     }
   };
 
-  // Enhanced mobile device detection with logging
-  const isMobileDevice = () => {
+  // Enhanced mobile device detection with logging - MEMOIZED to prevent infinite re-renders
+  const isMobileDevice = useMemo(() => {
     const userAgent = navigator.userAgent;
     const hasTouch = navigator.maxTouchPoints && navigator.maxTouchPoints > 2;
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
 
-    mobileLog('Device detection:', {
-      userAgent: userAgent,
-      maxTouchPoints: navigator.maxTouchPoints,
-      hasTouch: hasTouch,
-      isMobileUA: isMobileUA,
-      result: isMobileUA || hasTouch
-    });
+    const result = isMobileUA || hasTouch;
+    console.log('[MediaController] Device detection (memoized):', { result, userAgent: userAgent.slice(0, 50) + '...' });
 
-    return isMobileUA || hasTouch;
-  };
+    return result;
+  }, []); // Empty deps - only calculate once
 
-  // Safe feature detection for camera roll saving
-  const supportsCameraRollSave = () => {
+  // Safe feature detection for camera roll saving - MEMOIZED to prevent infinite re-renders
+  const cameraRollSupport = useMemo(() => {
     try {
-      mobileLog('Checking camera roll save support...');
+      console.log('[MediaController] Checking camera roll support (memoized)...');
 
       // Check for Web Share API (iOS Safari, Android Chrome)
       const hasWebShare = typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
-      mobileLog('Web Share API available:', hasWebShare);
-
+      
       // Check for File System Access API (Android Chrome)
       const hasFileSystem = typeof window.showSaveFilePicker === 'function';
-      mobileLog('File System Access API available:', hasFileSystem);
-
+      
       // Check for iOS
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      mobileLog('iOS detected:', isIOS);
-
+      
       // Check for Android
       const isAndroid = /Android/.test(navigator.userAgent);
-      mobileLog('Android detected:', isAndroid);
 
+      let result = null;
       if (hasWebShare) {
-        mobileLog('Using Web Share API');
-        return 'webshare';
+        result = 'webshare';
+      } else if (hasFileSystem) {
+        result = 'filesystem';
+      } else if (isIOS) {
+        result = 'ios-fallback';
+      } else if (isAndroid) {
+        result = 'android-fallback';
       }
 
-      if (hasFileSystem) {
-        mobileLog('Using File System Access API');
-        return 'filesystem';
-      }
-
-      if (isIOS) {
-        mobileLog('Using iOS fallback');
-        return 'ios-fallback';
-      }
-
-      if (isAndroid) {
-        mobileLog('Using Android fallback');
-        return 'android-fallback';
-      }
-
-      mobileLog('No camera roll support detected');
-      return null;
+      console.log('[MediaController] Camera roll support (memoized):', result);
+      return result;
     } catch (error) {
-      mobileLog('ERROR in supportsCameraRollSave:', error.message);
+      console.error('[MediaController] Error in camera roll detection:', error.message);
       return null;
     }
-  };
+  }, []); // Empty deps - only calculate once
 
   // Update ref when state changes
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
+  // Sync frontend running state with backend state on mount and when scenes change
+  useEffect(() => {
+    const syncWithBackend = () => {
+      if (window.module && typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        console.log('[MediaController] Syncing with backend animation state:', backendRunning);
+        setIsRunning(backendRunning);
+      }
+    };
+
+    // Sync immediately
+    syncWithBackend();
+
+    // Set up interval to sync periodically (in case scene changes externally)
+    const syncInterval = setInterval(syncWithBackend, 1000);
+
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, []);
+
+  // Sync when scene changes
+  useEffect(() => {
+    if (window.module && typeof window.module.get_animation_running === 'function') {
+      const backendRunning = window.module.get_animation_running();
+      console.log('[MediaController] Scene changed - syncing animation state:', backendRunning);
+      setIsRunning(backendRunning);
+    }
+  }, [sceneChangeTrigger]);
+
   // Initialize worker on component mount
   useEffect(() => {
     mobileLog('MediaController initializing...');
     mobileLog('Component mount - device info:', {
-      isMobile: isMobileDevice(),
+      isMobile: isMobileDevice,
       userAgent: navigator.userAgent,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       devicePixelRatio: window.devicePixelRatio
@@ -204,7 +220,7 @@ function MediaController({ isOverlay = false }) {
 
       mobileLog('MediaController cleanup complete');
     };
-  }, []); // Empty dependency array since we only want to initialize once
+  }, []);
 
   // Update elapsed time during recording
   useEffect(() => {
@@ -427,13 +443,13 @@ function MediaController({ isOverlay = false }) {
   // Handle media controls
   const handleRestart = () => {
     if (window.module && triggerReset) {
-      // Reset all scene parameters to defaults first
+      // First restart the scene (resets time to 0.0f)
+      window.module.restart();
+      
+      // Then reset all scene parameters to defaults (this will trigger integrator reset due to time change)
       if (typeof window.module.reset_scene_parameters === 'function') {
         //window.module.reset_scene_parameters();
       }
-      
-      // Then restart the scene
-      window.module.restart();
       
       // Trigger UI reset to refresh all widget displays
       triggerReset();
@@ -445,16 +461,30 @@ function MediaController({ isOverlay = false }) {
   const handleAdvance = () => {
     if (window.module && typeof window.module.advance_frame === 'function') {
       window.module.advance_frame();
-      setIsRunning(false); // Update UI state to reflect that we're now paused
-      showNotification('Advanced one frame', 'info');
+      
+      // Sync with backend state after calling advance_frame
+      if (typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        setIsRunning(backendRunning);
+      } else {
+        // Fallback: advance_frame should pause animation
+        setIsRunning(false);
+      }
     }
   };
 
   const handleRunPause = () => {
     if (window.module && typeof window.module.run_pause === 'function') {
       window.module.run_pause();
-      setIsRunning(!isRunning); // Toggle UI state
-      showNotification(isRunning ? 'Paused' : 'Playing', 'info');
+      
+      // Sync with backend state after calling run_pause
+      if (typeof window.module.get_animation_running === 'function') {
+        const backendRunning = window.module.get_animation_running();
+        setIsRunning(backendRunning);
+      } else {
+        // Fallback to toggle if get_animation_running is not available
+        setIsRunning(!isRunning);
+      }
     }
   };
 
@@ -960,11 +990,11 @@ function MediaController({ isOverlay = false }) {
 
   // Recording tooltip
   const getRecordingTooltip = () => {
-    if (!isRecording) {
-      const mobile = isMobileDevice();
-      const saveType = supportsCameraRollSave();
+          if (!isRecording) {
+        const mobile = isMobileDevice;
+        const saveType = cameraRollSupport;
 
-      if (mobile && saveType) {
+        if (mobile && saveType) {
         switch (saveType) {
           case 'webshare':
             return "Start Recording (saves to camera roll via share)";
@@ -989,12 +1019,12 @@ function MediaController({ isOverlay = false }) {
   const saveToMobileCameraRoll = async (blob, filename) => {
     mobileLog('=== SAVING TO MOBILE CAMERA ROLL ===');
     mobileLog('Device detection:', {
-      isMobile: isMobileDevice(),
+      isMobile: isMobileDevice,
       userAgent: navigator.userAgent,
-      supportType: supportsCameraRollSave()
+      supportType: cameraRollSupport
     });
 
-    const supportType = supportsCameraRollSave();
+    const supportType = cameraRollSupport;
 
     try {
       switch (supportType) {
@@ -1190,7 +1220,7 @@ function MediaController({ isOverlay = false }) {
           mobileLog('Standard download URL cleaned up');
         }, 5000);
 
-        if (isMobileDevice()) {
+        if (isMobileDevice) {
           showNotification('Video downloaded! Check your Downloads folder', 'info');
         } else {
           showNotification('Video downloaded!', 'success');
@@ -1273,7 +1303,7 @@ function MediaController({ isOverlay = false }) {
               )}
 
               {/* Mobile camera roll indicator */}
-              {!isRecording && !isProcessing && isMobileDevice() && supportsCameraRollSave() && (
+                              {!isRecording && !isProcessing && isMobileDevice && cameraRollSupport && (
                 <Box
                   sx={{
                     position: 'absolute',

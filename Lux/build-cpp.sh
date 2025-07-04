@@ -2,8 +2,28 @@
 
 # Incremental C++ Build Script for Jen
 # Only rebuilds changed source files
+# Usage: ./build-cpp.sh [--force]
 
+# Exit immediately if any command fails
 set -e
+# Exit if any command in a pipeline fails
+set -o pipefail
+# Exit if any undefined variable is used
+set -u
+
+# Error trap to provide helpful information when script fails
+error_trap() {
+    local exit_code=$?
+    echo -e "\n${RED}❌ BUILD FAILED!${NC}"
+    echo -e "${RED}   Exit code: $exit_code${NC}"
+    echo -e "${RED}   Line: $1${NC}"
+    echo -e "${RED}   Command: $2${NC}"
+    echo -e "${YELLOW}💡 Check the error messages above for details${NC}"
+    exit $exit_code
+}
+
+# Set up error trap
+trap 'error_trap $LINENO "$BASH_COMMAND"' ERR
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -12,10 +32,30 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+# Check for force flag - handle undefined variables safely  
+FORCE_REBUILD=false
+if [[ "${1:-}" == "--force" || "${1:-}" == "-f" ]]; then
+    FORCE_REBUILD=true
+    echo -e "${RED}🔥 FORCE REBUILD MODE - Rebuilding everything${NC}"
+else
+    echo -e "${BLUE}🔨 Incremental C++ Build for Jen${NC}"
+fi
+
+# Show JSON files being tracked
+if [[ -d "lux_files" ]]; then
+    json_count=$(find lux_files -name "*.json" -type f | wc -l)
+    if [[ $json_count -gt 0 ]]; then
+        echo -e "${BLUE}📄 Tracking $json_count JSON configuration files${NC}"
+    fi
+fi
 
 # Source Emscripten environment
-source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1
+echo -e "${BLUE}🔧 Setting up Emscripten environment...${NC}"
+if ! source /opt/emsdk/emsdk_env.sh > /dev/null; then
+    echo -e "${RED}❌ ERROR: Failed to source Emscripten environment${NC}"
+    echo -e "${RED}   Make sure emsdk is properly installed at /opt/emsdk/${NC}"
+    exit 1
+fi
 
 # Directories
 SRC_DIR="/app/src"
@@ -29,9 +69,21 @@ mkdir -p "$BUILD_DIR"
 STB_DIR="/app/stb_image"
 if [[ ! -d "$STB_DIR" || ! -f "$STB_DIR/stb_image.h" ]]; then
     echo -e "${YELLOW}📥 Downloading STB image library...${NC}"
-    mkdir -p "$STB_DIR"
-    wget -q -O "$STB_DIR/stb_image.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image.h
-    wget -q -O "$STB_DIR/stb_image_write.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h
+    mkdir -p "$STB_DIR" || {
+        echo -e "${RED}❌ ERROR: Failed to create STB directory: $STB_DIR${NC}"
+        exit 1
+    }
+    
+    if ! wget -q -O "$STB_DIR/stb_image.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image.h; then
+        echo -e "${RED}❌ ERROR: Failed to download stb_image.h${NC}"
+        exit 1
+    fi
+    
+    if ! wget -q -O "$STB_DIR/stb_image_write.h" https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h; then
+        echo -e "${RED}❌ ERROR: Failed to download stb_image_write.h${NC}"
+        exit 1
+    fi
+    
     echo -e "${GREEN}✓ STB image library downloaded${NC}"
 fi
 
@@ -54,10 +106,42 @@ CORE_SOURCES="lux_web video_recorder"
 # FFmpeg linking flags
 FFMPEG_LIBS="-L/app/external/build/lib -lavcodec -lavformat -lavutil -lswscale -lswresample -lx264"
 
+# Function to check if JSON configs have changed
+check_json_changes() {
+    local json_timestamp_file="$BUILD_DIR/.json_timestamp"
+    local current_json_hash=""
+    
+    # Calculate hash of all JSON files in lux_files
+    if [[ -d "lux_files" ]]; then
+        current_json_hash=$(find lux_files -name "*.json" -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+    fi
+    
+    # Check if JSON hash has changed
+    if [[ -f "$json_timestamp_file" ]]; then
+        local stored_hash=$(cat "$json_timestamp_file" 2>/dev/null || echo "")
+        if [[ "$current_json_hash" != "$stored_hash" ]]; then
+            echo -e "${YELLOW}📄 JSON configuration files changed${NC}"
+            echo "$current_json_hash" > "$json_timestamp_file"
+            return 0  # JSON changed, need rebuild
+        fi
+    else
+        echo -e "${YELLOW}📄 First time JSON tracking${NC}"
+        echo "$current_json_hash" > "$json_timestamp_file"
+        return 0  # First time, need rebuild
+    fi
+    
+    return 1  # No JSON changes
+}
+
 # Function to check if source is newer than object
 needs_rebuild() {
     local src_file="$1"
     local obj_file="$2"
+    
+    # Force rebuild if flag is set
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        return 0  # Force rebuild
+    fi
     
     if [[ ! -f "$obj_file" ]]; then
         return 0  # Object doesn't exist, need to build
@@ -90,9 +174,19 @@ compile_file() {
     local src_file="$SRC_DIR/${src_name}.cpp"
     local obj_file="$BUILD_DIR/${src_name}.o"
     
+    # Check if source file exists
+    if [[ ! -f "$src_file" ]]; then
+        echo -e "${RED}❌ ERROR: Source file not found: $src_file${NC}"
+        exit 1
+    fi
+    
     if needs_rebuild "$src_file" "$obj_file"; then
         echo -e "${YELLOW}🔨 Compiling ${src_name}.cpp${NC}"
-        em++ $flags -c "$src_file" -o "$obj_file"
+        if ! em++ $flags -c "$src_file" -o "$obj_file"; then
+            echo -e "${RED}❌ ERROR: Compilation failed for ${src_name}.cpp${NC}"
+            echo -e "${RED}   Command: em++ $flags -c $src_file -o $obj_file${NC}"
+            exit 1
+        fi
         return 0
     else
         echo -e "${GREEN}✓ ${src_name}.cpp up to date${NC}"
@@ -100,14 +194,31 @@ compile_file() {
     fi
 }
 
+# Check if JSON configuration files have changed
+JSON_CHANGED=false
+if check_json_changes; then
+    JSON_CHANGED=true
+fi
+
 # Track if any files were rebuilt
 REBUILT=false
+CPP_FILES_CHANGED=false
+
+# If force rebuild, clean everything
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${RED}🧹 Force rebuild: Cleaning all object files${NC}"
+    rm -f "$BUILD_DIR"/*.o "$BUILD_DIR"/*.d
+    REBUILT=true
+    CPP_FILES_CHANGED=true
+    JSON_CHANGED=true  # Force linking too
+fi
 
 # Compile core files
 echo -e "${BLUE}Building core files...${NC}"
 for src in $CORE_SOURCES; do
     if compile_file "$src" "$BASE_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
@@ -116,6 +227,7 @@ echo -e "${BLUE}Building optimized files...${NC}"
 for src in $O3_SOURCES; do
     if compile_file "$src" "$BASE_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
@@ -124,13 +236,27 @@ echo -e "${BLUE}Building regular files...${NC}"
 for src in $REGULAR_SOURCES; do
     if compile_file "$src" "$SIMD_FLAGS"; then
         REBUILT=true
+        CPP_FILES_CHANGED=true
     fi
 done
 
+# Report what changed
+if [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == false && "$FORCE_REBUILD" == false ]]; then
+    echo -e "${GREEN}📄 Only JSON configs changed - skipping C++ recompilation, relinking only${NC}"
+elif [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == true ]]; then
+    echo -e "${YELLOW}🔄 Both JSON configs and C++ files changed${NC}"
+fi
+
 # Check if final linking is needed
 NEED_LINK=false
-if [[ "$REBUILT" == true ]]; then
+if [[ "$FORCE_REBUILD" == true ]]; then
     NEED_LINK=true
+    echo -e "${RED}🔥 Force rebuild: Will relink${NC}"
+elif [[ "$REBUILT" == true ]]; then
+    NEED_LINK=true
+elif [[ "$JSON_CHANGED" == true ]]; then
+    NEED_LINK=true
+    echo -e "${YELLOW}📄 JSON configs changed, need to relink${NC}"
 elif [[ ! -f "$OUTPUT" ]]; then
     NEED_LINK=true
     echo -e "${YELLOW}📎 Output file missing, need to link${NC}"
@@ -142,17 +268,41 @@ else
             break
         fi
     done
+    
+    # Check if any JSON file is newer than final output
+    if [[ -d "lux_files" ]]; then
+        for json in lux_files/*.json; do
+            if [[ -f "$json" && "$json" -nt "$OUTPUT" ]]; then
+                NEED_LINK=true
+                echo -e "${YELLOW}📄 JSON file $json is newer than output, need to relink${NC}"
+                break
+            fi
+        done
+    fi
 fi
 
 # Link if needed
 if [[ "$NEED_LINK" == true ]]; then
     echo -e "${BLUE}🔗 Linking final WebAssembly...${NC}"
     
+    # Verify object files exist
+    if ! ls "$BUILD_DIR"/*.o 1> /dev/null 2>&1; then
+        echo -e "${RED}❌ ERROR: No object files found in $BUILD_DIR${NC}"
+        exit 1
+    fi
+    
     # Remove any test files that might interfere
     rm -f "$BUILD_DIR"/test_*.o
     
+    # Verify lux_files directory exists
+    if [[ ! -d "lux_files" ]]; then
+        echo -e "${RED}❌ ERROR: lux_files directory not found${NC}"
+        exit 1
+    fi
+    
     # Link all object files
-    em++ "$BUILD_DIR"/*.o -o "$OUTPUT" \
+    echo -e "${BLUE}🔗 Running final link command...${NC}"
+    if ! em++ "$BUILD_DIR"/*.o -o "$OUTPUT" \
         --embed-file lux_files \
         -s MODULARIZE=1 \
         -s SINGLE_FILE=1 \
@@ -175,11 +325,35 @@ if [[ "$NEED_LINK" == true ]]; then
         -flto \
         -s DISABLE_EXCEPTION_CATCHING=1 \
         -msimd128 \
-        -lembind $FFMPEG_LIBS
+        -lembind $FFMPEG_LIBS; then
+        echo -e "${RED}❌ ERROR: Linking failed${NC}"
+        echo -e "${RED}   Output file: $OUTPUT${NC}"
+        exit 1
+    fi
     
-    echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    # Verify output file was created
+    if [[ ! -f "$OUTPUT" ]]; then
+        echo -e "${RED}❌ ERROR: Output file was not created: $OUTPUT${NC}"
+        exit 1
+    fi
+    
+    if [[ "$FORCE_REBUILD" == true ]]; then
+        echo -e "${GREEN}✅ Force rebuild complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    elif [[ "$JSON_CHANGED" == true && "$CPP_FILES_CHANGED" == false ]]; then
+        echo -e "${GREEN}✅ JSON-only relink complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    else
+        echo -e "${GREEN}✅ Build complete: $(du -h "$OUTPUT" | cut -f1)${NC}"
+    fi
 else
     echo -e "${GREEN}✅ Everything up to date!${NC}"
 fi
 
-echo -e "${BLUE}🎉 Incremental build finished!${NC}" 
+if [[ "$FORCE_REBUILD" == true ]]; then
+    echo -e "${BLUE}🎉 Force rebuild finished!${NC}"
+else
+    echo -e "${BLUE}🎉 Incremental build finished!${NC}"
+    echo -e "${BLUE}💡 Tip: Use './build-cpp.sh --force' to rebuild everything${NC}"
+fi
+
+# Clear error trap on successful completion
+trap - ERR 

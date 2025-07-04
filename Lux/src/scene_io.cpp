@@ -5,6 +5,7 @@
 #include "uimage.hpp"
 #include "vector_field.hpp"
 #include "UI.hpp"
+#include "json.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -439,6 +440,15 @@ void scene_reader::read_function( const json& j ) {
     FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
+    // audio function - combines multiple channels and effects
+    FN( audio_adder_fn, float ) 
+        HARNESS( volume_channel ) HARNESS( volume_weight ) HARNESS( volume_sensitivity )
+        HARNESS( bass_channel ) HARNESS( bass_weight ) HARNESS( bass_sensitivity )
+        HARNESS( mid_channel ) HARNESS( mid_weight ) HARNESS( mid_sensitivity )
+        HARNESS( high_channel ) HARNESS( high_weight ) HARNESS( high_sensitivity )
+        HARNESS( offset ) HARNESS( global_sensitivity )
+    END_FN
+
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
     FN( generator_int, int ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
@@ -474,6 +484,7 @@ void scene_reader::read_function( const json& j ) {
     FN( adder_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( ratio_vec2f, vec2f  ) HARNESS( r ) END_FN
     FN( mouse_pos_fn, vec2f ) END_FN
+
 
     // harness vec2i functions
     FN( adder_vec2i, vec2i  ) HARNESS( r ) END_FN
@@ -1149,6 +1160,26 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"default_value", fn->default_value},
                         {"step", fn->step},
                         {"value", *fn->value}
+                    };
+                },
+                [&]( const std::shared_ptr< audio_adder_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "audio_adder_fn"},
+                        {"volume_channel", *fn->volume_channel},
+                        {"volume_weight", *fn->volume_weight},
+                        {"volume_sensitivity", *fn->volume_sensitivity},
+                        {"bass_channel", *fn->bass_channel},
+                        {"bass_weight", *fn->bass_weight},
+                        {"bass_sensitivity", *fn->bass_sensitivity},
+                        {"mid_channel", *fn->mid_channel},
+                        {"mid_weight", *fn->mid_weight},
+                        {"mid_sensitivity", *fn->mid_sensitivity},
+                        {"high_channel", *fn->high_channel},
+                        {"high_weight", *fn->high_weight},
+                        {"high_sensitivity", *fn->high_sensitivity},
+                        {"offset", *fn->offset},
+                        {"global_sensitivity", *fn->global_sensitivity}
                     };
                 },
                 [&]( const auto& fn ) {

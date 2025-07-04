@@ -15,11 +15,11 @@
 #include "video_recorder.hpp"
 #include <chrono>
 
+// Audio data stored in scene's UI context - no separate global audio context needed
+// The frontend SHO/FFT system updates scene parameters directly via the harness system
 
-//#include <chrono>
-//#include <thread>
-
-#define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
+// Audio reactivity is now handled through configuration-based audio_adder_fn functions
+// These are defined in scene JSON files and use the harness system
 
 using namespace emscripten;
 
@@ -202,18 +202,8 @@ void render_and_display( void *arg )
     bool &running = global_context->s->ui.running;
     bool &advance = global_context->s->ui.advance;
     bool &displayed = global_context->s->ui.displayed;
-    //using namespace std::this_thread;     // sleep_for, sleep_until
-    //using namespace std::chrono_literals; // ns, us, ms, s, h, etc.
-    //using std::chrono::system_clock;
 
-    //sleep_until(system_clock::now() + 1s);
-    //emscripten_run_script("console.log('render and display');");
     if( global_context->frame_callback_ready ) {
-        //emscripten_run_script("console.log('callback and bitmaps ready');");
-
-        // Check for dirty buffers (e.g. after source image change)
-        //for( auto q : global_context->s->queue ) if( !q.rendered ) displayed = false;
-
         // Check for buffer resize (e.g. after source image change)
         vec2i dim = global_context->buf->get_image().get_dim();
         if( dim != global_context->buf_dim ) {
@@ -250,10 +240,6 @@ void render_and_display( void *arg )
         displayed = true;
         advance = false;
     }
-    else {
-        //if(!global_context->frame_callback_ready) emscripten_run_script("console.log('callback not ready');");
-        //else emscripten_run_script("console.log('bitmaps not ready');");
-    }
 }
 
 void run_pause() {
@@ -283,6 +269,10 @@ void reset_scene_parameters() {
                     using FnType = std::decay_t<decltype(fn_ptr)>;
                     if constexpr (std::is_same_v<FnType, std::shared_ptr<slider_float>>) {
                         fn_ptr->reset();
+                    }
+                    else if constexpr (std::is_same_v<FnType, std::shared_ptr<integrator_float>>) {
+                        fn_ptr->val = fn_ptr->starting_val;
+                        fn_ptr->last_time = 0.0f;
                     }
                 }, func_wrapper.any_fn_ptr);
             }
@@ -375,6 +365,9 @@ void reset_scene_parameters() {
                  }, fn);
      }
      
+     // Disable audio when resetting to default state
+     global_context->s->ui.audio.enabled = false;
+     
      // Force re-render
      global_context->s->ui.displayed = false;
 }
@@ -416,10 +409,40 @@ void set_slider_value( std::string name, float value ) {
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< float > >( fn ) ) {
             global_context->s->get_fn_ptr< float, slider_float >( name )->value = value;
+            
+            global_context->s->ui.displayed = false;
+            
+            if( global_context->s->ui.running && (
+                name.find("start") != std::string::npos || 
+                name.find("spin") != std::string::npos || 
+                name.find("expand") != std::string::npos ||
+                name.find("phase") != std::string::npos ||
+                name.find("swirl") != std::string::npos ||
+                name.find("alternate") != std::string::npos ||
+                name.find("speed") != std::string::npos ||
+                name.find("rate") != std::string::npos ||
+                name.find("time") != std::string::npos ) ) {
+                global_context->s->ui.running = true;
+            }
             return;
         }
         else if( std::holds_alternative< any_fn< int > >( fn ) ) {
            global_context->s->get_fn_ptr< int, slider_int >( name )->value = (int)std::roundf( value );
+           
+           global_context->s->ui.displayed = false;
+           
+           if( global_context->s->ui.running && (
+               name.find("start") != std::string::npos || 
+               name.find("spin") != std::string::npos || 
+               name.find("expand") != std::string::npos ||
+               name.find("phase") != std::string::npos ||
+               name.find("swirl") != std::string::npos ||
+               name.find("alternate") != std::string::npos ||
+               name.find("speed") != std::string::npos ||
+               name.find("rate") != std::string::npos ||
+               name.find("time") != std::string::npos ) ) {
+               global_context->s->ui.running = true;
+           }
            return;
         }
         throw std::runtime_error( "slider " + name + " invalid type " );
@@ -454,11 +477,13 @@ void set_range_slider_value( std::string name, float value_min, float value_max 
         any_function& fn = global_context->s->functions[ name ];
         if( std::holds_alternative< any_fn< interval_float > >( fn ) ) {
             global_context->s->get_fn_ptr< interval_float, range_slider_float >( name )->value = interval_float( value_min, value_max );
+            global_context->s->ui.displayed = false;
             return;
         }
         else if( std::holds_alternative< any_fn< interval_int > >( fn ) ) {
             //std::cout << "range_slider_int: " << name << " " << value_min << " " << value_max << std::endl;
             global_context->s->get_fn_ptr< interval_int, range_slider_int >( name )->value = interval_int( (int)std::roundf( value_min ), (int)std::roundf( value_max ) );
+            global_context->s->ui.displayed = false;
             return;
         }
         throw std::runtime_error( "range slider " + name + " invalid type " );
@@ -1069,7 +1094,7 @@ void save_camera_image_with_metadata(std::string name, std::string filepath, val
     }
 }
 
-// ULTRA-OPTIMIZED Camera processing with persistent buffers and zero-copy operations
+// Camera processing with persistent buffers and zero-copy operations
 struct UltraCameraContext {
     // Persistent buffers - allocated once, reused forever
     std::shared_ptr<buffer_pair<ucolor>> camera_buffer;
@@ -1247,7 +1272,6 @@ bool ultra_update_camera_frame(val image_data, int width, int height) {
     }
 }
 
-// SCENE-BASED kaleidoscope processing - INTEGRATES WITH FRONTEND CONTROLS
 bool ultra_process_camera_with_kaleidoscope() {
     std::cout << "=== SCENE_INTEGRATED_CAMERA_PROCESSING START ===" << std::endl;
     
@@ -1271,14 +1295,8 @@ bool ultra_process_camera_with_kaleidoscope() {
         
         std::cout << "✓ Camera buffer verified with image data" << std::endl;
         
-        // STEP 2: CRITICAL - Let the scene system do ALL the work!
-        // This is the key insight: the scene automatically reads frontend control values
-        // and applies effects accordingly. We just need to trigger a render.
-        
-        // Ensure camera is selected as source (should already be set by ultra_start_camera_stream)
         std::cout << "Triggering scene render with current frontend settings..." << std::endl;
         
-        // Mark scene as needing refresh to pick up any parameter changes
         global_context->s->ui.displayed = false;
         
         // Execute scene render - this will:
@@ -1449,6 +1467,217 @@ std::string ultra_get_camera_stats() {
     return stats.dump();
 }
 
+// Audio context management functions
+void update_audio_context(float volume, float bass, float mid, float high, bool beat, float time) {
+    if (!global_context || !global_context->s) {
+        std::cout << "🎵 ❌ Audio context update failed: global_context or scene is null" << std::endl;
+        return;
+    }
+    
+    static int log_counter = 0;
+    log_counter++;
+    
+    try {
+        // Update audio values using the audio_data struct method
+        global_context->s->ui.audio.update(volume, bass, mid, high, beat, time);
+        
+        // DIVERSE AUDIO-CONTROLLED EFFECTS FOR PARTY MODE
+        if (global_context->s->ui.audio.is_active()) {
+            
+            // === RESPECT USER'S PAUSE STATE ===
+            // Don't force animation to start when audio is detected - respect user's choice
+            bool should_control_animation = global_context->s->ui.running;
+            
+            // Force continuous redraws for responsiveness when animation is running
+            if (should_control_animation) {
+                global_context->s->ui.displayed = false;
+            }
+            
+            // === SOUND TYPE DETECTION ===
+            float bass_ratio = bass / (volume + 0.001f);    // How bass-heavy
+            float high_ratio = high / (volume + 0.001f);    // How treble-heavy  
+            float mid_ratio = mid / (volume + 0.001f);      // How mid-heavy
+            
+            // Sound type classification
+            bool is_music = (bass_ratio > 0.4f && high_ratio > 0.3f);        // Full spectrum
+            bool is_singing = (mid_ratio > 0.5f && volume > 0.15f);          // Mid-heavy, strong
+            bool is_drums = (bass_ratio > 0.6f && beat);                     // Bass + beat
+            bool is_instrument = (high_ratio > 0.4f && !beat);               // High freq, no beat
+            
+            // === DYNAMIC ANIMATION SPEED CONTROL ===
+            if (should_control_animation) {
+                float speed_base = 1.0f;
+                float sensitivity = 2.5f; // Fixed sensitivity for animation speed control
+                
+                if (is_drums) {
+                    // Drums: Punchy, rhythmic speed changes
+                    speed_base = beat ? 2.5f : 1.2f;
+                } else if (is_singing) {
+                    // Singing: Smooth, voice-following speed
+                    speed_base = 1.0f + (volume * sensitivity * 1.5f);
+                } else if (is_music) {
+                    // Music: Complex speed based on all frequencies
+                    speed_base = 1.0f + ((bass * 0.4f + mid * 0.3f + high * 0.3f) * sensitivity * 1.8f);
+                } else if (is_instrument) {
+                    // Instruments: High-frequency reactive
+                    speed_base = 1.0f + (high * sensitivity * 2.0f);
+                } else {
+                    // General audio - ensure minimum speed boost
+                    speed_base = 1.0f + (volume * sensitivity * 1.2f);
+                }
+                
+                // Clamp speed to reasonable range but ensure minimum boost
+                speed_base = std::max(1.1f, std::min(4.0f, speed_base)); // Minimum 1.1x when audio detected
+                
+                // Apply speed
+                float base_interval = global_context->s->default_time_interval;
+                global_context->s->time_interval = base_interval * speed_base;
+                
+                // Beat-triggered effects: Force extra redraws on beats
+                static bool last_beat = false;
+                if (beat && !last_beat) {
+                    for (int i = 0; i < 5; i++) { 
+                        global_context->s->ui.displayed = false;
+                    }
+                    std::cout << "🥁 BEAT PUNCH! Extra redraws triggered" << std::endl;
+                }
+                last_beat = beat;
+                
+                // High-energy continuous updates - more aggressive
+                if (volume > 0.1f || bass > 0.2f || high > 0.2f) {
+                    // High energy: Force extra visual updates
+                    global_context->s->ui.displayed = false;
+                }
+            }
+            
+        } else {
+            // Reset to default speed when audio is disabled or silent
+            global_context->s->time_interval = global_context->s->default_time_interval;
+        }
+        
+    } catch (const std::exception& e) {
+        std::cout << "🎵 ❌ update_audio_context error: " << e.what() << std::endl;
+    } catch (...) {
+        std::cout << "🎵 ❌ update_audio_context unknown error" << std::endl;
+    }
+}
+
+void enable_audio_input(bool enabled) {
+    if (!global_context || !global_context->s) return;
+    global_context->s->ui.audio.enabled = enabled;
+    
+    // When disabling audio, clear all audio values to prevent residual effects
+    if (!enabled) {
+        global_context->s->ui.audio.reset();
+        std::cout << "🎵 🧹 Audio values cleared on disable" << std::endl;
+    }
+}
+
+void set_audio_sensitivity(float sensitivity) {
+    if (!global_context || !global_context->s) return;
+    // Audio sensitivity is now handled by individual audio functions in the scene
+    std::cout << "🎵 🎛️ Audio sensitivity is now configured per-function in scene files" << std::endl;
+}
+
+
+float get_slider_value(std::string name) {
+    if (!global_context || !global_context->s) return 0.0f;
+    
+    if (global_context->s->functions.contains(name)) {
+        any_function& fn = global_context->s->functions[name];
+        if (std::holds_alternative<any_fn<float>>(fn)) {
+            return *global_context->s->get_fn_ptr<float, slider_float>(name)->value;
+        }
+        else if (std::holds_alternative<any_fn<int>>(fn)) {
+            return (float)*global_context->s->get_fn_ptr<int, slider_int>(name)->value;
+        }
+    }
+    return 0.0f;
+}
+
+// Check if current scene supports live camera
+bool is_live_camera_supported() {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    return global_context->s->liveCamera;
+}
+
+// Get current animation running state
+bool get_animation_running() {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    return global_context->s->ui.running;
+}
+
+bool enable_autoplay(bool enabled) {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    
+    // Look for autoplay_switch function in current scene
+    if (global_context->s->functions.contains("autoplay_switch")) {
+        try {
+            auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
+            if (autoplay_fn) {
+                autoplay_fn->value = enabled;
+                std::cout << "🎲 Scene-agnostic autoplay " << (enabled ? "enabled" : "disabled") << std::endl;
+                return true;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error setting autoplay: " << e.what() << std::endl;
+        }
+    }
+    
+    return false;
+}
+
+// Get autoplay status for any scene
+bool get_autoplay_status() {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    
+    if (global_context->s->functions.contains("autoplay_switch")) {
+        try {
+            auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
+            if (autoplay_fn) {
+                return *autoplay_fn->value;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error getting autoplay status: " << e.what() << std::endl;
+        }
+    }
+    
+    return false;
+}
+
+// Scene-agnostic autoplay intensity control
+bool set_autoplay_intensity(float intensity) {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    
+    // Look for autoplay_intensity slider
+    if (global_context->s->functions.contains("autoplay_intensity")) {
+        try {
+            auto intensity_fn = global_context->s->get_fn_ptr<float, slider_float>("autoplay_intensity");
+            if (intensity_fn) {
+                // Clamp intensity to reasonable bounds
+                intensity = std::max(0.0001f, std::min(0.01f, intensity));
+                intensity_fn->value = intensity;
+                std::cout << "🎲 Autoplay intensity set to: " << intensity << std::endl;
+                return true;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error setting autoplay intensity: " << e.what() << std::endl;
+        }
+    }
+    
+    return false;
+}
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -1456,10 +1685,41 @@ int main(int argc, char** argv) {
     //auto dims = img.get_dim();
     emscripten_run_script("console.log('preparing to load scene');");
     global_context = new frame_context();
-    global_context->scene_list = json::parse( load_file_as_string( "lux_files/scenes.json" ) );
-    global_context->scene_list[ "scenes" ][ 0 ][ "filename" ].get_to( filename );
-    global_context->s = std::make_unique< scene >( filename );
-    global_context->video_recorder = std::make_unique<VideoRecorder>();
+    
+    try {
+        std::cout << "Loading scene list from lux_files/scenes.json" << std::endl;
+        global_context->scene_list = json::parse( load_file_as_string( "lux_files/scenes.json" ) );
+        std::cout << "Scene list loaded successfully" << std::endl;
+        
+        std::cout << "Getting first scene filename" << std::endl;
+        global_context->scene_list[ "scenes" ][ 0 ][ "filename" ].get_to( filename );
+        std::cout << "First scene filename: " << filename << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR loading scene list: " << e.what() << std::endl;
+        emscripten_run_script("console.error('Scene list loading failed');");
+        throw;
+    } catch (...) {
+        std::cerr << "UNKNOWN ERROR loading scene list" << std::endl;
+        emscripten_run_script("console.error('Scene list loading failed with unknown error');");
+        throw;
+    }
+    
+    try {
+        std::cout << "Creating scene from file: " << filename << std::endl;
+        global_context->s = std::make_unique< scene >( filename );
+        std::cout << "Scene created successfully" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR creating scene: " << e.what() << std::endl;
+        emscripten_run_script("console.error('Scene creation failed');");
+        throw;
+    } catch (...) {
+        std::cerr << "UNKNOWN ERROR creating scene" << std::endl;
+        emscripten_run_script("console.error('Scene creation failed with unknown error');");
+        throw;
+    }
+    
+    // Temporarily disable VideoRecorder to isolate WASM module factory error
+    global_context->video_recorder = nullptr;
     global_context->is_recording = false;
     //scene s( "lux_files/kaleido.json" );
     //scene s( "lux_files/CA_choices.json" );
@@ -1501,94 +1761,6 @@ int main(int argc, char** argv) {
 }
 
 
-// Add this debugging function to help diagnose scene state
-void debug_scene_processing_state() {
-    std::cout << "=== DEBUG SCENE PROCESSING STATE ===" << std::endl;
-    
-    if (!global_context || !global_context->s) {
-        std::cout << "ERROR: No global context or scene" << std::endl;
-        return;
-    }
-    
-    // Check current source selection
-    if (global_context->s->functions.count("source_image_menu")) {
-        auto source_menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
-        std::cout << "Current source: '" << source_menu->get_chosen_item() << "'" << std::endl;
-        std::cout << "Available sources: ";
-        for (const auto& item : source_menu->items) {
-            std::cout << "'" << item << "' ";
-        }
-        std::cout << std::endl;
-    }
-    
-    // Check available buffers
-    std::cout << "Scene buffers: ";
-    for (const auto& [name, buffer] : global_context->s->buffers) {
-        std::cout << "'" << name << "' ";
-    }
-    std::cout << std::endl;
-    
-    // Check ultra_camera buffer specifically
-    if (global_context->s->buffers.count("ultra_camera")) {
-        auto camera_buffer = std::get<ubuf_ptr>(global_context->s->buffers["ultra_camera"]);
-        if (camera_buffer && camera_buffer->has_image()) {
-            auto& camera_image = camera_buffer->get_image();
-            vec2i dims = camera_image.get_dim();
-            auto pixels = camera_image.get_base_ptr();
-            
-            std::cout << "Ultra camera buffer: " << dims.x << "x" << dims.y;
-            
-            // Check for data
-            int non_zero = 0;
-            for (int i = 0; i < std::min(100, dims.x * dims.y); i++) {
-                if ((pixels[i] & 0x00FFFFFF) != 0) non_zero++;
-            }
-            std::cout << ", " << non_zero << "/100 non-zero pixels" << std::endl;
-        } else {
-            std::cout << "Ultra camera buffer: INVALID or NO IMAGE" << std::endl;
-        }
-    } else {
-        std::cout << "Ultra camera buffer: NOT FOUND" << std::endl;
-    }
-    
-    // Check main output buffer
-    if (global_context->buf && global_context->buf->has_image()) {
-        auto& main_image = global_context->buf->get_image();
-        vec2i dims = main_image.get_dim();
-        auto pixels = main_image.get_base_ptr();
-        
-        std::cout << "Main output buffer: " << dims.x << "x" << dims.y;
-        
-        // Check for data
-        int non_zero = 0;
-        for (int i = 0; i < std::min(100, dims.x * dims.y); i++) {
-            if ((pixels[i] & 0x00FFFFFF) != 0) non_zero++;
-        }
-        std::cout << ", " << non_zero << "/100 non-zero pixels" << std::endl;
-    } else {
-        std::cout << "Main output buffer: INVALID or NO IMAGE" << std::endl;
-    }
-    
-    // Check if ultra camera is active
-    if (ultra_camera) {
-        std::cout << "Ultra camera state: " << (ultra_camera->is_active ? "ACTIVE" : "INACTIVE");
-        std::cout << ", frames: " << ultra_camera->frame_count;
-        std::cout << ", processed: " << ultra_camera->processed_frames << std::endl;
-    } else {
-        std::cout << "Ultra camera: NOT INITIALIZED" << std::endl;
-    }
-    
-    std::cout << "=== DEBUG END ===" << std::endl;
-}
-
-// Check if current scene supports live camera
-bool is_live_camera_supported() {
-    if (!global_context || !global_context->s) {
-        return false;
-    }
-    return global_context->s->liveCamera;
-}
-
 EMSCRIPTEN_BINDINGS(my_module) {
     function( "set_frame_callback",  &set_frame_callback );
     function( "set_resize_callback", &set_resize_callback );
@@ -1622,6 +1794,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
 
     // widget control functions
     function( "set_slider_value",           &set_slider_value );
+    function( "set_slider_callback",        &set_slider_callback );
     function( "set_range_slider_value",     &set_range_slider_value );
     function( "handle_menu_choice",         &handle_menu_choice );
     function( "handle_switch_value",        &handle_switch_value );
@@ -1644,7 +1817,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("add_to_menu",        &add_to_menu);
     function("update_source_name", &update_source_name);
 
-    // video recording functions
+    // video recording functions - RE-ENABLED
     function("start_recording", &start_recording);
     function("start_recording_adaptive", &start_recording_adaptive);
     function("stop_recording", &stop_recording);
@@ -1668,4 +1841,18 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("ultra_start_camera_stream", &ultra_start_camera_stream);
     function("ultra_stop_camera_stream", &ultra_stop_camera_stream);
     function("ultra_get_camera_stats", &ultra_get_camera_stats);
+
+    // audio functions (scene-agnostic)
+    function("update_audio_context", &update_audio_context);
+    function("enable_audio_input", &enable_audio_input);
+    function("set_audio_sensitivity", &set_audio_sensitivity);
+    
+    // slider value retrieval functions
+    function("get_slider_value", &get_slider_value);
+    
+    // animation state functions
+    function("get_animation_running", &get_animation_running);
+    function("enable_autoplay", &enable_autoplay);
+    function("get_autoplay_status", &get_autoplay_status);
+    function("set_autoplay_intensity", &set_autoplay_intensity);
 }

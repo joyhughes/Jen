@@ -616,4 +616,34 @@ struct next_element {
     next_element();
 };
 
+struct audio_adder_fn {
+    harness< std::string > volume_channel;      // "volume", "bass", "mid", "high"
+    harness< float > volume_weight;             // weight for volume channel
+    harness< float > volume_sensitivity;        // sensitivity multiplier
+    
+    harness< std::string > bass_channel;        // bass channel
+    harness< float > bass_weight;               // weight for bass channel  
+    harness< float > bass_sensitivity;          // sensitivity multiplier
+    
+    harness< std::string > mid_channel;         // mid channel
+    harness< float > mid_weight;                // weight for mid channel
+    harness< float > mid_sensitivity;           // sensitivity multiplier
+    
+    harness< std::string > high_channel;        // high channel
+    harness< float > high_weight;               // weight for high channel
+    harness< float > high_sensitivity;          // sensitivity multiplier
+    
+    harness< float > offset;                    // base offset
+    harness< float > global_sensitivity;        // global sensitivity multiplier
+    
+    float operator() ( float& val, element_context& context );
+
+    audio_adder_fn() : 
+        volume_channel("volume"), volume_weight(1.0f), volume_sensitivity(1.0f),
+        bass_channel("bass"), bass_weight(1.0f), bass_sensitivity(1.0f),
+        mid_channel("mid"), mid_weight(1.0f), mid_sensitivity(1.0f),
+        high_channel("high"), high_weight(1.0f), high_sensitivity(1.0f),
+        offset(0.0f), global_sensitivity(1.0f) {}
+};
+
 #endif // __NEXT_ELEMENT_HPP

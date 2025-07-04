@@ -52,6 +52,9 @@ typedef std::variant <
     std::shared_ptr< scale_param< float > >,
     std::shared_ptr< time_param<  float > >,
 
+    // audio function - combines multiple channels and effects
+    std::shared_ptr< audio_adder_fn >,
+
     // ui functions
     std::shared_ptr< slider_float >,
     std::shared_ptr< range_slider_float >
