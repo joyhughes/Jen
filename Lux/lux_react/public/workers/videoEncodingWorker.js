@@ -27,8 +27,81 @@ async function initWasm(wasmUrl) {
 
     try {
         mobileLog('Attempting to import module factory...');
-        const moduleFactory = await import(wasmUrl);
-        mobileLog('Module factory loaded successfully');
+        
+        // Try multiple strategies to load the WASM module
+        let moduleFactory;
+        let successfulUrl = null;
+        
+        // Strategy 1: Try the provided URL first
+        try {
+            mobileLog('Trying provided URL:', wasmUrl);
+            moduleFactory = await import(wasmUrl);
+            successfulUrl = wasmUrl;
+            mobileLog('Module factory loaded successfully with provided URL');
+        } catch (primaryError) {
+            mobileLog('Primary URL failed, trying alternative paths...');
+            
+            // Strategy 2: Try alternative URLs for different build environments
+            const alternativeUrls = [
+                '/lux.js',                    // Production public directory
+                '/assets/lux.js',             // Assets directory
+                '/src/lux.js',                // Development source directory
+                './lux.js',                   // Relative to current location
+                window.location.origin + '/lux.js',  // Absolute URL
+                '/workers/lux.js',            // Workers directory
+                '/public/lux.js'              // Public directory
+            ];
+            
+            for (const altUrl of alternativeUrls) {
+                if (altUrl === wasmUrl) continue; // Skip the one we already tried
+                
+                try {
+                    mobileLog('Trying alternative URL:', altUrl);
+                    moduleFactory = await import(altUrl);
+                    successfulUrl = altUrl;
+                    mobileLog('Module factory loaded successfully with alternative URL:', altUrl);
+                    break;
+                } catch (altError) {
+                    mobileLog('Alternative URL failed:', altUrl, altError.message);
+                }
+            }
+            
+            // Strategy 3: If all imports failed, try fetch + blob approach
+            if (!moduleFactory) {
+                mobileLog('All import attempts failed, trying fetch + blob approach...');
+                
+                const fetchUrls = [
+                    wasmUrl,
+                    '/lux.js',
+                    '/assets/lux.js',
+                    '/src/lux.js'
+                ];
+                
+                for (const fetchUrl of fetchUrls) {
+                    try {
+                        mobileLog('Fetching from:', fetchUrl);
+                        const response = await fetch(fetchUrl);
+                        if (response.ok) {
+                            const wasmText = await response.text();
+                            const wasmBlob = new Blob([wasmText], { type: 'application/javascript' });
+                            const wasmBlobUrl = URL.createObjectURL(wasmBlob);
+                            
+                            moduleFactory = await import(wasmBlobUrl);
+                            URL.revokeObjectURL(wasmBlobUrl);
+                            successfulUrl = fetchUrl;
+                            mobileLog('Module factory loaded successfully with fetch + blob from:', fetchUrl);
+                            break;
+                        }
+                    } catch (fetchError) {
+                        mobileLog('Fetch attempt failed:', fetchUrl, fetchError.message);
+                    }
+                }
+            }
+        }
+        
+        if (!moduleFactory) {
+            throw new Error('Could not load WASM module from any available path');
+        }
 
         // Configure module without threading and with imported memory
         const moduleConfig = {
@@ -36,7 +109,12 @@ async function initWasm(wasmUrl) {
             printErr: (text) => mobileLog('[WASM Error]', text),
             locateFile: (path) => {
                 mobileLog('Locating file:', path);
-                return wasmUrl.replace('lux.js', path);
+                // Try to resolve relative to the successful URL
+                if (path.endsWith('.wasm')) {
+                    const baseUrl = successfulUrl.substring(0, successfulUrl.lastIndexOf('/') + 1);
+                    return baseUrl + path;
+                }
+                return path;
             },
             // Use imported memory configuration
             importMemory: true
