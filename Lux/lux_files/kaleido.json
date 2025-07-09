@@ -113,7 +113,7 @@
             "high_weight": 0.0,
             "high_sensitivity": 1.0,
             "offset": 0.0,
-            "global_sensitivity": 1.0
+            "global_sensitivity": 100.0
         },
         {
             "name": "controlled_expand_audio",
@@ -312,10 +312,7 @@
             "step": 1,
             "default_value": 0,
             "value": { 
-                "functions": [ 
-                    "spin_generator",
-                    "controlled_spin_audio"
-                ]
+                "functions": [ "spin_generator" ]
             }
         },
         {
@@ -688,7 +685,7 @@
             "segments": { "functions": [ "segment_slider" ] },
             "levels": { "functions": [ "level_slider" ] },
             "start": { "functions": [ "start_integrator" ] },
-            "spin": { "functions": [ "spin_integrator" ] },
+            "spin": { "functions": [ "spin_integrator", "controlled_spin_audio" ] },
             "expand": { "functions": [ "expand_integrator" ] },
             "level_start": { "functions": [ "level_start_integrator" ] },
             "reflect": { "functions": [ "reflect_switch" ] },
