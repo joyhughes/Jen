@@ -283,11 +283,8 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                 
                 console.log('[ImagePicker] Live camera started with facing mode:', facingMode);
                 
-                // Navigate to home immediately when starting live camera
-                setTimeout(() => {
-                    setActivePane("home");
-                    console.log("Navigating to home pane after starting live camera");
-                }, 100);
+                // Live camera started, staying on current pane
+                console.log("Live camera started, staying on current pane");
             }
         } catch (error) {
             console.error('[ImagePicker] Live camera error:', error);
@@ -375,10 +372,8 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             };
             reader.readAsArrayBuffer(file);
 
-            setTimeout(() => {
-                setActivePane("home");
-                console.log("Navigating to home pane after image uploading");
-            }, 100)
+            // Removed navigation to home - stay on current pane
+            console.log("Image uploaded, staying on current pane");
         } catch (error) {
             console.error('Failed to upload image:', error);
             setError('Failed to upload image: ' + error.message);
@@ -428,12 +423,9 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             
             setIsLoading(false);
             
-            // Close camera and navigate to home
+            // Close camera but stay on current pane
             setShowCamera(false);
-            setTimeout(() => {
-                setActivePane("home");
-                console.log("Navigating to home pane after camera capture");
-            }, 100);
+            console.log("Camera capture completed, staying on current pane");
             
         } catch (error) {
             console.error('Failed to process camera capture:', error);
@@ -462,10 +454,8 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
             window.module.update_source_name(imageName);
             onChange(imageName);
         }
-        setTimeout(() => {
-            setActivePane("home");
-            console.log("Navigating to home pane after image selection");
-        }, 100);
+        // Removed navigation to home - stay on current pane
+        console.log("Image selected, staying on current pane");
     };
 
     // Cleanup live camera on unmount
