@@ -386,7 +386,7 @@ float audio_adder_fn::operator() ( float& val, element_context& context) {
     bass_channel( context ); bass_weight( context ); bass_sensitivity( context );
     mid_channel( context ); mid_weight( context ); mid_sensitivity( context );
     high_channel( context ); high_weight( context ); high_sensitivity( context );
-    offset( context ); global_sensitivity( context );
+    base_value( context ); offset( context ); global_sensitivity( context );
 
     // Get audio values using the audio_data struct methods
     float volume_val = context.s.ui.audio.get_value(*volume_channel);
@@ -403,10 +403,10 @@ float audio_adder_fn::operator() ( float& val, element_context& context) {
     // Combine all contributions
     float total_audio = volume_contribution + bass_contribution + mid_contribution + high_contribution;
     
-    // Apply global sensitivity and offset
-    float final_audio = (total_audio * *global_sensitivity) + *offset;
+    // Apply global sensitivity, add base_value and offset
+    float final_audio = *base_value + (total_audio * *global_sensitivity) + *offset;
     
-    return val + final_audio;
+    return final_audio;
 }
 
 bool next_element::operator () ( element_context& context ) { 

@@ -633,7 +633,8 @@ struct audio_adder_fn {
     harness< float > high_weight;               // weight for high channel
     harness< float > high_sensitivity;          // sensitivity multiplier
     
-    harness< float > offset;                    // base offset
+    harness< float > base_value;                // base value (e.g., from integrator)
+    harness< float > offset;                    // additional offset
     harness< float > global_sensitivity;        // global sensitivity multiplier
     
     float operator() ( float& val, element_context& context );
@@ -643,7 +644,7 @@ struct audio_adder_fn {
         bass_channel("bass"), bass_weight(1.0f), bass_sensitivity(1.0f),
         mid_channel("mid"), mid_weight(1.0f), mid_sensitivity(1.0f),
         high_channel("high"), high_weight(1.0f), high_sensitivity(1.0f),
-        offset(0.0f), global_sensitivity(1.0f) {}
+        base_value(0.0f), offset(0.0f), global_sensitivity(1.0f) {}
 };
 
 #endif // __NEXT_ELEMENT_HPP
