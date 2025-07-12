@@ -245,6 +245,9 @@ struct scene {
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
 
 
+
+
+
     template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) {
         if( !functions.contains( name ) ) {
             throw std::runtime_error( "function " + name + " not found in scene" ); 
@@ -277,6 +280,8 @@ struct scene {
 
     // Get mouse position in parametric space of output buffer
     vec2f get_mouse_pos() const;
+    std::string get_current_scene_name();
+    void load_scene_by_name(const std::string& name);
 
 //    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
 //    void pause();                               // Pause animation
