@@ -263,6 +263,16 @@ const DesktopControlButton = styled(IconButton)(({ theme }) => ({
 function JenSlider({ json, width }) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+
+    const formatDisplayValue = useCallback((val) => {
+        if (json.type === 'slider_int' || json.type === 'range_slider_int') {
+            return parseInt(val);
+        } else {
+            const rounded = parseFloat(val).toFixed(1);
+            return rounded.endsWith('.0') ? rounded.slice(0, -2) : rounded;
+        }
+    }, [json.type]);
     
     // Initialize value properly for range vs single sliders
     const getInitialValue = () => {
@@ -295,14 +305,24 @@ function JenSlider({ json, width }) {
 
     const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
 
-    const formatDisplayValue = useCallback((val) => {
-        if (json.type === 'slider_int' || json.type === 'range_slider_int') {
-            return parseInt(val);
-        } else {
-            const rounded = parseFloat(val).toFixed(1);
-            return rounded.endsWith('.0') ? rounded.slice(0, -2) : rounded;
+    // Listen to global slider values and update when they change
+    useEffect(() => {
+        if (sliderValues && sliderValues[json.name] !== undefined) {
+            const newValue = sliderValues[json.name];
+            console.log(`JenSlider ${json.name} updating from global values:`, newValue);
+            setValue(newValue);
+            
+            // Update input value for range sliders
+            if (isRange && Array.isArray(newValue)) {
+                const displayVal = minFocus ? newValue[0] : newValue[1];
+                setInputValue(formatDisplayValue(displayVal).toString());
+            } else {
+                setInputValue(formatDisplayValue(newValue).toString());
+            }
         }
-    }, [json.type]);
+    }, [sliderValues, json.name, isRange, minFocus, formatDisplayValue]);
+
+    
 
     const formatModuleValue = useCallback((val) => {
         if (json.type === 'slider_int' || json.type === 'range_slider_int') {

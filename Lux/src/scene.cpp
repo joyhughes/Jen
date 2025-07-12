@@ -231,6 +231,13 @@ scene::scene( const std::string& filename, float time_interval_init )
     scene_reader reader( *this, filename );
 }
 
+std::string scene::get_current_scene_name() {
+    if (!name.empty()) {
+        return name;
+    }
+    return "";
+}
+
 vec2f scene::get_mouse_pos() const {
     bb2f bounds = std::visit( [&]( auto& b ) { return b->get_image().get_bounds(); }, queue.back().buf );
     bounds.print();
