@@ -161,3 +161,66 @@ public:
         last_modified = std::chrono::system_clock::now();
     }
 }
+
+
+class enhanced_integrator_float: public SerializableMixin<enhanced_integrator_float> {
+public:
+    float current_value;
+    float starting_value;
+    float scale;
+    float last_time;
+    std::vector<float> history;
+
+    enhanced_integrator_float(float start_val = 0.0f, float scale_val = 1.0f) 
+    : current_value(start_val), starting_value(start_val), scale(scale_val), last_time(0.0f) {}
+
+    nlohmann::json serialize() const override {
+        nlohmann::json data = {
+            {"current_value", current_value},
+            {"starting_value", starting_value},
+            {"scale", scale},
+            {"last_time", last_time}
+        }
+
+        if (history.size() > 0) {
+            int start_idx = std::max(0, (int)history.size() - 10);
+            data["recent_history"] = std::vector<float>(history.begin() + start_idx, history.end());
+        }
+        return data;
+    }
+
+    bool deserialize(const nlohmann::json& data) override {
+        try {
+            current_value = data.value("current_value", starting_value);
+            starting_value = data.value("starting_value", 0.0f);
+            scale = data.value("scale", 1.0f);
+            last_time = data.value("last_time", 0.0f);
+
+
+            if (data.contains("recent_history")) {
+                history = data["recent_history"].get<std::vector<float>>();
+            }
+
+            return true;
+        } catch(...) {
+            return false;
+        }
+    }
+
+    void update(float delta_time, float delta_value) {
+        current_value += delta_value * scale * delta_time;
+        last_time += delta_time;
+
+        history.push_back(current_value);
+        if (history.size() > 100) {
+            history.erase(history.begin());
+        }
+    }
+
+    void reset() {
+        current_value = starting_value;
+        last_time = 0.0f;
+        history.clear();
+    }
+    
+}
