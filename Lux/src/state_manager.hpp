@@ -6,6 +6,7 @@
 #include <typeindex>
 #include <functional>
 #include "nlohmann/json.hpp"
+#incude "next_element.hpp"
 
 
 class ISerializable {
@@ -223,4 +224,23 @@ public:
         history.clear();
     }
     
+}
+
+
+class enhanced_generator_float : public SerializableMixin<enhanced_generator_float> {
+public: 
+    bool enabled;
+    float probability;
+    float param_a, param_b;
+    float min_value, max_value;
+
+    std::mt19937 rng;
+    uint32_t seed;
+    uint64_t generation_count = 0;
+
+
+    enhanced_generator_float() 
+    : enabled(false), probability(0.001f), param_a(0.0f), param_b(1.0f), min_value(0.0f), max_value(1.0f),
+    distribution(PROB_UNIFORM), seed(std::random_device{}())  {}
+
 }
