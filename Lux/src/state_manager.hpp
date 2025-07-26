@@ -1,12 +1,27 @@
 #ifndef STATE_MANAGER_HPP
-#ifndef STATE_MANAGER_HPP
+#define STATE_MANAGER_HPP
 
 #include <unordered_map>
 #include <memory>
 #include <typeindex>
 #include <functional>
+#include <chrono>
+#include <algorithm>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <unordered_map>
 #include "nlohmann/json.hpp"
-#incude "next_element.hpp"
+#include "next_element.hpp"
+
+enum probability_distribution {
+    PROB_UNIFORM,
+    PROB_NORMAL,
+    PROB_EXPONENTIAL
+};
+
+probability_distribution distribution; 
 
 
 class ISerializable {
@@ -16,7 +31,7 @@ public:
         virtual bool deserialize(const nlohmann::json& data) = 0;
         virtual std::string get_type_name() const = 0;
         virtual bool is_stateful() const = 0;
-}
+};
 
 
 class StateRegistry {
@@ -38,7 +53,7 @@ public:
         return registry;
     }
 
-    template<typename T> register_type(const std::string& type_name) {
+    template<typename T> void register_type(const std::string& type_name) {
         auto type_index = std::type_index(typeid(T));
 
         type_names[type_index] = type_name;
@@ -58,7 +73,7 @@ public:
 
     }
 
-    template<typename T> serialize_object(const T& obj) {
+    template<typename T> nlohmann::json serialize_object(const T& obj) {
         auto type_index = std::type_index(typeid(T));
         auto it = serializers.find(type_index);
         if (it != serializers.end()) {
@@ -70,7 +85,7 @@ public:
         return nlohmann::json();
     }
 
-    template<typename T> deserialize_object(const nlohmann::json& data) {
+    template<typename T> bool deserialize_object(T& obj, const nlohmann::json& data) {
         auto type_index = std::type_index(typeid(T));
         auto it = deserializers.find(type_index);
         if (it != deserializers.end()) {
@@ -145,16 +160,16 @@ public:
             description = data.value("description", "");
             user_modified = data.value("user_modified", false);
 
-            if (data.contains("last_modified")) {
-                auto ms = data["last_modified"].get<int64_t>();
-                last_modified = std::chrono::system_clock::time_point(std::chrono::milliseconds(ms))
-            }
-
-            return true;
-        } catch(...) {
-            return false;
+                            if (data.contains("last_modified")) {
+            auto ms = data["last_modified"].get<int64_t>();
+            last_modified = std::chrono::system_clock::time_point(std::chrono::milliseconds(ms));
         }
+
+        return true;
+    } catch(...) {
+        return false;
     }
+};;
 
     void set_value(float new_value) {
         value = std::clamp(new_value, min, max);
@@ -188,7 +203,7 @@ public:
             data["recent_history"] = std::vector<float>(history.begin() + start_idx, history.end());
         }
         return data;
-    }
+    };
 
     bool deserialize(const nlohmann::json& data) override {
         try {
@@ -237,10 +252,148 @@ public:
     std::mt19937 rng;
     uint32_t seed;
     uint64_t generation_count = 0;
+    enum probability_distribution { PROB_UNIFORM, PROB_NORMAL, PROB_EXPONENTIAL };
+    probability_distribution distribution;
 
 
-    enhanced_generator_float() 
-    : enabled(false), probability(0.001f), param_a(0.0f), param_b(1.0f), min_value(0.0f), max_value(1.0f),
-    distribution(PROB_UNIFORM), seed(std::random_device{}())  {}
+    enhanced_generator_float() : enabled(false), probability(0.001f), param_a(0.0f), param_b(1.0f), min_value(0.0f), max_value(1.0f),
+    distribution(PROB_UNIFORM), seed(std::random_device{}())  {
+        rng.seed(seed);
+    }
 
+    nlohmann::json serialize() const override {
+        return {
+            {"enabled", enabled},
+            {"probability", probability},
+            {"param_a", param_a},
+            {"param_b", param_b},
+            {"min_value", min_value},
+            {"max_value", max_value},
+            {"distribution", static_cast<int>(distribution)},
+            {"seed", seed},
+            {"generation_count", generation_count},
+            {"rnd_state", serialize_rng_state(rng)}
+        };
+    }
+
+    bool deserialize(const nlohmann::json& data) override {
+        try {
+            enabled = data.value("enabled", false);
+            probability = data.value("probability", 0.001f);
+            param_a = data.value("param_a", 0.0f);
+            param_b = data.value("param_b", 1.0f);
+            min_value = data.value("min_value", 0.0f);
+            max_value = data.value("max_value", 1.0f);
+            distribution = static_cast<probability_distribution>(data.value("distribution", 0));
+            seed = data.value("seed", 0u);
+            generation_count = data.value("generation_count", 0ull);
+
+            if (data.contains("rnd_state")) {
+                deserialize_rng_state(rng, data["rnd_state"]);
+            } else {
+                rng.seed(seed);
+            }
+            return true;
+        } catch(...) {
+            return false;
+        }
+    }
+
+private: 
+    std::string serialize_rng_state(const std::mt19937& rng) const {
+        std::ostringstream oss;
+        oss << rng;
+        return oss.str();
+    }
+
+    void deserialize_rng_state(std::mt19937& rng, const std::string& state_str) {
+        std::istringstream iss(state_str);
+        iss >> rng;
+    }
 }
+
+
+class enhanced_audio_adder : public SerializableMixin<enhanced_audio_adder> {
+public: 
+    struct AudioChannel {
+        std::string name;
+        float weight;
+        float sensitivity;
+        float smoothed_value = 0.0f;
+        float peak_value = 0.0f;
+        std::vector<float> recent_values;
+    };
+
+    std::vector<AudioChannel> channels;
+    float offset;
+    float global_sensitivity;
+
+    bool adaptive_mode = false;
+    float adaptive_rate = 0.1f;
+    std::unordered_map<std::string, float> learned_sensitivities;
+
+    enhanced_audio_adder() : offset(0.0f), global_sensitivity(1.0f) {
+        channels = {
+            {"volume", 1.0f, 1.0f},
+            {"bass", 1.0f, 1.0f},
+            {"mid", 1.0f, 1.0f},
+            {"high", 1.0f, 1.0f}
+        };
+    }
+
+    nlohmann::json serialize() const override {
+        nlohmann::json channel_data = nlohmann::json::array();
+        for (const auto& channel : channels) {
+            channel_data.push_back({
+                {"name", channel.name},
+                {"weight", channel.weight},
+                {"sensitivity", channel.sensitivity},
+                {"smoothed_value", channel.smoothed_value},
+                {"peak_value", channel.peak_value}
+            });
+        }
+
+        return {
+            {"channels", channel_data},
+            {"offset", offset},
+            {"global_sensitivity", global_sensitivity},
+            {"adaptive_mode", adaptive_mode},
+            {"adaptation_rate", adaptive_rate},
+            {"learned_sensitivities", learned_sensitivities}
+        };
+    }
+
+
+    bool deserialize(const nlohmann::json& data) override {
+        try {
+            channels.clear();            
+            for(const auto& channel_data: data["channels"]) {
+                AudioChannel channel;
+                channel.name = channel_data.value("name", "");
+                channel.weight = channel_data.value("weight", 1.0f);
+                channel.sensitivity = channel_data.value("sensitivity", 1.0f);
+                channel.smoothed_value = channel_data.value("smoothed_value", 0.0f);
+                channel.peak_value = channel_data.value("peak_value", 0.0f);
+                channels.push_back(channel);
+            }
+            offset = data.value("offset", 0.0f);
+            global_sensitivity = data.value("global_sensitivity", 1.0f);
+            adaptive_mode = data.value("adaptive_mode", false);
+            adaptive_rate = data.value("adaptation_rate", 0.1f);
+
+            if (data.contains("learned_sensitivities")) {
+                learned_sensitivities = data["learned_sensitivities"].get<std::unordered_map<std::string, float>>();
+            }
+
+            return true;
+        } catch(...) {
+            return false;
+        }
+    };
+
+    bool is_stateful() const override {
+        return true;
+    }
+};
+
+#endif // STATE_MANAGER_HPP
