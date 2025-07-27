@@ -1678,6 +1678,23 @@ bool set_autoplay_intensity(float intensity) {
     return false;
 }
 
+std::string get_current_scene_name() {
+    if (!global_context || !global_context->s) {
+        return "";
+    }
+    return global_context->s->get_current_scene_name();
+}
+
+std::string get_current_scene_filename() {
+    if (!global_context || !global_context->s) {
+        return "";
+    }
+    // For now, we'll use the scene name as the filename since that's what we have
+    // In a more complete implementation, you'd want to store the actual filename
+    return global_context->s->get_current_scene_name() + ".json";
+}
+
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -1855,4 +1872,8 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("enable_autoplay", &enable_autoplay);
     function("get_autoplay_status", &get_autoplay_status);
     function("set_autoplay_intensity", &set_autoplay_intensity);
+
+    // scene name functions
+    function("get_current_scene_name", &get_current_scene_name);
+    function("get_current_scene_filename", &get_current_scene_filename);
 }

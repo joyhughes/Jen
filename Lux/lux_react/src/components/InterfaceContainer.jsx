@@ -17,6 +17,7 @@ function InterfaceContainer({panelSize}) {
     const [activePane, setActivePane] = useState("home");
     const [sliderValues, setSliderValues] = useState({});
     const [resetTrigger, setResetTrigger] = useState(0);
+    const [sceneChangeTrigger, setSceneChangeTrigger] = useState(0);
     const containerRef = useRef(null);
 
     // Store slider values when they change from user interaction
@@ -236,7 +237,9 @@ function InterfaceContainer({panelSize}) {
         sliderValues,
         onSliderChange: handleSliderChange,
         resetTrigger,
-        triggerReset
+        triggerReset,
+        sceneChangeTrigger,
+        triggerSceneChange: () => setSceneChangeTrigger(prev => prev + 1)
     };
 
     return (
