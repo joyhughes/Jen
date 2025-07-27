@@ -394,4 +394,28 @@ static element_context empty_element_context( empty_element, empty_cluster, empt
 //template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el );
 
 
+struct StateCaptureManager {
+private:
+    scene& managed_scene;
+    json last_baseline_state;
+    std::chrono::steady_clock::time_point last_full_capture;
+    std::set<std::string> significant_changes;
+    uint64_t baseline_frame_number{0};
+
+public:
+    StateCaptureManager( scene& scene_init ) : managed_scene(scene_init) {};
+
+    json capture_delta_state();
+    json capture_full_baseline();
+    json smart_capture();
+
+
+    void mark_significant_change(const std::string& function_name);
+    void clear_changes();
+
+private:
+    json capture_single_function_state(const std::string& function_name);
+};
+
+
 #endif // __SCENE_HPP
