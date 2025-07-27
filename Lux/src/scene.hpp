@@ -13,6 +13,7 @@
 #include "UI.hpp"
 #include "json.hpp"
 #include <mutex>
+#include <set>
 
 using json = nlohmann::json;
 
@@ -280,12 +281,6 @@ private:
     std::set<std::string> functions_changed_this_frame;
 
     // helper methods for harness serialization
-
-    template<typename T> 
-    json serialize_harness_current_output(const harness<T>& h) const;
-
-    template<typename T> 
-    void restore_harness_state(harness<T>& h, const json& harness_json);
 
     json get_buffer_state(const std::string& buffer_name) const;
     void restore_buffer_state(const std::string& buffer_name, const json& buffer_json);
