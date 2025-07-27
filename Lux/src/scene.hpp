@@ -11,6 +11,10 @@
 #include "any_function.hpp"
 #include "any_rule.hpp"
 #include "UI.hpp"
+#include "json.hpp"
+#include <mutex>
+
+using json = nlohmann::json;
 
 //template< class T > struct effect;
 struct element;
@@ -243,6 +247,65 @@ struct scene {
         
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
+public:
+    json save_complete_state() const;
+    void load_complete_state(const json& state);
+
+    json capture_current_frame_state() const;
+    json capture_state_delta(const json& base_line) const;
+    void restore_live_state(const json&live_state);
+
+    json save_runtime_state() const;
+    void restore_runtime_state(const json& state);
+
+    void update_frame();
+    void mark_function_changed(const std::string& fname);
+    float calculate_delta_time() const;
+
+    void on_slider_changed(const std::string& slider_name, const float& new_value);
+    void on_menu_changed(const std::string& menu_name, const int new_choice);
+    void on_switch_toggled(const std::string& switch_name, const bool new_state);
+
+private:
+    // thread-safety for live capture
+    mutable std::mutex state_mutex;
+    std::atomic<bool> capture_enabled{true};
+    std::chrono::steady_clock::time_point last_capture_time;
+    std::chrono::steady_clock::time_point last_frame_time;
+
+    // live animation state
+    uint64_t current_frame_number{0};
+    float current_fps{60.f};
+    bool ui_recently_modified{false};
+    std::set<std::string> functions_changed_this_frame;
+
+    // helper methods for harness serialization
+
+    template<typename T> 
+    json serialize_harness_current_output(const harness<T>& h) const;
+
+    template<typename T> 
+    void restore_harness_state(harness<T>& h, const json& harness_json);
+
+    json get_buffer_state(const std::string& buffer_name) const;
+    void restore_buffer_state(const std::string& buffer_name, const json& buffer_json);
+
+    // live animation helpers
+    json capture_effect_chain_states() const;
+    json capture_buffer_render_states() const;
+    void update_audio_functions();
+    void update_generator_functions();
+    void update_integrator_functions();
+    void propogate_all_harness_updates();
+    void reset_user_interaction_flags();
+    bool should_capture_state_this_frame() const;
+    void background_capture_state();
+
+    // state validation
+    void validate_loaded_state();
+    void sync_ui_with_function_states();
+
+
 
 
 
@@ -320,6 +383,7 @@ struct scene {
         file_type ftype = FILE_JPG, 
         int quality = 100   
     );
+
 
 };
 
