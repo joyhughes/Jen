@@ -44,6 +44,7 @@ typedef std::variant <
     std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
     std::shared_ptr< time_fn >,
+    std::shared_ptr< constant_float >,
     std::shared_ptr< ratio_float >,
     std::shared_ptr< wiggle >,
 
@@ -150,6 +151,13 @@ typedef std::variant <
 > any_bb2f_fn_ptr;
 
 ANY_FN( bb2f )
+
+typedef std::variant <
+    // harness functions
+    std::shared_ptr< identity_bb2i >
+> any_bb2i_fn_ptr;
+
+ANY_FN( bb2i )
 
 typedef std::variant <
     // harness functions

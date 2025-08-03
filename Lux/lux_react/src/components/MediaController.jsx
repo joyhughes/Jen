@@ -9,7 +9,19 @@ import {
   Snackbar,
   Tooltip,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip,
+  Badge
 } from '@mui/material';
 import { 
   Pause, 
@@ -19,21 +31,37 @@ import {
   SkipForward, 
   Video,
   VideoOff,
-  Camera
+  Camera,
+  FolderOpen,
+  Delete,
+  CloudDownload,
+  CloudUpload,
+  Settings,
+  Check,
+  Download,
+  Upload
 } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
 import { useScene } from './SceneContext';
+import { SceneStorage } from '../utils/sceneStorage.js';
 
-function MediaController({ isOverlay = false }) {
+const MediaController = ({ isOverlay = false, saveSceneConfig, hasUnsavedChanges, currentSceneName, exportSceneState, importSceneState }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isRunning, setIsRunning] = useState(true); // Start playing by default to match backend
   
   // Get reset functionality from context
-  const { triggerReset } = React.useContext(ControlPanelContext);
+  const { triggerReset, sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
   
   // Get scene context to listen for scene changes
   const { sceneChangeTrigger } = useScene();
+
+  // Scene management states
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [savedConfigs, setSavedConfigs] = useState([]);
+  const [storageInfo, setStorageInfo] = useState({ configCount: 0, formattedSize: '0 Bytes' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Video recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -68,6 +96,16 @@ function MediaController({ isOverlay = false }) {
     if (message.includes('ERROR') || message.includes('CRITICAL')) {
       showNotification(`Debug: ${message}`, 'error');
     }
+  };
+
+
+  // Show notification
+  const showNotification = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
   };
 
   // Enhanced mobile device detection with logging - MEMOIZED to prevent infinite re-renders
@@ -107,7 +145,7 @@ function MediaController({ isOverlay = false }) {
       } else if (isIOS) {
         result = 'ios-fallback';
       } else if (isAndroid) {
-        result = 'android-fallback';
+        result = 'android-fallback'
       }
 
       console.log('[MediaController] Camera roll support (memoized):', result);
@@ -117,6 +155,210 @@ function MediaController({ isOverlay = false }) {
       return null;
     }
   }, []); // Empty deps - only calculate once
+
+  // Scene Storage Functions
+  const loadSavedConfigs = useCallback(() => {
+    const configs = SceneStorage.listSavedConfigs();
+    const configsWithMetadata = configs.map(sceneName => ({
+      sceneName,
+      metadata: SceneStorage.getConfigMetadata(sceneName)
+    }));
+    setSavedConfigs(configsWithMetadata);
+    setStorageInfo(SceneStorage.getStorageInfo());
+  }, []);
+
+  const handleOpenSaveDialog = useCallback(() => {
+    loadSavedConfigs();
+    setShowSaveDialog(true);
+  }, [loadSavedConfigs]);
+
+  const handleCloseSaveDialog = useCallback(() => {
+    setShowSaveDialog(false);
+  }, []);
+
+  const handleSaveConfig = useCallback(async () => {
+    if (saveSceneConfig) {
+      setIsSaving(true);
+      setSaveSuccess(false);
+      try {
+        const success = await saveSceneConfig();
+        if (success) {
+          setSaveSuccess(true);
+          loadSavedConfigs(); // Refresh the list
+          // Reset success state after 2 seconds
+          setTimeout(() => setSaveSuccess(false), 2000);
+        }
+        // Note: Notification is handled by the ControlPanel's saveSceneConfig function
+      } catch (error) {
+        console.error('Error saving config:', error);
+        showNotification(`Failed to save: ${error.message}`, 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+    handleCloseSaveDialog();
+  }, [saveSceneConfig, loadSavedConfigs, handleCloseSaveDialog, showNotification]);
+
+  const handleDeleteConfig = useCallback((sceneName) => {
+    try {
+      SceneStorage.deleteSceneConfig(sceneName);
+      loadSavedConfigs(); // Refresh the list
+      showNotification(`Deleted configuration for ${sceneName}`, 'success');
+    } catch (error) {
+      console.error('Error deleting config:', error);
+      showNotification(`Failed to delete configuration: ${error.message}`, 'error');
+    }
+  }, [loadSavedConfigs]);
+
+  const handleLoadConfig = useCallback(async (sceneName) => {
+    try {
+      // Load the saved configuration
+      const savedConfig = SceneStorage.loadSceneConfig(sceneName);
+      if (savedConfig && savedConfig.sliderValues) {
+        // Apply the saved slider values
+        for (const [name, value] of Object.entries(savedConfig.sliderValues)) {
+          try {
+            if (window.module && typeof window.module.set_slider_value === 'function') {
+              window.module.set_slider_value(name, value);
+            }
+          } catch (error) {
+            console.error(`Error loading slider value for ${name}:`, error);
+          }
+        }
+        
+        // Update the context with the loaded values
+        onSliderChange(savedConfig.sliderValues);
+        
+        showNotification(`Loaded configuration for ${sceneName}`, 'success');
+        console.log(`Loaded configuration for scene: ${sceneName}`);
+      } else {
+        showNotification(`No saved configuration found for ${sceneName}`, 'warning');
+      }
+      handleCloseSaveDialog();
+    } catch (error) {
+      console.error('Error loading config:', error);
+      showNotification(`Failed to load configuration: ${error.message}`, 'error');
+    }
+  }, [handleCloseSaveDialog, onSliderChange]);
+
+  const handleExportConfigs = useCallback(() => {
+    try {
+      const configs = SceneStorage.exportAllConfigs();
+      const dataStr = JSON.stringify(configs, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `jen_scene_configs_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showNotification('Configurations exported successfully', 'success');
+    } catch (error) {
+      console.error('Error exporting configs:', error);
+      showNotification(`Failed to export configurations: ${error.message}`, 'error');
+    }
+  }, []);
+
+  const handleImportConfigs = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const configs = JSON.parse(e.target.result);
+            const result = SceneStorage.importConfigs(configs, false);
+            showNotification(`Imported ${result.imported} configs, skipped ${result.skipped} existing`, 'success');
+            loadSavedConfigs(); // Refresh the list
+          } catch (error) {
+            console.error('Error importing configs:', error);
+            showNotification(`Failed to import configurations: ${error.message}`, 'error');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  }, [loadSavedConfigs]);
+
+  const handleClearAllConfigs = useCallback(() => {
+    if (window.confirm('Are you sure you want to delete all saved configurations? This cannot be undone.')) {
+      try {
+        SceneStorage.clearAllConfigs();
+        loadSavedConfigs(); // Refresh the list
+        showNotification('All configurations cleared', 'success');
+      } catch (error) {
+        console.error('Error clearing all configs:', error);
+        showNotification(`Failed to clear configurations: ${error.message}`, 'error');
+      }
+    }
+  }, [loadSavedConfigs]);
+
+  // Export complete scene state
+  const handleExportCompleteState = useCallback(async () => {
+    if (exportSceneState) {
+      try {
+        await exportSceneState();
+      } catch (error) {
+        console.error('Error exporting scene state:', error);
+        showNotification(`Failed to export scene state: ${error.message}`, 'error');
+      }
+    } else {
+      showNotification('Scene state export not available', 'error');
+    }
+  }, [exportSceneState, showNotification]);
+
+  // Import complete scene state
+  const handleImportCompleteState = useCallback(() => {
+    if (importSceneState) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            await importSceneState(file);
+          } catch (error) {
+            console.error('Error importing scene state:', error);
+            showNotification(`Failed to import scene state: ${error.message}`, 'error');
+          }
+        }
+      };
+      input.click();
+    } else {
+      showNotification('Scene state import not available', 'error');
+    }
+  }, [importSceneState, showNotification]);
+
+  // Wrapper for main save button with loading state
+  const handleMainSaveConfig = useCallback(async () => {
+    if (saveSceneConfig) {
+      setIsSaving(true);
+      setSaveSuccess(false);
+      try {
+        const success = await saveSceneConfig();
+        if (success) {
+          setSaveSuccess(true);
+          // Reset success state after 2 seconds
+          setTimeout(() => setSaveSuccess(false), 2000);
+        }
+        // Note: Notification is handled by the ControlPanel's saveSceneConfig function
+      } catch (error) {
+        console.error('Error saving config:', error);
+        showNotification(`Failed to save: ${error.message}`, 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  }, [saveSceneConfig, showNotification]);
 
   // Update ref when state changes
   useEffect(() => {
@@ -438,7 +680,7 @@ function MediaController({ isOverlay = false }) {
         setIsProcessing(false);
       }
     }
-  };
+  }; 
 
   // Handle media controls
   const handleRestart = () => {
@@ -559,7 +801,7 @@ function MediaController({ isOverlay = false }) {
     }
   };
 
-  // Toggle recording
+  // Video recording functions (keeping all the existing implementation)
   const handleToggleRecording = () => {
     console.log('[MediaController] Toggle recording clicked, current state:', { isRecording, isProcessing });
 
@@ -768,19 +1010,9 @@ function MediaController({ isOverlay = false }) {
     console.log('[MediaController] Canvas found for recording:');
     console.log('[MediaController] - Original canvas width:', canvas.width);
     console.log('[MediaController] - Original canvas height:', canvas.height);
-    console.log('[MediaController] - Canvas client width:', canvas.clientWidth);
-    console.log('[MediaController] - Canvas client height:', canvas.clientHeight);
-    console.log('[MediaController] - Canvas offset width:', canvas.offsetWidth);
-    console.log('[MediaController] - Canvas offset height:', canvas.offsetHeight);
 
     const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
     const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
-
-    console.log('[MediaController] Adjusted dimensions for encoding:');
-    console.log('[MediaController] - Adjusted width:', width);
-    console.log('[MediaController] - Adjusted height:', height);
-    console.log('[MediaController] - Width adjustment needed:', canvas.width !== width);
-    console.log('[MediaController] - Height adjustment needed:', canvas.height !== height);
 
     const options = {
       width,
@@ -791,15 +1023,6 @@ function MediaController({ isOverlay = false }) {
       format: 'mp4',
       preset: 'ultrafast'
     };
-
-    console.log('[MediaController] Recording options prepared:');
-    console.log('[MediaController] - Width:', options.width);
-    console.log('[MediaController] - Height:', options.height);
-    console.log('[MediaController] - FPS:', options.fps);
-    console.log('[MediaController] - Bitrate:', options.bitrate);
-    console.log('[MediaController] - Codec:', options.codec);
-    console.log('[MediaController] - Format:', options.format);
-    console.log('[MediaController] - Preset:', options.preset);
 
     recordingOptionsRef.current = options;
 
@@ -829,9 +1052,7 @@ function MediaController({ isOverlay = false }) {
       showNotification('Recording started!', 'success');
     } catch (error) {
       console.error('[MediaController] EXCEPTION sending start recording message:', error);
-      console.error('[MediaController] - Error message:', error.message);
-      console.error('[MediaController] - Error stack:', error.stack);
-
+      
       // Rollback immediate start on error
       isRecordingRef.current = false;
       setIsRecording(false);
@@ -887,132 +1108,6 @@ function MediaController({ isOverlay = false }) {
         workerRef.current.postMessage({ type: 'getState' });
       }
     }, 1000); // Check once per second
-  };
-
-  // Format time (MM:SS)
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
-
-  // Show notification
-  const showNotification = (message, severity = 'success') => {
-    setNotification({
-      open: true,
-      message,
-      severity
-    });
-  };
-
-  // Close notification
-  const handleCloseNotification = () => {
-    setNotification(prev => ({ ...prev, open: false }));
-  };
-
-  // Styling
-  const containerStyles = isOverlay ? {
-    position: 'relative',
-    borderRadius: 28,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    backdropFilter: 'blur(8px)',
-    padding: '8px 12px',
-    boxShadow: theme.shadows[8],
-    opacity: 1,
-    transition: 'opacity 0.3s ease',
-    width: 'auto',
-    maxWidth: '100%'
-  } : {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    p: 0.5,
-    borderRadius: 2,
-    bgcolor: theme.palette.background.paper,
-    border: `1px solid ${theme.palette.divider}`,
-    width: '100%',
-    maxWidth: '100%',
-    overflowX: 'auto',
-    boxShadow: theme.shadows[3]
-  };
-
-  // Button sizing
-  const buttonSize = isMobile ? 36 : (isOverlay ? 40 : 44);
-  const iconSize = buttonSize * 0.5;
-  const buttonMargin = isMobile ? 0.25 : 0.5;
-
-  // Button styling
-  const buttonStyles = {
-    width: buttonSize,
-    height: buttonSize,
-    m: buttonMargin,
-    color: isOverlay ? 'white' : theme.palette.text.secondary,
-    '&:hover': {
-      bgcolor: isOverlay ? 'rgba(255, 255, 255, 0.1)' : theme.palette.action.hover,
-    },
-  };
-
-  // Active button styling
-  const activeButtonStyles = {
-    ...buttonStyles,
-    color: theme.palette.primary.main,
-    '&:hover': {
-      bgcolor: theme.palette.primary.main + '1A', // 10% opacity
-    },
-  };
-
-  // Recording button style
-  const getRecordingButtonStyles = () => {
-    if (!isRecording) return buttonStyles;
-
-    // For recording state
-    if (isProcessing) {
-      // Yellow for processing
-      return {
-        ...buttonStyles,
-        color: theme.palette.warning.main,
-        '&:hover': {
-          bgcolor: theme.palette.warning.main + '1A',
-        }
-      };
-    } else {
-      // Red for active recording
-      return {
-        ...buttonStyles,
-        color: theme.palette.error.main,
-        '&:hover': {
-          bgcolor: theme.palette.error.main + '1A',
-        }
-      };
-    }
-  };
-
-  // Recording tooltip
-  const getRecordingTooltip = () => {
-          if (!isRecording) {
-        const mobile = isMobileDevice;
-        const saveType = cameraRollSupport;
-
-        if (mobile && saveType) {
-        switch (saveType) {
-          case 'webshare':
-            return "Start Recording (saves to camera roll via share)";
-          case 'filesystem':
-            return "Start Recording (saves to device storage)";
-          case 'ios-fallback':
-            return "Start Recording (long-press video to save to Photos)";
-          case 'android-fallback':
-            return "Start Recording (saves to Downloads/Gallery)";
-          default:
-            return "Start Recording";
-        }
-      }
-      return "Start Recording";
-    }
-
-    if (isProcessing) return "Processing... Please wait";
-    return `Stop Recording (${formatTime(elapsedTime)}, ${frameCount} frames)`;
   };
 
   // Save video to camera roll (mobile-optimized)
@@ -1236,112 +1331,470 @@ function MediaController({ isOverlay = false }) {
     }
   };
 
+  // Format time (MM:SS)
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  
+
+  // Close notification
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  // Styling
+  const containerStyles = isOverlay ? {
+    position: 'relative',
+    borderRadius: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(8px)',
+    padding: '8px 12px',
+    boxShadow: theme.shadows[8],
+    opacity: 1,
+    transition: 'opacity 0.3s ease',
+    width: 'auto',
+    maxWidth: '100%'
+  } : {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    p: 0.5,
+    borderRadius: 2,
+    bgcolor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    width: '100%',
+    maxWidth: '100%',
+    overflowX: 'auto',
+    boxShadow: theme.shadows[3]
+  };
+
+  // Button sizing
+  const buttonSize = isMobile ? 36 : (isOverlay ? 40 : 44);
+  const iconSize = buttonSize * 0.5;
+  const buttonMargin = isMobile ? 0.25 : 0.5;
+
+  // Button styling
+  const buttonStyles = {
+    width: buttonSize,
+    height: buttonSize,
+    m: buttonMargin,
+    color: isOverlay ? 'white' : theme.palette.text.secondary,
+    '&:hover': {
+      bgcolor: isOverlay ? 'rgba(255, 255, 255, 0.1)' : theme.palette.action.hover,
+    },
+  };
+
+  // Active button styling
+  const activeButtonStyles = {
+    ...buttonStyles,
+    color: theme.palette.primary.main,
+    '&:hover': {
+      bgcolor: theme.palette.primary.main + '1A', // 10% opacity
+    },
+  };
+
+  // Recording button style
+  const getRecordingButtonStyles = () => {
+    if (!isRecording) return buttonStyles;
+
+    // For recording state
+    if (isProcessing) {
+      // Yellow for processing
+      return {
+        ...buttonStyles,
+        color: theme.palette.warning.main,
+        '&:hover': {
+          bgcolor: theme.palette.warning.main + '1A',
+        }
+      };
+    } else {
+      // Red for active recording
+      return {
+        ...buttonStyles,
+        color: theme.palette.error.main,
+        '&:hover': {
+          bgcolor: theme.palette.error.main + '1A',
+        }
+      };
+    }
+  };
+
+  // Recording tooltip
+  const getRecordingTooltip = () => {
+    if (!isRecording) {
+      const mobile = isMobileDevice;
+      const saveType = cameraRollSupport;
+
+      if (mobile && saveType) {
+        switch (saveType) {
+          case 'webshare':
+            return "Start Recording (saves to camera roll via share)";
+          case 'filesystem':
+            return "Start Recording (saves to device storage)";
+          case 'ios-fallback':
+            return "Start Recording (long-press video to save to Photos)";
+          case 'android-fallback':
+            return "Start Recording (saves to Downloads/Gallery)";
+          default:
+            return "Start Recording";
+        }
+      }
+      return "Start Recording";
+    }
+
+    if (isProcessing) return "Processing... Please wait";
+    return `Stop Recording (${formatTime(elapsedTime)}, ${frameCount} frames)`;
+  };
+
   return (
-    <Paper elevation={isOverlay ? 0 : 3} sx={containerStyles}>
-      <Box sx={{
-        display: 'flex',
-        flexWrap: 'nowrap',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%'
-      }}>
-        {/* Primary Controls */}
-        <Tooltip title="Reset scene" arrow>
-          <IconButton
-            onClick={handleRestart}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <RotateCcw size={iconSize} />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Advance Frame" arrow>
-          <IconButton
-            onClick={handleAdvance}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <SkipForward size={iconSize} />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title={isRunning ? "Pause" : "Play"} arrow>
-          <IconButton
-            onClick={handleRunPause}
-            sx={isRunning ? activeButtonStyles : buttonStyles}
-            size="medium"
-          >
-            {isRunning ? <Pause size={iconSize} /> : <Play size={iconSize} />}
-          </IconButton>
-        </Tooltip>
-
-        <Divider orientation="vertical" flexItem sx={{
-          mx: isMobile ? 0.25 : 0.5,
-          my: 0.5,
-          height: isMobile ? '70%' : '80%'
-        }} />
-
-        {/* Secondary Controls */}
-        <Tooltip title={getRecordingTooltip()} arrow>
-          <span> {/* Wrapper to allow tooltip on disabled button */}
+    <>
+      <Paper elevation={isOverlay ? 0 : 3} sx={containerStyles}>
+        <Box sx={{
+          display: 'flex',
+          flexWrap: 'nowrap',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%'
+        }}>
+          {/* Primary Controls */}
+          <Tooltip title="Reset scene" arrow>
             <IconButton
-              onClick={handleToggleRecording}
-              sx={{
-                ...getRecordingButtonStyles(),
-                position: 'relative' // For positioning the mobile indicator
-              }}
+              onClick={handleRestart}
+              sx={buttonStyles}
               size="medium"
-              disabled={isProcessing}
             >
-              {isProcessing ? (
-                <CircularProgress size={iconSize} />
-              ) : isRecording ? (
-                <VideoOff size={iconSize} />
-              ) : (
-                <Video size={iconSize} />
-              )}
-
-              {/* Mobile camera roll indicator */}
-                              {!isRecording && !isProcessing && isMobileDevice && cameraRollSupport && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: theme.palette.success.main,
-                    border: `1px solid ${isOverlay ? 'white' : theme.palette.background.paper}`,
-                    zIndex: 1
-                  }}
-                />
-              )}
+              <RotateCcw size={iconSize} />
             </IconButton>
-          </span>
-        </Tooltip>
+          </Tooltip>
 
-        <Tooltip title="Take Screenshot" arrow>
-          <IconButton
-            onClick={handleTakeScreenshot}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <Camera size={iconSize} />
-          </IconButton>
-        </Tooltip>
+          <Tooltip title="Advance Frame" arrow>
+            <IconButton
+              onClick={handleAdvance}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <SkipForward size={iconSize} />
+            </IconButton>
+          </Tooltip>
 
-        <Tooltip title="Save Scene" arrow>
-          <IconButton
-            onClick={() => {/* Save scene logic */}}
-            sx={buttonStyles}
-            size="medium"
-          >
-            <Save size={iconSize} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+          <Tooltip title={isRunning ? "Pause" : "Play"} arrow>
+            <IconButton
+              onClick={handleRunPause}
+              sx={isRunning ? activeButtonStyles : buttonStyles}
+              size="medium"
+            >
+              {isRunning ? <Pause size={iconSize} /> : <Play size={iconSize} />}
+            </IconButton>
+          </Tooltip>
+
+          <Divider orientation="vertical" flexItem sx={{
+            mx: isMobile ? 0.25 : 0.5,
+            my: 0.5,
+            height: isMobile ? '70%' : '80%'
+          }} />
+
+          {/* Secondary Controls */}
+          <Tooltip title={getRecordingTooltip()} arrow>
+            <span> {/* Wrapper to allow tooltip on disabled button */}
+              <IconButton
+                onClick={handleToggleRecording}
+                sx={{
+                  ...getRecordingButtonStyles(),
+                  position: 'relative' // For positioning the mobile indicator
+                }}
+                size="medium"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <CircularProgress size={iconSize} />
+                ) : isRecording ? (
+                  <VideoOff size={iconSize} />
+                ) : (
+                  <Video size={iconSize} />
+                )}
+
+                {/* Mobile camera roll indicator */}
+                {!isRecording && !isProcessing && isMobileDevice && cameraRollSupport && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: theme.palette.success.main,
+                      border: `1px solid ${isOverlay ? 'white' : theme.palette.background.paper}`,
+                      zIndex: 1
+                    }}
+                  />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Take Screenshot" arrow>
+            <IconButton
+              onClick={handleTakeScreenshot}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <Camera size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+          {/* Scene Save Controls */}
+          <Tooltip title={
+            isSaving ? "Saving..." : 
+            saveSuccess ? "Saved successfully!" : 
+            "Save Scene Configuration"
+          }>
+            <Badge
+              color="warning"
+              variant="dot"
+              invisible={!hasUnsavedChanges}
+            >
+              <IconButton
+                onClick={handleMainSaveConfig}
+                sx={{
+                  ...buttonStyles,
+                  color: saveSuccess ? theme.palette.success.main : 
+                         hasUnsavedChanges ? theme.palette.warning.main : 
+                         buttonStyles.color,
+                  ...(isSaving && {
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' }
+                    }
+                  }),
+                  ...(saveSuccess && {
+                    animation: 'pulse 0.5s ease-in-out',
+                    '@keyframes pulse': {
+                      '0%': { transform: 'scale(1)' },
+                      '50%': { transform: 'scale(1.1)' },
+                      '100%': { transform: 'scale(1)' }
+                    }
+                  })
+                }}
+                size="medium"
+                disabled={!currentSceneName || isSaving}
+              >
+                {isSaving ? (
+                  <CircularProgress size={iconSize - 4} color="inherit" />
+                ) : saveSuccess ? (
+                  <Check size={iconSize} />
+                ) : (
+                  <Save size={iconSize} />
+                )}
+              </IconButton>
+            </Badge>
+          </Tooltip>
+
+          <Tooltip title="Manage Saved Configurations" arrow>
+            <IconButton
+              onClick={handleOpenSaveDialog}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <FolderOpen size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+          {/* Export/Import Complete Scene State */}
+          <Tooltip title="Export Complete Scene State" arrow>
+            <IconButton
+              onClick={handleExportCompleteState}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <Download size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Import Complete Scene State" arrow>
+            <IconButton
+              onClick={handleImportCompleteState}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <Upload size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+        </Box>
+      </Paper>
+
+      {/* Scene Management Dialog */}
+      <Dialog
+        open={showSaveDialog}
+        onClose={handleCloseSaveDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { maxHeight: '80vh' }
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">
+              Scene Configuration Manager
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Tooltip title="Export All Configs">
+                <IconButton onClick={handleExportConfigs} size="small">
+                  <CloudDownload size={16} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Import Configs">
+                <IconButton onClick={handleImportConfigs} size="small">
+                  <CloudUpload size={16} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Clear All Configs">
+                <IconButton onClick={handleClearAllConfigs} size="small" color="error">
+                  <Delete size={16} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent dividers>
+          {/* Current Scene Section */}
+          {currentSceneName && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Current Scene: {currentSceneName}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  startIcon={
+                    isSaving ? <CircularProgress size={16} /> : 
+                    saveSuccess ? <Check size={16} /> : 
+                    <Save size={16} />
+                  }
+                  onClick={handleSaveConfig}
+                  disabled={!hasUnsavedChanges || isSaving}
+                  color={
+                    saveSuccess ? "success" :
+                    hasUnsavedChanges ? "warning" : 
+                    "primary"
+                  }
+                  size="small"
+                >
+                  {isSaving ? 'Saving...' : 
+                   saveSuccess ? 'Saved!' : 
+                   (hasUnsavedChanges ? 'Save Changes' : 'Saved')}
+                </Button>
+                {SceneStorage.hasConfigForScene(currentSceneName) && (
+                  <Chip
+                    label="Has saved configuration"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                  />
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* Storage Info */}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>{storageInfo.configCount}</strong> saved configurations using <strong>{storageInfo.formattedSize}</strong>
+            </Typography>
+          </Alert>
+
+          {/* Saved Configurations List */}
+          {savedConfigs.length > 0 ? (
+            <List sx={{ maxHeight: '400px', overflow: 'auto' }}>
+              {savedConfigs.map(({ sceneName, metadata }) => (
+                <ListItem key={sceneName} divider>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1">
+                          {sceneName}
+                        </Typography>
+                        {sceneName === currentSceneName && (
+                          <Chip 
+                            label="Current" 
+                            size="small" 
+                            color="primary" 
+                            variant="outlined" 
+                          />
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      metadata ? (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Saved: {metadata.lastModified}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Size: {SceneStorage.formatBytes(metadata.size)} • Version: {metadata.version}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No metadata available
+                        </Typography>
+                      )
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Load Configuration">
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleLoadConfig(sceneName)}
+                          size="small"
+                          color="primary"
+                        >
+                          <FolderOpen size={16} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Configuration">
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleDeleteConfig(sceneName)}
+                          size="small"
+                          color="error"
+                        >
+                          <Delete size={16} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Settings size={48} color={theme.palette.text.disabled} style={{ marginBottom: 8 }} />
+              <Typography variant="body1" color="text.secondary">
+                No saved configurations found
+              </Typography>
+              <Typography variant="body2" color="text.disabled">
+                Save your first configuration to see it here
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseSaveDialog} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={notification.open}
@@ -1358,7 +1811,7 @@ function MediaController({ isOverlay = false }) {
           {notification.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </>
   );
 }
 

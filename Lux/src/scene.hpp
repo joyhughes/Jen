@@ -11,6 +11,11 @@
 #include "any_function.hpp"
 #include "any_rule.hpp"
 #include "UI.hpp"
+#include "json.hpp"
+#include <mutex>
+#include <set>
+
+using json = nlohmann::json;
 
 //template< class T > struct effect;
 struct element;
@@ -243,7 +248,49 @@ struct scene {
         
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object
+public:
+    json save_complete_state() const;
+    void load_complete_state(const json& state);
 
+    json capture_current_frame_state() const;
+    json capture_state_delta(const json& base_line) const;
+    void restore_live_state(const json&live_state);
+
+    json save_runtime_state() const;
+    void restore_runtime_state(const json& state);
+
+    void update_frame();
+    void mark_function_changed(const std::string& fname);
+    float calculate_delta_time() const;
+
+    void on_slider_changed(const std::string& slider_name, const float& new_value);
+    void on_menu_changed(const std::string& menu_name, const int new_choice);
+    void on_switch_toggled(const std::string& switch_name, const bool new_state);
+
+    void extend_function_with_current_values(json& func_json, const any_function& func) const;
+    json prepare_scene_for_loading(const json& saved_state) const;
+    void restore_current_values_from_saved_state(const json& state_json);
+    void load_scene_with_reader(const json& scene_for_loading);
+    json serialize_images() const;
+    json serialize_effects_static() const;
+    void save_scene_to_file(const std::string& filename) const;
+    void load_scene_from_file(const std::string& filename);
+
+    // Core scene methods needed by lux_web.cpp
+    void restart();                             // Reset time to zero, reload all buffers
+    void render();  // Render scene on any image type
+    void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
+    std::string get_current_scene_name();
+
+    template< class T > image< T >& get_image( const std::string& name ) {
+        if( !buffers.contains( name ) ) {
+            throw std::runtime_error( "image " + name + " not found in scene" ); 
+        }
+        else return ::get_image< T >( buffers[ name ] );
+    }
+
+    // Get mouse position in parametric space of output buffer
+    vec2f get_mouse_pos() const;
 
     template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) {
         if( !functions.contains( name ) ) {
@@ -268,27 +315,54 @@ struct scene {
         }
     }
 
-    template< class T > image< T >& get_image( const std::string& name ) {
-        if( !buffers.contains( name ) ) {
-            throw std::runtime_error( "image " + name + " not found in scene" ); 
-        }
-        else return ::get_image< T >( buffers[ name ] );
-    }
+private:
+    // thread-safety for live capture
+    mutable std::mutex state_mutex;
+    std::atomic<bool> capture_enabled{true};
+    std::chrono::steady_clock::time_point last_capture_time;
+    std::chrono::steady_clock::time_point last_frame_time;
 
-    // Get mouse position in parametric space of output buffer
-    vec2f get_mouse_pos() const;
+    // live animation state
+    uint64_t current_frame_number{0};
+    float current_fps{60.f};
+    bool ui_recently_modified{false};
+    std::set<std::string> functions_changed_this_frame;
+
+    // helper methods for harness serialization
+
+    json get_buffer_state(const std::string& buffer_name) const;
+    void restore_buffer_state(const std::string& buffer_name, const json& buffer_json);
+
+    // live animation helpers
+    json capture_effect_chain_states() const;
+    json capture_buffer_render_states() const;
+    void update_audio_functions();
+    void update_generator_functions();
+    void update_integrator_functions();
+    void propogate_all_harness_updates();
+    void reset_user_interaction_flags();
+    bool should_capture_state_this_frame() const;
+    void background_capture_state();
+
+    // state validation
+    void validate_loaded_state();
+    void sync_ui_with_function_states();
+
+
+
+
+
+
+
+    void load_scene_by_name(const std::string& name);
 
 //    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
 //    void pause();                               // Pause animation
 //    void unpause();                             // Set animation to runnning
 //    void run_pause();                           // Toggle animation pause
-    void restart();                             // Reset time to zero, reload all buffers
     void set_time_interval( const float& t );   // Set time interval for animation
  // void resize( const vec2i& dim );            // Resize all buffers in render list
-    void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
     effect_list& get_effect_list( const std::string& name ); // get effect list by name
-
-    void render();  // Render scene on any image type
 
     void save_result(    
         const std::string& filename, 
@@ -316,6 +390,7 @@ struct scene {
         int quality = 100   
     );
 
+
 };
 
 
@@ -328,6 +403,30 @@ static element_context empty_element_context( empty_element, empty_cluster, empt
 */
 // Test only - remove later
 //template< class T > void splat_element( std::shared_ptr< buffer_pair< T > > target_buf, element& el );
+
+
+struct StateCaptureManager {
+private:
+    scene& managed_scene;
+    json last_baseline_state;
+    std::chrono::steady_clock::time_point last_full_capture;
+    std::set<std::string> significant_changes;
+    uint64_t baseline_frame_number{0};
+
+public:
+    StateCaptureManager( scene& scene_init ) : managed_scene(scene_init) {};
+
+    json capture_delta_state();
+    json capture_full_baseline();
+    json smart_capture();
+
+
+    void mark_significant_change(const std::string& function_name);
+    void clear_changes();
+
+private:
+    json capture_single_function_state(const std::string& function_name);
+};
 
 
 #endif // __SCENE_HPP

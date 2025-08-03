@@ -426,7 +426,7 @@ void scene_reader::read_function( const json& j ) {
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = std::get< any_fn< _T_ > >( s.functions[ fn_name ] ); }
 
     // harness bool functions
-    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) fn->value = fn->default_value; END_FN
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) READ( default_value ) if( !j.contains( "value" ) ) fn->value = fn->default_value; END_FN
 
     // harness float functions
     FN( adder_float, float ) HARNESS( r ) END_FN
@@ -434,10 +434,11 @@ void scene_reader::read_function( const json& j ) {
     FN( generator_float, float ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
+    FN( constant_float, float ) READ( value ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
     FN( integrator_float, float ) HARNESS( delta ) HARNESS( scale ) READ( val ) END_FN
     FN( wiggle,      float ) HARNESS( wavelength ) HARNESS( amplitude ) HARNESS( phase ) HARNESS( wiggliness ) END_FN
-    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
+    FN( slider_float, float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) if( !j.contains( "value" ) ) fn->value = fn->default_value; END_FN
     FN( range_slider_float, interval_float ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // audio function - combines multiple channels and effects
@@ -452,7 +453,7 @@ void scene_reader::read_function( const json& j ) {
     // harness int functions
     FN( adder_int,  int ) HARNESS( r ) END_FN
     FN( generator_int, int ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
-    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) fn->value = fn->default_value; END_FN
+    FN( slider_int, int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) HARNESS( value ) if( !j.contains( "value" ) ) fn->value = fn->default_value; END_FN
     FN( range_slider_int, interval_int ) READ( label ) READ( description ) READ( min ) READ( max ) READ( default_value ) READ( step ) fn->value = fn->default_value; END_FN
 
     // special case for menu
@@ -464,7 +465,7 @@ void scene_reader::read_function( const json& j ) {
         READ( affects_widget_groups )
         READ( rerender )
         HARNESS( choice ) 
-        fn->choice = fn->default_choice;
+        if( !j.contains( "choice" ) ) fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
 
@@ -476,7 +477,7 @@ void scene_reader::read_function( const json& j ) {
         READ( affects_widget_groups ) 
         READ( rerender ) 
         HARNESS( choice )
-        fn->choice = fn->default_choice;
+        if( !j.contains( "choice" ) ) fn->choice = fn->default_choice;
         if( j.contains( "items" ) ) for( std::string item : j[ "items" ] ) fn->add_item( item );
     END_FN
 
@@ -541,7 +542,7 @@ void scene_reader::read_function( const json& j ) {
 
 
     // ui functions
-    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) HARNESS( value ) READ( default_value ) READ( affects_widget_groups ) fn->value = fn->default_value; END_FN
+    FN( switch_fn, bool ) READ( tool ) READ( label ) READ( description ) HARNESS( value ) READ( default_value ) READ( affects_widget_groups ) if( !j.contains( "value" ) ) fn->value = fn->default_value; END_FN
     // special case for widget switch
     FN( widget_switch_fn, bool ) READ( switcher ) READ( widget ) READ( label ) READ( description )  END_FN
 
@@ -1073,10 +1074,169 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
                         {"type", "widget_switch_fn"},
-                        {"label", fn->label},
-                        {"description", fn->description},
                         {"switcher", fn->switcher},
-                        {"widget", fn->widget}
+                        {"widget", fn->widget},
+                        {"label", fn->label},
+                        {"description", fn->description}
+                    };
+                },
+                [&]( const std::shared_ptr< mousedown_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mousedown_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< mouseover_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouseover_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< mouseclick_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouseclick_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< initial_element_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "initial_element_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< following_element_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "following_element_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< top_level_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "top_level_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< lower_level_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "lower_level_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< random_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "random_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< random_sticky_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "random_sticky_fn"},
+                        {"p_start", *fn->p_start},
+                        {"p_change_true", *fn->p_change_true},
+                        {"p_change_false", *fn->p_change_false}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_float_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_float_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_vec2f_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_vec2f_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_vec2i_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_vec2i_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_frgb_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_frgb_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_ucolor_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_ucolor_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_string_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_string_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction4_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction4_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction4_diagonal_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction4_diagonal_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction8_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction8_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_bool_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_bool_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< identity_bool >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_bool"}
+                    };
+                },
+                [&]( const std::shared_ptr< random_toggle >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "random_toggle"},
+                        {"enabled", *fn->enabled},
+                        {"p", *fn->p}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_int_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_int_fn"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
                     };
                 },
                 [&]( const auto& fn ) {
@@ -1137,6 +1297,39 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"pickers", fn->pickers}
                     };
                 },
+                [&]( const std::shared_ptr< generator_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "generator_int"},
+                        {"distribution", fn->distribution},
+                        {"p", *fn->p},
+                        {"a", *fn->a},
+                        {"b", *fn->b},
+                        {"enabled", *fn->enabled}
+                    };
+                },
+                [&]( const std::shared_ptr< identity_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_int"}
+                    };
+                },
+                [&]( const std::shared_ptr< adder_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "adder_int"},
+                        {"r", *fn->r}
+                    };
+                },
+                [&]( const std::shared_ptr< tweaker_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "tweaker_int"},
+                        {"enabled", *fn->enabled},
+                        {"p", *fn->p},
+                        {"amount", *fn->amount}
+                    };
+                },
                 [&]( const auto& fn ) {
                     // Placeholder for other types
                     j = nlohmann::json{
@@ -1180,6 +1373,84 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"high_sensitivity", *fn->high_sensitivity},
                         {"offset", *fn->offset},
                         {"global_sensitivity", *fn->global_sensitivity}
+                    };
+                },
+                [&]( const std::shared_ptr< generator_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "generator_float"},
+                        {"distribution", fn->distribution},
+                        {"p", *fn->p},
+                        {"a", *fn->a},
+                        {"b", *fn->b},
+                        {"enabled", *fn->enabled}
+                    };
+                },
+                [&]( const std::shared_ptr< integrator_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "integrator_float"},
+                        {"delta", *fn->delta},
+                        {"scale", *fn->scale},
+                        {"val", fn->val}
+                    };
+                },
+                [&]( const std::shared_ptr< tweaker_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "tweaker_float"},
+                        {"p", *fn->p},
+                        {"amount", *fn->amount},
+                        {"enabled", *fn->enabled}
+                    };
+                },
+                [&]( const std::shared_ptr< time_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "time_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< constant_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "constant_float"},
+                        {"value", fn->value}
+                    };
+                },
+                [&]( const std::shared_ptr< identity_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_float"}
+                    };
+                },
+                [&]( const std::shared_ptr< adder_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "adder_float"}
+                    };
+                },
+                [&]( const std::shared_ptr< ratio_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "ratio_float"}
+                    };
+                },
+                [&]( const std::shared_ptr< log_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "log_fn"},
+                        {"scale", *fn->scale},
+                        {"shift", *fn->shift}
+                    };
+                },
+                [&]( const std::shared_ptr< wiggle >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "wiggle"},
+                        {"wavelength", *fn->wavelength},
+                        {"amplitude", *fn->amplitude},
+                        {"phase", *fn->phase},
+                        {"wiggliness", *fn->wiggliness}
                     };
                 },
                 [&]( const auto& fn ) {
@@ -1229,6 +1500,12 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"value", fn->value}
                     };
                 },
+                [&]( const std::shared_ptr< identity_interval_int >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_interval_int"}
+                    };
+                },
                 [&]( const auto& fn ) {
                     // Placeholder for other types
                     j = nlohmann::json{
@@ -1254,6 +1531,12 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"value", fn->value}
                     };
                 },
+                [&]( const std::shared_ptr< identity_interval_float >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_interval_float"}
+                    };
+                },
                 [&]( const auto& fn ) {
                     // Placeholder for other types
                     j = nlohmann::json{
@@ -1264,14 +1547,97 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                 }
             }, wrapper.any_fn_ptr );
         },
-        /*
         [&]( const any_fn< vec2f >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_vec2f >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_vec2f"}
+                    };
+                },
+                [&]( const std::shared_ptr< adder_vec2f >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "adder_vec2f"}
+                    };
+                },
+                [&]( const std::shared_ptr< ratio_vec2f >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "ratio_vec2f"}
+                    };
+                },
+                [&]( const std::shared_ptr< mouse_pos_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouse_pos_fn"}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented vec2f function"}
+                    };
+                }
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< vec2i >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_vec2i >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_vec2i"}
+                    };
+                },
+                [&]( const std::shared_ptr< adder_vec2i >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "adder_vec2i"}
+                    };
+                },
+                [&]( const std::shared_ptr< buffer_dim_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "buffer_dim_fn"},
+                        {"buf_name", *fn->buf_name}
+                    };
+                },
+                [&]( const std::shared_ptr< mouse_pix_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouse_pix_fn"}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented vec2i function"}
+                    };
+                }
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< frgb >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_frgb >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_frgb"}
+                    };
+                },
+                [&]( const std::shared_ptr< adder_frgb >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "adder_frgb"}
+                    };
+                },
+                [&]( const auto& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "unimplemented frgb function"}
+                    };
+                }
+            }, wrapper.any_fn_ptr);
         },
-        */
         [&]( const any_fn< ucolor >& wrapper ) {
             std::visit( overloaded {
                 [&]( const std::shared_ptr< ucolor_picker >& fn ) {
@@ -1308,18 +1674,15 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"items", fn->items},
                         {"affects_widget_groups", fn->affects_widget_groups},
                         {"rerender", fn->rerender}
-
                     };
                 },
-                [&]( const auto& fn ) {
-                    // Placeholder for other types
+                [&]( const std::shared_ptr< identity_string >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "unimplemented string function"} // Replace with actual type identification if needed
-                        // Other placeholder fields...
+                        {"type", "identity_string"}
                     };
                 },
-            }, wrapper.any_fn_ptr);  
+            }, wrapper.any_fn_ptr);
         },
         [&]( const any_fn< direction4 >& wrapper ) {
             std::visit( overloaded {
@@ -1333,12 +1696,10 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"default_value", fn->default_value}
                     };
                 },
-                [&]( const auto& fn ) {
-                    // Placeholder for other types
+                [&]( const std::shared_ptr< identity_direction4 >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "unimplemented direction4 function"} // Replace with actual type identification if needed
-                        // Other placeholder fields...
+                        {"type", "identity_direction4"}
                     };
                 }
             }, wrapper.any_fn_ptr);
@@ -1409,10 +1770,119 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                 }
             }, wrapper.any_fn_ptr );
         },
-        /* 
-        [&]( const any_gen_fn& wrapper ) {
+        [&]( const any_fn< bb2f >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_bb2f >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_bb2f"}
+                    };
+                }
+            }, wrapper.any_fn_ptr );
         },
-        */
+        [&]( const any_fn< bb2i >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_bb2i >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_bb2i"}
+                    };
+                }
+            }, wrapper.any_fn_ptr );
+        },
+        [&]( const any_fn< image_extend >& wrapper ) {
+            std::visit( overloaded {
+                [&]( const std::shared_ptr< identity_image_extend >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_image_extend"}
+                    };
+                },
+                [&]( const std::shared_ptr< image_extend_picker >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "image_extend_picker"},
+                        {"label", fn->label},
+                        {"description", fn->description},
+                        {"value", fn->value},
+                        {"default_value", fn->default_value}
+                    };
+                }
+            }, wrapper.any_fn_ptr );
+        },
+        [&]( const any_gen_fn& wrapper ) {
+            std::visit(overloaded{
+                [&]( const std::shared_ptr< identity_gen_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "identity_gen_fn"}
+                    };
+                },
+                [&]( const std::shared_ptr< orientation_gen_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "orientation_gen_fn"},
+                        {"orientation", *fn->orientation}
+                    };
+                },
+                [&]( const std::shared_ptr< scale_gen_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "scale_gen_fn"},
+                        {"scale", *fn->scale}
+                    };
+                },
+                [&]( const std::shared_ptr< rotation_gen_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "rotation_gen_fn"},
+                        {"r", *fn->r}
+                    };
+                },
+                [&]( const std::shared_ptr< position_gen_fn >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "position_gen_fn"},
+                        {"position", *fn->position}
+                    };
+                },
+                [&]( const std::shared_ptr< filter >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "filter"}
+                    };
+                },
+                [&]( const std::shared_ptr< advect_element >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "advect_element"},
+                        {"flow", *fn->flow},
+                        {"step", *fn->step},
+                        {"proportional", fn->proportional},
+                        {"time_interval_proportional", fn->time_interval_proportional},
+                        {"orientation_sensitive", fn->orientation_sensitive}
+                    };
+                },
+                [&]( const std::shared_ptr< angle_branch >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "angle_branch"},
+                        {"interval", fn->interval},
+                        {"offset", fn->offset},
+                        {"size_prop", *fn->size_prop},
+                        {"branch_ang", *fn->branch_ang},
+                        {"branch_dist", *fn->branch_dist}
+                    };
+                },
+                [&]( const std::shared_ptr< curly >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "curly"},
+                        {"curliness", *fn->curliness}
+                    };
+                }
+            }, wrapper.my_gen_fn );
+        },
         [&]( const any_condition_fn& wrapper ) {
              std::visit(overloaded{
                 [&]( const std::shared_ptr<switch_condition>& fn ) {
@@ -1437,20 +1907,159 @@ void to_json( nlohmann::json& j, const any_function& af ) {
                         {"widget", fn->widget}
                     };
                 },
-                [&]( const auto& fn ) {
-                    // Placeholder for other types
+                [&]( const std::shared_ptr< initial_element_condition >& fn ) {
                     j = nlohmann::json{
                         {"name", wrapper.name},
-                        {"type", "unimplemented function"} // Replace with actual type identification if needed
-                        // Other placeholder fields...
+                        {"type", "initial_element_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< following_element_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "following_element_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< top_level_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "top_level_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< lower_level_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "lower_level_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< random_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "random_condition"},
+                        {"p", *fn->p}
+                    };
+                },
+                [&]( const std::shared_ptr< random_sticky_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "random_sticky_condition"},
+                        {"p_start", *fn->p_start},
+                        {"p_change_true", *fn->p_change_true},
+                        {"p_change_false", *fn->p_change_false}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_float_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_float_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_vec2f_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_vec2f_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_int_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_int_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_vec2i_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_vec2i_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_frgb_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_frgb_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_ucolor_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_ucolor_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_string_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_string_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_bool_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_bool_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction4_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction4_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction4_diagonal_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction4_diagonal_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< equal_direction8_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "equal_direction8_condition"},
+                        {"a", *fn->a},
+                        {"b", *fn->b}
+                    };
+                },
+                [&]( const std::shared_ptr< mousedown_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mousedown_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< mouseover_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouseover_condition"}
+                    };
+                },
+                [&]( const std::shared_ptr< mouseclick_condition >& fn ) {
+                    j = nlohmann::json{
+                        {"name", wrapper.name},
+                        {"type", "mouseclick_condition"}
                     };
                 }
             }, wrapper.my_condition_fn );           
         },
         [&]( auto& wrapper ) {
-            // Placeholder for other types
+            // This should not be reached if all variants are properly implemented
             j = nlohmann::json{
-                {"name", "unimplemented return type"},
+                {"name", "ERROR: unimplemented function type in any_function variant"},
+                {"debug_info", "Check if all function types in any_function.hpp are handled"}
             };
         }
     }, af);
