@@ -1694,6 +1694,60 @@ std::string get_current_scene_filename() {
     return global_context->s->get_current_scene_name() + ".json";
 }
 
+// Scene state functions
+std::string save_complete_state() {
+    if (!global_context || !global_context->s) {
+        return "{}";
+    }
+    try {
+        auto state_json = global_context->s->save_complete_state();
+        return state_json.dump(4); // Pretty print with 4 spaces indentation
+    } catch (const std::exception& e) {
+        std::cerr << "Error saving complete state: " << e.what() << std::endl;
+        return "{}";
+    }
+}
+
+bool load_complete_state(std::string state_json_str) {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    try {
+        auto state_json = nlohmann::json::parse(state_json_str);
+        global_context->s->load_complete_state(state_json);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading complete state: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool save_scene_to_file(std::string filename) {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    try {
+        global_context->s->save_scene_to_file(filename);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error saving scene to file: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool load_scene_from_file(std::string filename) {
+    if (!global_context || !global_context->s) {
+        return false;
+    }
+    try {
+        global_context->s->load_scene_from_file(filename);
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading scene from file: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 
 int main(int argc, char** argv) {
     using namespace nlohmann;
@@ -1749,6 +1803,10 @@ int main(int argc, char** argv) {
     any_buffer_pair_ptr any_buf = buf;
     global_context->s->set_output_buffer( any_buf );
     global_context->s->ui.canvas_bounds = bb2i( dim );
+    
+    // Set initial animation state to false (paused)
+    global_context->s->ui.running = false;
+    
     //SDL_Init(SDL_INIT_VIDEO);
     //SDL_Surface *screen = SDL_SetVideoMode( dim.x, dim.y, 32, SDL_SWSURFACE );
 
@@ -1876,4 +1934,10 @@ EMSCRIPTEN_BINDINGS(my_module) {
     // scene name functions
     function("get_current_scene_name", &get_current_scene_name);
     function("get_current_scene_filename", &get_current_scene_filename);
+    
+    // scene state functions
+    function("save_complete_state", &save_complete_state);
+    function("load_complete_state", &load_complete_state);
+    function("save_scene_to_file", &save_scene_to_file);
+    function("load_scene_from_file", &load_scene_from_file);
 }

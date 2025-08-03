@@ -93,7 +93,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         });
     }, [collectCurrentSliderValues]);
 
-    // Save current scene configuration to localStorage
+    // Save complete scene state using the new C++ backend
     const saveSceneConfig = useCallback(async () => {
         if (!currentSceneName) {
             console.warn('Cannot save config: no current scene name');
@@ -101,44 +101,49 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
 
         try {
-            const sliderValues = collectCurrentSliderValues();
-            const sceneConfig = {
-                sliderValues,
-                savedAt: new Date().toISOString(),
-                sceneName: currentSceneName
-            };
-
-            SceneStorage.saveSceneConfig(currentSceneName, sceneConfig);
-            lastSavedValues.current = { ...sliderValues };
-            setHasUnsavedChanges(false);
+            // Save complete scene state using the new C++ backend
+            const success = await SceneStorage.saveSceneConfig(currentSceneName);
             
-            showNotification(`Scene "${currentSceneName}" saved successfully`, 'success');
-            return true;
+            if (success) {
+                // Also update our local slider values for UI consistency
+                const sliderValues = collectCurrentSliderValues();
+                lastSavedValues.current = { ...sliderValues };
+                setHasUnsavedChanges(false);
+                
+                showNotification(`Complete scene state saved for "${currentSceneName}"`, 'success');
+                return true;
+            } else {
+                showNotification(`Failed to save scene state for "${currentSceneName}"`, 'error');
+                return false;
+            }
         } catch (error) {
-            console.error('Error saving scene config:', error);
+            console.error('Error saving complete scene state:', error);
             showNotification(`Failed to save scene: ${error.message}`, 'error');
             return false;
         }
     }, [currentSceneName, collectCurrentSliderValues, showNotification]);
 
-    // Load scene configuration from localStorage or fall back to defaults
+    // Load complete scene state using the new C++ backend
     const loadSceneConfig = useCallback(async (sceneName) => {
         if (!sceneName) return null;
 
         try {
-            // First try to load from localStorage
-            const savedConfig = SceneStorage.loadSceneConfig(sceneName);
+            // Load complete scene state using the new C++ backend
+            const savedConfig = await SceneStorage.loadSceneConfig(sceneName);
             
-            if (savedConfig && savedConfig.sliderValues) {
-                console.log(`📋 Loading saved configuration for scene: ${sceneName}`);
-                return savedConfig.sliderValues;
+            if (savedConfig) {
+                console.log(`📋 Complete scene state loaded for: ${sceneName}`);
+                // The backend has already restored the complete state
+                // We just need to refresh the UI to reflect the changes
+                setResetTrigger(prev => prev + 1);
+                return savedConfig; // Return for backward compatibility
             } else {
-                console.log(`📂 No saved config found for ${sceneName}, using defaults`);
+                console.log(`📂 No saved scene state found for ${sceneName}, using defaults`);
                 return null;
             }
         } catch (error) {
-            console.error('Error loading scene config:', error);
-            showNotification(`Failed to load saved config for ${sceneName}`, 'warning');
+            console.error('Error loading complete scene state:', error);
+            showNotification(`Failed to load scene state for ${sceneName}`, 'warning');
             return null;
         }
     }, [showNotification]);
@@ -172,6 +177,58 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         
         lastSavedValues.current = { ...values };
     }, [moduleReady, callModuleFunction, onSliderChange]);
+
+    // Export complete scene state as JSON
+    const exportSceneState = useCallback(async () => {
+        try {
+            const stateJson = await SceneStorage.getCompleteSceneState();
+            if (stateJson) {
+                // Create and download the JSON file
+                const blob = new Blob([JSON.stringify(stateJson, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${currentSceneName || 'scene'}_complete_state_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Complete scene state exported successfully', 'success');
+                return true;
+            } else {
+                showNotification('Failed to export scene state', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error exporting scene state:', error);
+            showNotification(`Failed to export scene state: ${error.message}`, 'error');
+            return false;
+        }
+    }, [currentSceneName, showNotification]);
+
+    // Import complete scene state from JSON
+    const importSceneState = useCallback(async (file) => {
+        try {
+            const text = await file.text();
+            const stateJson = JSON.parse(text);
+            
+            const success = await SceneStorage.loadCompleteSceneState(stateJson);
+            if (success) {
+                // Refresh the UI to reflect the imported state
+                setResetTrigger(prev => prev + 1);
+                showNotification('Complete scene state imported successfully', 'success');
+                return true;
+            } else {
+                showNotification('Failed to import scene state', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error importing scene state:', error);
+            showNotification(`Failed to import scene state: ${error.message}`, 'error');
+            return false;
+        }
+    }, [showNotification]);
 
     // Auto-save functionality
     const scheduleAutoSave = useCallback(() => {
@@ -496,6 +553,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 saveSceneConfig={saveSceneConfig}
                 hasUnsavedChanges={hasUnsavedChanges}
                 currentSceneName={currentSceneName}
+                exportSceneState={exportSceneState}
+                importSceneState={importSceneState}
             />
 
             <Box

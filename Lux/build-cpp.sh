@@ -98,7 +98,7 @@ SIMD_FLAGS="-MMD -MP -std=c++20 -msimd128 ${FFMPEG_CFLAGS} ${STB_CFLAGS} ${CAMER
 O3_SOURCES="effect fimage frgb gamma_lut image life next_element offset_field uimage ucolor vect2 vector_field warp_field"
 
 # Regular source files
-REGULAR_SOURCES="scene scene_io any_effect any_rule any_function buffer_pair image_loader emscripten_utils UI"
+REGULAR_SOURCES="scene scene_io scene_live_state any_effect any_rule any_function buffer_pair image_loader emscripten_utils UI"
 
 # Core files
 CORE_SOURCES="lux_web video_recorder"
@@ -317,7 +317,7 @@ if [[ "$NEED_LINK" == true ]]; then
         -s 'EXPORTED_RUNTIME_METHODS=["addFunction","removeFunction","UTF8ToString","stringToUTF8","getValue","setValue","writeArrayToMemory","cwrap","FS"]' \
         -s WASM_ASYNC_COMPILATION=1 \
         -s EXIT_RUNTIME=0 \
-        -s LEGALIZE_JS_FFI=0 \
+        -s WASM_BIGINT=1 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s IMPORTED_MEMORY=0 \
         -s TOTAL_MEMORY=268435456 \

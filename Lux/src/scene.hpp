@@ -267,6 +267,54 @@ public:
     void on_menu_changed(const std::string& menu_name, const int new_choice);
     void on_switch_toggled(const std::string& switch_name, const bool new_state);
 
+    void extend_function_with_current_values(json& func_json, const any_function& func) const;
+    json prepare_scene_for_loading(const json& saved_state) const;
+    void restore_current_values_from_saved_state(const json& state_json);
+    void load_scene_with_reader(const json& scene_for_loading);
+    json serialize_images() const;
+    json serialize_effects_static() const;
+    void save_scene_to_file(const std::string& filename) const;
+    void load_scene_from_file(const std::string& filename);
+
+    // Core scene methods needed by lux_web.cpp
+    void restart();                             // Reset time to zero, reload all buffers
+    void render();  // Render scene on any image type
+    void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
+    std::string get_current_scene_name();
+
+    template< class T > image< T >& get_image( const std::string& name ) {
+        if( !buffers.contains( name ) ) {
+            throw std::runtime_error( "image " + name + " not found in scene" ); 
+        }
+        else return ::get_image< T >( buffers[ name ] );
+    }
+
+    // Get mouse position in parametric space of output buffer
+    vec2f get_mouse_pos() const;
+
+    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) {
+        if( !functions.contains( name ) ) {
+            throw std::runtime_error( "function " + name + " not found in scene" ); 
+            return nullptr;
+        }
+        else {
+            if( !std::holds_alternative< any_fn< T > >( functions[ name ] ) ) {
+                throw std::runtime_error( "function " + name + " not of return type " + typeid( T ).name() );
+                return nullptr;
+            }
+            else {
+                auto fn = std::get< any_fn< T > >( functions[ name ] );
+                if( !std::holds_alternative< std::shared_ptr< F > >( fn.any_fn_ptr ) ) {
+                    throw std::runtime_error( "function " + name + " not of type " + typeid( F ).name() );
+                    return nullptr;
+                }
+                else {
+                    return std::get< std::shared_ptr< F > >( fn.any_fn_ptr );
+                }
+            }
+        }
+    }
+
 private:
     // thread-safety for live capture
     mutable std::mutex state_mutex;
@@ -306,52 +354,15 @@ private:
 
 
 
-    template< class T, class F > std::shared_ptr< F > get_fn_ptr( const std::string& name ) {
-        if( !functions.contains( name ) ) {
-            throw std::runtime_error( "function " + name + " not found in scene" ); 
-            return nullptr;
-        }
-        else {
-            if( !std::holds_alternative< any_fn< T > >( functions[ name ] ) ) {
-                throw std::runtime_error( "function " + name + " not of return type " + typeid( T ).name() );
-                return nullptr;
-            }
-            else {
-                auto fn = std::get< any_fn< T > >( functions[ name ] );
-                if( !std::holds_alternative< std::shared_ptr< F > >( fn.any_fn_ptr ) ) {
-                    throw std::runtime_error( "function " + name + " not of type " + typeid( F ).name() );
-                    return nullptr;
-                }
-                else {
-                    return std::get< std::shared_ptr< F > >( fn.any_fn_ptr );
-                }
-            }
-        }
-    }
-
-    template< class T > image< T >& get_image( const std::string& name ) {
-        if( !buffers.contains( name ) ) {
-            throw std::runtime_error( "image " + name + " not found in scene" ); 
-        }
-        else return ::get_image< T >( buffers[ name ] );
-    }
-
-    // Get mouse position in parametric space of output buffer
-    vec2f get_mouse_pos() const;
-    std::string get_current_scene_name();
     void load_scene_by_name(const std::string& name);
 
 //    bool load( const std::string& filename );   // Load scene file (JSON) into existing scene object
 //    void pause();                               // Pause animation
 //    void unpause();                             // Set animation to runnning
 //    void run_pause();                           // Toggle animation pause
-    void restart();                             // Reset time to zero, reload all buffers
     void set_time_interval( const float& t );   // Set time interval for animation
  // void resize( const vec2i& dim );            // Resize all buffers in render list
-    void set_output_buffer( any_buffer_pair_ptr& buf ); // Set output buffer for rendering (needed?)
     effect_list& get_effect_list( const std::string& name ); // get effect list by name
-
-    void render();  // Render scene on any image type
 
     void save_result(    
         const std::string& filename, 

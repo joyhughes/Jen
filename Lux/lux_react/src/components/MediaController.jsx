@@ -37,13 +37,15 @@ import {
   CloudDownload,
   CloudUpload,
   Settings,
-  Check
+  Check,
+  Download,
+  Upload
 } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
 import { useScene } from './SceneContext';
 import { SceneStorage } from '../utils/sceneStorage.js';
 
-const MediaController = ({ isOverlay = false, saveSceneConfig, hasUnsavedChanges, currentSceneName }) => {
+const MediaController = ({ isOverlay = false, saveSceneConfig, hasUnsavedChanges, currentSceneName, exportSceneState, importSceneState }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isRunning, setIsRunning] = useState(true); // Start playing by default to match backend
@@ -298,6 +300,43 @@ const MediaController = ({ isOverlay = false, saveSceneConfig, hasUnsavedChanges
       }
     }
   }, [loadSavedConfigs]);
+
+  // Export complete scene state
+  const handleExportCompleteState = useCallback(async () => {
+    if (exportSceneState) {
+      try {
+        await exportSceneState();
+      } catch (error) {
+        console.error('Error exporting scene state:', error);
+        showNotification(`Failed to export scene state: ${error.message}`, 'error');
+      }
+    } else {
+      showNotification('Scene state export not available', 'error');
+    }
+  }, [exportSceneState, showNotification]);
+
+  // Import complete scene state
+  const handleImportCompleteState = useCallback(() => {
+    if (importSceneState) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            await importSceneState(file);
+          } catch (error) {
+            console.error('Error importing scene state:', error);
+            showNotification(`Failed to import scene state: ${error.message}`, 'error');
+          }
+        }
+      };
+      input.click();
+    } else {
+      showNotification('Scene state import not available', 'error');
+    }
+  }, [importSceneState, showNotification]);
 
   // Wrapper for main save button with loading state
   const handleMainSaveConfig = useCallback(async () => {
@@ -1563,6 +1602,27 @@ const MediaController = ({ isOverlay = false, saveSceneConfig, hasUnsavedChanges
               size="medium"
             >
               <FolderOpen size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+          {/* Export/Import Complete Scene State */}
+          <Tooltip title="Export Complete Scene State" arrow>
+            <IconButton
+              onClick={handleExportCompleteState}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <Download size={iconSize} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Import Complete Scene State" arrow>
+            <IconButton
+              onClick={handleImportCompleteState}
+              sx={buttonStyles}
+              size="medium"
+            >
+              <Upload size={iconSize} />
             </IconButton>
           </Tooltip>
 

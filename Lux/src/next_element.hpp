@@ -59,6 +59,7 @@ typedef std::function< vec2i  ( vec2i&,  element_context& ) > vec2i_fn;
 typedef std::function< frgb   ( frgb&,   element_context& ) > frgb_fn; 
 typedef std::function< ucolor ( ucolor&, element_context& ) > ucolor_fn; 
 typedef std::function< bb2f   ( bb2f&,   element_context& ) > bb2f_fn; 
+typedef std::function< bb2i   ( bb2i&,   element_context& ) > bb2i_fn; 
 typedef std::function< std::string ( std::string&, element_context& ) > string_fn;
 typedef std::function< direction4 ( direction4&, element_context& ) > direction4_fn;
 typedef std::function< direction4_diagonal ( direction4_diagonal&, element_context& ) > direction4_diagonal_fn;
@@ -106,6 +107,7 @@ typedef identity_fn< vec2f  > identity_vec2f;
 typedef identity_fn< frgb   > identity_frgb;
 typedef identity_fn< ucolor > identity_ucolor;
 typedef identity_fn< bb2f   > identity_bb2f;
+typedef identity_fn< bb2i   > identity_bb2i;
 typedef identity_fn< std::string > identity_string;
 typedef identity_fn< direction4 > identity_direction4;
 typedef identity_fn< direction4_diagonal > identity_direction4_diagonal;
@@ -212,6 +214,16 @@ struct log_fn {
 
 struct time_fn {
     float operator () ( float& val, element_context& context );
+};
+
+struct constant_float {
+    float value;
+    
+    float operator () ( float& val, element_context& context ) { 
+        return value; 
+    }
+
+    constant_float( const float& value_init = 0.0f ) : value( value_init ) {}
 };
 
 template< MultipliableByFloat U > struct ratio {
