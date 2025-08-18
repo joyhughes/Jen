@@ -156,12 +156,26 @@ export const useJenModule = () => {
         return manager.callModuleFunction(funcName, ...args);
     }, [isReady])
 
-    return {
-        isReady,
-        isLoading,
-        error,
-        callModuleFunction
-    }
+        const saveSceneState = useCallback(async () => {
+            if (!isReady) return null;
+            
+            try {
+                const manager = JenModuleManager.getInstance();
+                const sceneJson = manager.callModuleFunction('save_scene_state');
+                return JSON.parse(sceneJson);
+            } catch (error) {
+                console.error('Failed to save scene state:', error);
+                return null;
+            }
+        }, [isReady]);
+
+        return {
+            isReady,
+            isLoading,
+            error,
+            callModuleFunction,
+            saveSceneState
+        }
 }
 
 

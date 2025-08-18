@@ -66,7 +66,8 @@ add_library(common ${COMMON_LIB_SRCS}
         src/video_recorder.cpp)
 
 set(LUX_MAIN_SRCS src/lux.cpp)
-add_executable(lux ${LUX_MAIN_SRCS})
+add_executable(lux ${LUX_MAIN_SRCS}
+        src/lux_web.cpp)
 
 set(SPLOOT_MAIN_SRCS src/sploot.cpp)
 add_executable(sploot ${SPLOOT_MAIN_SRCS})

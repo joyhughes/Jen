@@ -49,6 +49,17 @@ template< class T > std::unique_ptr< image< T > >& buffer_pair< T >::get_image_p
     return image_pair.first; 
 }
 
+template<class T>
+std::string buffer_pair<T>::get_pixel_type_name() const {
+   if constexpr (std::is_same_v<T, ucolor>) return "ucolor";
+   else if constexpr (std::is_same_v<T, frgb>) return "frgb";
+   else if constexpr (std::is_same_v<T, vec2f>) return "vec2f";
+   else if constexpr (std::is_same_v<T, int>) return "int";
+   else if constexpr (std::is_same_v<T, vec2i>) return "vec2i";
+   else return "unknown";
+}
+
+
 template< class T > image< T >& buffer_pair< T >::get_buffer() {
     if( image_pair.second.get() == NULL ) image_pair.second.reset( new image< T >( *image_pair.first ) );
     return *image_pair.second;

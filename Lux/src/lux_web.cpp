@@ -1678,6 +1678,72 @@ bool set_autoplay_intensity(float intensity) {
     return false;
 }
 
+std::string save_scene_state() {
+    if (!global_context || !global_context->s) {
+        return "{}";
+    }
+
+    try {
+        scene_writer writer(*global_context->s);
+        nlohmann::json scene_json = writer.write_scene_json();
+        return scene_json.dump(2);  // Pretty print with 2 spaces
+    } catch(const std::exception& e) {
+        std::cerr << "Error saving scene state: " << e.what() << std::endl;
+        return "{}";
+    }
+}
+
+bool load_scene_from_json(std::string json_str) {
+    if (!global_context) {
+        std::cerr << "ERROR: Global context not available for scene loading" << std::endl;
+        return false;
+    }
+    try {
+        std::cout << "Loading scene from JSON string" << std::endl;
+
+        nlohmann::json scene_json = nlohmann::json::parse(json_str);
+
+        bool has_saved_state = scene_json.contains("saved_timestamp");
+
+        std::cout << "Scene type " << ((has_saved_state) ? " saved with runtime state" : " default configuration") << std::endl;
+
+        auto new_scene = std::make_unique<scene>();
+
+        scene_reader reader(*new_scene, scene_json, has_saved_state);
+
+        std::cout << "Scene loaded: " << new_scene->name << std::endl;
+
+        any_buffer_pair_ptr current_output = global_context->buf;
+        vec2i current_dim = global_context->buf_dim;
+
+
+        global_context->s = std::move(new_scene);
+        global_context->s->set_output_buffer(current_output);
+        global_context->s->ui.canvas_bounds = bb2i(current_dim);
+
+        if (global_context->scene_callback_ready) {
+            std::cout << "Triggering scene change callback..." << std::endl;
+            global_context->scene_callback();
+        } else {
+            std::cout << "Scene callback not ready, manually resetting display" << std::endl;
+            global_context->s->ui.displayed = false;
+        }
+
+
+        std::cout << "Scene loaded successfully from JSON" << std::endl;
+        return true;
+    } catch(const nlohmann::json::parse_error& e) {
+        std::cerr << "JSON parse error: " << e.what() << std::endl;
+        return false;
+    } catch(const std::exception&e) {
+        std::cerr << "Error loading scene from JSON: " << e.what() << std::endl;
+        return false;
+    } catch(...) {
+        std::cerr << "Unknown error loading scene from JSON" << std::endl;
+        return false;
+    }
+}
+
 int main(int argc, char** argv) {
     using namespace nlohmann;
     std::string filename;
@@ -1849,10 +1915,13 @@ EMSCRIPTEN_BINDINGS(my_module) {
     
     // slider value retrieval functions
     function("get_slider_value", &get_slider_value);
-    
+
     // animation state functions
     function("get_animation_running", &get_animation_running);
     function("enable_autoplay", &enable_autoplay);
     function("get_autoplay_status", &get_autoplay_status);
     function("set_autoplay_intensity", &set_autoplay_intensity);
+
+    // save scene state
+    function("save_scene_state", &save_scene_state);
 }

@@ -23,7 +23,7 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
     
     // Use our simple, reliable module hook
-    const { isReady: moduleReady, isLoading: moduleLoading, error: moduleError, callModuleFunction } = useJenModule();
+    const { isReady: moduleReady, isLoading: moduleLoading, error: moduleError, callModuleFunction, saveSceneState } = useJenModule();
     
     // Component-specific state
     const [panelJSON, setPanelJSON] = useState([]);
@@ -107,6 +107,33 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             console.error("Error updating widget groups:", error);
         }
     }, [panelJSON, moduleReady, callModuleFunction]);
+
+    // Save scene state handler
+    const handleSaveScene = useCallback(async () => {
+        try {
+            const sceneState = await saveSceneState();
+            if (sceneState) {
+                // Create downloadable file
+                const blob = new Blob([JSON.stringify(sceneState, null, 2)], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${sceneState.name || 'scene'}_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Scene saved successfully:', sceneState.name);
+            } else {
+                console.error('Failed to get scene state');
+            }
+        } catch (error) {
+            console.error('Error saving scene:', error);
+        }
+    }, [saveSceneState]);
 
     // Set up the control panel once the module is ready
     const setupPanel = useCallback(async () => {
@@ -232,7 +259,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             panelJSON,
             activeGroups,
             onWidgetGroupChange: handleWidgetGroupChange,
-            isLoading
+            isLoading,
+            onSaveScene: handleSaveScene
         };
 
         switch (activePane) {

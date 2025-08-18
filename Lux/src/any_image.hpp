@@ -45,6 +45,19 @@ typedef std::variant< fbuf_ptr, ubuf_ptr, vbuf_ptr, wbuf_ptr, obuf_ptr > any_buf
 
 static ubuf_ptr null_buffer_pair_ptr = NULL;
 
+// Helper function to get pixel type name from any_buffer_pair_ptr
+inline std::string get_pixel_type_name(const any_buffer_pair_ptr& buf) {
+    return std::visit([](auto&& buffer) -> std::string {
+        using T = std::decay_t<decltype(buffer)>;
+        if constexpr (std::is_same_v<T, fbuf_ptr>) return "frgb";
+        else if constexpr (std::is_same_v<T, ubuf_ptr>) return "ucolor";
+        else if constexpr (std::is_same_v<T, vbuf_ptr>) return "vec2f";
+        else if constexpr (std::is_same_v<T, wbuf_ptr>) return "int";
+        else if constexpr (std::is_same_v<T, obuf_ptr>) return "vec2i";
+        else return "unknown";
+    }, buf);
+}
+
 template< class T > void copy_buffer( T& to, const any_buffer_pair_ptr& from ) { 
 	const T& f = std::get< T >( from );
 	if( f.get() == NULL ) throw std::runtime_error( "copy_buffer(): attempt to copy null buffer" );

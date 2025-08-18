@@ -3,10 +3,12 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import SaveIcon from '@mui/icons-material/Save';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
 
-function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange, onSaveScene }) {
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
 
@@ -205,6 +207,26 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
+            {/* Save Scene Button */}
+            <Box sx={{ mb: 2 }}>
+                <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={onSaveScene}
+                    sx={{
+                        width: '100%',
+                        mb: 1,
+                        backgroundColor: 'primary.main',
+                        '&:hover': {
+                            backgroundColor: 'primary.dark',
+                        }
+                    }}
+                    disabled={!onSaveScene}
+                >
+                    Save Scene State
+                </Button>
+            </Box>
+            
             <Divider sx={{ mb: 2 }} />
 
             {nonImageGroups.length > 0 ? (

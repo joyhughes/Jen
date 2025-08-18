@@ -6,6 +6,7 @@
 #include "ucolor.hpp"
 #include "vect2.hpp"
 #include "any_image.hpp"
+#include "json.hpp"
 
 struct eff_identity;
 struct eff_n;
@@ -191,6 +192,8 @@ struct any_effect_fn {
 
     any_effect_fn();
     any_effect_fn( any_effect_fn_ptr fn_ptr, effect_fn fn, std::string name ) : fn_ptr( fn_ptr ), fn( fn ), name( name ) {}
+    std::string get_type_name() const;
+    void serialize_to_json(nlohmann::json & json) const;
 };
 
 #endif // __ANY_EFFECT_HPP

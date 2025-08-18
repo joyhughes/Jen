@@ -25,6 +25,7 @@ public:
     std::unique_ptr< image< T > >& get_image_ptr();
     image< T >& get_buffer();                   // get buffer, create if necessary
     std::unique_ptr< image< T > >& get_buffer_ptr();
+    std::string get_pixel_type_name() const;
     void swap();                                // swap image and buffer
 
     /*
