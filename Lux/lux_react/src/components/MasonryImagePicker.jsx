@@ -180,8 +180,10 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
 
                 let selectedIdx = -1;
 
+                // For saved scenes, the backend should have already assigned the runtime value
+                // directly to json.choice, so we can use it directly
                 if (json.choice !== undefined && Number.isInteger(json.choice)) {
-                    selectedIdx = json.choice;
+                    selectedIdx = json.choice;  // Use saved runtime value
                 } else if (json.selected !== undefined && Number.isInteger(json.selected)) {
                     selectedIdx = json.selected;
                 } else if (json.value !== undefined && Number.isInteger(json.value)) {

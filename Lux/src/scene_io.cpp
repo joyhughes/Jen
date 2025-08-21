@@ -8,6 +8,7 @@
 #include "json.hpp"
 #include <fstream>
 #include <sstream>
+#include <type_traits>
 
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
 #define ERROR( msg ) throw std::runtime_error( msg );
@@ -339,13 +340,44 @@ template<class T>
 void scene_reader::read_harness(const json &j, harness<T> &h) {
     if (j.is_object()) {
         if (j.contains("value")) {
+            T old_val = h.val;
             read(h.val, j["value"]);
+            
+            // For saved scenes, we need to also assign this runtime value
+            // to the function's value field so the frontend can access it
+            if (is_saved_scene) {
+                // Handle different types specially for debug output
+                if constexpr (std::is_same_v<T, interval_float> || std::is_same_v<T, interval_int>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value [" << h.val.min << ", " << h.val.max << "] to harness" << std::endl;
+                } else if constexpr (std::is_same_v<T, vec2f> || std::is_same_v<T, vec2i>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value [" << h.val.x << ", " << h.val.y << "] to harness" << std::endl;
+                } else if constexpr (std::is_same_v<T, frgb>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value (frgb) to harness" << std::endl;
+                } else if constexpr (std::is_same_v<T, bb2f> || std::is_same_v<T, bb2i>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value (bounding_box) to harness" << std::endl;
+                } else if constexpr (std::is_same_v<T, string>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value '" << h.val << "' to harness" << std::endl;
+                } else if constexpr (std::is_same_v<T, bool>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value " << (h.val ? "true" : "false") << " to harness" << std::endl;
+                } else if constexpr (std::is_enum_v<T>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value (enum) to harness" << std::endl;
+                } else if constexpr (std::is_arithmetic_v<T>) {
+                    std::cout << "DEBUG: read_harness - assigning runtime value " << h.val << " to harness" << std::endl;
+                } else {
+                    std::cout << "DEBUG: read_harness - assigning runtime value (complex type) to harness" << std::endl;
+                }
+            }
         }
         // need list of harness functions by type (map of maps?)
-        if (j.contains("functions"))
+        if (j.contains("functions")) {
             for (std::string name: j["functions"]) {
-                h.add_function(std::get<any_fn<T> >(s.functions[name]));
+                try {
+                    h.add_function(std::get<any_fn<T> >(s.functions[name]));
+                } catch (const std::exception& e) {
+                    std::cout << "DEBUG: Error adding function '" << name << "' to harness: " << e.what() << std::endl;
+                }
             }
+        }
     } else read(h.val, j);
 }
 
@@ -383,6 +415,12 @@ void scene_reader::add_default_functions() {
 void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runtime_state) {
     // Detect if this has runtime state
     is_saved_scene = load_runtime_state && has_runtime_state(j);
+    
+    if (is_saved_scene) {
+        std::cout << "DEBUG: Loading saved scene with runtime state preservation" << std::endl;
+    } else {
+        std::cout << "DEBUG: Loading default scene configuration (no runtime state)" << std::endl;
+    }
 
 
     // Basic scene fields
@@ -442,12 +480,28 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
     }
 
     DEBUG("scene_reader initialization finished");
+    
+
 }
 
 bool scene_reader::has_runtime_state(const json &scene_json) {
-    if (scene_json.contains("saved_timestamp")) {
-        return true;
+    // Check if any function has a harness value with both functions and value fields
+    // This indicates a saved scene with runtime state
+    if (scene_json.contains("functions")) {
+        for (const auto& func : scene_json["functions"]) {
+            if (func.contains("value") && func["value"].is_object()) {
+                const auto& value_obj = func["value"];
+                if (value_obj.contains("functions") && value_obj.contains("value")) {
+                    std::cout << "DEBUG: Found harness with runtime state in function '" << func["name"] << "'" << std::endl;
+                    std::cout << "DEBUG: Scene has harness values with runtime state, treating as saved scene" << std::endl;
+                    return true;
+                }
+            }
+        }
     }
+    
+    std::cout << "DEBUG: Scene has no harness runtime values, treating as default configuration" << std::endl;
+    std::cout << "DEBUG: Default scenes only have 'functions' in harness, saved scenes have 'functions' + 'value'" << std::endl;
     return false;
 }
 
@@ -507,6 +561,16 @@ void scene_reader::read_function(const json &j) {
         READ(description)
         READ(default_value)
         fn->value = fn->default_value;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
+            if (j["value"].contains("value")) {
+                bool runtime_value;
+                read(runtime_value, j["value"]["value"]);
+                fn->value = runtime_value;
+                std::cout << "DEBUG: switch_fn '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+            }
+        }
     END_FN
 
     // harness float functions
@@ -554,6 +618,16 @@ void scene_reader::read_function(const json &j) {
         READ(step)
         HARNESS(value)
         fn->value = fn->default_value;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
+            if (j["value"].contains("value")) {
+                float runtime_value;
+                read(runtime_value, j["value"]["value"]);
+                fn->value = runtime_value;
+                std::cout << "DEBUG: slider_float '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+            }
+        }
     END_FN
     FN(range_slider_float, interval_float)
         READ(label)
@@ -563,6 +637,16 @@ void scene_reader::read_function(const json &j) {
         READ(default_value)
         READ(step)
         fn->value = fn->default_value;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
+            if (j["value"].contains("value")) {
+                interval_float runtime_value;
+                read(runtime_value, j["value"]["value"]);
+                fn->value = runtime_value;
+                std::cout << "DEBUG: range_slider_float '" << name << "' - assigned runtime value: [" << runtime_value.min << ", " << runtime_value.max << "]" << std::endl;
+            }
+        }
     END_FN
 
     // audio function - combines multiple channels and effects
@@ -603,6 +687,16 @@ void scene_reader::read_function(const json &j) {
         READ(step)
         HARNESS(value)
         fn->value = fn->default_value;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
+            if (j["value"].contains("value")) {
+                int runtime_value;
+                read(runtime_value, j["value"]["value"]);
+                fn->value = runtime_value;
+                std::cout << "DEBUG: slider_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+            }
+        }
     END_FN
     FN(range_slider_int, interval_int)
         READ(label)
@@ -612,6 +706,16 @@ void scene_reader::read_function(const json &j) {
         READ(default_value)
         READ(step)
         fn->value = fn->default_value;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
+            if (j["value"].contains("value")) {
+                interval_int runtime_value;
+                read(runtime_value, j["value"]["value"]);
+                fn->value = runtime_value;
+                std::cout << "DEBUG: range_slider_int '" << name << "' - assigned runtime value: [" << runtime_value.min << ", " << runtime_value.max << "]" << std::endl;
+            }
+        }
     END_FN
 
     // special case for menu
@@ -624,6 +728,17 @@ void scene_reader::read_function(const json &j) {
         READ(rerender)
         HARNESS(choice)
         fn->choice = fn->default_choice;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
+            if (j["choice"].contains("value")) {
+                int runtime_value;
+                read(runtime_value, j["choice"]["value"]);
+                fn->choice = runtime_value;
+                std::cout << "DEBUG: menu_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+            }
+        }
+        
         if (j.contains("items")) for (std::string item: j["items"]) fn->add_item(item);
     END_FN
 
@@ -636,6 +751,17 @@ void scene_reader::read_function(const json &j) {
         READ(rerender)
         HARNESS(choice)
         fn->choice = fn->default_choice;
+        
+        // For saved scenes, extract runtime value from harness JSON
+        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
+            if (j["choice"].contains("value")) {
+                int runtime_value;
+                read(runtime_value, j["choice"]["value"]);
+                fn->choice = runtime_value;
+                std::cout << "DEBUG: menu_string '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+            }
+        }
+        
         if (j.contains("items")) for (std::string item: j["items"]) fn->add_item(item);
     END_FN
 

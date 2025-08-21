@@ -1869,6 +1869,10 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "pick_direction8",            &pick_direction8 );
     function( "pick_direction4",            &pick_direction4 );
     function( "pick_direction4_diagonal",   &pick_direction4_diagonal );
+
+    // scene save/load functions
+    function( "save_scene_state",           &save_scene_state );
+    function( "load_scene_from_json",       &load_scene_from_json );
     function( "pick_blur_method",           &pick_blur_method );
     function( "pick_multi_direction8",      &pick_multi_direction8 );
     function( "remove_custom_blur_pickers", &remove_custom_blur_pickers);
@@ -1922,6 +1926,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("get_autoplay_status", &get_autoplay_status);
     function("set_autoplay_intensity", &set_autoplay_intensity);
 
-    // save scene state
-    function("save_scene_state", &save_scene_state);
 }

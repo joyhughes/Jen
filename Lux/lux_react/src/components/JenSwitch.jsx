@@ -65,7 +65,17 @@ const StyledCheckbox = styled(Checkbox)(({ theme }) => ({
 
 function JenSwitch({ json, onChange }) {
     const theme = useTheme();
-    const [switchValue, setSwitchValue] = useState(json.value ?? false);
+    
+    // For saved scenes, the backend should have already assigned the runtime value
+    // directly to json.value, so we can use it directly
+    const getInitialValue = () => {
+        if (json.value !== undefined && typeof json.value === 'boolean') {
+            return json.value;  // Use saved runtime value
+        }
+        return json.default_value ?? false;  // Fallback to default
+    };
+    
+    const [switchValue, setSwitchValue] = useState(getInitialValue());
     
     // Get reset trigger from context
     //const { resetTrigger } = React.useContext(ControlPanelContext);

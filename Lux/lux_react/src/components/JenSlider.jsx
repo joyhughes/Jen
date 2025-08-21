@@ -267,6 +267,21 @@ function JenSlider({ json, width }) {
     // Initialize value properly for range vs single sliders
     const getInitialValue = () => {
         const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
+        
+        // For saved scenes, the backend should have already assigned the runtime value
+        // directly to json.value, so we can use it directly
+        if (json.value !== undefined && typeof json.value === 'number') {
+            if (isRange) {
+                // For range sliders, check if it's an array
+                if (Array.isArray(json.value) && json.value.length === 2) {
+                    return json.value;  // Use saved runtime range value
+                }
+            } else {
+                return json.value;  // Use saved runtime single value
+            }
+        }
+        
+        // Fallback to default values (default scene)
         if (isRange) {
             // For range sliders, default_value should be an array [min, max]
             if (Array.isArray(json.default_value) && json.default_value.length === 2) {
@@ -589,6 +604,22 @@ function JenSlider({ json, width }) {
         }
         return false;
     }, [json.value]);
+
+    // Listen for scene changes to refresh slider values
+    useEffect(() => {
+        const handleSceneLoaded = (event) => {
+            if (event.detail && event.detail.isSavedScene) {
+                console.log(`Scene loaded, refreshing slider ${json.name}`);
+                // Force a refresh by updating the value from the JSON
+                const newValue = getInitialValue();
+                setValue(newValue);
+                setInputValue(formatDisplayValue(newValue).toString());
+            }
+        };
+
+        window.addEventListener('sceneLoaded', handleSceneLoaded);
+        return () => window.removeEventListener('sceneLoaded', handleSceneLoaded);
+    }, [json.name, json.value, getInitialValue, formatDisplayValue]);
 
     // Determine if we should show real-time updates for this slider
     const shouldShowRealtimeUpdates = useCallback(() => {

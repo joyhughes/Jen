@@ -64,7 +64,17 @@ const StyledFormControlLabel = styled(FormControlLabel)(({ theme }) => ({
 
 function JenMenu({ json, onChange }) {
     const theme = useTheme();
-    const [selectedMenuChoice, setSelectedMenuChoice] = useState(json.choice ?? 0);
+    
+    // For saved scenes, the backend should have already assigned the runtime value
+    // directly to json.choice, so we can use it directly
+    const getInitialChoice = () => {
+        if (json.choice !== undefined && typeof json.choice === 'number') {
+            return json.choice;  // Use saved runtime value
+        }
+        return json.default_choice ?? 0;  // Fallback to default
+    };
+    
+    const [selectedMenuChoice, setSelectedMenuChoice] = useState(getInitialChoice());
     const [internalItems, setInternalItems] = useState(json.items || []);
     
     // Get reset trigger from context
