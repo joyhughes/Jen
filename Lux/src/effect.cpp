@@ -135,6 +135,18 @@ template< class T > void eff_rotate_hue< T >::operator () ( any_buffer_pair_ptr&
 template class eff_rotate_hue< frgb >;
 template class eff_rotate_hue< ucolor >;
 
+template< class T > void eff_posterize< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
+    h_levels( context ); s_levels( context ); v_levels( context );
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_posterize: no image in buffer" );
+        buf_ptr->get_image().posterize( *h_levels, *s_levels, *v_levels );
+    }
+}
+
+template class eff_posterize< ucolor >;
+
 template< class T > void eff_bit_plane< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {

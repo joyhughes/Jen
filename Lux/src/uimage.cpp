@@ -35,11 +35,21 @@ template<> void uimage::hsv_to_rgb() {
 }
 
 template<> void uimage::rotate_hue( const float& h ) {
-    auto& base = mip[ 0 ];
-    unsigned int r = h * 256.0f / 360.0f;
-    r <<= 16;
-    for( auto& c : base ) { c = ::rotate_hue( c, r ); }
-    mip_utd = false;
+    if( h != 0.0f) {
+        auto& base = mip[ 0 ];
+        unsigned int r = h * 256.0f / 360.0f;
+        r <<= 16;
+        for( auto& c : base ) { c = ::rotate_hue( c, r ); }
+        mip_utd = false;
+    }
+}
+
+template<> void uimage::posterize( const int& h_levels, const int& s_levels, const int& v_levels ) {
+    if( h_levels != 256 || s_levels != 256 || v_levels != 256 ) {
+        auto& base = mip[ 0 ];
+        for( auto& c : base ) { c = ::posterize( c, h_levels, s_levels, v_levels ); }
+        mip_utd = false;
+    }
 }
 
 template<> void uimage::bit_plane( const ucolor& q ) {

@@ -13,6 +13,7 @@ template<> void uimage::invert();
 template<> void uimage::rgb_to_hsv();
 template<> void uimage::hsv_to_rgb();
 template<> void uimage::rotate_hue( const float& h );
+template<> void uimage::posterize( const int& h_levels, const int& s_levels, const int& v_levels );
 template<> void uimage::bit_plane( const ucolor& q );
 
 // I/O functions using template specialization
