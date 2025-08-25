@@ -7,8 +7,16 @@ import Button from '@mui/material/Button';
 import SaveIcon from '@mui/icons-material/Save';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
+import { SceneFileUpload } from '../SceneFileUpload';
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange, onSaveScene }) {
+    const handleSceneLoaded = (sceneData) => {
+        console.log('Scene loaded from file:', sceneData.name);
+        // Trigger widget group refresh after scene load
+        if (onWidgetGroupChange) {
+            setTimeout(() => onWidgetGroupChange(), 500);
+        }
+    };
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
 
@@ -207,25 +215,8 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
-            {/* Save Scene Button */}
-            <Box sx={{ mb: 2 }}>
-                <Button
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    onClick={onSaveScene}
-                    sx={{
-                        width: '100%',
-                        mb: 1,
-                        backgroundColor: 'primary.main',
-                        '&:hover': {
-                            backgroundColor: 'primary.dark',
-                        }
-                    }}
-                    disabled={!onSaveScene}
-                >
-                    Save Scene State
-                </Button>
-            </Box>
+            {/* Scene File Upload Component */}
+            <SceneFileUpload onSceneLoaded={handleSceneLoaded} />
             
             <Divider sx={{ mb: 2 }} />
 

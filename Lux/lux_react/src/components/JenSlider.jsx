@@ -268,20 +268,50 @@ function JenSlider({ json, width }) {
     const getInitialValue = () => {
         const isRange = json.type === 'range_slider_int' || json.type === 'range_slider_float';
         
-        // For saved scenes, the backend should have already assigned the runtime value
-        // directly to json.value, so we can use it directly
-        if (json.value !== undefined && typeof json.value === 'number') {
-            if (isRange) {
-                // For range sliders, check if it's an array
-                if (Array.isArray(json.value) && json.value.length === 2) {
-                    return json.value;  // Use saved runtime range value
+        // Check if json.value is a harness object or direct value
+        if (json.value !== undefined) {
+            if (typeof json.value === 'object' && json.value.functions) {
+                // This is a harness object - check for runtime value
+                if (json.value.value !== undefined) {
+                    console.log(`Slider ${json.name}: Found harness object with runtime value:`, json.value.value);
+                    if (isRange) {
+                        // For range sliders, check if it's an array
+                        if (Array.isArray(json.value.value) && json.value.value.length === 2) {
+                            return json.value.value;  // Use saved runtime range value
+                        }
+                    } else {
+                        return json.value.value;  // Use saved runtime single value
+                    }
+                } else {
+                    console.log(`Slider ${json.name}: Harness object without runtime value (default scene), using default_value`);
+                    // This is a default scene - use default_value
+                    if (isRange) {
+                        if (Array.isArray(json.default_value) && json.default_value.length === 2) {
+                            return json.default_value;
+                        }
+                        // Fallback: create array from min to max
+                        const minVal = json.min ?? 0;
+                        const maxVal = json.max ?? 100;
+                        return [minVal, maxVal];
+                    } else {
+                        return json.default_value ?? json.min ?? 0;
+                    }
                 }
-            } else {
-                return json.value;  // Use saved runtime single value
+            } else if (typeof json.value === 'number') {
+                if (isRange) {
+                    // For range sliders, check if it's an array
+                    if (Array.isArray(json.value) && json.value.length === 2) {
+                        return json.value;  // Use saved runtime range value
+                    }
+                } else {
+                    return json.value;  // Use saved runtime single value
+                }
+            } else if (Array.isArray(json.value) && isRange && json.value.length === 2) {
+                return json.value;  // Use saved runtime range value
             }
         }
         
-        // Fallback to default values (default scene)
+        // Final fallback to default values (shouldn't reach here for normal cases)
         if (isRange) {
             // For range sliders, default_value should be an array [min, max]
             if (Array.isArray(json.default_value) && json.default_value.length === 2) {

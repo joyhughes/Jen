@@ -68,8 +68,20 @@ function JenMenu({ json, onChange }) {
     // For saved scenes, the backend should have already assigned the runtime value
     // directly to json.choice, so we can use it directly
     const getInitialChoice = () => {
-        if (json.choice !== undefined && typeof json.choice === 'number') {
-            return json.choice;  // Use saved runtime value
+        if (json.choice !== undefined) {
+            if (typeof json.choice === 'object' && json.choice.functions) {
+                // This is a harness object - check for runtime value
+                if (json.choice.value !== undefined) {
+                    console.log(`Menu ${json.name}: Found harness object with runtime value:`, json.choice.value);
+                    return json.choice.value;  // Use saved runtime value
+                } else {
+                    console.log(`Menu ${json.name}: Harness object without runtime value (default scene), using default_choice`);
+                    // This is a default scene - use default_choice
+                    return json.default_choice ?? 0;
+                }
+            } else if (typeof json.choice === 'number') {
+                return json.choice;  // Use saved runtime value
+            }
         }
         return json.default_choice ?? 0;  // Fallback to default
     };

@@ -21,19 +21,6 @@ export function SceneFileUpload({ onSceneLoaded }) {
     // Check if WASM module is ready
     useEffect(() => {
         const checkModuleReady = () => {
-            // Debug: log what's available
-            if (window.module) {
-                const functions = Object.keys(window.module);
-                console.log('SceneFileUpload: window.module available, functions:', functions);
-                console.log('SceneFileUpload: Has load_scene_from_json?', typeof window.module.load_scene_from_json);
-                console.log('SceneFileUpload: Has load_scene?', typeof window.module.load_scene);
-                console.log('SceneFileUpload: Has FS?', !!window.module.FS);
-            }
-            if (window.Module) {
-                const functions = Object.keys(window.Module);
-                console.log('SceneFileUpload: window.Module available, functions:', functions);
-                console.log('SceneFileUpload: Has load_scene_from_json?', typeof window.Module.load_scene_from_json);
-            }
             
             // Check for different possible module configurations
             const ready = (
@@ -42,9 +29,6 @@ export function SceneFileUpload({ onSceneLoaded }) {
                 (window.module && typeof window.module.load_scene === 'function' && window.module.FS)
             );
             
-            if (ready && !isModuleReady) {
-                console.log('SceneFileUpload: Module is now ready!');
-            }
             
             setIsModuleReady(ready);
         };
@@ -198,45 +182,55 @@ export function SceneFileUpload({ onSceneLoaded }) {
                 try {
                     const jsonContent = e.target.result;
                     
+                    // Check if content was read successfully
+                    if (!jsonContent || typeof jsonContent !== 'string') {
+                        throw new Error('Failed to read file content');
+                    }
+                    
                     // Validate JSON
                     const sceneData = JSON.parse(jsonContent);
                     
                     // Check if it's a valid scene
                     if (!sceneData.name || !sceneData.effects || !sceneData.functions) {
-                        throw new Error('Invalid scene file format');
+                        throw new Error('Invalid scene file format - missing required fields (name, effects, functions)');
                     }
 
                     // Try to load scene via WASM module
                     let success = false;
                     
-                    if (window.module && typeof window.module.load_scene_from_json === 'function') {
-                        // Direct JSON loading
-                        success = window.module.load_scene_from_json(jsonContent);
+                    // Use file system approach first (more reliable until WASM is rebuilt)
+                    if (window.module && typeof window.module.load_scene === 'function' && window.module.FS) {
+                        try {
+                            // Use the original filename from the uploaded file
+                            const uploadedFilename = file.name;
+                            
+                            // Write the exact uploaded content to the virtual filesystem
+                            window.module.FS.writeFile(uploadedFilename, jsonContent);
+                            success = window.module.load_scene(uploadedFilename);
+                            
+                            // Clean up the uploaded file
+                            try {
+                                window.module.FS.unlink(uploadedFilename);
+                            } catch (e) {
+                                console.warn('Could not clean up uploaded file:', e);
+                            }
+                        } catch (wasmError) {
+                            console.error('WASM error during file system scene loading:', wasmError);
+                            throw new Error(`Scene loading failed: ${wasmError}`);
+                        }
+                    } else if (window.module && typeof window.module.load_scene_from_json === 'function') {
+                        // Direct JSON loading (fallback - currently has runtime state detection bug)
+                        try {
+                            success = window.module.load_scene_from_json(jsonContent);
+                        } catch (wasmError) {
+                            throw new Error(`Scene loading failed in WASM module: ${wasmError}`);
+                        }
                     } else if (window.Module && typeof window.Module.load_scene_from_json === 'function') {
                         // Alternative module reference
-                        success = window.Module.load_scene_from_json(jsonContent);
-                    } else if (window.module && typeof window.module.load_scene === 'function') {
-                        // Fallback: try to save as temporary file and load
                         try {
-                            // Create a temporary filename
-                            const tempFilename = `temp_scene_${Date.now()}.json`;
-                            
-                            // Try to write the file to the virtual filesystem
-                            if (window.module.FS) {
-                                window.module.FS.writeFile(tempFilename, jsonContent);
-                                success = window.module.load_scene(tempFilename);
-                                
-                                // Clean up temp file
-                                try {
-                                    window.module.FS.unlink(tempFilename);
-                                } catch (e) {
-                                    console.warn('Could not clean up temp file:', e);
-                                }
-                            } else {
-                                throw new Error('File system not available');
-                            }
-                        } catch (fileError) {
-                            throw new Error(`Could not load scene: ${fileError.message}`);
+                            success = window.Module.load_scene_from_json(jsonContent);
+                        } catch (wasmError) {
+                            throw new Error(`Scene loading failed in WASM module: ${wasmError}`);
                         }
                     } else {
                         throw new Error('Scene loading function not available. Please wait for the application to fully load.');
@@ -265,20 +259,24 @@ export function SceneFileUpload({ onSceneLoaded }) {
                     }
                 } catch (parseError) {
                     setError(`Invalid JSON: ${parseError.message}`);
+                } finally {
+                    setIsLoading(false);
+                    // Reset file input
+                    event.target.value = '';
                 }
             };
 
             reader.onerror = () => {
                 setError('Failed to read file');
+                setIsLoading(false);
+                event.target.value = '';
             };
 
             reader.readAsText(file);
 
         } catch (error) {
             setError(error.message);
-        } finally {
             setIsLoading(false);
-            // Reset file input
             event.target.value = '';
         }
     }, [onSceneLoaded]);

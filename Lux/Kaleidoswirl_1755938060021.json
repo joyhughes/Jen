@@ -1,0 +1,1605 @@
+{
+  "effects": [
+    {
+      "name": "rgb to hsv",
+      "type": "eff_rgb_to_hsv_ucolor"
+    },
+    {
+      "extend": 1,
+      "name": "fill warp field",
+      "relative": true,
+      "type": "eff_fill_warp_int",
+      "vf_name": "kaleido_vf"
+    },
+    {
+      "choice": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "effects": [
+        "identity",
+        "theta_swirl",
+        "theta rings",
+        "theta waves",
+        "theta saw",
+        "theta compression waves"
+      ],
+      "name": "funky chooser",
+      "type": "eff_chooser"
+    },
+    {
+      "name": "hsv to rgb",
+      "type": "eff_hsv_to_rgb_ucolor"
+    },
+    {
+      "choice": {
+        "functions": [
+          "scope_menu"
+        ],
+        "value": 1
+      },
+      "effects": [
+        "theta_rotate_cartesian",
+        "kaleidoscope_cartesian",
+        "radial_multiply_cartesian",
+        "radial_tile"
+      ],
+      "name": "scope_chooser",
+      "type": "eff_chooser"
+    },
+    {
+      "alternate": {
+        "functions": [
+          "alternate_slider"
+        ],
+        "value": 30
+      },
+      "n": {
+        "functions": [
+          "rings_slider"
+        ],
+        "value": 10
+      },
+      "name": "theta rings",
+      "swirl": {
+        "functions": [
+          "swirl_slider"
+        ],
+        "value": 0
+      },
+      "type": "eff_theta_rings_vec2f"
+    },
+    {
+      "amount": {
+        "functions": [
+          "swirl_slider"
+        ],
+        "value": 60
+      },
+      "name": "theta_swirl",
+      "type": "eff_theta_swirl_vec2f"
+    },
+    {
+      "expand": {
+        "functions": [
+          "expand_integrator"
+        ],
+        "value": 0
+      },
+      "levels": {
+        "functions": [
+          "level_slider"
+        ],
+        "value": 2
+      },
+      "name": "radial_tile",
+      "offset_x": 0,
+      "offset_y": 0,
+      "reflect_x": {
+        "functions": [
+          "reflect_switch"
+        ],
+        "value": true
+      },
+      "reflect_y": {
+        "functions": [
+          "reflect_level_switch"
+        ],
+        "value": true
+      },
+      "segments": {
+        "functions": [
+          "segment_slider"
+        ],
+        "value": 6
+      },
+      "spin": {
+        "functions": [
+          "spin_integrator"
+        ],
+        "value": 0
+      },
+      "type": "eff_radial_tile_vec2f",
+      "zoom_x": 1,
+      "zoom_y": 1
+    },
+    {
+      "angle": {
+        "functions": [
+          "spin_integrator"
+        ],
+        "value": 0
+      },
+      "name": "theta_rotate",
+      "type": "eff_theta_rotate_vec2f"
+    },
+    {
+      "amp": {
+        "functions": [
+          "amp_slider"
+        ],
+        "value": 5
+      },
+      "const_amp": {
+        "functions": [
+          "const_amp_switch"
+        ],
+        "value": false
+      },
+      "freq": {
+        "functions": [
+          "freq_slider"
+        ],
+        "value": 2
+      },
+      "name": "theta waves",
+      "phase": {
+        "functions": [
+          "phase_integrator"
+        ],
+        "value": 0
+      },
+      "type": "eff_theta_waves_vec2f"
+    },
+    {
+      "effects": [
+        "radial_multiply",
+        "cartesian"
+      ],
+      "name": "radial_multiply_cartesian",
+      "type": "eff_composite"
+    },
+    {
+      "effects": [
+        "kaleidoscope",
+        "cartesian"
+      ],
+      "name": "kaleidoscope_cartesian",
+      "type": "eff_composite"
+    },
+    {
+      "name": "radial",
+      "type": "eff_radial_vec2f"
+    },
+    {
+      "name": "warp image",
+      "type": "eff_feedback_ucolor",
+      "wf_name": "warper"
+    },
+    {
+      "effects": [
+        "theta_rotate",
+        "cartesian"
+      ],
+      "name": "theta_rotate_cartesian",
+      "type": "eff_composite"
+    },
+    {
+      "amp": {
+        "functions": [
+          "amp_slider"
+        ],
+        "value": 5
+      },
+      "const_amp": {
+        "functions": [
+          "const_amp_switch"
+        ],
+        "value": false
+      },
+      "freq": {
+        "functions": [
+          "freq_slider"
+        ],
+        "value": 2
+      },
+      "name": "theta saw",
+      "phase": {
+        "functions": [
+          "phase_integrator"
+        ],
+        "value": 0
+      },
+      "type": "eff_theta_saw_vec2f"
+    },
+    {
+      "expand": {
+        "functions": [
+          "expand_integrator"
+        ],
+        "value": 0.3198004961013794
+      },
+      "level_start": {
+        "functions": [
+          "level_start_integrator"
+        ],
+        "value": 0.13610002398490906
+      },
+      "levels": {
+        "functions": [
+          "level_slider"
+        ],
+        "value": 7
+      },
+      "name": "kaleidoscope",
+      "reflect": {
+        "functions": [
+          "reflect_switch"
+        ],
+        "value": true
+      },
+      "reflect_levels": {
+        "functions": [
+          "reflect_level_switch"
+        ],
+        "value": true
+      },
+      "segments": {
+        "functions": [
+          "segment_slider"
+        ],
+        "value": 23
+      },
+      "spin": {
+        "functions": [
+          "spin_integrator"
+        ],
+        "value": 41.08055877685547
+      },
+      "start": {
+        "functions": [
+          "start_integrator"
+        ],
+        "value": 789.6085205078125
+      },
+      "type": "eff_kaleidoscope_vec2f"
+    },
+    {
+      "name": "identity",
+      "type": "eff_identity"
+    },
+    {
+      "amp": {
+        "functions": [
+          "amp_slider"
+        ],
+        "value": 5
+      },
+      "const_amp": {
+        "functions": [
+          "const_amp_switch"
+        ],
+        "value": false
+      },
+      "freq": {
+        "functions": [
+          "freq_slider"
+        ],
+        "value": 6
+      },
+      "name": "theta compression waves",
+      "phase": {
+        "functions": [
+          "phase_integrator"
+        ],
+        "value": 0
+      },
+      "type": "eff_theta_compression_waves_vec2f"
+    },
+    {
+      "expand": {
+        "functions": [
+          "expand_integrator"
+        ],
+        "value": 0
+      },
+      "levels": {
+        "functions": [
+          "level_slider"
+        ],
+        "value": 1
+      },
+      "name": "radial_multiply",
+      "reflect": {
+        "functions": [
+          "reflect_switch"
+        ],
+        "value": true
+      },
+      "reflect_levels": {
+        "functions": [
+          "reflect_level_switch"
+        ],
+        "value": true
+      },
+      "segments": {
+        "functions": [
+          "segment_slider"
+        ],
+        "value": 6
+      },
+      "spin": {
+        "functions": [
+          "spin_integrator"
+        ],
+        "value": 0
+      },
+      "type": "eff_radial_multiply_vec2f"
+    },
+    {
+      "name": "cartesian",
+      "type": "eff_cartesian_vec2f"
+    },
+    {
+      "name": "position fill",
+      "type": "eff_position_fill_vec2f"
+    }
+  ],
+  "functions": [
+    {
+      "buf_name": {
+        "functions": [
+          "source_image_menu"
+        ],
+        "value": "Apples"
+      },
+      "description": "Buffer dimension function",
+      "name": "source_image_dim",
+      "type": "buffer_dim_fn"
+    },
+    {
+      "affects_widget_groups": false,
+      "choice": 1,
+      "default_choice": 1,
+      "description": "Choose an image to apply the transition rule to.",
+      "items": [
+        "Ada",
+        "Apples",
+        "Crab Nebula",
+        "Earth",
+        "Everest",
+        "Flower",
+        "Forest",
+        "Hong Kong",
+        "Lighthouse",
+        "Sunrise"
+      ],
+      "label": "Source Image",
+      "name": "source_image_menu",
+      "rerender": false,
+      "tool": "image",
+      "type": "menu_string"
+    },
+    {
+      "affects_widget_groups": false,
+      "default_value": true,
+      "description": "Reflect alternate levels of the kaleidoscope image",
+      "label": "Reflect Levels",
+      "name": "reflect_level_switch",
+      "tool": "switch",
+      "type": "switch_fn",
+      "value": {
+        "functions": [
+          "reflect_level_toggle"
+        ],
+        "value": true
+      }
+    },
+    {
+      "delta": {
+        "functions": [
+          "phase_slider"
+        ],
+        "value": 1
+      },
+      "description": "Float integrator function",
+      "name": "phase_integrator",
+      "scale": 0.10000000149011612,
+      "type": "integrator_float",
+      "val": 0
+    },
+    {
+      "delta": {
+        "functions": [
+          "level_start_slider"
+        ],
+        "value": 5
+      },
+      "description": "Float integrator function",
+      "name": "level_start_integrator",
+      "scale": 0.00009999999747378752,
+      "type": "integrator_float",
+      "val": 0.13610002398490906
+    },
+    {
+      "a": 0,
+      "b": 9,
+      "description": "Integer generator function",
+      "distribution": "uniform",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "max": 1000000,
+      "min": 1,
+      "name": "source_image_menu_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_int"
+    },
+    {
+      "delta": {
+        "functions": [
+          "start_slider"
+        ],
+        "value": 7
+      },
+      "description": "Float integrator function",
+      "name": "start_integrator",
+      "scale": 0.10000000149011612,
+      "type": "integrator_float",
+      "val": 789.6085205078125
+    },
+    {
+      "affects_widget_groups": false,
+      "default_value": false,
+      "description": "Constant width of the wiggles in the kaleidoscope image",
+      "label": "Same Waviness",
+      "name": "const_amp_switch",
+      "tool": "switch",
+      "type": "switch_fn",
+      "value": {
+        "functions": [
+          "const_amp_toggle"
+        ],
+        "value": false
+      }
+    },
+    {
+      "a": 0,
+      "b": 20,
+      "description": "Float generator function",
+      "distribution": "normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "phase_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "default_value": 5,
+      "description": "Amplitude of the wiggles in the kaleidoscope image",
+      "label": "Waviness",
+      "max": 30,
+      "min": 0,
+      "name": "amp_slider",
+      "step": 0.10000000149011612,
+      "type": "slider_float",
+      "value": 5
+    },
+    {
+      "a": 6,
+      "b": 1,
+      "description": "Float generator function",
+      "distribution": "log_normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "amp_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "default_value": 6,
+      "description": "Frequency of the wiggles in the kaleidoscope image",
+      "label": "Wiggliness",
+      "max": 36,
+      "min": 0,
+      "name": "freq_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 6
+    },
+    {
+      "a": 6,
+      "b": 1,
+      "description": "Float generator function",
+      "distribution": "log_normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "freq_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": 10,
+      "b": 1,
+      "description": "Float generator function",
+      "distribution": "log_normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "rings_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": -180,
+      "b": 180,
+      "description": "Float generator function",
+      "distribution": "uniform",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "alternate_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 5,
+      "description": "Integer equality condition",
+      "name": "funky_menu_5",
+      "type": "equal_int_condition"
+    },
+    {
+      "default_value": 0,
+      "description": "Rotation of image before kaleidoscope effect is applied",
+      "label": "Start",
+      "max": 10,
+      "min": -10,
+      "name": "start_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 7
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 3,
+      "description": "Integer equality condition",
+      "name": "funky_menu_3",
+      "type": "equal_int_condition"
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 2,
+      "description": "Integer equality condition",
+      "name": "funky_menu_2",
+      "type": "equal_int_condition"
+    },
+    {
+      "default_value": 0,
+      "description": "Starting point of each level",
+      "label": "Level Start",
+      "max": 10,
+      "min": -10,
+      "name": "level_start_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 5
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 4,
+      "description": "Integer equality condition",
+      "name": "funky_menu_4",
+      "type": "equal_int_condition"
+    },
+    {
+      "a": {
+        "functions": [
+          "scope_menu"
+        ],
+        "value": 1
+      },
+      "b": 2,
+      "description": "Integer equality condition",
+      "name": "scope_menu_2",
+      "type": "equal_int_condition"
+    },
+    {
+      "a": 0,
+      "b": 3,
+      "description": "Integer generator function",
+      "distribution": "uniform",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "max": 1000000,
+      "min": 1,
+      "name": "scope_menu_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_int"
+    },
+    {
+      "affects_widget_groups": false,
+      "default_value": true,
+      "description": "Reflect alternate segments of the kaleidoscope image",
+      "label": "Reflect",
+      "name": "reflect_switch",
+      "tool": "switch",
+      "type": "switch_fn",
+      "value": {
+        "functions": [
+          "reflect_toggle"
+        ],
+        "value": true
+      }
+    },
+    {
+      "default_value": 2,
+      "description": "Controls how often autoplay makes changes (1=slowest, 5=fastest)",
+      "label": "Autoplay Sensitivity",
+      "max": 5,
+      "min": 1,
+      "name": "autoplay_intensity",
+      "step": 0.10000000149011612,
+      "type": "slider_float",
+      "value": 2
+    },
+    {
+      "default_value": 60,
+      "description": "Amount of swirl in the kaleidoscope image",
+      "label": "Swirl",
+      "max": 360,
+      "min": -360,
+      "name": "swirl_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 60
+    },
+    {
+      "default_value": 0,
+      "description": "Rotation of image after kaleidoscope effect is applied",
+      "label": "Spin",
+      "max": 10,
+      "min": -10,
+      "name": "spin_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 4
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "description": "Float generator function",
+      "distribution": "normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "spin_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": {
+        "functions": [
+          "scope_menu"
+        ],
+        "value": 1
+      },
+      "b": 3,
+      "description": "Integer equality condition",
+      "name": "scope_menu_3",
+      "type": "equal_int_condition"
+    },
+    {
+      "a": 6,
+      "b": 1,
+      "description": "Float generator function",
+      "distribution": "log_normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "segment_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": {
+        "functions": [
+          "scope_menu"
+        ],
+        "value": 1
+      },
+      "b": 0,
+      "description": "Integer equality condition",
+      "name": "scope_menu_0",
+      "type": "equal_int_condition"
+    },
+    {
+      "default_value": 0,
+      "description": "Expand from center of kaleidoscope image",
+      "label": "Expand",
+      "max": 10,
+      "min": -10,
+      "name": "expand_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 6
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "description": "Float generator function",
+      "distribution": "normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "expand_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 0,
+      "description": "Integer equality condition",
+      "name": "funky_menu_0",
+      "type": "equal_int_condition"
+    },
+    {
+      "affects_widget_groups": true,
+      "choice": 0,
+      "default_choice": 0,
+      "description": "Modify the kaleidoscope with swirl, rings, wiggles, etc.",
+      "items": [
+        "None",
+        "Swirl",
+        "Rings",
+        "Waves",
+        "Saw",
+        "Smoosh"
+      ],
+      "label": "Funky",
+      "name": "funky_menu",
+      "rerender": false,
+      "tool": "pull_down",
+      "type": "menu_int"
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "description": "Float generator function",
+      "distribution": "normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "level_start_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": 1,
+      "b": 2,
+      "description": "Float generator function",
+      "distribution": "geometric",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "level_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "description": "Random toggle function",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "reflect_toggle",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "random_toggle"
+    },
+    {
+      "default_value": 6,
+      "description": "Number of segments in the kaleidoscope image",
+      "label": "Segments",
+      "max": 36,
+      "min": 1,
+      "name": "segment_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 23
+    },
+    {
+      "description": "Float identity function",
+      "name": "identity_float_default",
+      "type": "identity_float"
+    },
+    {
+      "description": "Time function",
+      "name": "timer",
+      "type": "time_fn"
+    },
+    {
+      "bass_channel": "bass",
+      "bass_sensitivity": 6,
+      "bass_weight": 7.5,
+      "global_sensitivity": 1.75,
+      "high_channel": "high",
+      "high_sensitivity": 2.5,
+      "high_weight": 3.5,
+      "mid_channel": "mid",
+      "mid_sensitivity": 4,
+      "mid_weight": 5,
+      "name": "controlled_expand_audio",
+      "offset": 0,
+      "type": "audio_adder_fn",
+      "volume_channel": "volume",
+      "volume_sensitivity": 5,
+      "volume_weight": 6.5
+    },
+    {
+      "description": "Lower level condition",
+      "name": "lower_level",
+      "type": "lower_level_condition"
+    },
+    {
+      "delta": {
+        "functions": [
+          "spin_slider"
+        ],
+        "value": 4
+      },
+      "description": "Float integrator function",
+      "name": "spin_integrator",
+      "scale": 0.009999999776482582,
+      "type": "integrator_float",
+      "val": 41.08055877685547
+    },
+    {
+      "description": "Following element condition",
+      "name": "following_element",
+      "type": "following_element_condition"
+    },
+    {
+      "description": "Mouse click condition",
+      "name": "mouse_click",
+      "type": "mouseclick_condition"
+    },
+    {
+      "default_value": 10,
+      "description": "Number of rings in the kaleidoscope image",
+      "label": "Number of Rings",
+      "max": 100,
+      "min": 1,
+      "name": "rings_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 10
+    },
+    {
+      "description": "Initial element condition",
+      "name": "initial_element",
+      "type": "initial_element_condition"
+    },
+    {
+      "description": "Mouse position function",
+      "name": "mouse_position",
+      "type": "mouse_pos_fn"
+    },
+    {
+      "affects_widget_groups": true,
+      "choice": 1,
+      "default_choice": 1,
+      "description": "Choose the kaleidoscope effect to apply.",
+      "items": [
+        "None",
+        "Kaleido",
+        "Multiples",
+        "Tile"
+      ],
+      "label": "Scope",
+      "name": "scope_menu",
+      "rerender": false,
+      "tool": "pull_down",
+      "type": "menu_int"
+    },
+    {
+      "description": "Top level condition",
+      "name": "top_level",
+      "type": "top_level_condition"
+    },
+    {
+      "description": "Random toggle function",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "const_amp_toggle",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "random_toggle"
+    },
+    {
+      "bass_channel": "bass",
+      "bass_sensitivity": 5,
+      "bass_weight": 6.5,
+      "global_sensitivity": 2,
+      "high_channel": "high",
+      "high_sensitivity": 4.5,
+      "high_weight": 6,
+      "mid_channel": "mid",
+      "mid_sensitivity": 6,
+      "mid_weight": 9,
+      "name": "controlled_swirl_audio",
+      "offset": 0,
+      "type": "audio_adder_fn",
+      "volume_channel": "volume",
+      "volume_sensitivity": 4,
+      "volume_weight": 7
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "description": "Float generator function",
+      "distribution": "normal",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "start_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "description": "Mouse over condition",
+      "name": "mouse_over",
+      "type": "mouseover_condition"
+    },
+    {
+      "description": "Mouse pixel function",
+      "name": "mouse_pixel",
+      "type": "mouse_pix_fn"
+    },
+    {
+      "default_value": 0,
+      "description": "Change phase of the wiggles in the kaleidoscope image",
+      "label": "Ripple",
+      "max": 20,
+      "min": -20,
+      "name": "phase_slider",
+      "step": 0.5,
+      "type": "slider_float",
+      "value": 0
+    },
+    {
+      "default_value": 30,
+      "description": "Alternate segments of the kaleidoscope image",
+      "label": "Alternate",
+      "max": 180,
+      "min": -180,
+      "name": "alternate_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 30
+    },
+    {
+      "a": {
+        "functions": [
+          "funky_menu"
+        ],
+        "value": 0
+      },
+      "b": 1,
+      "description": "Integer equality condition",
+      "name": "funky_menu_1",
+      "type": "equal_int_condition"
+    },
+    {
+      "default_value": 1,
+      "description": "Number of levels in the kaleidoscope image",
+      "label": "Levels",
+      "max": 12,
+      "min": 1,
+      "name": "level_slider",
+      "step": 1,
+      "type": "slider_float",
+      "value": 7
+    },
+    {
+      "delta": {
+        "functions": [
+          "expand_slider"
+        ],
+        "value": 6
+      },
+      "description": "Float integrator function",
+      "name": "expand_integrator",
+      "scale": 0.00009999999747378752,
+      "type": "integrator_float",
+      "val": 0.3198004961013794
+    },
+    {
+      "bass_channel": "bass",
+      "bass_sensitivity": 1.2000000476837158,
+      "bass_weight": 0.6000000238418579,
+      "global_sensitivity": 8,
+      "high_channel": "high",
+      "high_sensitivity": 1,
+      "high_weight": 0.5,
+      "mid_channel": "mid",
+      "mid_sensitivity": 1.2999999523162842,
+      "mid_weight": 0.699999988079071,
+      "name": "controlled_spin_audio",
+      "offset": 0,
+      "type": "audio_adder_fn",
+      "volume_channel": "volume",
+      "volume_sensitivity": 1.5,
+      "volume_weight": 0.800000011920929
+    },
+    {
+      "bass_channel": "bass",
+      "bass_sensitivity": 3,
+      "bass_weight": 4,
+      "global_sensitivity": 1.25,
+      "high_channel": "high",
+      "high_sensitivity": 2.5,
+      "high_weight": 4.5,
+      "mid_channel": "mid",
+      "mid_sensitivity": 3.5,
+      "mid_weight": 6,
+      "name": "gentle_audio_boost",
+      "offset": 0,
+      "type": "audio_adder_fn",
+      "volume_channel": "volume",
+      "volume_sensitivity": 4,
+      "volume_weight": 5
+    },
+    {
+      "a": {
+        "functions": [
+          "scope_menu"
+        ],
+        "value": 1
+      },
+      "b": 1,
+      "description": "Integer equality condition",
+      "name": "scope_menu_1",
+      "type": "equal_int_condition"
+    },
+    {
+      "affects_widget_groups": false,
+      "default_value": false,
+      "description": "Makes random changes to the kaleidoscope",
+      "label": "Autoplay",
+      "name": "autoplay_switch",
+      "tool": "switch",
+      "type": "switch_fn",
+      "value": false
+    },
+    {
+      "description": "Mouse down condition",
+      "name": "mouse_down",
+      "type": "mousedown_condition"
+    },
+    {
+      "bass_channel": "bass",
+      "bass_sensitivity": 3.5,
+      "bass_weight": 5,
+      "global_sensitivity": 1.7999999523162842,
+      "high_channel": "high",
+      "high_sensitivity": 6,
+      "high_weight": 7.5,
+      "mid_channel": "mid",
+      "mid_sensitivity": 5.5,
+      "mid_weight": 8,
+      "name": "controlled_phase_audio",
+      "offset": 0,
+      "type": "audio_adder_fn",
+      "volume_channel": "volume",
+      "volume_sensitivity": 4.5,
+      "volume_weight": 6
+    },
+    {
+      "a": -360,
+      "b": 360,
+      "description": "Float generator function",
+      "distribution": "uniform",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "swirl_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_float"
+    },
+    {
+      "a": 0,
+      "b": 5,
+      "description": "Integer generator function",
+      "distribution": "uniform",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "max": 1000000,
+      "min": 1,
+      "name": "funky_menu_generator",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "generator_int"
+    },
+    {
+      "description": "Random toggle function",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "reflect_level_toggle",
+      "p": {
+        "functions": [
+          "identity_float_default"
+        ],
+        "value": 0.0010000000474974513
+      },
+      "type": "random_toggle"
+    },
+    {
+      "amount": 2,
+      "description": "Float tweaker function",
+      "enabled": {
+        "functions": [
+          "autoplay_switch"
+        ],
+        "value": false
+      },
+      "name": "segment_tweaker",
+      "p": 0.009999999776482582,
+      "type": "tweaker_float"
+    }
+  ],
+  "images": [
+    {
+      "filename": "lux_files/warped_image.jpg",
+      "name": "warped_image",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Hong Kong.jpg",
+      "name": "Hong Kong",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Forest.jpg",
+      "name": "Forest",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Crab Nebula.jpg",
+      "name": "Crab Nebula",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Flower.jpg",
+      "name": "Flower",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Lighthouse.jpg",
+      "name": "Lighthouse",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Earth.jpg",
+      "name": "Earth",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Everest.jpg",
+      "name": "Everest",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Ada.jpg",
+      "name": "Ada",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Apples.jpg",
+      "name": "Apples",
+      "type": "uimage"
+    },
+    {
+      "filename": "lux_files/Sunrise.jpg",
+      "name": "Sunrise",
+      "type": "uimage"
+    }
+  ],
+  "liveCamera": true,
+  "name": "Kaleidoswirl",
+  "queue": [
+    {
+      "dim": {
+        "functions": [
+          "source_image_dim"
+        ],
+        "value": [
+          640,
+          360
+        ]
+      },
+      "effects": [
+        "position fill",
+        "radial"
+      ],
+      "mode": "static",
+      "name": "base radial field",
+      "self_generated": true,
+      "type": "vec2f"
+    },
+    {
+      "effects": [
+        "funky chooser",
+        "scope_chooser"
+      ],
+      "mode": "ephemeral",
+      "name": "kaleido_vf",
+      "self_generated": false,
+      "source": "base radial field",
+      "type": "vec2f"
+    },
+    {
+      "dim": {
+        "functions": [
+          "source_image_dim"
+        ],
+        "value": [
+          640,
+          360
+        ]
+      },
+      "effects": [
+        "fill warp field"
+      ],
+      "mode": "ephemeral",
+      "name": "warper",
+      "self_generated": true,
+      "type": "int"
+    },
+    {
+      "effects": [
+        "warp image"
+      ],
+      "mode": "ephemeral",
+      "name": "warped_image",
+      "self_generated": false,
+      "source": {
+        "functions": [
+          "source_image_menu"
+        ],
+        "value": "Apples"
+      },
+      "type": "ucolor"
+    }
+  ],
+  "title": "Kaleidoswirl",
+  "widget groups": [
+    {
+      "conditions": [],
+      "description": "",
+      "label": "",
+      "name": "home_group",
+      "widgets": [
+        "scope_menu",
+        "funky_menu",
+        "autoplay_switch",
+        "autoplay_intensity"
+      ]
+    },
+    {
+      "conditions": [],
+      "description": "",
+      "label": "",
+      "name": "source_image_group",
+      "widgets": [
+        "source_image_menu"
+      ]
+    },
+    {
+      "conditions": [
+        "scope_menu_0"
+      ],
+      "description": "",
+      "label": "",
+      "name": "none_group",
+      "widgets": [
+        "spin_slider"
+      ]
+    },
+    {
+      "conditions": [
+        "scope_menu_1"
+      ],
+      "description": "",
+      "label": "",
+      "name": "kaleido_group",
+      "widgets": [
+        "segment_slider",
+        "start_slider",
+        "spin_slider",
+        "level_slider",
+        "expand_slider",
+        "level_start_slider",
+        "reflect_switch",
+        "reflect_level_switch"
+      ]
+    },
+    {
+      "conditions": [
+        "scope_menu_2"
+      ],
+      "description": "",
+      "label": "",
+      "name": "multiples_group",
+      "widgets": [
+        "segment_slider",
+        "level_slider",
+        "spin_slider",
+        "expand_slider",
+        "reflect_switch",
+        "reflect_level_switch"
+      ]
+    },
+    {
+      "conditions": [
+        "scope_menu_3"
+      ],
+      "description": "",
+      "label": "",
+      "name": "tile_group",
+      "widgets": [
+        "segment_slider",
+        "level_slider",
+        "spin_slider",
+        "expand_slider",
+        "reflect_switch",
+        "reflect_level_switch"
+      ]
+    },
+    {
+      "conditions": [
+        "funky_menu_1"
+      ],
+      "description": "",
+      "label": "",
+      "name": "swirl_group",
+      "widgets": [
+        "swirl_slider"
+      ]
+    },
+    {
+      "conditions": [
+        "funky_menu_2"
+      ],
+      "description": "",
+      "label": "",
+      "name": "rings_group",
+      "widgets": [
+        "swirl_slider",
+        "alternate_slider",
+        "rings_slider"
+      ]
+    },
+    {
+      "conditions": [
+        "funky_menu_3"
+      ],
+      "description": "",
+      "label": "",
+      "name": "waves_group",
+      "widgets": [
+        "freq_slider",
+        "amp_slider",
+        "phase_slider",
+        "const_amp_switch"
+      ]
+    },
+    {
+      "conditions": [
+        "funky_menu_4"
+      ],
+      "description": "",
+      "label": "",
+      "name": "saw_group",
+      "widgets": [
+        "freq_slider",
+        "amp_slider",
+        "phase_slider",
+        "const_amp_switch"
+      ]
+    },
+    {
+      "conditions": [
+        "funky_menu_5"
+      ],
+      "description": "",
+      "label": "",
+      "name": "smoosh_group",
+      "widgets": [
+        "freq_slider",
+        "amp_slider",
+        "phase_slider",
+        "const_amp_switch"
+      ]
+    }
+  ]
+}

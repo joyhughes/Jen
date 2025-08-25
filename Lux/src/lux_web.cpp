@@ -1703,7 +1703,10 @@ bool load_scene_from_json(std::string json_str) {
 
         nlohmann::json scene_json = nlohmann::json::parse(json_str);
 
-        bool has_saved_state = scene_json.contains("saved_timestamp");
+        // Create a temporary scene_reader to use its has_runtime_state method
+        auto temp_scene = std::make_unique<scene>();
+        scene_reader temp_reader(*temp_scene, scene_json, false);
+        bool has_saved_state = temp_reader.has_runtime_state(scene_json);
 
         std::cout << "Scene type " << ((has_saved_state) ? " saved with runtime state" : " default configuration") << std::endl;
 
@@ -1784,9 +1787,8 @@ int main(int argc, char** argv) {
         throw;
     }
     
-    // Temporarily disable VideoRecorder to isolate WASM module factory error
-    global_context->video_recorder = nullptr;
-    global_context->is_recording = false;
+    // global_context->video_recorder = std::make_unique<VideoRecorder>();
+    // global_context->is_recording = false;
     //scene s( "lux_files/kaleido.json" );
     //scene s( "lux_files/CA_choices.json" );
     //scene s( "lux_files/nebula_brush.json" );

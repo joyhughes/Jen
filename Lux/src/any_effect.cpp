@@ -62,17 +62,17 @@ void any_effect_fn::serialize_to_json(json& j) const {
    std::visit([&j](auto&& effect) {
        using T = std::decay_t<decltype(effect)>;
 
-       // Helper function to serialize harness values with function references
+       // Helper function to serialize harness values with function references and current runtime value
        auto serialize_harness = [](const auto& harness_field, const std::string& field_name) -> nlohmann::json {
            if (!harness_field.functions.empty()) {
-               // Preserve harness structure with function references
+               // Preserve harness structure with both function references and current runtime value
                nlohmann::json result;
                nlohmann::json functions_array = nlohmann::json::array();
                for (const auto& func_obj : harness_field.functions) {
                    functions_array.push_back(func_obj.name);
                }
                result["functions"] = functions_array;
-               result["value"] = *harness_field;
+               result["value"] = *harness_field;  // Include current runtime value
                return result;
            } else {
                // Just the current value if no functions

@@ -66,11 +66,22 @@ const StyledCheckbox = styled(Checkbox)(({ theme }) => ({
 function JenSwitch({ json, onChange }) {
     const theme = useTheme();
     
-    // For saved scenes, the backend should have already assigned the runtime value
-    // directly to json.value, so we can use it directly
+    // For saved scenes, check if json.value is a harness object or direct value
     const getInitialValue = () => {
-        if (json.value !== undefined && typeof json.value === 'boolean') {
-            return json.value;  // Use saved runtime value
+        if (json.value !== undefined) {
+            if (typeof json.value === 'object' && json.value.functions) {
+                // This is a harness object - check for runtime value
+                if (json.value.value !== undefined) {
+                    console.log(`Switch ${json.name}: Found harness object with runtime value:`, json.value.value);
+                    return json.value.value;  // Use saved runtime value
+                } else {
+                    console.log(`Switch ${json.name}: Harness object without runtime value (default scene), using default_value`);
+                    // This is a default scene - use default_value
+                    return json.default_value ?? false;
+                }
+            } else if (typeof json.value === 'boolean') {
+                return json.value;  // Use saved runtime value
+            }
         }
         return json.default_value ?? false;  // Fallback to default
     };
@@ -168,10 +179,13 @@ function JenSwitch({ json, onChange }) {
 
     // Update state if json value changes
     useEffect(() => {
-        if (json.value !== undefined && json.value !== switchValue) {
-            setSwitchValue(json.value);
+        if (json.value !== undefined) {
+            // Only update if it's a direct boolean value, not a harness object
+            if (typeof json.value === 'boolean' && json.value !== switchValue) {
+                setSwitchValue(json.value);
+            }
         }
-    }, [json.value]);
+    }, [json.value, switchValue]);
 
     return (
         <Tooltip

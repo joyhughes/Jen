@@ -18,8 +18,7 @@ struct scene_reader {
     std::map< std::string, std::string > cluster_elements; // Element for each cluster. Elements copied to clusters after buffers added to elements.
 
     scene_reader( scene& s_init, std::string( filename ) );
-    scene_reader(scene& s_init, const nlohmann::json& scene_json, bool load_runtime_state = true);
-
+    scene_reader( scene& s_init, const json& scene_json, bool load_runtime_state = false );
 
     void add_default_functions();
 
@@ -84,6 +83,8 @@ struct scene_reader {
     void read_cluster(  const json& j );
     void read_queue(    const json& j );
 
+    void initialize_from_json(const json& j, bool load_runtime_state);
+
     template< class T > void read_harness( const json& j, harness< T >& h );
     #define READ_ANY_HARNESS( _T_ ) void read_any_harness( const json& j, harness< _T_ >& h )  { read_harness< _T_ >( j, h ); }
     READ_ANY_HARNESS( float )
@@ -108,12 +109,11 @@ struct scene_reader {
     //READ_ANY_HARNESS( std::optional< int > )
     //READ_ANY_HARNESS( std::optional< float > )
     //READ_ANY_HARNESS( std::vector< vec2f > )
+    
+    bool has_runtime_state(const json& scene_json);
+
 private:
     bool is_saved_scene = false;
-
-    void initialize_from_json(const json& j, bool load_runtime_state);
-
-    bool has_runtime_state(const json& scene_json);
 };
 
 template<> struct any_fn< bool >;
@@ -132,11 +132,12 @@ void to_json( nlohmann::json& j, const switch_fn& s );
 void to_json( nlohmann::json& j, const any_function& af );
 void to_json( nlohmann::json& j, const widget_group& wg );
 
-
-class scene_writer {
+struct scene_writer{
     using json = nlohmann::json;
-public:
-    scene_writer(const scene& s);
+
+    const scene& s;
+
+    scene_writer( const scene& s_init );
     json write_scene_json() const;
 
     json write_images_json() const;
@@ -145,8 +146,6 @@ public:
     json write_widget_groups_json() const;
     json write_queue_json() const;
 private:
-    const scene& s;
-
     json serialize_any_function(const any_function& f) const;
 };
 

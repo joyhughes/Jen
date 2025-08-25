@@ -72,6 +72,7 @@ export function SceneChooserPane() {
         }, 100);
     };
 
+
     const getIconImagePath = (scene) => {
         if (scene) {
             return scene.name.toLowerCase().split(" ").join("_") + ".jpeg";

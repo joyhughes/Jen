@@ -34,7 +34,8 @@ scene_reader::scene_reader(scene &s_init, std::string (filename)) : s(s_init) {
         exit(0);
     }
     DEBUG("scene file parsed into json object")
-    initialize_from_json(j, false);
+    // Always try to load with runtime state detection for filename constructor
+    initialize_from_json(j, true);
 }
 
 
@@ -274,16 +275,22 @@ void scene_reader::read_image(const json &j) {
     // future: add binary file format for all image types
 
     DEBUG("scene_reader::read_image() - filename " + filename + "name " + name + " type " + type)
-    if (type == "fimage") {
-        fbuf_ptr img(new buffer_pair<frgb>(filename));
-        s.buffers[name] = img;
-    }
+    
+    try {
+        if (type == "fimage") {
+            fbuf_ptr img(new buffer_pair<frgb>(filename));
+            s.buffers[name] = img;
+        }
 
-    if (type == "uimage") {
-        ubuf_ptr img(new buffer_pair<ucolor>(filename));
-        s.buffers[name] = img;
-        //std :: cout << "uimage pointer " << img << std::endl;
-        //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
+        if (type == "uimage") {
+            ubuf_ptr img(new buffer_pair<ucolor>(filename));
+            s.buffers[name] = img;
+            //std :: cout << "uimage pointer " << img << std::endl;
+            //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
+        }
+    } catch (const std::exception& e) {
+        DEBUG("Warning: Could not load image " + filename + " - " + e.what() + " (skipping)")
+        // Continue without this image - effects that reference it will use fallbacks
     }
     // future: binary image format, which will support fimage, uimage, and additionally vector_field
     DEBUG("scene_reader::read_image - finished")
@@ -413,8 +420,8 @@ void scene_reader::add_default_functions() {
 }
 
 void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runtime_state) {
-    // Detect if this has runtime state
-    is_saved_scene = load_runtime_state && has_runtime_state(j);
+    // Simple runtime state detection - if load_runtime_state is true, assume it's a saved scene
+    is_saved_scene = load_runtime_state;
     
     if (is_saved_scene) {
         std::cout << "DEBUG: Loading saved scene with runtime state preservation" << std::endl;
@@ -485,23 +492,44 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
 }
 
 bool scene_reader::has_runtime_state(const json &scene_json) {
-    // Check if any function has a harness value with both functions and value fields
+    // Check if any function has harness values with functions references or integrator runtime state
     // This indicates a saved scene with runtime state
     if (scene_json.contains("functions")) {
         for (const auto& func : scene_json["functions"]) {
+            // Check for integrator functions with non-default runtime values
+            if (func.contains("type") && func["type"] == "integrator_float" && func.contains("val")) {
+                double val = func["val"];
+                if (std::abs(val) > 0.001) { // Non-zero integrator value indicates runtime state
+                    std::cout << "DEBUG: Found integrator with runtime state '" << func["name"] << "' val=" << val << std::endl;
+                    std::cout << "DEBUG: Scene has integrator runtime values, treating as saved scene" << std::endl;
+                    return true;
+                }
+            }
+            
+            // Check for harness values with function references - indicates saved scene structure  
             if (func.contains("value") && func["value"].is_object()) {
                 const auto& value_obj = func["value"];
-                if (value_obj.contains("functions") && value_obj.contains("value")) {
-                    std::cout << "DEBUG: Found harness with runtime state in function '" << func["name"] << "'" << std::endl;
-                    std::cout << "DEBUG: Scene has harness values with runtime state, treating as saved scene" << std::endl;
+                if (value_obj.contains("functions")) {
+                    std::cout << "DEBUG: Found harness with function reference in '" << func["name"] << "'" << std::endl;
+                    std::cout << "DEBUG: Scene has harness function references, treating as saved scene" << std::endl;
+                    return true;
+                }
+            }
+            
+            // Check for choice harness with function references (menus)
+            if (func.contains("choice") && func["choice"].is_object()) {
+                const auto& choice_obj = func["choice"];
+                if (choice_obj.contains("functions")) {
+                    std::cout << "DEBUG: Found menu choice harness with function reference in '" << func["name"] << "'" << std::endl;
+                    std::cout << "DEBUG: Scene has menu harness function references, treating as saved scene" << std::endl;
                     return true;
                 }
             }
         }
     }
     
-    std::cout << "DEBUG: Scene has no harness runtime values, treating as default configuration" << std::endl;
-    std::cout << "DEBUG: Default scenes only have 'functions' in harness, saved scenes have 'functions' + 'value'" << std::endl;
+    std::cout << "DEBUG: Scene has no runtime state indicators, treating as default configuration" << std::endl;
+    std::cout << "DEBUG: Default scenes have no harness function references or integrator values" << std::endl;
     return false;
 }
 
@@ -550,7 +578,7 @@ void scene_reader::read_function(const json &j) {
 #define COND_FN( _T_ ) if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_condition_fn func( fn, std::ref( *fn ), name );
 #define END_COND_FN  s.functions[ name ] = func; }
 
-#define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
+#define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_harness( j[ #_T_ ], fn-> _T_ );
 #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
 #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = std::get< any_fn< _T_ > >( s.functions[ fn_name ] ); }
 
@@ -560,6 +588,8 @@ void scene_reader::read_function(const json &j) {
         READ(label)
         READ(description)
         READ(default_value)
+        
+        // Set default value first
         fn->value = fn->default_value;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -616,7 +646,8 @@ void scene_reader::read_function(const json &j) {
         READ(max)
         READ(default_value)
         READ(step)
-        HARNESS(value)
+        
+        // Set default value first
         fn->value = fn->default_value;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -636,6 +667,8 @@ void scene_reader::read_function(const json &j) {
         READ(max)
         READ(default_value)
         READ(step)
+        
+        // Set default value first
         fn->value = fn->default_value;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -685,7 +718,8 @@ void scene_reader::read_function(const json &j) {
         READ(max)
         READ(default_value)
         READ(step)
-        HARNESS(value)
+        
+        // Set default value first
         fn->value = fn->default_value;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -705,6 +739,8 @@ void scene_reader::read_function(const json &j) {
         READ(max)
         READ(default_value)
         READ(step)
+        
+        // Set default value first
         fn->value = fn->default_value;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -726,7 +762,8 @@ void scene_reader::read_function(const json &j) {
         READ(tool)
         READ(affects_widget_groups)
         READ(rerender)
-        HARNESS(choice)
+        
+        // Set default choice first
         fn->choice = fn->default_choice;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -749,7 +786,8 @@ void scene_reader::read_function(const json &j) {
         READ(tool)
         READ(affects_widget_groups)
         READ(rerender)
-        HARNESS(choice)
+        
+        // Set default choice first
         fn->choice = fn->default_choice;
         
         // For saved scenes, extract runtime value from harness JSON
@@ -2047,13 +2085,12 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"type", "switch_fn"},
                                               {"label", fn->label},
                                               {"description", fn->description},
-                                              {"value", *fn->value},
                                               {"default_value", fn->default_value},
                                               {"tool", fn->tool == SWITCH_SWITCH ? "switch" : "checkbox"},
                                               {"affects_widget_groups", fn->affects_widget_groups}
                                           };
 
-                                          // Add harness function references if they exist
+                                          // Add harness function references if they exist, otherwise just the runtime value
                                           if (!fn->value.functions.empty()) {
                                               nlohmann::json harness_json;
                                               nlohmann::json functions_array = nlohmann::json::array();
@@ -2063,6 +2100,9 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               harness_json["functions"] = functions_array;
                                               harness_json["value"] = *fn->value;
                                               j["value"] = harness_json;
+                                          } else {
+                                              // No functions, just store the current runtime value
+                                              j["value"] = *fn->value;
                                           }
                                       },
                                       [&](const std::shared_ptr<widget_switch_fn> &fn) {
@@ -2284,7 +2324,6 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"type", "menu_int"},
                                               {"label", fn->label},
                                               {"description", fn->description},
-                                              {"choice", *fn->choice},
                                               {"default_choice", fn->default_choice},
                                               {"tool", fn->tool},
                                               {"items", fn->items},
@@ -2292,7 +2331,7 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"rerender", fn->rerender}
                                           };
 
-                                          // Add harness function references if they exist
+                                          // Add harness function references if they exist, otherwise just the runtime value
                                           if (!fn->choice.functions.empty()) {
                                               nlohmann::json harness_json;
                                               nlohmann::json functions_array = nlohmann::json::array();
@@ -2302,6 +2341,9 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               harness_json["functions"] = functions_array;
                                               harness_json["value"] = *fn->choice;
                                               j["choice"] = harness_json;
+                                          } else {
+                                              // No functions, just store the current runtime value
+                                              j["choice"] = *fn->choice;
                                           }
                                       },
                                       [&](const std::shared_ptr<multi_direction8_picker> &fn) {
@@ -2408,10 +2450,10 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"min", fn->min},
                                               {"max", fn->max},
                                               {"default_value", fn->default_value},
-                                              {"step", fn->step},
-                                              {"value", *fn->value}
+                                              {"step", fn->step}
                                           };
 
+                                          // Add harness function references if they exist, otherwise just the runtime value
                                           if (!fn->value.functions.empty()) {
                                               nlohmann::json harness_json;
                                               nlohmann::json functions_array = nlohmann::json::array();
@@ -2421,6 +2463,9 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               harness_json["functions"] = functions_array;
                                               harness_json["value"] = *fn->value;
                                               j["value"] = harness_json;
+                                          } else {
+                                              // No functions, just store the current runtime value
+                                              j["value"] = *fn->value;
                                           }
                                       },
                                       [&](const std::shared_ptr<audio_adder_fn> &fn) {
@@ -2887,7 +2932,6 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"type", "menu_string"},
                                               {"label", fn->label},
                                               {"description", fn->description},
-                                              {"choice", *fn->choice},
                                               {"default_choice", fn->default_choice},
                                               {"tool", fn->tool},
                                               {"items", fn->items},
@@ -2895,7 +2939,7 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               {"rerender", fn->rerender}
                                           };
 
-                                          // Add harness function references if they exist
+                                          // Add harness function references if they exist, otherwise just the runtime value
                                           if (!fn->choice.functions.empty()) {
                                               nlohmann::json harness_json;
                                               nlohmann::json functions_array = nlohmann::json::array();
@@ -2905,6 +2949,9 @@ void to_json(nlohmann::json &j, const any_function &af) {
                                               harness_json["functions"] = functions_array;
                                               harness_json["value"] = *fn->choice;
                                               j["choice"] = harness_json;
+                                          } else {
+                                              // No functions, just store the current runtime value  
+                                              j["choice"] = *fn->choice;
                                           }
                                       },
                                       [&](const std::shared_ptr<identity_string> &fn) {
