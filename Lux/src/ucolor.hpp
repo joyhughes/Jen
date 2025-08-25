@@ -169,19 +169,10 @@ static inline ucolor rotate_hue( const ucolor& c, const unsigned int& r )
 
 static inline ucolor posterize( const ucolor& c, const int& h_levels, const int& s_levels, const int& v_levels )
 {
-    auto bin_centered = [](unsigned int value, int levels) -> unsigned int {
-        unsigned int bin_size = 256 / levels;
-        unsigned int center = bin_size / 2;
-        unsigned int idx = (value * levels) / 256;
-        // No branch: idx is always in [0, levels-1] for value in [0,255]
-        return idx * bin_size + center;
-    };
-
-    unsigned int h = bin_centered((c & 0x00ff0000) >> 16, h_levels);
-    unsigned int s = bin_centered((c & 0x0000ff00) >> 8, s_levels);
-    unsigned int v = bin_centered((c & 0x000000ff), v_levels);
-
-    return (c & 0xff000000) + (v << 16) + (s << 8) + h;
+   unsigned int h = ( ( ( c & 0x00ff0000 ) >> 16 ) / (256 / h_levels) ) * ( 256 / h_levels ) + ( 128 / h_levels );
+   unsigned int s = ( ( ( c & 0x0000ff00 ) >> 8 ) / (256 / s_levels) ) * (256 / s_levels ) + ( 128 / s_levels );
+   unsigned int v = ( ( c & 0x000000ff ) / (256 / v_levels) ) * (256 / v_levels ) + ( 128 / v_levels );
+   return ( c & 0xff000000 ) + ( h << 16 ) + ( s << 8 ) + v;
 }
 
 static inline ucolor bit_plane( const ucolor& c, const ucolor& q)
