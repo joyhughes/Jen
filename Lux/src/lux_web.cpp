@@ -1718,8 +1718,8 @@ int main(int argc, char** argv) {
         throw;
     }
     
-    // Temporarily disable VideoRecorder to isolate WASM module factory error
-    global_context->video_recorder = nullptr;
+    // Initialize VideoRecorder for video recording functionality
+    global_context->video_recorder = std::make_unique<VideoRecorder>();
     global_context->is_recording = false;
     //scene s( "lux_files/kaleido.json" );
     //scene s( "lux_files/CA_choices.json" );
