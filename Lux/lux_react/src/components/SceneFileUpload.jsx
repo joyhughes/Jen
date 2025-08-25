@@ -22,7 +22,7 @@ export function SceneFileUpload({ onSceneLoaded }) {
     useEffect(() => {
         const checkModuleReady = () => {
             
-            // Check for different possible module configurations
+            // Check for different possible module configurations (prioritize direct JSON loading)
             const ready = (
                 (window.module && typeof window.module.load_scene_from_json === 'function') ||
                 (window.Module && typeof window.Module.load_scene_from_json === 'function') ||
@@ -198,8 +198,24 @@ export function SceneFileUpload({ onSceneLoaded }) {
                     // Try to load scene via WASM module
                     let success = false;
                     
-                    // Use file system approach first (more reliable until WASM is rebuilt)
-                    if (window.module && typeof window.module.load_scene === 'function' && window.module.FS) {
+                    // Use direct JSON loading first (most efficient and handles both default and saved scenes)
+                    if (window.module && typeof window.module.load_scene_from_json === 'function') {
+                        try {
+                            success = window.module.load_scene_from_json(jsonContent);
+                        } catch (wasmError) {
+                            console.error('WASM error during JSON scene loading:', wasmError);
+                            throw new Error(`Scene loading failed: ${wasmError}`);
+                        }
+                    } else if (window.Module && typeof window.Module.load_scene_from_json === 'function') {
+                        // Alternative module reference
+                        try {
+                            success = window.Module.load_scene_from_json(jsonContent);
+                        } catch (wasmError) {
+                            console.error('WASM error during JSON scene loading:', wasmError);
+                            throw new Error(`Scene loading failed: ${wasmError}`);
+                        }
+                    } else if (window.module && typeof window.module.load_scene === 'function' && window.module.FS) {
+                        // Fallback to filesystem approach if direct JSON loading not available
                         try {
                             // Use the original filename from the uploaded file
                             const uploadedFilename = file.name;
@@ -218,20 +234,6 @@ export function SceneFileUpload({ onSceneLoaded }) {
                             console.error('WASM error during file system scene loading:', wasmError);
                             throw new Error(`Scene loading failed: ${wasmError}`);
                         }
-                    } else if (window.module && typeof window.module.load_scene_from_json === 'function') {
-                        // Direct JSON loading (fallback - currently has runtime state detection bug)
-                        try {
-                            success = window.module.load_scene_from_json(jsonContent);
-                        } catch (wasmError) {
-                            throw new Error(`Scene loading failed in WASM module: ${wasmError}`);
-                        }
-                    } else if (window.Module && typeof window.Module.load_scene_from_json === 'function') {
-                        // Alternative module reference
-                        try {
-                            success = window.Module.load_scene_from_json(jsonContent);
-                        } catch (wasmError) {
-                            throw new Error(`Scene loading failed in WASM module: ${wasmError}`);
-                        }
                     } else {
                         throw new Error('Scene loading function not available. Please wait for the application to fully load.');
                     }
@@ -242,10 +244,27 @@ export function SceneFileUpload({ onSceneLoaded }) {
                         
                         // Force UI refresh by dispatching a custom event
                         setTimeout(() => {
+                            console.log('Dispatching sceneLoaded event for:', sceneData.name);
+                            
+                            // Step 1: Dispatch the scene loaded event
                             window.dispatchEvent(new CustomEvent('sceneLoaded', { 
                                 detail: { sceneName: sceneData.name, isSavedScene: true } 
                             }));
-                        }, 500);
+                            
+                            // Step 2: Force immediate synchronization of all sliders
+                            setTimeout(() => {
+                                console.log('Force syncing all UI components with backend...');
+                                window.dispatchEvent(new CustomEvent('forceSyncFromBackend', { 
+                                    detail: { reason: 'scene_loaded' } 
+                                }));
+                            }, 300); // Give scene load event time to process first
+                            
+                            // Step 3: Force a canvas redraw
+                            const canvas = document.querySelector('canvas[data-engine="true"]');
+                            if (canvas) {
+                                canvas.dispatchEvent(new CustomEvent('forceRedraw'));
+                            }
+                        }, 100);
                         
                         // Notify parent component
                         if (onSceneLoaded) {

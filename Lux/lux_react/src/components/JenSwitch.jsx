@@ -106,6 +106,63 @@ function JenSwitch({ json, onChange }) {
         }
     };
 
+    // Listen for scene changes to refresh switch values
+    useEffect(() => {
+        const handleSceneLoaded = (event) => {
+            if (event.detail && event.detail.isSavedScene) {
+                // Get the current state from the backend after scene loading
+                if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                    try {
+                        const widgetJSON = window.module.get_widget_JSON(json.name);
+                        const widgetData = JSON.parse(widgetJSON);
+                        
+                        const backendValue = typeof widgetData.value === 'boolean' ? 
+                            widgetData.value : json.default_value ?? false;
+                        
+                        setSwitchValue(backendValue);
+                    } catch (error) {
+                        console.warn(`Failed to get backend value for switch ${json.name}:`, error);
+                        // Fallback to JSON value
+                        const newValue = getInitialValue();
+                        setSwitchValue(newValue);
+                    }
+                } else {
+                    // Fallback if backend function not available
+                    const newValue = getInitialValue();
+                    setSwitchValue(newValue);
+                }
+            }
+        };
+
+        const handleForceSyncFromBackend = (event) => {
+            console.log(`[${json.name}] Switch force sync from backend requested:`, event.detail);
+            if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                try {
+                    const widgetJSON = window.module.get_widget_JSON(json.name);
+                    const widgetData = JSON.parse(widgetJSON);
+                    console.log(`[${json.name}] Switch force sync - Backend widget data:`, widgetData);
+                    
+                    if (typeof widgetData.value === 'boolean') {
+                        console.log(`[${json.name}] Switch force sync - Setting to backend value:`, widgetData.value);
+                        setSwitchValue(widgetData.value);
+                        // DON'T call onSwitchChange to avoid sending value back to backend
+                    } else {
+                        console.warn(`[${json.name}] Switch force sync - Backend value invalid:`, widgetData.value);
+                    }
+                } catch (error) {
+                    console.warn(`[${json.name}] Switch force sync failed:`, error);
+                }
+            }
+        };
+
+        window.addEventListener('sceneLoaded', handleSceneLoaded);
+        window.addEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        return () => {
+            window.removeEventListener('sceneLoaded', handleSceneLoaded);
+            window.removeEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        };
+    }, [json.name, json.value, getInitialValue, json.default_value]);
+
     // For checkbox type
     const renderCheckbox = () => {
         return (

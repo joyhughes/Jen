@@ -110,7 +110,8 @@ struct scene_reader {
     //READ_ANY_HARNESS( std::optional< float > )
     //READ_ANY_HARNESS( std::vector< vec2f > )
     
-    bool has_runtime_state(const json& scene_json);
+    static bool has_runtime_state(const json& scene_json);
+    static json fix_saved_scene_issues(const json& scene_json);
 
 private:
     bool is_saved_scene = false;
@@ -128,6 +129,7 @@ void to_json( nlohmann::json& j, const interval_int& i );
 void to_json(nlohmann::json& j, const direction4& d );
 void to_json(nlohmann::json& j, const direction4_diagonal& d );
 void to_json(nlohmann::json& j, const direction8& d );
+void to_json(nlohmann::json& j, const image_extend& e );
 void to_json( nlohmann::json& j, const switch_fn& s );
 void to_json( nlohmann::json& j, const any_function& af );
 void to_json( nlohmann::json& j, const widget_group& wg );

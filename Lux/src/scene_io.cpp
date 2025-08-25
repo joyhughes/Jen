@@ -34,8 +34,9 @@ scene_reader::scene_reader(scene &s_init, std::string (filename)) : s(s_init) {
         exit(0);
     }
     DEBUG("scene file parsed into json object")
-    // Always try to load with runtime state detection for filename constructor
-    initialize_from_json(j, true);
+    // Detect if this is a saved scene with runtime state
+    bool load_runtime_state = scene_reader::has_runtime_state(j);
+    initialize_from_json(j, load_runtime_state);
 }
 
 
@@ -168,15 +169,29 @@ pixel_type scene_reader::read_pixel_type(const json &j) {
 }
 
 image_extend scene_reader::read_image_extend(const json &j) {
-    std::string s;
     image_extend e;
 
-    j.get_to(s);
-    if (s == "single") e = image_extend::SAMP_SINGLE;
-    else if (s == "repeat") e = image_extend::SAMP_REPEAT;
-    else if (s == "reflect") e = image_extend::SAMP_REFLECT;
-    else
-        ERROR("Invalid image_extend string: " + s)
+    if (j.is_string()) {
+        // Handle string format (original format)
+        std::string s = j.get<std::string>();
+        if (s == "single") e = image_extend::SAMP_SINGLE;
+        else if (s == "repeat") e = image_extend::SAMP_REPEAT;
+        else if (s == "reflect") e = image_extend::SAMP_REFLECT;
+        else
+            ERROR("Invalid image_extend string: " + s)
+    } else if (j.is_number_integer()) {
+        // Handle integer format (saved scene format)
+        int value = j.get<int>();
+        std::cout << "DEBUG: read_image_extend - converting integer " << value << " to image_extend" << std::endl;
+        if (value == 0) e = image_extend::SAMP_SINGLE;
+        else if (value == 1) e = image_extend::SAMP_REPEAT;
+        else if (value == 2) e = image_extend::SAMP_REFLECT;
+        else
+            ERROR("Invalid image_extend integer: " + std::to_string(value))
+    } else {
+        ERROR("image_extend must be string or integer")
+    }
+    
     return e;
 }
 
@@ -283,7 +298,27 @@ void scene_reader::read_image(const json &j) {
         }
 
         if (type == "uimage") {
-            ubuf_ptr img(new buffer_pair<ucolor>(filename));
+            // Skip runtime-generated images that don't exist as files
+            if (name == "warped_image") {
+                DEBUG("Skipping runtime-generated image: " + name)
+                return;
+            }
+            
+            // Try to load the image, but handle file not found gracefully
+            std::string actual_filename = filename;
+            
+            // Map any incorrect filenames from old saved scenes to correct ones
+            if (filename == "lux_files/Hong Kong.jpg") actual_filename = "lux_files/hk_square_512.jpg";
+            else if (filename == "lux_files/Apples.jpg") actual_filename = "lux_files/apples.jpg";
+            else if (filename == "lux_files/Crab Nebula.jpg") actual_filename = "lux_files/crab_nebula.jpg";
+            else if (filename == "lux_files/Earth.jpg") actual_filename = "lux_files/earth.jpg";
+            else if (filename == "lux_files/Everest.jpg") actual_filename = "lux_files/everest.jpg";
+            else if (filename == "lux_files/Flower.jpg") actual_filename = "lux_files/flower.jpg";
+            else if (filename == "lux_files/Forest.jpg") actual_filename = "lux_files/forest.jpg";
+            else if (filename == "lux_files/Lighthouse.jpg") actual_filename = "lux_files/lighthouse.jpg";
+            else if (filename == "lux_files/Sunrise.jpg") actual_filename = "lux_files/sunrise.jpg";
+            
+            ubuf_ptr img(new buffer_pair<ucolor>(actual_filename));
             s.buffers[name] = img;
             //std :: cout << "uimage pointer " << img << std::endl;
             //s.buffers[ name ] = std::make_shared< buffer_pair< ucolor > >( filename );
@@ -379,13 +414,41 @@ void scene_reader::read_harness(const json &j, harness<T> &h) {
         if (j.contains("functions")) {
             for (std::string name: j["functions"]) {
                 try {
-                    h.add_function(std::get<any_fn<T> >(s.functions[name]));
+                    // Check if function exists before trying to add it
+                    if (s.functions.find(name) == s.functions.end()) {
+                        std::cout << "DEBUG: Function '" << name << "' not found in scene functions, skipping" << std::endl;
+                        continue;
+                    }
+                    
+                    // Try to get the function with the correct type
+                    auto& func_variant = s.functions[name];
+                    if (std::holds_alternative<any_fn<T>>(func_variant)) {
+                        h.add_function(std::get<any_fn<T>>(func_variant));
+                        std::cout << "DEBUG: Successfully added function '" << name << "' to harness" << std::endl;
+                    } else {
+                        std::cout << "DEBUG: Function '" << name << "' has wrong type for harness, skipping" << std::endl;
+                    }
                 } catch (const std::exception& e) {
                     std::cout << "DEBUG: Error adding function '" << name << "' to harness: " << e.what() << std::endl;
                 }
             }
         }
-    } else read(h.val, j);
+    } else {
+        // Handle direct values (for saved scenes with incorrect format)
+        // This handles cases where saved scenes have direct values instead of harness objects
+        std::cout << "DEBUG: read_harness - reading direct value instead of harness object" << std::endl;
+        read(h.val, j);
+        
+        if constexpr (std::is_same_v<T, bool>) {
+            std::cout << "DEBUG: read_harness - direct value " << (h.val ? "true" : "false") << " assigned to harness" << std::endl;
+        } else if constexpr (std::is_arithmetic_v<T>) {
+            std::cout << "DEBUG: read_harness - direct value " << h.val << " assigned to harness" << std::endl;
+        } else if constexpr (std::is_same_v<T, string>) {
+            std::cout << "DEBUG: read_harness - direct value '" << h.val << "' assigned to harness" << std::endl;
+        } else {
+            std::cout << "DEBUG: read_harness - direct value assigned to harness" << std::endl;
+        }
+    }
 }
 
 void scene_reader::add_default_functions() {
@@ -453,8 +516,28 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
     DEBUG("Default functions added");
 
     if (j.contains("functions")) {
+        std::cout << "DEBUG: Loading functions in two passes to handle dependencies..." << std::endl;
+        
+        // First pass: Load all basic functions (non-dependent ones)
         for (auto &jfunc: j["functions"]) {
-            read_function(jfunc);
+            if (jfunc.contains("type")) {
+                std::string type = jfunc["type"];
+                // Load basic functions first (ones that don't depend on other functions)
+                if (type != "buffer_dim_fn" && type.find("condition") == std::string::npos) {
+                    read_function(jfunc);
+                }
+            }
+        }
+        
+        // Second pass: Load dependent functions
+        for (auto &jfunc: j["functions"]) {
+            if (jfunc.contains("type")) {
+                std::string type = jfunc["type"];
+                // Load dependent functions second
+                if (type == "buffer_dim_fn" || type.find("condition") != std::string::npos) {
+                    read_function(jfunc);
+                }
+            }
         }
     }
     DEBUG("Functions loaded");
@@ -464,14 +547,65 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
     }
     DEBUG("Clusters loaded");
 
-    if (j.contains("effects")) {
-        for (auto &jeff: j["effects"]) read_effect(jeff);
-    }
-    DEBUG("Effects loaded");
-
+    // Load queue elements first since effects may reference them
     if (j.contains("queue")) {
+        std::cout << "DEBUG: Loading queue elements before effects..." << std::endl;
         for (auto &q: j["queue"]) read_queue(q);
     }
+    DEBUG("Queue loaded");
+
+    if (j.contains("effects")) {
+        std::cout << "DEBUG: Loading effects in three passes to handle dependencies..." << std::endl;
+        
+        // First pass: Load basic effects (no dependencies)
+        for (auto &jeff: j["effects"]) {
+            if (jeff.contains("type")) {
+                std::string type = jeff["type"];
+                if (type != "eff_chooser" && type != "eff_composite") {
+                    try {
+                        read_effect(jeff);
+                    } catch (const std::exception& e) {
+                        std::string effect_name = jeff.contains("name") ? jeff["name"].get<std::string>() : "unknown";
+                        std::cout << "ERROR: Failed to read basic effect '" << effect_name << "': " << e.what() << std::endl;
+                        throw; // Re-throw to maintain error handling
+                    }
+                }
+            }
+        }
+        
+        // Second pass: Load composite effects (depend on basic effects)
+        for (auto &jeff: j["effects"]) {
+            if (jeff.contains("type")) {
+                std::string type = jeff["type"];
+                if (type == "eff_composite") {
+                    try {
+                        read_effect(jeff);
+                    } catch (const std::exception& e) {
+                        std::string effect_name = jeff.contains("name") ? jeff["name"].get<std::string>() : "unknown";
+                        std::cout << "ERROR: Failed to read composite effect '" << effect_name << "': " << e.what() << std::endl;
+                        throw; // Re-throw to maintain error handling
+                    }
+                }
+            }
+        }
+        
+        // Third pass: Load chooser effects (depend on composite effects)
+        for (auto &jeff: j["effects"]) {
+            if (jeff.contains("type")) {
+                std::string type = jeff["type"];
+                if (type == "eff_chooser") {
+                    try {
+                        read_effect(jeff);
+                    } catch (const std::exception& e) {
+                        std::string effect_name = jeff.contains("name") ? jeff["name"].get<std::string>() : "unknown";
+                        std::cout << "ERROR: Failed to read chooser effect '" << effect_name << "': " << e.what() << std::endl;
+                        throw; // Re-throw to maintain error handling
+                    }
+                }
+            }
+        }
+    }
+    DEBUG("Effects loaded");
 
     if (j.contains("widget groups")) {
         for (auto &wg: j["widget groups"]) read_widget_group(wg);
@@ -492,8 +626,7 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
 }
 
 bool scene_reader::has_runtime_state(const json &scene_json) {
-    // Check if any function has harness values with functions references or integrator runtime state
-    // This indicates a saved scene with runtime state
+    // Check if any function has runtime state indicators
     if (scene_json.contains("functions")) {
         for (const auto& func : scene_json["functions"]) {
             // Check for integrator functions with non-default runtime values
@@ -501,7 +634,6 @@ bool scene_reader::has_runtime_state(const json &scene_json) {
                 double val = func["val"];
                 if (std::abs(val) > 0.001) { // Non-zero integrator value indicates runtime state
                     std::cout << "DEBUG: Found integrator with runtime state '" << func["name"] << "' val=" << val << std::endl;
-                    std::cout << "DEBUG: Scene has integrator runtime values, treating as saved scene" << std::endl;
                     return true;
                 }
             }
@@ -511,7 +643,6 @@ bool scene_reader::has_runtime_state(const json &scene_json) {
                 const auto& value_obj = func["value"];
                 if (value_obj.contains("functions")) {
                     std::cout << "DEBUG: Found harness with function reference in '" << func["name"] << "'" << std::endl;
-                    std::cout << "DEBUG: Scene has harness function references, treating as saved scene" << std::endl;
                     return true;
                 }
             }
@@ -521,16 +652,68 @@ bool scene_reader::has_runtime_state(const json &scene_json) {
                 const auto& choice_obj = func["choice"];
                 if (choice_obj.contains("functions")) {
                     std::cout << "DEBUG: Found menu choice harness with function reference in '" << func["name"] << "'" << std::endl;
-                    std::cout << "DEBUG: Scene has menu harness function references, treating as saved scene" << std::endl;
+                    return true;
+                }
+            }
+            
+            // Check for slider/menu functions with non-default runtime values
+            if ((func.contains("type") && 
+                (func["type"] == "slider_float" || func["type"] == "slider_int" || 
+                 func["type"] == "menu_int" || func["type"] == "menu_string" ||
+                 func["type"] == "switch_fn")) &&
+                func.contains("value") && !func["value"].is_object()) {
+                // Simple runtime value (not harness) - check if it differs from default
+                if (func.contains("default_value") || func.contains("default_choice")) {
+                    std::cout << "DEBUG: Found function with potential runtime state: " << func["name"] << std::endl;
                     return true;
                 }
             }
         }
     }
     
+    // Check queue for harness structures - saved scenes have function references in source/dim
+    if (scene_json.contains("queue")) {
+        for (const auto& queue_item : scene_json["queue"]) {
+            if (queue_item.contains("source") && queue_item["source"].is_object() && 
+                queue_item["source"].contains("functions")) {
+                std::cout << "DEBUG: Found queue item with harness source reference" << std::endl;
+                return true;
+            }
+            if (queue_item.contains("dim") && queue_item["dim"].is_object() && 
+                queue_item["dim"].contains("functions")) {
+                std::cout << "DEBUG: Found queue item with harness dim reference" << std::endl;
+                return true;
+            }
+        }
+    }
+    
     std::cout << "DEBUG: Scene has no runtime state indicators, treating as default configuration" << std::endl;
-    std::cout << "DEBUG: Default scenes have no harness function references or integrator values" << std::endl;
     return false;
+}
+
+nlohmann::json scene_reader::fix_saved_scene_issues(const json &scene_json) {
+    json fixed_scene = scene_json;
+    
+    std::cout << "DEBUG: Checking and fixing saved scene issues..." << std::endl;
+    
+    // Fix missing buf_name in buffer_dim_fn functions
+    if (fixed_scene.contains("functions")) {
+        for (auto& func : fixed_scene["functions"]) {
+            if (func.contains("type") && func["type"] == "buffer_dim_fn" && 
+                func.contains("name") && !func.contains("buf_name")) {
+                
+                std::string func_name = func["name"];
+                std::cout << "DEBUG: Fixing missing buf_name for " << func_name << std::endl;
+                
+                if (func_name == "source_image_dim") {
+                    func["buf_name"] = json{{"functions", json::array({"source_image_menu"})}};
+                    std::cout << "DEBUG: Added buf_name reference to source_image_menu" << std::endl;
+                }
+            }
+        }
+    }
+    
+    return fixed_scene;
 }
 
 
@@ -545,6 +728,8 @@ void scene_reader::read_function(const json &j) {
         ERROR("Function type missing\n");
 
     DEBUG("scene_reader::read_function - name: " + name + " type: " + type)
+    
+    try {
 
     // special case for conditionals
     if (type == "filter") {
@@ -592,13 +777,22 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": true}
+                if (j["value"].contains("value")) {
+                    bool runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: switch_fn '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                }
+            } else if (j["value"].is_boolean()) {
+                // Direct value format: "value": true
                 bool runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: switch_fn '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: switch_fn '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -650,13 +844,22 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 20}
+                if (j["value"].contains("value")) {
+                    float runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: slider_float '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                }
+            } else if (j["value"].is_number()) {
+                // Direct value format: "value": 20
                 float runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: slider_float '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: slider_float '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -722,13 +925,22 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 20}
+                if (j["value"].contains("value")) {
+                    int runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: slider_int '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                }
+            } else if (j["value"].is_number()) {
+                // Direct value format: "value": 20
                 int runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: slider_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: slider_int '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -766,13 +978,22 @@ void scene_reader::read_function(const json &j) {
         // Set default choice first
         fn->choice = fn->default_choice;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
-            if (j["choice"].contains("value")) {
-                int runtime_value;
-                read(runtime_value, j["choice"]["value"]);
-                fn->choice = runtime_value;
-                std::cout << "DEBUG: menu_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+        // For saved scenes, extract runtime choice from either harness or direct value
+        if (is_saved_scene && j.contains("choice")) {
+            if (j["choice"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 1}
+                if (j["choice"].contains("value")) {
+                    int runtime_choice;
+                    read(runtime_choice, j["choice"]["value"]);
+                    fn->choice = runtime_choice;
+                    std::cout << "DEBUG: menu_int '" << name << "' - assigned harness runtime choice: " << runtime_choice << std::endl;
+                }
+            } else if (j["choice"].is_number()) {
+                // Direct value format: "choice": 1
+                int runtime_choice;
+                read(runtime_choice, j["choice"]);
+                fn->choice = runtime_choice;
+                std::cout << "DEBUG: menu_int '" << name << "' - assigned direct runtime choice: " << runtime_choice << std::endl;
             }
         }
         
@@ -790,13 +1011,22 @@ void scene_reader::read_function(const json &j) {
         // Set default choice first
         fn->choice = fn->default_choice;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
-            if (j["choice"].contains("value")) {
-                int runtime_value;
-                read(runtime_value, j["choice"]["value"]);
-                fn->choice = runtime_value;
-                std::cout << "DEBUG: menu_string '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+        // For saved scenes, extract runtime choice from either harness or direct value
+        if (is_saved_scene && j.contains("choice")) {
+            if (j["choice"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 1}
+                if (j["choice"].contains("value")) {
+                    int runtime_choice;
+                    read(runtime_choice, j["choice"]["value"]);
+                    fn->choice = runtime_choice;
+                    std::cout << "DEBUG: menu_string '" << name << "' - assigned harness runtime choice: " << runtime_choice << std::endl;
+                }
+            } else if (j["choice"].is_number()) {
+                // Direct value format: "choice": 1
+                int runtime_choice;
+                read(runtime_choice, j["choice"]);
+                fn->choice = runtime_choice;
+                std::cout << "DEBUG: menu_string '" << name << "' - assigned direct runtime choice: " << runtime_choice << std::endl;
             }
         }
         
@@ -819,7 +1049,20 @@ void scene_reader::read_function(const json &j) {
         HARNESS(r)
     END_FN
     FN(buffer_dim_fn, vec2i)
-        HARNESS(buf_name)
+        // Handle missing buf_name in saved scenes gracefully
+        if (j.contains("buf_name")) {
+            HARNESS(buf_name)
+        } else {
+            // Try to infer buf_name from function name or provide a default
+            std::cout << "DEBUG: buffer_dim_fn '" << name << "' missing buf_name, trying to infer..." << std::endl;
+            if (name == "source_image_dim") {
+                // Set up harness to reference source_image_menu
+                if (s.functions.contains("source_image_menu")) {
+                    fn->buf_name.add_function(std::get<any_fn<std::string>>(s.functions["source_image_menu"]));
+                    std::cout << "DEBUG: Inferred buf_name as source_image_menu for " << name << std::endl;
+                }
+            }
+        }
     END_FN
     FN(mouse_pix_fn, vec2i)
     END_FN
@@ -981,10 +1224,6 @@ void scene_reader::read_function(const json &j) {
     FN(time_param_float, float)
         PARAM(float)
     END_FN
-
-    // Add missing parameter function handlers in to_json
-
-    // single field modifiers
     GEN_FN(orientation_gen_fn)
         HARNESS(orientation)
     END_FN
@@ -1081,6 +1320,11 @@ void scene_reader::read_function(const json &j) {
         HARNESS(a)
         HARNESS(b)
     END_FN
+    
+    } catch (const std::exception& e) {
+        std::cout << "ERROR: Failed to read function '" << name << "' of type '" << type << "': " << e.what() << std::endl;
+        throw; // Re-throw to maintain error handling
+    }
 }
 
 void scene_reader::read_cluster(const json &j) {
@@ -1722,7 +1966,17 @@ void scene_reader::read_widget_group(const json &j) {
         ERROR("Widget group name missing\n")
     if (j.contains("label")) read(wg.label, j["label"]);
     if (j.contains("description")) read(wg.description, j["description"]);
-    if (j.contains("conditions")) for (std::string condition: j["conditions"]) wg.add_condition(condition);
+    if (j.contains("conditions")) {
+        if (j["conditions"].is_string()) {
+            // Handle single condition as string
+            std::string condition;
+            j["conditions"].get_to(condition);
+            wg.add_condition(condition);
+        } else if (j["conditions"].is_array()) {
+            // Handle array of conditions
+            for (std::string condition: j["conditions"]) wg.add_condition(condition);
+        }
+    }
     if (j.contains("widgets")) for (std::string widget: j["widgets"]) wg.add_widget(widget);
     s.ui.widget_groups.push_back(wg);
 }
@@ -1810,6 +2064,23 @@ void to_json(nlohmann::json &j, const direction8 &d) {
         default:
             // Handle unexpected direction8 value
             j = nullptr; // Or any indication of an error/invalid value
+            break;
+    }
+}
+
+void to_json(nlohmann::json &j, const image_extend &e) {
+    switch (e) {
+        case image_extend::SAMP_SINGLE:
+            j = "single";
+            break;
+        case image_extend::SAMP_REPEAT:
+            j = "repeat";
+            break;
+        case image_extend::SAMP_REFLECT:
+            j = "reflect";
+            break;
+        default:
+            j = "repeat";
             break;
     }
 }
@@ -1917,14 +2188,29 @@ nlohmann::json scene_writer::write_scene_json() const {
 nlohmann::json scene_writer::write_images_json() const {
     nlohmann::json images = nlohmann::json::array();
 
-    for (const auto &[name, buffer]: s.buffers) {
-        // Only serialize uimage buffers as images
-        if (std::holds_alternative<ubuf_ptr>(buffer)) {
-            const auto &ubuf = std::get<ubuf_ptr>(buffer);
+    // Use the exact same image list as the default kaleido.json scene
+    // This ensures consistency and avoids runtime-generated buffer issues
+    std::vector<std::pair<std::string, std::string>> default_images = {
+        {"Ada", "lux_files/Ada.jpg"},
+        {"Apples", "lux_files/apples.jpg"}, 
+        {"Crab Nebula", "lux_files/crab_nebula.jpg"},
+        {"Earth", "lux_files/earth.jpg"},
+        {"Everest", "lux_files/everest.jpg"},
+        {"Flower", "lux_files/flower.jpg"},
+        {"Forest", "lux_files/forest.jpg"},
+        {"Hong Kong", "lux_files/hk_square_512.jpg"},
+        {"Lighthouse", "lux_files/lighthouse.jpg"},
+        {"Sunrise", "lux_files/sunrise.jpg"}
+    };
+    
+    for (const auto& [name, filename] : default_images) {
+        // Only include images that actually exist in the scene
+        if (s.buffers.contains(name) && std::holds_alternative<ubuf_ptr>(s.buffers.at(name))) {
+            const auto &ubuf = std::get<ubuf_ptr>(s.buffers.at(name));
             if (ubuf && ubuf->has_image()) {
                 nlohmann::json img;
                 img["type"] = "uimage";
-                img["filename"] = "lux_files/" + name + ".jpg"; // Use conventional path
+                img["filename"] = filename;
                 img["name"] = name;
                 images.push_back(img);
             }
@@ -1964,6 +2250,17 @@ nlohmann::json scene_writer::write_effects_json() const {
 
         // Add effect-specific parameters
         effect.serialize_to_json(eff);
+        
+        // Remove any "value" fields from effect properties - effects should not contain runtime values
+        // Only harness function references should be preserved
+        for (auto it = eff.begin(); it != eff.end(); ++it) {
+            if (it.value().is_object() && it.value().contains("value") && it.value().contains("functions")) {
+                // Keep only the functions array, remove the value
+                nlohmann::json functions_only;
+                functions_only["functions"] = it.value()["functions"];
+                it.value() = functions_only;
+            }
+        }
 
         effects.push_back(eff);
     }

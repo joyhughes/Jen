@@ -263,6 +263,63 @@ function JenMenu({ json, onChange }) {
         setInternalItems(json.items || []);
     }, [json.items]);
 
+    // Listen for scene changes to refresh menu values
+    useEffect(() => {
+        const handleSceneLoaded = (event) => {
+            if (event.detail && event.detail.isSavedScene) {
+                // Get the current state from the backend after scene loading
+                if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                    try {
+                        const widgetJSON = window.module.get_widget_JSON(json.name);
+                        const widgetData = JSON.parse(widgetJSON);
+                        
+                        const backendChoice = typeof widgetData.choice === 'number' ? 
+                            widgetData.choice : json.default_choice ?? 0;
+                        
+                        setSelectedMenuChoice(backendChoice);
+                    } catch (error) {
+                        console.warn(`Failed to get backend value for menu ${json.name}:`, error);
+                        // Fallback to JSON value
+                        const newChoice = getInitialChoice();
+                        setSelectedMenuChoice(newChoice);
+                    }
+                } else {
+                    // Fallback if backend function not available
+                    const newChoice = getInitialChoice();
+                    setSelectedMenuChoice(newChoice);
+                }
+            }
+        };
+
+        const handleForceSyncFromBackend = (event) => {
+            console.log(`[${json.name}] Menu force sync from backend requested:`, event.detail);
+            if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                try {
+                    const widgetJSON = window.module.get_widget_JSON(json.name);
+                    const widgetData = JSON.parse(widgetJSON);
+                    console.log(`[${json.name}] Menu force sync - Backend widget data:`, widgetData);
+                    
+                    if (typeof widgetData.choice === 'number') {
+                        console.log(`[${json.name}] Menu force sync - Setting to backend choice:`, widgetData.choice);
+                        setSelectedMenuChoice(widgetData.choice);
+                        // DON'T call onMenuChange to avoid sending value back to backend
+                    } else {
+                        console.warn(`[${json.name}] Menu force sync - Backend choice invalid:`, widgetData.choice);
+                    }
+                } catch (error) {
+                    console.warn(`[${json.name}] Menu force sync failed:`, error);
+                }
+            }
+        };
+
+        window.addEventListener('sceneLoaded', handleSceneLoaded);
+        window.addEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        return () => {
+            window.removeEventListener('sceneLoaded', handleSceneLoaded);
+            window.removeEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        };
+    }, [json.name, json.choice, getInitialChoice, json.default_choice]);
+
     return (
         <Tooltip
             title={json.description ?? ''}

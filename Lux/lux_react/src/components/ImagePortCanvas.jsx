@@ -9,15 +9,7 @@ function ImagePortCanvas({ width, height }) {
   const prevSizeRef = useRef({ width, height });
   const lastFrameTimeRef = useRef(0);
 
-  // Add logging control to prevent spam
-  const loggingRef = useRef({
-    frameCount: 0,
-    lastLogTime: 0,
-    logInterval: 1000, // Log every 1000ms instead of every frame
-    debugEnabled: false, // Disable for better performance
-    audioCallCount: 0,
-    lastAudioLog: 0
-  });
+
 
   // Mouse event handlers
   const handleMouseDown = useCallback(() => {
@@ -70,85 +62,59 @@ function ImagePortCanvas({ width, height }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Controlled logging - MUST BE FIRST
-    const logging = loggingRef.current;
-    const currentTime = performance.now();
-    const shouldLog = currentTime - logging.lastLogTime > logging.logInterval;
-
-    // AUDIO INTEGRATION: Update audio parameters with main animation loop
-    const frameTime = performance.now();
+    // Frame rate limiting - cap at 30fps to improve performance
+    const frameStart = performance.now();
     const deltaTime = lastFrameTimeRef.current > 0 ? 
-        (frameTime - lastFrameTimeRef.current) / 1000 : 0.016667; // Default to 60fps
+        (frameStart - lastFrameTimeRef.current) / 1000 : 0.033333; // Target 30fps
     
-    // Call audio update function if available
+    // Skip frame if too soon (frame rate limiting)
+    if (lastFrameTimeRef.current > 0 && (frameStart - lastFrameTimeRef.current) < 33) {
+        return; // Skip this frame - too soon for 30fps
+    }
+    
+    // Significantly throttle expensive operations to improve performance
     if (window.audioUpdateFunction && typeof window.audioUpdateFunction === 'function') {
-        window.audioUpdateFunction(deltaTime);
-        logging.audioCallCount++;
-        
-        // Log audio calls every 2 seconds
-        if (frameTime - logging.lastAudioLog > 2000) {
-            console.log(`[Canvas] 🎵 Audio update called ${logging.audioCallCount} times, deltaTime: ${deltaTime.toFixed(4)}s`);
-            logging.lastAudioLog = frameTime;
-            logging.audioCallCount = 0;
+        // Only update audio every 10th frame to reduce load significantly
+        if (Math.floor(frameStart / 16.67) % 10 === 0) {
+            window.audioUpdateFunction(deltaTime);
         }
-    } else if (shouldLog && logging.debugEnabled) {
-        console.log('[Canvas] 🎵 Audio update function not available:', {
-            exists: !!window.audioUpdateFunction,
-            type: typeof window.audioUpdateFunction
-        });
     }
     
-    lastFrameTimeRef.current = frameTime;
-    
-    if (shouldLog) {
-      logging.lastLogTime = currentTime;
-      logging.frameCount++;
-    }
+    lastFrameTimeRef.current = frameStart;
 
     try {
-      // CORRECT DETECTION: Check the actual current source from backend
+      // Optimized: Use cached source detection to avoid expensive calls every frame
       let isLiveCameraSource = false;
-      try {
-        if (window.module && typeof window.module.get_widget_JSON === 'function') {
-          const sourceMenuJSON = window.module.get_widget_JSON('source_image_menu');
-          const sourceMenu = JSON.parse(sourceMenuJSON);
-          const currentSource = sourceMenu.items[sourceMenu.choice];
-          isLiveCameraSource = currentSource === 'ultra_camera';
-          
-          if (shouldLog && logging.debugEnabled) {
-            console.log(`[Canvas] Current source: "${currentSource}", isLiveCamera: ${isLiveCameraSource}`);
+      // Only check source very occasionally, not every frame
+      const shouldCheckSource = frameStart % 5000 < 50; // Check every ~5 seconds
+      if (shouldCheckSource) {
+        try {
+          if (window.module && typeof window.module.get_widget_JSON === 'function') {
+            const sourceMenuJSON = window.module.get_widget_JSON('source_image_menu');
+            const sourceMenu = JSON.parse(sourceMenuJSON);
+            const currentSource = sourceMenu.items[sourceMenu.choice];
+            // Cache the result for other frames to use
+            window._cachedLiveCameraSource = currentSource === 'ultra_camera';
           }
-        }
-      } catch (sourceError) {
-        // Fallback: if we can't get source info, assume regular image
-        isLiveCameraSource = false;
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas] Could not detect source, assuming regular image');
+        } catch (sourceError) {
+          window._cachedLiveCameraSource = false;
         }
       }
+      isLiveCameraSource = window._cachedLiveCameraSource || false;
 
       // Get image data from WebAssembly backend
       const imageDataArray = window.module.get_img_data();
       const bufWidth = window.module.get_buf_width();
       const bufHeight = window.module.get_buf_height();
 
-      if (shouldLog && logging.debugEnabled) {
-        console.log(`[Canvas] Mode: ${isLiveCameraSource ? 'Live Camera (BGRA)' : 'Regular Image (RGBA)'}`);
-        console.log(`[Canvas] Buffer: ${bufWidth}x${bufHeight}, Data length: ${imageDataArray?.byteLength}`);
-      }
+
       
       if (!imageDataArray || imageDataArray.byteLength === 0) {
-        if (shouldLog) {
-          console.warn('[Canvas] No image data available from backend');
-        }
         return;
       }
 
       if (isLiveCameraSource) {
         // LIVE CAMERA MODE: Backend sends BGRA format - convert to RGBA for display
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Camera] Converting BGRA → RGBA for live camera display');
-        }
 
         const pixelCount = bufWidth * bufHeight;
         const expectedBytes = pixelCount * 4;
@@ -187,11 +153,6 @@ function ImagePortCanvas({ width, height }) {
         imageBitmap.close();
 
       } else {
-        // REGULAR IMAGE MODE: Still images are already in RGBA format - use directly
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Regular] Displaying regular image (RGBA format, no conversion)');
-        }
-
         // Display image data directly (original behavior - no conversion needed)
         const imageData = new ImageData(
             new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
@@ -205,23 +166,44 @@ function ImagePortCanvas({ width, height }) {
         imageBitmap.close();
       }
 
-      // Mark initialization complete after first render
       if (isInitializing) {
-        console.log(`[Canvas] Initialization complete - Mode: ${isLiveCameraSource ? 'Camera (BGRA→RGBA)' : 'Regular (RGBA)'}`);
         setIsInitializing(false);
       }
       
     } catch (error) {
       console.error('[Canvas] Rendering error:', error);
+    } finally {
+      // Monitor frame performance and warn if taking too long (throttled warnings)
+      const frameEnd = performance.now();
+      const frameDuration = frameEnd - frameStart;
+      // Only log performance issues in debug mode and throttle warnings
+      if (window.DEBUG_PERFORMANCE && frameDuration > 33.33 && Math.floor(frameStart / 33.33) % 50 === 0) {
+        console.warn(`[Canvas] Frame took ${frameDuration.toFixed(2)}ms (>33.33ms 30fps threshold)`);
+        console.log(`[Canvas] Performance stats - Backend processing is the bottleneck. Consider reducing visual complexity.`);
+      }
     }
   }, [width, height, isInitializing]);
 
-  // This dependency array ensures the callback is recreated only when these values change
-  // This is important for performance - we don't want to recreate the function unnecessarily
 
   // Set up WebAssembly callback
   useEffect(() => {
     console.log('[Canvas] Setting up WebAssembly callback...');
+    
+    // Add performance debugging helper to window
+    if (typeof window !== 'undefined') {
+      window.togglePerformanceDebug = () => {
+        window.DEBUG_PERFORMANCE = !window.DEBUG_PERFORMANCE;
+        console.log(`Performance debugging ${window.DEBUG_PERFORMANCE ? 'enabled' : 'disabled'}`);
+      };
+      
+      window.getPerformanceStats = () => {
+        console.log('Performance tuning tips:');
+        console.log('- Reduce number of segments in kaleidoscope');
+        console.log('- Lower visual complexity');
+        console.log('- Disable autoplay features');
+        console.log('- Use simpler effects');
+      };
+    }
 
     if (window.module) {
       console.log('[Canvas] Module ready, setting frame callback...');
@@ -230,7 +212,6 @@ function ImagePortCanvas({ width, height }) {
 
       // Force initial render
       setTimeout(() => {
-        console.log('[Canvas] Calling initial updateCanvas...');
         updateCanvas();
       }, 100);
     } else {

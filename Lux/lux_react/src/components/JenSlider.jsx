@@ -391,7 +391,6 @@ function JenSlider({ json, width }) {
     }, [resetTrigger, json.default_value, json.min, json.max, formatDisplayValue, isRange, minFocus]);
 */
     useEffect(() => {
-        console.log(`Initializing slider callback: ${json.name}`, json);
         // Register the callback via embind
         if (window.Module) {
             window.Module.set_slider_callback(json.name, (newValue) => {
@@ -408,7 +407,6 @@ function JenSlider({ json, width }) {
     
                 // Notify the parent or context about the change
                 onSliderChange(json.name, newValue);
-                console.log(`Slider ${json.name} updated to:`, newValue);
             });
         }
     }, [json.name, onSliderChange, isRange, minFocus, formatDisplayValue]);
@@ -638,18 +636,117 @@ function JenSlider({ json, width }) {
     // Listen for scene changes to refresh slider values
     useEffect(() => {
         const handleSceneLoaded = (event) => {
+            console.log(`[${json.name}] Scene loaded event received:`, event.detail);
             if (event.detail && event.detail.isSavedScene) {
-                console.log(`Scene loaded, refreshing slider ${json.name}`);
-                // Force a refresh by updating the value from the JSON
-                const newValue = getInitialValue();
-                setValue(newValue);
-                setInputValue(formatDisplayValue(newValue).toString());
+                console.log(`[${json.name}] Processing saved scene, getting backend value...`);
+                
+                // Add delay to ensure backend is fully updated
+                setTimeout(() => {
+                    // Get the current state from the backend after scene loading
+                    if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                        try {
+                            const widgetJSON = window.module.get_widget_JSON(json.name);
+                            const widgetData = JSON.parse(widgetJSON);
+                            console.log(`[${json.name}] Backend widget data:`, widgetData);
+                            
+                            let backendValue;
+                            if (isRange && Array.isArray(widgetData.value)) {
+                                backendValue = widgetData.value;
+                            } else if (!isRange && typeof widgetData.value === 'number') {
+                                backendValue = widgetData.value;
+                            } else {
+                                // Fallback to default if backend value is invalid
+                                backendValue = json.default_value ?? (isRange ? [json.min ?? 0, json.max ?? 100] : json.min ?? 0);
+                                console.log(`[${json.name}] Backend value invalid, using fallback:`, backendValue);
+                            }
+                            
+                            console.log(`[${json.name}] Setting slider to backend value:`, backendValue);
+                            setValue(backendValue);
+                            
+                            // Update input value based on range/single slider
+                            if (isRange && Array.isArray(backendValue)) {
+                                const displayVal = minFocus ? backendValue[0] : backendValue[1];
+                                setInputValue(formatDisplayValue(displayVal).toString());
+                            } else {
+                                setInputValue(formatDisplayValue(backendValue).toString());
+                            }
+                            
+                            onSliderChange(json.name, backendValue);
+                        } catch (error) {
+                            console.warn(`Failed to get backend value for slider ${json.name}:`, error);
+                            // Fallback to JSON value
+                            const newValue = getInitialValue();
+                            setValue(newValue);
+                            if (isRange && Array.isArray(newValue)) {
+                                const displayVal = minFocus ? newValue[0] : newValue[1];
+                                setInputValue(formatDisplayValue(displayVal).toString());
+                            } else {
+                                setInputValue(formatDisplayValue(newValue).toString());
+                            }
+                            onSliderChange(json.name, newValue);
+                        }
+                    } else {
+                        console.warn(`[${json.name}] get_widget_JSON not available`);
+                        // Fallback if backend function not available
+                        const newValue = getInitialValue();
+                        setValue(newValue);
+                        if (isRange && Array.isArray(newValue)) {
+                            const displayVal = minFocus ? newValue[0] : newValue[1];
+                            setInputValue(formatDisplayValue(displayVal).toString());
+                        } else {
+                            setInputValue(formatDisplayValue(newValue).toString());
+                        }
+                        onSliderChange(json.name, newValue);
+                    }
+                }, 200); // Give backend time to fully process the scene
+            }
+        };
+
+        const handleForceSyncFromBackend = (event) => {
+            console.log(`[${json.name}] Force sync from backend requested:`, event.detail);
+            // Immediately sync with backend without checking if it's a saved scene
+            if (window.module && typeof window.module.get_widget_JSON === 'function') {
+                try {
+                    const widgetJSON = window.module.get_widget_JSON(json.name);
+                    const widgetData = JSON.parse(widgetJSON);
+                    console.log(`[${json.name}] Force sync - Backend widget data:`, widgetData);
+                    
+                    let backendValue;
+                    if (isRange && Array.isArray(widgetData.value)) {
+                        backendValue = widgetData.value;
+                    } else if (!isRange && typeof widgetData.value === 'number') {
+                        backendValue = widgetData.value;
+                    } else {
+                        console.warn(`[${json.name}] Force sync - Backend value invalid:`, widgetData.value);
+                        return; // Don't update if backend value is invalid
+                    }
+                    
+                    console.log(`[${json.name}] Force sync - Setting slider to backend value:`, backendValue);
+                    setValue(backendValue);
+                    
+                    // Update input value based on range/single slider
+                    if (isRange && Array.isArray(backendValue)) {
+                        const displayVal = minFocus ? backendValue[0] : backendValue[1];
+                        setInputValue(formatDisplayValue(displayVal).toString());
+                    } else {
+                        setInputValue(formatDisplayValue(backendValue).toString());
+                    }
+                    
+                    // DON'T call onSliderChange here to avoid sending the value back to backend
+                    // The backend already has the correct value
+                } catch (error) {
+                    console.warn(`[${json.name}] Force sync failed:`, error);
+                }
             }
         };
 
         window.addEventListener('sceneLoaded', handleSceneLoaded);
-        return () => window.removeEventListener('sceneLoaded', handleSceneLoaded);
-    }, [json.name, json.value, getInitialValue, formatDisplayValue]);
+        window.addEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        return () => {
+            window.removeEventListener('sceneLoaded', handleSceneLoaded);
+            window.removeEventListener('forceSyncFromBackend', handleForceSyncFromBackend);
+        };
+    }, [json.name, json.value, getInitialValue, formatDisplayValue, onSliderChange, isRange, json.default_value, json.min, json.max, minFocus]);
 
     // Determine if we should show real-time updates for this slider
     const shouldShowRealtimeUpdates = useCallback(() => {

@@ -1703,10 +1703,15 @@ bool load_scene_from_json(std::string json_str) {
 
         nlohmann::json scene_json = nlohmann::json::parse(json_str);
 
-        // Create a temporary scene_reader to use its has_runtime_state method
-        auto temp_scene = std::make_unique<scene>();
-        scene_reader temp_reader(*temp_scene, scene_json, false);
-        bool has_saved_state = temp_reader.has_runtime_state(scene_json);
+        // Check if this is a saved scene with runtime state
+        bool has_saved_state = scene_reader::has_runtime_state(scene_json);
+        
+        std::cout << "DEBUG: Runtime state detection result: " << (has_saved_state ? "true" : "false") << std::endl;
+        
+        // Fix any issues in saved scenes
+        if (has_saved_state) {
+            scene_json = scene_reader::fix_saved_scene_issues(scene_json);
+        }
 
         std::cout << "Scene type " << ((has_saved_state) ? " saved with runtime state" : " default configuration") << std::endl;
 
