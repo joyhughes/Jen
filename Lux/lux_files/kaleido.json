@@ -80,99 +80,6 @@
             "value": 0.0001
         },
         {
-            "name": "gentle_audio_boost",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 5.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 4.0,
-            "bass_sensitivity": 3.0,
-            "mid_channel": "mid",
-            "mid_weight": 6.0,
-            "mid_sensitivity": 3.5,
-            "high_channel": "high",
-            "high_weight": 4.5,
-            "high_sensitivity": 2.5,
-            "offset": 0.0,
-            "global_sensitivity": 1.25
-        },
-        {
-            "name": "controlled_spin_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 0.8,
-            "volume_sensitivity": 1.5,
-            "bass_channel": "bass",
-            "bass_weight": 0.6,
-            "bass_sensitivity": 1.2,
-            "mid_channel": "mid",
-            "mid_weight": 0.7,
-            "mid_sensitivity": 1.3,
-            "high_channel": "high",
-            "high_weight": 0.5,
-            "high_sensitivity": 1.0,
-            "base_value": { "functions": [ "spin_integrator" ] },
-            "offset": 0.0,
-            "global_sensitivity": 8.0
-        },
-        {
-            "name": "controlled_expand_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 6.5,
-            "volume_sensitivity": 5.0,
-            "bass_channel": "bass",
-            "bass_weight": 7.5,
-            "bass_sensitivity": 6.0,
-            "mid_channel": "mid",
-            "mid_weight": 5.0,
-            "mid_sensitivity": 4.0,
-            "high_channel": "high",
-            "high_weight": 3.5,
-            "high_sensitivity": 2.5,
-            "base_value": { "functions": [ "expand_integrator" ] },
-            "offset": 0.0,
-            "global_sensitivity": 1.75
-        },
-        {
-            "name": "controlled_swirl_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 7.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 6.5,
-            "bass_sensitivity": 5.0,
-            "mid_channel": "mid",
-            "mid_weight": 9.0,
-            "mid_sensitivity": 6.0,
-            "high_channel": "high",
-            "high_weight": 6.0,
-            "high_sensitivity": 4.5,
-            "offset": 0.0,
-            "global_sensitivity": 2
-        },
-        {
-            "name": "controlled_phase_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 6.0,
-            "volume_sensitivity": 4.5,
-            "bass_channel": "bass",
-            "bass_weight": 5.0,
-            "bass_sensitivity": 3.5,
-            "mid_channel": "mid",
-            "mid_weight": 8.0,
-            "mid_sensitivity": 5.5,
-            "high_channel": "high",
-            "high_weight": 7.5,
-            "high_sensitivity": 6.0,
-            "offset": 0.0,
-            "base_value": { "functions": [ "phase_integrator" ] },
-            "global_sensitivity": 1.8
-        },
-        {
             "name": "segment_tweaker",
             "type": "tweaker_float",
             "p": 0.01,
@@ -289,8 +196,7 @@
             "default_value": 0,
             "value": { 
                 "functions": [ 
-                    "expand_generator",
-                    "controlled_expand_audio"
+                    "expand_generator"
                 ]
             }
         },
@@ -316,8 +222,7 @@
             "default_value": 0,
             "value": { 
                 "functions": [ 
-                    "spin_generator",
-                    "controlled_spin_audio"
+                    "spin_generator"
                 ]
             }
         },
@@ -447,8 +352,7 @@
             "default_value": 60.0,
             "value": { 
                 "functions": [ 
-                    "swirl_generator",
-                    "controlled_swirl_audio"
+                    "swirl_generator"
                 ]
             }
         },
@@ -562,8 +466,7 @@
             "default_value": 0.0,
             "value": { 
                 "functions": [ 
-                    "phase_generator",
-                    "controlled_phase_audio"
+                    "phase_generator"
                 ]
             }
         },
@@ -606,7 +509,7 @@
             "name": "spin_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "spin_slider" ] },
-            "scale": 0.01,
+            "scale": 0.1,
             "val": 0
         },
         {
@@ -669,6 +572,99 @@
             "name": "source_image_dim",
             "type": "buffer_dim_fn",
             "buf_name": { "functions": [ "source_image_menu" ] }
+        },
+        {
+            "name": "gentle_audio_boost",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 5.0,
+            "volume_sensitivity": 4.0,
+            "bass_channel": "bass",
+            "bass_weight": 4.0,
+            "bass_sensitivity": 3.0,
+            "mid_channel": "mid",
+            "mid_weight": 6.0,
+            "mid_sensitivity": 3.5,
+            "high_channel": "high",
+            "high_weight": 4.5,
+            "high_sensitivity": 2.5,
+            "offset": 0.0,
+            "global_sensitivity": 1.25
+        },
+        {
+            "name": "controlled_spin_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.8,
+            "volume_sensitivity": 1.5,
+            "bass_channel": "bass",
+            "bass_weight": 0.6,
+            "bass_sensitivity": 1.2,
+            "mid_channel": "mid",
+            "mid_weight": 0.7,
+            "mid_sensitivity": 1.3,
+            "high_channel": "high",
+            "high_weight": 0.5,
+            "high_sensitivity": 1.0,
+            "base_value": { "functions": [ "spin_integrator" ] },
+            "offset": 0.0,
+            "global_sensitivity": 8.0
+        },
+        {
+            "name": "controlled_expand_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 6.5,
+            "volume_sensitivity": 5.0,
+            "bass_channel": "bass",
+            "bass_weight": 7.5,
+            "bass_sensitivity": 6.0,
+            "mid_channel": "mid",
+            "mid_weight": 5.0,
+            "mid_sensitivity": 4.0,
+            "high_channel": "high",
+            "high_weight": 3.5,
+            "high_sensitivity": 2.5,
+            "base_value": { "functions": [ "expand_integrator" ] },
+            "offset": 0.0,
+            "global_sensitivity": 1.75
+        },
+        {
+            "name": "controlled_swirl_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 7.0,
+            "volume_sensitivity": 4.0,
+            "bass_channel": "bass",
+            "bass_weight": 6.5,
+            "bass_sensitivity": 5.0,
+            "mid_channel": "mid",
+            "mid_weight": 9.0,
+            "mid_sensitivity": 6.0,
+            "high_channel": "high",
+            "high_weight": 6.0,
+            "high_sensitivity": 4.5,
+            "offset": 0.0,
+            "global_sensitivity": 2
+        },
+        {
+            "name": "controlled_phase_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 6.0,
+            "volume_sensitivity": 4.5,
+            "bass_channel": "bass",
+            "bass_weight": 5.0,
+            "bass_sensitivity": 3.5,
+            "mid_channel": "mid",
+            "mid_weight": 8.0,
+            "mid_sensitivity": 5.5,
+            "high_channel": "high",
+            "high_weight": 7.5,
+            "high_sensitivity": 6.0,
+            "offset": 0.0,
+            "base_value": { "functions": [ "phase_integrator" ] },
+            "global_sensitivity": 1.8
         }
     ],
     "effects":
