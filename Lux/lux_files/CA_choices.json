@@ -74,9 +74,24 @@
             "default_value": false
         },
         {
+            "name": "autoplay_intensity",
+            "type": "slider_float",
+            "label": "Autoplay Sensitivity",
+            "description": "Controls how often autoplay makes changes (1=slowest, 5=fastest)",
+            "min": 1,
+            "max": 5,
+            "step": 0.1,
+            "default_value": 2.0
+        },
+        {
+            "name": "autoplay_probability",
+            "type": "exp_fn",
+            "shift": -5.0
+        },
+        {
             "name": "target_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -124,7 +139,7 @@
         {
             "name": "edge_block_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -149,7 +164,7 @@
         {
             "name": "bright_block_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -188,23 +203,6 @@
             "max": 768,
             "default_value": 384,
             "step": 1
-        },
-        {
-            "name": "autoplay_intensity",
-            "type": "slider_float",
-            "label": "Autoplay Sensitivity",
-            "description": "Controls how often autoplay makes changes (1=slowest, 5=fastest)",
-            "min": 1,
-            "max": 5,
-            "step": 0.1,
-            "default_value": 2.0
-        },
-        {
-            "name": "autoplay_probability",
-            "type": "tweaker_float",
-            "value": { "functions": [ "autoplay_intensity" ] },
-            "scale": 0.000001,
-            "offset": 0.0000005
         },
         {
             "name": "image_switch_audio",
@@ -248,7 +246,7 @@
         {
             "name": "targ_image_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0,
             "b": 9,
             "min": 0,
@@ -269,7 +267,7 @@
         {
             "name": "rule_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0,
             "b": 8,
             "min": 0,
@@ -380,7 +378,7 @@
         {
             "name": "box_blur_bug_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -395,7 +393,7 @@
         {
             "name": "bb_random_copy_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },        
         {

@@ -76,8 +76,8 @@
         },
         {
             "name": "autoplay_probability",
-            "type": "constant_float",
-            "value": 0.0001
+            "type": "exp_fn",
+            "shift": -5.0
         },
         {
             "name": "segment_tweaker",
@@ -89,7 +89,7 @@
         {
             "name": "segment_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -111,7 +111,7 @@
         {
             "name": "level_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 1.0,
             "b": 2.0,
             "min": 1,
@@ -133,7 +133,7 @@
         {
             "name": "level_start_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -155,7 +155,7 @@
         {
             "name": "start_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -177,7 +177,7 @@
         {
             "name": "expand_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -194,16 +194,13 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { 
-                "functions": [ 
-                    "expand_generator"
-                ]
+            "value": { "functions": [ "expand_generator" ]
             }
         },
         {
             "name": "spin_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -227,55 +224,9 @@
             }
         },
         {
-            "name": "scope_menu_generator",
-            "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
-            "a": 0,
-            "b": 3,
-            "min": 0,
-            "max": 3,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
-        {
-            "name": "scope_menu",
-            "type": "menu_int",
-            "tool": "pull_down",
-            "label": "Scope",
-            "description": "Choose the kaleidoscope effect to apply.",
-            "items": [ "None", "Kaleido", "Multiples", "Tile" ],
-            "default_choice": 1,
-            "choice": { "functions": [ "scope_menu_generator" ] },
-            "affects_widget_groups": true
-        },
-        {
-            "name": "scope_menu_0",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 0
-        },        
-        {
-            "name": "scope_menu_1",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 1
-        },        
-        {
-            "name": "scope_menu_2",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 2
-        },
-        {
-            "name": "scope_menu_3",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 3
-        },
-        {
             "name": "funky_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0,
             "b": 5,
             "min": 0,
@@ -331,9 +282,55 @@
             "b": 5
         },
         {
+            "name": "scope_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "a": 0,
+            "b": 3,
+            "min": 0,
+            "max": 3,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
+        {
+            "name": "scope_menu",
+            "type": "menu_int",
+            "tool": "pull_down",
+            "label": "Scope",
+            "description": "Choose the kaleidoscope effect to apply.",
+            "items": [ "None", "Kaleido", "Multiples", "Tile" ],
+            "default_choice": 1,
+            "choice": { "functions": [ "scope_menu_generator" ] },
+            "affects_widget_groups": true
+        },
+        {
+            "name": "scope_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 0
+        },        
+        {
+            "name": "scope_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 1
+        },        
+        {
+            "name": "scope_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 2
+        },
+        {
+            "name": "scope_menu_3",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 3
+        },
+        {
             "name": "swirl_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": -360.0,
             "b": 360.0,
             "min": -360.0,
@@ -359,7 +356,7 @@
         {
             "name": "alternate_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": -180.0,
             "b": 180.0,
             "min": -180.0,
@@ -381,7 +378,7 @@
         {
             "name": "rings_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 10.0,
             "b": 1.0,
             "min": 1,
@@ -403,7 +400,7 @@
         {
             "name": "freq_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -425,7 +422,7 @@
         {
             "name": "amp_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -447,7 +444,7 @@
         {
             "name": "phase_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0.0,
             "b": 20.0,
             "min": -1000000,
@@ -473,7 +470,7 @@
         {
             "name": "const_amp_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -522,7 +519,7 @@
         {
             "name": "reflect_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -536,7 +533,7 @@
         {
             "name": "reflect_level_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -550,7 +547,7 @@
         {
             "name": "source_image_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
             "a": 0,
             "b": 9,
             "min": 0,

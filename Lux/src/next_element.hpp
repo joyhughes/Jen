@@ -198,6 +198,7 @@ struct random_toggle {
     random_toggle( const float& enabled_init = false, const float& p_init = 0.001f ) 
         : enabled( enabled_init ), p( p_init ) {}
 };
+
 struct log_fn {
     harness< float > scale;
     harness< float > shift;
@@ -208,6 +209,18 @@ struct log_fn {
         { return ( log10( val ) + *shift ) * *scale; }
 
     log_fn( const float& scale_init = 1.0f, const float& shift_init = 0.0f ) : scale( scale_init ), shift( shift_init ) {}
+};
+
+struct exp_fn {
+    harness< float > scale;
+    harness< float > shift;
+    //float scale;
+    //float shift;
+
+    float operator () ( float& val, element_context& context ) 
+        { return  exp10( val + *shift ) * *scale; }
+
+    exp_fn( const float& scale_init = 1.0f, const float& shift_init = 0.0f ) : scale( scale_init ), shift( shift_init ) {}
 };
 
 struct time_fn {
