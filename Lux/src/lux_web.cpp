@@ -1855,4 +1855,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function("enable_autoplay", &enable_autoplay);
     function("get_autoplay_status", &get_autoplay_status);
     function("set_autoplay_intensity", &set_autoplay_intensity);
-} 
+}
