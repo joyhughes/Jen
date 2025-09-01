@@ -1,4 +1,3 @@
-
 #ifndef __EFFECT_HPP
 #define __EFFECT_HPP
 
@@ -122,6 +121,19 @@ template< class T > struct eff_rotate_hue {
 
 typedef eff_rotate_hue< frgb > eff_rotate_hue_frgb;
 typedef eff_rotate_hue< ucolor > eff_rotate_hue_ucolor;
+
+template< class T > struct eff_posterize {
+    harness< int > h_levels;
+    harness< int > s_levels;
+    harness< int > v_levels;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_posterize( int h_levels_init = 256, int s_levels_init = 256, int v_levels_init = 256 ) : 
+        h_levels( h_levels_init ), s_levels( s_levels_init ), v_levels( v_levels_init ) {}
+};
+
+typedef eff_posterize< ucolor > eff_posterize_ucolor;
 
 template< class T > struct eff_bit_plane {
     harness< ucolor > bit_mask;

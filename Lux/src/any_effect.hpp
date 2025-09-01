@@ -23,6 +23,7 @@ template< class T > struct eff_rotate_components;
 template< class T > struct eff_rgb_to_hsv;
 template< class T > struct eff_hsv_to_rgb;
 template< class T > struct eff_rotate_hue;
+template< class T > struct eff_posterize;
 template< class T > struct eff_bit_plane;
 
 template< class T > struct eff_crop_circle;
@@ -109,6 +110,8 @@ typedef std::variant <
 
     std::shared_ptr< eff_rotate_hue< frgb > >,
     std::shared_ptr< eff_rotate_hue< ucolor > >,
+
+    std::shared_ptr< eff_posterize< ucolor > >,
 
     std::shared_ptr< eff_bit_plane< ucolor > >,
 
