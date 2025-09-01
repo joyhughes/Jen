@@ -10,7 +10,7 @@
 #include <sstream>
 
 #define DEBUG( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; }
-#define ERROR( msg ) throw std::runtime_error( msg );
+#define ERROR( msg ) { std::string debug_msg = msg; std::cout << debug_msg << std::endl; throw std::runtime_error( msg ); }
 
 using json = nlohmann::json;
 using string = std::string;
@@ -352,7 +352,12 @@ template< class T > void scene_reader::read_harness( const json& j, harness< T >
             read( h.val, j[ "value" ] );
         }
         // need list of harness functions by type (map of maps?)
-        if( j.contains( "functions" ) ) for( std::string name : j[ "functions" ] ) { 
+        if( j.contains( "functions" ) ) for( std::string name : j[ "functions" ] ) {
+            //if( !s.functions.contains( name ) ) ERROR( "scene_reader::read_harness error - function " + name + " not found\n" )
+            if( !s.functions.contains( name ) ) {
+                std::cout << "scene_reader::read_harness error - function " << name << " not found" << std::endl;
+                exit( 0 );
+            }
             h.add_function( std::get< any_fn< T > >( s.functions[ name ] ) );
         }
     }
@@ -407,22 +412,25 @@ void scene_reader::read_function( const json& j ) {
     }
 
     // example of expanded macro sequence
-    /* if( type == "orientation_gen_fn" ) { 
+    /* 
+    if( type == "orientation_gen_fn" ) { 
         auto fn = orientation_gen_fn(); 
         any_gen_fn func( std::make_shared< orientation_gen_fn >( fn ), std::ref( fn ), name );
         if( j.contains( "orientation" ) ) read_any_harness( j[ "orientation" ], fn. orientation );
         s.functions[ name ] = func;
-    } */
+        return;
+    } 
+    */
 
     #define FN( _T_, _U_ ) if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_fn< _U_ >    func( fn, std::ref( *fn ), name );
-    #define END_FN  s.functions[ name ] = func; }
+    #define END_FN  s.functions[ name ] = func; return; }
     #define GEN_FN( _T_ )  if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_gen_fn       func( fn, std::ref( *fn ), name ); 
-    #define END_GEN_FN  s.functions[ name ] = func; }
+    #define END_GEN_FN  s.functions[ name ] = func; return; }
     #define COND_FN( _T_ ) if( type == #_T_ )     { std::shared_ptr< _T_ > fn( new _T_ ); any_condition_fn func( fn, std::ref( *fn ), name );
-    #define END_COND_FN  s.functions[ name ] = func; }
+    #define END_COND_FN  s.functions[ name ] = func; return;}
 
-    #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) read_any_harness( j[ #_T_ ], fn-> _T_ );
-    #define READ( _T_ )    if( j.contains( #_T_ ) ) read( fn-> _T_, j[ #_T_ ] );
+    #define HARNESS( _T_ ) if( j.contains( #_T_ ) ) { read_any_harness( j[ #_T_ ], fn-> _T_ ); }
+    #define READ( _T_ )    if( j.contains( #_T_ ) ) { read( fn-> _T_, j[ #_T_ ] ); }
     #define PARAM( _T_ )   if( j.contains( "fn" ) ) { j[ "fn" ].get_to( fn_name ); fn->fn = std::get< any_fn< _T_ > >( s.functions[ fn_name ] ); }
 
     // harness bool functions
@@ -433,6 +441,7 @@ void scene_reader::read_function( const json& j ) {
     FN( tweaker_float, float ) HARNESS( p ) HARNESS( amount ) HARNESS( enabled ) END_FN
     FN( generator_float, float ) READ( distribution ) HARNESS( p ) HARNESS( a ) HARNESS( b ) HARNESS( enabled ) END_FN
     FN( log_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
+    FN( exp_fn,      float ) HARNESS( scale ) HARNESS( shift ) END_FN
     FN( time_fn,     float ) END_FN
     FN( ratio_float, float ) HARNESS( r ) END_FN
     FN( integrator_float, float ) HARNESS( delta ) HARNESS( scale ) READ( val ) END_FN
@@ -578,6 +587,7 @@ void scene_reader::read_function( const json& j ) {
     COND_FN( equal_direction4_condition ) HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction4_diagonal_condition ) HARNESS( a ) HARNESS( b ) END_FN
     COND_FN( equal_direction8_condition ) HARNESS( a ) HARNESS( b ) END_FN
+    ERROR( "scene_reader::read_function error - unknown function type: " + type + "\n" )
 }
 
 void scene_reader::read_cluster( const json& j ) {

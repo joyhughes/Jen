@@ -43,6 +43,7 @@ typedef std::variant <
     std::shared_ptr< generator_float >,
     std::shared_ptr< integrator_float >,
     std::shared_ptr< log_fn >,
+    std::shared_ptr< exp_fn >,
     std::shared_ptr< time_fn >,
     std::shared_ptr< ratio_float >,
     std::shared_ptr< wiggle >,
