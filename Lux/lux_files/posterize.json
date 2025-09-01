@@ -117,7 +117,7 @@
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "posterize" ]
+            "effects": [ "rgb to hsv", "posterize", "hsv to rgb" ]
         }
     ],
     "widget groups":
