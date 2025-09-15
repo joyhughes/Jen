@@ -44,14 +44,6 @@ template<> void uimage::rotate_hue( const float& h ) {
     }
 }
 
-template<> void uimage::posterize( const int& h_levels, const int& s_levels, const int& v_levels ) {
-    if( h_levels != 256 || s_levels != 256 || v_levels != 256 ) {
-        auto& base = mip[ 0 ];
-        for( auto& c : base ) { c = ::posterize( c, h_levels, s_levels, v_levels ); }
-        mip_utd = false;
-    }
-}
-
 template<> void uimage::bit_plane( const ucolor& q ) {
     auto& base = mip[ 0 ];
     for( auto& c : base ) { c = ::bit_plane( c, q ); }

@@ -167,14 +167,6 @@ static inline ucolor rotate_hue( const ucolor& c, const unsigned int& r )
    return ( ( ( c & 0x00ff0000 ) + r ) & 0x00ff0000 ) | ( c & 0xff00ffff );
 }
 
-static inline ucolor posterize( const ucolor& c, const int& h_levels, const int& s_levels, const int& v_levels )
-{
-   unsigned int h = ( ( ( c & 0x00ff0000 ) >> 16 ) / (256 / h_levels) ) * ( 256 / h_levels );
-   unsigned int s = ( ( ( c & 0x0000ff00 ) >> 8 ) / (256 / s_levels) ) * (256 / s_levels );
-   unsigned int v = ( ( c & 0x000000ff ) / (256 / v_levels) ) * (256 / v_levels );
-   return ( c & 0xff000000 ) + ( h << 16 ) + ( s << 8 ) + v;
-}
-
 static inline ucolor bit_plane( const ucolor& c, const ucolor& q)
 {
    ucolor m = c & q;
