@@ -34,8 +34,9 @@ scene_reader::scene_reader(scene &s_init, std::string (filename)) : s(s_init) {
         exit(0);
     }
     DEBUG("scene file parsed into json object")
-    // Always try to load with runtime state detection for filename constructor
-    initialize_from_json(j, true);
+    // For filename constructor, detect whether this has runtime state or is a default config
+    bool has_runtime = has_runtime_state(j);
+    initialize_from_json(j, has_runtime);
 }
 
 
@@ -324,7 +325,7 @@ void scene_reader::read_element(const json &j) {
 
     // image, mask, tint
     if (j.contains("image")) {
-        j["image"].get_to(img);
+        j["image"].(img);
         elem_img_bufs[name] = img;
     }
 
@@ -375,15 +376,10 @@ void scene_reader::read_harness(const json &j, harness<T> &h) {
                 }
             }
         }
-        // need list of harness functions by type (map of maps?)
+        // For now, skip function restoration during initial loading to avoid crashes
+        // Functions will be restored later after all functions are loaded
         if (j.contains("functions")) {
-            for (std::string name: j["functions"]) {
-                try {
-                    h.add_function(std::get<any_fn<T> >(s.functions[name]));
-                } catch (const std::exception& e) {
-                    std::cout << "DEBUG: Error adding function '" << name << "' to harness: " << e.what() << std::endl;
-                }
-            }
+            std::cout << "DEBUG: Deferring harness function restoration for " << j["functions"].size() << " functions" << std::endl;
         }
     } else read(h.val, j);
 }
@@ -429,6 +425,10 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
         std::cout << "DEBUG: Loading default scene configuration (no runtime state)" << std::endl;
     }
 
+    // Store the JSON for deferred harness restoration
+    if (is_saved_scene) {
+        deferred_harness_json = j;
+    }
 
     // Basic scene fields
     if (j.contains("name")) j["name"].get_to(s.name);
@@ -486,17 +486,21 @@ void scene_reader::initialize_from_json(const nlohmann::json& j, bool load_runti
         std::get<std::shared_ptr<CA<ucolor>>>(s.effects[t.first].fn_ptr)->target = s.buffers[t.second];
     }
 
+    // Now restore harness functions after all functions are loaded
+    if (is_saved_scene) {
+        restore_harness_functions();
+    }
+
     DEBUG("scene_reader initialization finished");
     
 
 }
 
 bool scene_reader::has_runtime_state(const json &scene_json) {
-    // Check if any function has harness values with functions references or integrator runtime state
-    // This indicates a saved scene with runtime state
+    // Check for SAVED scene indicators - only true runtime state, not default config function wiring
     if (scene_json.contains("functions")) {
         for (const auto& func : scene_json["functions"]) {
-            // Check for integrator functions with non-default runtime values
+            // Check for integrator functions with non-default runtime values (strong indicator)
             if (func.contains("type") && func["type"] == "integrator_float" && func.contains("val")) {
                 double val = func["val"];
                 if (std::abs(val) > 0.001) { // Non-zero integrator value indicates runtime state
@@ -506,30 +510,32 @@ bool scene_reader::has_runtime_state(const json &scene_json) {
                 }
             }
             
-            // Check for harness values with function references - indicates saved scene structure  
+            // Check for SAVED harness values - look for actual runtime values stored alongside functions
             if (func.contains("value") && func["value"].is_object()) {
                 const auto& value_obj = func["value"];
-                if (value_obj.contains("functions")) {
-                    std::cout << "DEBUG: Found harness with function reference in '" << func["name"] << "'" << std::endl;
-                    std::cout << "DEBUG: Scene has harness function references, treating as saved scene" << std::endl;
+                if (value_obj.contains("functions") && value_obj.contains("value")) {
+                    // This is a harness object with both function references AND a saved runtime value
+                    std::cout << "DEBUG: Found saved harness with both functions and runtime value in '" << func["name"] << "'" << std::endl;
+                    std::cout << "DEBUG: Scene has saved harness runtime values, treating as saved scene" << std::endl;
                     return true;
                 }
             }
             
-            // Check for choice harness with function references (menus)
+            // Check for SAVED choice harness with runtime values (menus)
             if (func.contains("choice") && func["choice"].is_object()) {
                 const auto& choice_obj = func["choice"];
-                if (choice_obj.contains("functions")) {
-                    std::cout << "DEBUG: Found menu choice harness with function reference in '" << func["name"] << "'" << std::endl;
-                    std::cout << "DEBUG: Scene has menu harness function references, treating as saved scene" << std::endl;
+                if (choice_obj.contains("functions") && choice_obj.contains("value")) {
+                    // This is a choice harness with both function references AND a saved runtime value
+                    std::cout << "DEBUG: Found saved menu choice with both functions and runtime value in '" << func["name"] << "'" << std::endl;
+                    std::cout << "DEBUG: Scene has saved menu runtime values, treating as saved scene" << std::endl;
                     return true;
                 }
             }
         }
     }
     
-    std::cout << "DEBUG: Scene has no runtime state indicators, treating as default configuration" << std::endl;
-    std::cout << "DEBUG: Default scenes have no harness function references or integrator values" << std::endl;
+    std::cout << "DEBUG: Scene has no saved runtime state, treating as default configuration" << std::endl;
+    std::cout << "DEBUG: Function references without saved values are normal for default scenes" << std::endl;
     return false;
 }
 
@@ -592,13 +598,27 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": true}
+                if (j["value"].contains("value")) {
+                    bool runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: switch_fn '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                    
+                    // Defer harness function restoration to avoid crashes during initial loading
+                    if (j["value"].contains("functions")) {
+                        std::cout << "DEBUG: switch_fn '" << name << "' - deferring restoration of " << j["value"]["functions"].size() << " harness functions" << std::endl;
+                    }
+                }
+            } else if (j["value"].is_boolean()) {
+                // Direct value format: "value": true
                 bool runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: switch_fn '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: switch_fn '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -650,13 +670,27 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 20}
+                if (j["value"].contains("value")) {
+                    float runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: slider_float '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                    
+                    // Defer harness function restoration to avoid crashes during initial loading
+                    if (j["value"].contains("functions")) {
+                        std::cout << "DEBUG: slider_float '" << name << "' - deferring restoration of " << j["value"]["functions"].size() << " harness functions" << std::endl;
+                    }
+                }
+            } else if (j["value"].is_number()) {
+                // Direct value format: "value": 20
                 float runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: slider_float '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: slider_float '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -678,6 +712,8 @@ void scene_reader::read_function(const json &j) {
                 read(runtime_value, j["value"]["value"]);
                 fn->value = runtime_value;
                 std::cout << "DEBUG: range_slider_float '" << name << "' - assigned runtime value: [" << runtime_value.min << ", " << runtime_value.max << "]" << std::endl;
+                
+                // Note: range_slider_float uses interval<float>, not harness<interval<float>>, so no functions to restore
             }
         }
     END_FN
@@ -722,13 +758,27 @@ void scene_reader::read_function(const json &j) {
         // Set default value first
         fn->value = fn->default_value;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("value") && j["value"].is_object()) {
-            if (j["value"].contains("value")) {
+        // For saved scenes, extract runtime value from either harness or direct value
+        if (is_saved_scene && j.contains("value")) {
+            if (j["value"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 20}
+                if (j["value"].contains("value")) {
+                    int runtime_value;
+                    read(runtime_value, j["value"]["value"]);
+                    fn->value = runtime_value;
+                    std::cout << "DEBUG: slider_int '" << name << "' - assigned harness runtime value: " << runtime_value << std::endl;
+                    
+                    // Defer harness function restoration to avoid crashes during initial loading
+                    if (j["value"].contains("functions")) {
+                        std::cout << "DEBUG: slider_int '" << name << "' - deferring restoration of " << j["value"]["functions"].size() << " harness functions" << std::endl;
+                    }
+                }
+            } else if (j["value"].is_number()) {
+                // Direct value format: "value": 20
                 int runtime_value;
-                read(runtime_value, j["value"]["value"]);
+                read(runtime_value, j["value"]);
                 fn->value = runtime_value;
-                std::cout << "DEBUG: slider_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+                std::cout << "DEBUG: slider_int '" << name << "' - assigned direct runtime value: " << runtime_value << std::endl;
             }
         }
     END_FN
@@ -750,6 +800,8 @@ void scene_reader::read_function(const json &j) {
                 read(runtime_value, j["value"]["value"]);
                 fn->value = runtime_value;
                 std::cout << "DEBUG: range_slider_int '" << name << "' - assigned runtime value: [" << runtime_value.min << ", " << runtime_value.max << "]" << std::endl;
+                
+                // Note: range_slider_int uses interval<int>, not harness<interval<int>>, so no functions to restore
             }
         }
     END_FN
@@ -766,13 +818,27 @@ void scene_reader::read_function(const json &j) {
         // Set default choice first
         fn->choice = fn->default_choice;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
-            if (j["choice"].contains("value")) {
-                int runtime_value;
-                read(runtime_value, j["choice"]["value"]);
-                fn->choice = runtime_value;
-                std::cout << "DEBUG: menu_int '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+        // For saved scenes, extract runtime choice from either harness or direct value
+        if (is_saved_scene && j.contains("choice")) {
+            if (j["choice"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 1}
+                if (j["choice"].contains("value")) {
+                    int runtime_choice;
+                    read(runtime_choice, j["choice"]["value"]);
+                    fn->choice = runtime_choice;
+                    std::cout << "DEBUG: menu_int '" << name << "' - assigned harness runtime choice: " << runtime_choice << std::endl;
+                    
+                    // Defer harness function restoration to avoid crashes during initial loading
+                    if (j["choice"].contains("functions")) {
+                        std::cout << "DEBUG: menu_int '" << name << "' - deferring restoration of " << j["choice"]["functions"].size() << " harness functions" << std::endl;
+                    }
+                }
+            } else if (j["choice"].is_number()) {
+                // Direct value format: "choice": 1
+                int runtime_choice;
+                read(runtime_choice, j["choice"]);
+                fn->choice = runtime_choice;
+                std::cout << "DEBUG: menu_int '" << name << "' - assigned direct runtime choice: " << runtime_choice << std::endl;
             }
         }
         
@@ -790,13 +856,27 @@ void scene_reader::read_function(const json &j) {
         // Set default choice first
         fn->choice = fn->default_choice;
         
-        // For saved scenes, extract runtime value from harness JSON
-        if (is_saved_scene && j.contains("choice") && j["choice"].is_object()) {
-            if (j["choice"].contains("value")) {
-                int runtime_value;
-                read(runtime_value, j["choice"]["value"]);
-                fn->choice = runtime_value;
-                std::cout << "DEBUG: menu_string '" << name << "' - assigned runtime value: " << runtime_value << std::endl;
+        // For saved scenes, extract runtime choice from either harness or direct value
+        if (is_saved_scene && j.contains("choice")) {
+            if (j["choice"].is_object()) {
+                // Harness object format: {"functions": [...], "value": 1}
+                if (j["choice"].contains("value")) {
+                    int runtime_choice;
+                    read(runtime_choice, j["choice"]["value"]);
+                    fn->choice = runtime_choice;
+                    std::cout << "DEBUG: menu_string '" << name << "' - assigned harness runtime choice: " << runtime_choice << std::endl;
+                    
+                    // Defer harness function restoration to avoid crashes during initial loading
+                    if (j["choice"].contains("functions")) {
+                        std::cout << "DEBUG: menu_string '" << name << "' - deferring restoration of " << j["choice"]["functions"].size() << " harness functions" << std::endl;
+                    }
+                }
+            } else if (j["choice"].is_number()) {
+                // Direct value format: "choice": 1
+                int runtime_choice;
+                read(runtime_choice, j["choice"]);
+                fn->choice = runtime_choice;
+                std::cout << "DEBUG: menu_string '" << name << "' - assigned direct runtime choice: " << runtime_choice << std::endl;
             }
         }
         
@@ -1814,6 +1894,43 @@ void to_json(nlohmann::json &j, const direction8 &d) {
     }
 }
 
+void to_json(nlohmann::json &j, const image_extend &e) {
+    switch (e) {
+        case image_extend::SAMP_SINGLE:
+            j = "single";
+            break;
+        case image_extend::SAMP_REPEAT:
+            j = "repeat";
+            break;
+        case image_extend::SAMP_REFLECT:
+            j = "reflect";
+            break;
+        default:
+            j = "repeat";
+            break;
+    }
+}
+
+void to_json(nlohmann::json &j, const switch_fn &s) {
+    j = nlohmann::json{
+        {"label", s.label},
+        {"description", s.description},
+        {"value", *(s.value)},
+        {"default_value", s.default_value},
+        {"tool", s.tool == SWITCH_SWITCH ? "switch" : "checkbox"}
+    };
+}
+
+void to_json(nlohmann::json &j, const widget_group &wg) {
+    j = nlohmann::json{
+        {"name", wg.name},
+        {"label", wg.label},
+        {"description", wg.description},
+        {"conditions", wg.conditions},
+        {"widgets", wg.widgets}
+    };
+}
+
 void to_json(nlohmann::json &j, const box_blur_type &b) {
     switch (b) {
         case box_blur_type::BB_ORTHOGONAL:
@@ -1851,26 +1968,6 @@ void to_json(nlohmann::json &j, const menu_type &m) {
             j = nullptr; // Or any indication of an error/invalid value
             break;
     }
-}
-
-void to_json(nlohmann::json &j, const switch_fn &s) {
-    j = nlohmann::json{
-        {"label", s.label},
-        {"description", s.description},
-        {"value", *(s.value)},
-        {"default_value", s.default_value},
-        {"tool", s.tool == SWITCH_SWITCH ? "switch" : "checkbox"}
-    };
-}
-
-void to_json(nlohmann::json &j, const widget_group &wg) {
-    j = nlohmann::json{
-        {"name", wg.name},
-        {"label", wg.label},
-        {"description", wg.description},
-        {"conditions", wg.conditions},
-        {"widgets", wg.widgets}
-    };
 }
 
 /*
@@ -3436,3 +3533,401 @@ void to_json(nlohmann::json &j, const any_function &af) {
                    }
                }, af);
 }
+
+void scene_reader::restore_harness_functions() {
+    std::cout << "DEBUG: Restoring harness functions after all functions are loaded" << std::endl;
+    
+    if (!deferred_harness_json.contains("functions")) {
+        std::cout << "DEBUG: No functions to restore" << std::endl;
+        return;
+    }
+    
+    // Now restore harness functions for all functions that have them
+    for (auto &jfunc: deferred_harness_json["functions"]) {
+        std::string func_name;
+        if (jfunc.contains("name")) {
+            jfunc["name"].get_to(func_name);
+        } else {
+            continue;
+        }
+        
+        // Find the loaded function and restore its harness functions
+        if (s.functions.contains(func_name)) {
+            auto& func_variant = s.functions[func_name];
+            
+            // Handle different function types that have harnesses
+            std::visit(overloaded{
+                [&](const any_fn<float>& fn) {
+                    restore_harness_for_function<float>(jfunc, fn);
+                },
+                [&](const any_fn<int>& fn) {
+                    restore_harness_for_function<int>(jfunc, fn);
+                },
+                [&](const any_fn<bool>& fn) {
+                    restore_harness_for_function<bool>(jfunc, fn);
+                },
+                [&](const any_fn<std::string>& fn) {
+                    restore_harness_for_function<std::string>(jfunc, fn);
+                },
+                [&](const any_fn<vec2f>& fn) {
+                    restore_harness_for_function<vec2f>(jfunc, fn);
+                },
+                [&](const any_fn<vec2i>& fn) {
+                    restore_harness_for_function<vec2i>(jfunc, fn);
+                },
+                [&](const auto& fn) {
+                    // Other types - no harness restoration needed
+                }
+            }, func_variant);
+        }
+    }
+    
+    std::cout << "DEBUG: Harness function restoration completed" << std::endl;
+}
+
+template<class T>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<T>& fn) {
+    // This is a template method that will be instantiated for each type
+    // For now, we'll implement the common cases inline
+}
+
+// Template specializations for specific types
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<float>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<slider_float>& slider) {
+            if (jfunc.contains("value") && jfunc["value"].is_object() && jfunc["value"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for slider_float '" << slider->label << "'" << std::endl;
+                slider->value.functions.clear();
+                for (const std::string& func_name : jfunc["value"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                            slider->value.add_function(std::get<any_fn<float>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to slider_float '" << slider->label << "'" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const std::shared_ptr<audio_adder_fn>& audio_fn) {
+            // Restore all harness parameters for audio_adder_fn
+            auto restore_audio_harness = [&](const std::string& field_name, auto& harness_field) {
+                if (jfunc.contains(field_name) && jfunc[field_name].is_object() && jfunc[field_name].contains("functions")) {
+                    std::cout << "DEBUG: Restoring " << field_name << " harness for audio_adder_fn" << std::endl;
+                    harness_field.functions.clear();
+                    for (const std::string& func_name : jfunc[field_name]["functions"]) {
+                        if (s.functions.contains(func_name)) {
+                            auto& func_variant = s.functions[func_name];
+                            if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<float>>) {
+                                if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<float>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<std::string>>) {
+                                if (std::holds_alternative<any_fn<std::string>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<std::string>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            restore_audio_harness("volume_channel", audio_fn->volume_channel);
+            restore_audio_harness("volume_weight", audio_fn->volume_weight);
+            restore_audio_harness("volume_sensitivity", audio_fn->volume_sensitivity);
+            restore_audio_harness("bass_channel", audio_fn->bass_channel);
+            restore_audio_harness("bass_weight", audio_fn->bass_weight);
+            restore_audio_harness("bass_sensitivity", audio_fn->bass_sensitivity);
+            restore_audio_harness("mid_channel", audio_fn->mid_channel);
+            restore_audio_harness("mid_weight", audio_fn->mid_weight);
+            restore_audio_harness("mid_sensitivity", audio_fn->mid_sensitivity);
+            restore_audio_harness("high_channel", audio_fn->high_channel);
+            restore_audio_harness("high_weight", audio_fn->high_weight);
+            restore_audio_harness("high_sensitivity", audio_fn->high_sensitivity);
+            restore_audio_harness("offset", audio_fn->offset);
+            restore_audio_harness("global_sensitivity", audio_fn->global_sensitivity);
+        },
+        [&](const std::shared_ptr<integrator_float>& integrator) {
+            // Restore integrator runtime state
+            if (jfunc.contains("delta") && jfunc["delta"].is_object() && jfunc["delta"].contains("functions")) {
+                std::cout << "DEBUG: Restoring delta harness for integrator_float" << std::endl;
+                integrator->delta.functions.clear();
+                for (const std::string& func_name : jfunc["delta"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                            integrator->delta.add_function(std::get<any_fn<float>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to integrator delta" << std::endl;
+                        }
+                    }
+                }
+            }
+            // Runtime state (val) is already restored during function loading, just log it
+            std::cout << "DEBUG: integrator_float runtime val=" << integrator->val << std::endl;
+        },
+        [&](const std::shared_ptr<generator_float>& generator) {
+            // Restore all harness parameters for generator_float
+            auto restore_gen_harness = [&](const std::string& field_name, auto& harness_field) {
+                if (jfunc.contains(field_name) && jfunc[field_name].is_object() && jfunc[field_name].contains("functions")) {
+                    std::cout << "DEBUG: Restoring " << field_name << " harness for generator_float" << std::endl;
+                    harness_field.functions.clear();
+                    for (const std::string& func_name : jfunc[field_name]["functions"]) {
+                        if (s.functions.contains(func_name)) {
+                            auto& func_variant = s.functions[func_name];
+                            if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<float>>) {
+                                if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<float>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<bool>>) {
+                                if (std::holds_alternative<any_fn<bool>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<bool>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            restore_gen_harness("p", generator->p);
+            restore_gen_harness("a", generator->a);
+            restore_gen_harness("b", generator->b);
+            restore_gen_harness("enabled", generator->enabled);
+        },
+        [&](const std::shared_ptr<tweaker_float>& tweaker) {
+            // Restore harness parameters for tweaker_float
+            auto restore_tweaker_harness = [&](const std::string& field_name, auto& harness_field) {
+                if (jfunc.contains(field_name) && jfunc[field_name].is_object() && jfunc[field_name].contains("functions")) {
+                    std::cout << "DEBUG: Restoring " << field_name << " harness for tweaker_float" << std::endl;
+                    harness_field.functions.clear();
+                    for (const std::string& func_name : jfunc[field_name]["functions"]) {
+                        if (s.functions.contains(func_name)) {
+                            auto& func_variant = s.functions[func_name];
+                            if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<float>>) {
+                                if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<float>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<bool>>) {
+                                if (std::holds_alternative<any_fn<bool>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<bool>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            restore_tweaker_harness("p", tweaker->p);
+            restore_tweaker_harness("amount", tweaker->amount);
+            restore_tweaker_harness("enabled", tweaker->enabled);
+        },
+        [&](const auto& other_fn) {
+            // Other float function types - no harness restoration needed
+        }
+    }, fn.any_fn_ptr);
+}
+
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<int>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<slider_int>& slider) {
+            if (jfunc.contains("value") && jfunc["value"].is_object() && jfunc["value"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for slider_int '" << slider->label << "'" << std::endl;
+                slider->value.functions.clear();
+                for (const std::string& func_name : jfunc["value"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<int>>(func_variant)) {
+                            slider->value.add_function(std::get<any_fn<int>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to slider_int '" << slider->label << "'" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const std::shared_ptr<menu_int>& menu) {
+            if (jfunc.contains("choice") && jfunc["choice"].is_object() && jfunc["choice"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for menu_int '" << menu->label << "'" << std::endl;
+                menu->choice.functions.clear();
+                for (const std::string& func_name : jfunc["choice"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<int>>(func_variant)) {
+                            menu->choice.add_function(std::get<any_fn<int>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to menu_int '" << menu->label << "'" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const std::shared_ptr<generator_int>& generator) {
+            // Restore all harness parameters for generator_int
+            auto restore_gen_harness = [&](const std::string& field_name, auto& harness_field) {
+                if (jfunc.contains(field_name) && jfunc[field_name].is_object() && jfunc[field_name].contains("functions")) {
+                    std::cout << "DEBUG: Restoring " << field_name << " harness for generator_int" << std::endl;
+                    harness_field.functions.clear();
+                    for (const std::string& func_name : jfunc[field_name]["functions"]) {
+                        if (s.functions.contains(func_name)) {
+                            auto& func_variant = s.functions[func_name];
+                            if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<float>>) {
+                                if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<float>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<int>>) {
+                                if (std::holds_alternative<any_fn<int>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<int>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<bool>>) {
+                                if (std::holds_alternative<any_fn<bool>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<bool>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            restore_gen_harness("p", generator->p);
+            restore_gen_harness("a", generator->a);
+            restore_gen_harness("b", generator->b);
+            restore_gen_harness("enabled", generator->enabled);
+        },
+        [&](const auto& other_fn) {
+            // Other int function types - no harness restoration needed
+        }
+    }, fn.any_fn_ptr);
+}
+
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<bool>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<switch_fn>& switch_ptr) {
+            if (jfunc.contains("value") && jfunc["value"].is_object() && jfunc["value"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for switch_fn '" << switch_ptr->label << "'" << std::endl;
+                switch_ptr->value.functions.clear();
+                for (const std::string& func_name : jfunc["value"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<bool>>(func_variant)) {
+                            switch_ptr->value.add_function(std::get<any_fn<bool>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to switch_fn '" << switch_ptr->label << "'" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const std::shared_ptr<random_toggle>& toggle) {
+            // Restore harness parameters for random_toggle
+            auto restore_toggle_harness = [&](const std::string& field_name, auto& harness_field) {
+                if (jfunc.contains(field_name) && jfunc[field_name].is_object() && jfunc[field_name].contains("functions")) {
+                    std::cout << "DEBUG: Restoring " << field_name << " harness for random_toggle" << std::endl;
+                    harness_field.functions.clear();
+                    for (const std::string& func_name : jfunc[field_name]["functions"]) {
+                        if (s.functions.contains(func_name)) {
+                            auto& func_variant = s.functions[func_name];
+                            if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<float>>) {
+                                if (std::holds_alternative<any_fn<float>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<float>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            } else if constexpr (std::is_same_v<std::decay_t<decltype(harness_field)>, harness<bool>>) {
+                                if (std::holds_alternative<any_fn<bool>>(func_variant)) {
+                                    harness_field.add_function(std::get<any_fn<bool>>(func_variant));
+                                    std::cout << "DEBUG: Connected function '" << func_name << "' to " << field_name << std::endl;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            restore_toggle_harness("enabled", toggle->enabled);
+            restore_toggle_harness("p", toggle->p);
+        },
+        [&](const auto& other_fn) {
+            // Other bool function types - no harness restoration needed yet
+        }
+    }, fn.any_fn_ptr);
+}
+
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<std::string>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<menu_string>& menu) {
+            if (jfunc.contains("choice") && jfunc["choice"].is_object() && jfunc["choice"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for menu_string '" << menu->label << "'" << std::endl;
+                menu->choice.functions.clear();
+                for (const std::string& func_name : jfunc["choice"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<int>>(func_variant)) {
+                            menu->choice.add_function(std::get<any_fn<int>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to menu_string '" << menu->label << "'" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const auto& other_fn) {
+            // Other string function types - no harness restoration needed
+        }
+    }, fn.any_fn_ptr);
+}
+
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<vec2f>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<adder_vec2f>& adder) {
+            if (jfunc.contains("r") && jfunc["r"].is_object() && jfunc["r"].contains("functions")) {
+                std::cout << "DEBUG: Restoring harness functions for adder_vec2f" << std::endl;
+                adder->r.functions.clear();
+                for (const std::string& func_name : jfunc["r"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<vec2f>>(func_variant)) {
+                            adder->r.add_function(std::get<any_fn<vec2f>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to adder_vec2f" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const auto& other_fn) {
+            // Other vec2f function types - no harness restoration needed
+        }
+    }, fn.any_fn_ptr);
+}
+
+template<>
+void scene_reader::restore_harness_for_function(const json& jfunc, const any_fn<vec2i>& fn) {
+    std::visit(overloaded{
+        [&](const std::shared_ptr<buffer_dim_fn>& buf_dim) {
+            if (jfunc.contains("buf_name") && jfunc["buf_name"].is_object() && jfunc["buf_name"].contains("functions")) {
+                std::cout << "DEBUG: Restoring buf_name harness for buffer_dim_fn" << std::endl;
+                buf_dim->buf_name.functions.clear();
+                for (const std::string& func_name : jfunc["buf_name"]["functions"]) {
+                    if (s.functions.contains(func_name)) {
+                        auto& func_variant = s.functions[func_name];
+                        if (std::holds_alternative<any_fn<std::string>>(func_variant)) {
+                            buf_dim->buf_name.add_function(std::get<any_fn<std::string>>(func_variant));
+                            std::cout << "DEBUG: Connected function '" << func_name << "' to buffer_dim_fn buf_name" << std::endl;
+                        }
+                    }
+                }
+            }
+        },
+        [&](const auto& other_fn) {
+            // Other vec2i function types - no harness restoration needed
+        }
+    }, fn.any_fn_ptr);
+}
+

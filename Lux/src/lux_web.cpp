@@ -1787,14 +1787,9 @@ int main(int argc, char** argv) {
         throw;
     }
     
+    // Initialize video recorder (commented out for now)
     // global_context->video_recorder = std::make_unique<VideoRecorder>();
     // global_context->is_recording = false;
-    //scene s( "lux_files/kaleido.json" );
-    //scene s( "lux_files/CA_choices.json" );
-    //scene s( "lux_files/nebula_brush.json" );
-    //scene s(    //scene s( "diffuser_files/diffuser_brush.json" );
-    //scene s( "moon_files/galaxy_moon.json" );
-    emscripten_run_script("console.log('scene loaded');");
 
     std::shared_ptr< buffer_pair< ucolor > > buf( new buffer_pair< ucolor >( dim ) );
     any_buffer_pair_ptr any_buf = buf;
@@ -1806,7 +1801,6 @@ int main(int argc, char** argv) {
     // pack context
  //   frame_context context;
  //   global_context->screen = screen;
- //   global_context->s = &s;
     global_context->buf = buf;
     global_context->buf_dim = dim;
     global_context->frame_callback = nullptr;

@@ -111,9 +111,28 @@ struct scene_reader {
     //READ_ANY_HARNESS( std::vector< vec2f > )
     
     bool has_runtime_state(const json& scene_json);
+    void restore_harness_functions();
+    
+    template<class T>
+    void restore_harness_for_function(const json& jfunc, const any_fn<T>& fn);
+    
+    // Template specializations
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<float>& fn);
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<int>& fn);
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<bool>& fn);
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<std::string>& fn);
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<vec2f>& fn);
+    template<>
+    void restore_harness_for_function(const json& jfunc, const any_fn<vec2i>& fn);
 
 private:
     bool is_saved_scene = false;
+    json deferred_harness_json;
 };
 
 template<> struct any_fn< bool >;

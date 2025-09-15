@@ -214,6 +214,7 @@ function InterfaceContainer({panelSize}) {
         }
     }, [resizeBox]);
 
+
     // Handle window resize events
     useEffect(() => {
         window.addEventListener("resize", resizeBox);
