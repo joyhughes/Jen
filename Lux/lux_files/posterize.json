@@ -62,34 +62,14 @@
             "default_choice": 6
         },
         {
-            "name": "hue_levels_slider",
+            "name": "n_slider",
             "type": "slider_int",
             "min": 1,
-            "max": 16,
+            "max": 256,
             "step": 1,
-            "default_value": 4,
-            "label": "Hue Levels",
-            "description": "Number of distinct hues"
-        },
-        {
-            "name": "saturation_levels_slider",
-            "type": "slider_int",
-            "min": 1,
-            "max": 16,
-            "step": 1,
-            "default_value": 4,
-            "label": "Saturation Levels",
-            "description": "Number of distinct saturation levels"
-        },
-        {
-            "name": "brightness_levels_slider",
-            "type": "slider_int",
-            "min": 1,
-            "max": 16,
-            "step": 1,
-            "default_value": 4,
-            "label": "Brightness Levels",
-            "description": "Number of distinct brightness levels"
+            "default_value": 16,
+            "label": "Colors",
+            "description": "Number of distinct colors"
         }
     ],
     "effects":
@@ -105,9 +85,7 @@
         {
             "name": "posterize",
             "type": "eff_posterize_ucolor",
-            "h_levels": { "functions": [ "hue_levels_slider" ] },
-            "s_levels": { "functions": [ "saturation_levels_slider" ] },
-            "v_levels": { "functions": [ "brightness_levels_slider" ] }
+            "n": { "functions": [ "n_slider" ] }
         }
     ],
     "queue": 
@@ -117,14 +95,14 @@
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "ephemeral",  
-            "effects": [ "rgb to hsv", "posterize", "hsv to rgb" ]
+            "effects": [ "posterize" ]
         }
     ],
     "widget groups":
     [
         {
             "name": "home_group",
-            "widgets": [ "hue_levels_slider", "saturation_levels_slider", "brightness_levels_slider" ]
+            "widgets": [ "n_slider" ]
         },
         {
             "name": "source_image_group",

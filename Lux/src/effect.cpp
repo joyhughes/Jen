@@ -136,12 +136,35 @@ template class eff_rotate_hue< frgb >;
 template class eff_rotate_hue< ucolor >;
 
 template< class T > void eff_posterize< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
-    h_levels( context ); s_levels( context ); v_levels( context );
+    n( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_posterize: no image in buffer" );
-        buf_ptr->get_image().posterize( *h_levels, *s_levels, *v_levels );
+        auto& pixels = buf_ptr->get_image().get_base_vector();
+        auto wpts = rgb32_histogram(pixels);
+        auto r = update_palette_and_lut_warm(
+            wpts,
+            palette,
+            &lut,
+            *n,
+            DistKind::YCOCG_L2,
+            /*max_iters=*/6,
+            /*bits=*/5,
+            /*smooth_prop_prev=*/32,     // ~12.5% toward previous → reduces flicker
+            /*rebuild_threshold=*/6      // skip LUT rebuild for tiny changes
+        );
+        
+        //if (r.lut_rebuilt) {
+            palette = r.palette;
+            lut = r.lut;
+            //std::cout << "Posterize: rebuilt LUT with " << lut.palette.size() << " colors\n";
+        //}
+        //else {
+            //std::cout << "Posterize: reused LUT with " << lut.palette.size() << " colors\n";
+        //}
+        for( auto& p : pixels ) { p = lut.map( p ); }
+        //for( auto& p : pixels ) { p = 0; }
     }
 }
 

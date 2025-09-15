@@ -763,7 +763,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_rotate_hue_frgb )   HARNESSE( offset ) END_EFF()
     EFF( eff_rotate_hue_ucolor ) HARNESSE( offset ) END_EFF()
 
-    EFF( eff_posterize_ucolor ) HARNESSE( h_levels ) HARNESSE( s_levels ) HARNESSE( v_levels ) END_EFF()
+    EFF( eff_posterize_ucolor ) HARNESSE( n ) END_EFF()
 
     EFF( eff_bit_plane_ucolor ) HARNESSE( bit_mask ) END_EFF()
 

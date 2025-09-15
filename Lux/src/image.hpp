@@ -149,7 +149,7 @@ public:
 
     friend class vf_tools;  // additional functions for vector fields
 
-    const std::vector< T >& get_base_vector() const { return mip[0]; }
+    std::vector< T >& get_base_vector() { return mip[0]; }
 
     T* get_base_ptr()  {
         return &(mip[0][0]);
@@ -169,6 +169,7 @@ public:
     void reset();                          // clear memory & set dimensions to zero (mip_me remembered)
     void use_mip( bool m );
     void mip_it();  // mipit good
+    void mip_dirty() { mip_utd = false; } // mark mip-map as out of date
     const vec2i get_dim() const;
     void set_dim( const vec2i& dims );
     const int get_mip_levels() const { return mip.size(); } // returns number of mip-map levels
@@ -230,7 +231,6 @@ public:
     void rgb_to_hsv();
     void hsv_to_rgb();
     void rotate_hue( const float& h );
-    void posterize( const int& h_levels = 256, const int& s_levels = 256, const int& v_levels = 256 );
     void bit_plane( const ucolor& q );
     // fill warp field or offset field values based on vector field - fields should be same size
     void fill( const image< vec2f >& vfield, const bool relative = false, const image_extend extend = SAMP_REPEAT ) {}
