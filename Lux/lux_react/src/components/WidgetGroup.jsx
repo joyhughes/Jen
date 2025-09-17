@@ -120,6 +120,7 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                                 json={widget}
                                 width="100%"
                                 onChange={onChange}
+                                imageType={widget.name === 'source_image_menu' ? 'source' : 'target' }
                             />
                         </Box>
                     );

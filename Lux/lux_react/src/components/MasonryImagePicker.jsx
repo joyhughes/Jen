@@ -9,7 +9,7 @@ import { isMobileDevice } from '../utils/cameraUtils';
 import Masonry from 'react-masonry-css';
 import '../styles/MasonryImagePicker.css';
 
-export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => {
+export const MasonryImagePicker = ({ json, width, onChange, setActivePane, imageType = 'source' }) => {
     const { scenes, currentSceneIndex } = useScene();
     const [menuItems, setMenuItems] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
@@ -615,7 +615,7 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane }) => 
                         >
                             <ThumbnailItem
                                 imageName={imageName}
-                                isSelected={selectedImage === imageName}
+                                isSelected={selectedImage === imageName && imageType === 'source'}
                                 onClick={handleImageSelect}
                             />
                         </Box>
