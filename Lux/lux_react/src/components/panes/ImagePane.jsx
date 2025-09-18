@@ -3,13 +3,17 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import WidgetGroup from '../WidgetGroup';
 import MasonryImagePicker from '../MasonryImagePicker';
 import {usePane} from "./PaneContext.jsx";
 
-function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+function ImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
     const { setActivePane } = usePane();
     const [debugInfo, setDebugInfo] = useState({
         groups: [],
@@ -64,16 +68,54 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
 
     // Log panel size and measured width for debugging
     useEffect(() => {
-        console.log(`SourceImagePane: Panel size ${panelSize}px, Container width ${containerWidth}px, Controls width ${controlsWidth}px, Wide layout: ${isWideLayout}`);
+        console.log(`ImagePane: Panel size ${panelSize}px, Container width ${containerWidth}px, Controls width ${controlsWidth}px, Wide layout: ${isWideLayout}`);
     }, [panelSize, containerWidth, controlsWidth, isWideLayout]);
 
-    // Look for any source-related group name
-    const sourceImageGroup = activeGroups.find(group =>
-        group.name === 'SOURCE_IMAGE_GROUP' ||
-        group.name === 'source' ||
-        group.name === 'source_image_group' || 
-        group.name.toLowerCase().includes('source') 
+    // Find all groups that contain widgets with "image" tool
+    const imageGroups = activeGroups.filter(group => {
+        if (!group.widgets) return false;
+        
+        return group.widgets.some(widgetName => {
+            try {
+                const widgetJSON = window.module?.get_widget_JSON(widgetName);
+                const widget = JSON.parse(widgetJSON);
+                return widget?.tool === 'image';
+            } catch (error) {
+                return false;
+            }
+        });
+    });
+
+    // Get all image picker widgets from all image groups
+    const allImagePickers = imageGroups.flatMap(group => 
+        group.widgets?.filter(widgetName => {
+            try {
+                const widgetJSON = window.module?.get_widget_JSON(widgetName);
+                const widget = JSON.parse(widgetJSON);
+                return widget?.tool === 'image';
+            } catch (error) {
+                return false;
+            }
+        }).map(widgetName => ({
+            widgetName,
+            groupName: group.name,
+            displayName: widgetName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        })) || []
     );
+
+    // State for selected image picker
+    const [selectedPickerId, setSelectedPickerId] = useState(allImagePickers[0]?.widgetName || '');
+
+    // Update selected picker when image pickers change
+    useEffect(() => {
+        if (allImagePickers.length > 0 && !allImagePickers.find(p => p.widgetName === selectedPickerId)) {
+            setSelectedPickerId(allImagePickers[0].widgetName);
+        }
+    }, [allImagePickers, selectedPickerId]);
+
+    // Find the currently selected image group and picker
+    const selectedPicker = allImagePickers.find(p => p.widgetName === selectedPickerId);
+    const imageGroup = selectedPicker ? imageGroups.find(group => group.name === selectedPicker.groupName) : imageGroups[0];
 
 
 
@@ -113,27 +155,25 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
             setDebugInfo({
                 groups: groupInfo,
                 imageWidgets: imageWidgetsInfo,
-                selectedGroup: sourceImageGroup ? sourceImageGroup.name : null
+                selectedGroup: imageGroup ? imageGroup.name : null
             });
         }
-    }, [activeGroups, sourceImageGroup]);
+    }, [activeGroups, imageGroup]);
 
-    // Find the image picker widget JSON if it exists
-    const imagePickerJson = sourceImageGroup?.widgets
-        ?.map(widgetName => {
-            const widgetJSON = window.module?.get_widget_JSON(widgetName);
-            try {
-                const widget = JSON.parse(widgetJSON);
-                return widget;
-            } catch (error) {
-                console.error(`Error parsing widget JSON for ${widgetName}:`, error);
-                return null;
-            }
-        })
-        .find(widget => widget?.tool === 'image');
+    // Find the selected image picker widget JSON
+    const imagePickerJson = selectedPickerId ? (() => {
+        try {
+            const widgetJSON = window.module?.get_widget_JSON(selectedPickerId);
+            const widget = JSON.parse(widgetJSON);
+            return widget?.tool === 'image' ? widget : null;
+        } catch (error) {
+            console.error(`Error parsing widget JSON for ${selectedPickerId}:`, error);
+            return null;
+        }
+    })() : null;
 
     // Filter out the image picker widget to avoid showing it twice
-    const nonImagePickerWidgets = sourceImageGroup?.widgets?.filter(widgetName => {
+    const nonImagePickerWidgets = imageGroup?.widgets?.filter(widgetName => {
         const widgetJSON = window.module?.get_widget_JSON(widgetName);
         try {
             const widget = JSON.parse(widgetJSON);
@@ -144,8 +184,8 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
         }
     }) || [];
 
-    const customSourceImageGroup = sourceImageGroup ? {
-        ...sourceImageGroup,
+    const customImageGroup = imageGroup ? {
+        ...imageGroup,
         widgets: nonImagePickerWidgets
     } : null;
 
@@ -158,10 +198,10 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
     // Give more space to whichever side has more widgets
     const getLayoutRatio = () => {
         // Default to 50/50 split
-        if (!customSourceImageGroup || !imagePickerJson) return 0.5;
+        if (!customImageGroup || !imagePickerJson) return 0.5;
 
         // Count widgets to determine space distribution
-        const widgetCount = customSourceImageGroup.widgets.length;
+        const widgetCount = customImageGroup.widgets.length;
         const imageCount = imagePickerJson.items?.length || 0;
 
         // Adjust ratio based on content (min 0.35, max 0.65)
@@ -195,18 +235,45 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                         width: shouldUseSideBySide ? `${imageRatio * 100}%` : '100%',
                     }}
                 >
+                    {allImagePickers && allImagePickers.length >= 1 && (
+                        <Box sx={{ 
+                            mb: 2,
+                            display: 'flex',
+                            justifyContent: 'flex-start'
+                        }}>
+                            <FormControl size="small" sx={{ minWidth: 200, maxWidth: 250 }}>
+                                <InputLabel id="image-picker-select-label">Image Picker</InputLabel>
+                                <Select
+                                    labelId="image-picker-select-label"
+                                    value={selectedPickerId}
+                                    label="Image Picker"
+                                    onChange={(e) => setSelectedPickerId(e.target.value)}
+                                >
+                                    {allImagePickers.map((picker) => (
+                                        <MenuItem key={picker.widgetName} value={picker.widgetName}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                    {picker.displayName}
+                                                </Typography>
+                                            </Box>
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    )}
+
                     <MasonryImagePicker
                         setActivePane={setActivePane}
                         json={imagePickerJson}
                         width="100%"
                         onChange={onWidgetGroupChange}
-                        imageType="source"
                     />
                 </Box>
             )}
 
             {/* Effect Controls Section */}
-            {customSourceImageGroup && customSourceImageGroup.widgets.length > 0 && (
+            {customImageGroup && customImageGroup.widgets.length > 0 && (
                 <Box
                     ref={controlsRef}
                     sx={{
@@ -219,25 +286,25 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                     </Typography>
 
                     <WidgetGroup
-                        key={customSourceImageGroup.name}
+                        key={customImageGroup.name}
                         panelSize={controlsWidth || (shouldUseSideBySide ? containerWidth * controlsRatio : containerWidth)}
-                        json={customSourceImageGroup}
+                        json={customImageGroup}
                         onChange={onWidgetGroupChange}
                     />
                 </Box>
             )}
 
             {/* Show errors and empty states */}
-            {sourceImageGroup && !imagePickerJson && (
+            {imageGroup && !imagePickerJson && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                    Source image group found, but no image picker widget detected.
+                    Image group found, but no image picker widget detected.
                 </Alert>
             )}
 
-            {!sourceImageGroup && (
+            {imageGroups.length === 0 && (
                 <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                     <Typography>
-                        No source image controls available. Please check your scene configuration.
+                        No image controls available. Please check your scene configuration.
                     </Typography>
                 </Box>
             )}
@@ -245,4 +312,4 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
     );
 }
 
-export default SourceImagePane;
+export default ImagePane;

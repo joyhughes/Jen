@@ -9,8 +9,10 @@
   color: #ffffff;
   font-family: 'Inter', 'Arial', sans-serif;
   font-weight: 500;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.3s ease;
+  min-height: auto;
+  max-height: none;
 }
 
 .audio-pane.party-mode {
@@ -169,79 +171,18 @@
   gap: 24px;
 }
 
-/* Mixer Presets Container */
-.mixer-presets {
+/* Audio Control Center - Flat Layout */
+.audio-control-center {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: visible;
+  max-height: none;
+  height: auto;
 }
 
-/* Frequency Bands Section */
-.frequency-bands {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
-}
-
-.frequency-bands h4 {
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Master Sensitivity Section */
-.master-sensitivity {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
-}
-
-.master-sensitivity h4 {
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Collapsed state - minimal space */
-.frequency-bands:has(.collapsible-header) {
-  padding: 8px 12px;
-  margin-bottom: 8px;
-}
-
-.master-sensitivity:has(.collapsible-header) {
-  padding: 8px 12px;
-  margin-bottom: 8px;
-}
-
-/* When sections are collapsed, reduce their visual footprint */
-.frequency-bands:not(:has(.simple-meters:not([style*="display: none"]))) {
-  min-height: auto;
-}
-
-.master-sensitivity:not(:has(.sensitivity-content:not([style*="display: none"]))) {
-  min-height: auto;
-}
-
-/* Advanced Mixer Section */
-.advanced-mixer-section {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.advanced-mixer-section h4 {
+.audio-control-center h4 {
   margin: 0 0 12px 0;
   font-weight: 700;
   font-size: 14px;
@@ -417,11 +358,12 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Simple Meters */
-.simple-meters {
+/* Simple Meters - Flat Style */
+.audio-control-center .simple-meters {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin: 16px 0;
 }
 
 .meter-row {
@@ -484,16 +426,14 @@
   font-weight: 600;
 }
 
-/* Beat Section */
-.beat-section {
+/* Beat Section - Flat Style */
+.audio-control-center .beat-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  margin-top: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 0;
+  margin: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .beat-indicator {
@@ -623,7 +563,7 @@
 
 .feature-list .feature-item {
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(228, 163, 163, 0.1);
   border-radius: 6px;
   font-size: 14px;
   color: #fff;
@@ -634,18 +574,28 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .audio-pane {
-    margin: 4px;
+    margin: 2px;
     padding: 12px;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .audio-control-center {
+    padding: 16px;
+    overflow: visible;
+    max-height: none;
   }
 
   .header-main {
     flex-direction: column;
+    margin-bottom: 16px;
   }
 
   .audio-toggle,
   .party-toggle {
     min-width: unset;
     width: 100%;
+    padding: 12px 16px;
   }
 
   .sensitivity-header {
@@ -656,6 +606,7 @@
 
   .meter-row {
     flex-direction: column;
+    gap: 8px;
   }
 
   .meter-group {
@@ -666,6 +617,7 @@
     flex-direction: column;
     gap: 8px;
     text-align: center;
+    padding: 8px 0;
   }
 
   .party-features {
@@ -675,32 +627,97 @@
   .feature-list {
     grid-template-columns: 1fr;
   }
+
+  /* Ensure mixer content is scrollable */
+  .mixer-content {
+    overflow: visible;
+    max-height: none;
+  }
+
+  /* Reduce spacing in collapsible sections */
+  .collapsible-header {
+    padding: 8px 4px;
+    margin-bottom: 8px;
+  }
+
+  .autoplay-controls,
+  .party-mode-info {
+    margin: 8px 0;
+    padding: 12px;
+  }
 }
 
 @media (max-width: 480px) {
   .audio-pane {
-    margin: 2px;
+    margin: 1px;
     padding: 8px;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .audio-control-center {
+    padding: 12px;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .header-main {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .audio-toggle,
+  .party-toggle {
+    padding: 10px 12px;
+    font-size: 14px;
   }
 
   .viz-header {
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
+    margin-bottom: 12px;
   }
 
   .mixer-toggle {
     width: 100%;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  /* Further reduce spacing for very small screens */
+  .collapsible-header {
+    padding: 6px 2px;
+    margin-bottom: 6px;
+  }
+
+  .collapsible-header h4 {
+    font-size: 13px;
+  }
+
+  .autoplay-controls,
+  .party-mode-info {
+    margin: 6px 0;
+    padding: 10px;
+  }
+
+  .simple-meters {
+    margin: 12px 0;
+    gap: 12px;
+  }
+
+  .meter-row {
+    gap: 6px;
   }
 }
 
-/* Birthday Party Mode Styles */
-.party-mode-info {
+/* Birthday Party Mode Styles - Flat */
+.audio-control-center .party-mode-info {
   background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 138, 80, 0.1) 100%);
   border: 1px solid rgba(255, 107, 53, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
 }
 
 .party-mode-info .party-header h4 {
@@ -796,13 +813,13 @@
   line-height: 1.4;
 }
 
-/* Scene-Agnostic Autoplay Styles */
-.autoplay-controls {
+/* Scene-Agnostic Autoplay Styles - Flat */
+.audio-control-center .autoplay-controls {
   background: rgba(156, 39, 176, 0.05);
   border: 1px solid rgba(156, 39, 176, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
 }
 
 .autoplay-status p {
