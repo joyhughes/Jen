@@ -694,4 +694,241 @@
 /* Remove default margins on all elements in audio panel */
 * {
     box-sizing: border-box;
+}
+
+/* Mixer Strips Container - New Advanced Style */
+.mixer-strips-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mixer-strips-container .mixer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mixer-strips-container .mixer-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mixer-strips-container .beat-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mixer-strips-container .beat-indicator.active {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.4);
+}
+
+.mixer-strips-container .beat-text {
+    font-weight: 600;
+    font-size: 12px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Frequency Strips - Vertical Layout */
+.frequency-strips {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.frequency-strips .band-strip {
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    border: 2px solid #444;
+    transition: all 0.3s ease;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.frequency-strips .band-strip:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.frequency-strips .band-header {
+    margin-bottom: 8px;
+}
+
+.frequency-strips .band-name {
+    display: block;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 3px;
+    line-height: 1.2;
+}
+
+.frequency-strips .band-range {
+    display: block;
+    font-size: 10px;
+    color: #aaa;
+    line-height: 1.2;
+}
+
+/* Compact Vertical Meter */
+.frequency-strips .band-meter {
+    height: 80px;
+    width: 20px;
+    background: #222;
+    border-radius: 8px;
+    margin: 8px auto;
+    position: relative;
+    border: 2px solid #333;
+    overflow: visible;
+    flex-grow: 1;
+    max-height: 80px;
+}
+
+.frequency-strips .level-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0 0 6px 6px;
+    transition: height 0.1s ease;
+    box-shadow: 0 0 8px currentColor;
+    overflow: hidden;
+    min-height: 2px;
+}
+
+.frequency-strips .meter-scale {
+    position: absolute;
+    right: -25px;
+    top: 0;
+    height: 100%;
+    width: 20px;
+    pointer-events: none;
+}
+
+.frequency-strips .db-marker {
+    position: absolute;
+    right: 0;
+    font-size: 8px;
+    color: #888;
+    transform: translateY(50%);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1px 2px;
+    border-radius: 2px;
+    line-height: 1;
+}
+
+.frequency-strips .level-display {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.frequency-strips .level-db {
+    font-size: 10px;
+    font-weight: bold;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 45px;
+    line-height: 1.2;
+}
+
+/* Mobile Responsive for Mixer Strips */
+@media (max-width: 768px) {
+    .frequency-strips {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .frequency-strips .band-strip {
+        padding: 8px 4px;
+        min-height: 160px;
+    }
+
+    .frequency-strips .band-meter {
+        height: 60px;
+        width: 16px;
+    }
+
+    .frequency-strips .band-name {
+        font-size: 11px;
+    }
+
+    .frequency-strips .band-range {
+        font-size: 9px;
+    }
+
+    .frequency-strips .level-db {
+        font-size: 9px;
+        min-width: 40px;
+    }
+
+    .frequency-strips .db-marker {
+        font-size: 7px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mixer-strips-container {
+        padding: 12px;
+    }
+
+    .mixer-strips-container .mixer-header h3 {
+        font-size: 14px;
+    }
+
+    .frequency-strips {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        padding: 6px;
+    }
+
+    .frequency-strips .band-strip {
+        padding: 6px 3px;
+        min-height: 140px;
+    }
+
+    .frequency-strips .band-meter {
+        height: 50px;
+        width: 14px;
+    }
+
+    .frequency-strips .band-name {
+        font-size: 10px;
+    }
+
+    .frequency-strips .band-range {
+        font-size: 8px;
+    }
+
+    .frequency-strips .level-db {
+        font-size: 8px;
+        min-width: 35px;
+        padding: 1px 2px;
+    }
 } 
