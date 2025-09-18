@@ -78,10 +78,7 @@ function TargetImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                 return null;
             }
         })
-        .find(widget =>
-            widget?.tool === 'image' ||
-            (widget?.type === 'menu_string' && widget?.items && Array.isArray(widget.items))
-        );
+        .find(widget => widget?.tool === 'image');
 
     // Filter out the image picker widget to avoid showing it twice
     const nonImagePickerWidgets = targetImageGroup?.widgets?.filter(widgetName => {
@@ -131,6 +128,7 @@ function TargetImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                         json={imagePickerJson}
                         width="100%"
                         onChange={onWidgetGroupChange}
+                        imageType="target"
                     />
                 )}
             </Box>
