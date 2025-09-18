@@ -82,7 +82,7 @@ function TabNavigation({ activePane, onPaneChange }) {
 
                 <Tab
                     icon={<BiImageAlt style={iconStyle} />}
-                    value="source"
+                    value="image"
                     sx={{
                         minHeight: '50px',
                         '&.Mui-selected': {
@@ -90,8 +90,8 @@ function TabNavigation({ activePane, onPaneChange }) {
                             background: 'rgba(25, 118, 210, 0.08)'
                         }
                     }}
-                    aria-label="Source Image"
-                    title="Source Image"
+                    aria-label="Image Controls"
+                    title="Image Controls"
                 />
 
                 <Tab
@@ -129,20 +129,6 @@ function TabNavigation({ activePane, onPaneChange }) {
                     }}
                     aria-label={isAudioEnabled ? "Audio (Active)" : "Audio"}
                     title={isAudioEnabled ? "Audio (Active)" : "Audio"}
-                />
-
-                <Tab
-                    icon={<FaBullseye style={{...iconStyle, color: activePane === "target" ? "#e63946" : undefined}} />}
-                    value="target"
-                    sx={{
-                        minHeight: '50px',
-                        '&.Mui-selected': {
-                            color: 'primary.main',
-                            background: 'rgba(25, 118, 210, 0.08)'
-                        }
-                    }}
-                    aria-label="Target Image"
-                    title="Target Image"
                 />
 
                 <Tab

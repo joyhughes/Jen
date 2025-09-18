@@ -11,13 +11,12 @@ import { useJenModule } from '../hooks/useJenModule.js'; // Our simple, reliable
 import MediaController from "./MediaController";
 import TabNavigation from "./TabNavigation";
 import HomePane from "./panes/HomePane";
-import SourceImagePane from "./panes/SourceImagePane";
-import TargetImagePane from "./panes/TargetImagePane";
 import BrushPane from "./panes/BrushPane";
 import AudioPane from "./panes/AudioPane";
 import {SceneChooserPane} from "./panes/SceneChooserPane";
 import {PaneContext} from "./panes/PaneContext.jsx";
 import RealtimeCamera from "./RealtimeCamera.jsx";
+import ImagePane from "./panes/ImagePane.jsx";
 
 function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     const { sliderValues, onSliderChange } = React.useContext(ControlPanelContext);
@@ -244,14 +243,20 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                         <SceneChooserPane />
                     </PaneContext.Provider>
                 );
-            case "source":
+            case "image":
                 return (
                     <PaneContext.Provider value={paneContextValue}>
-                        <SourceImagePane {...commonProps}/>
+                        <ImagePane {...commonProps}/>
                     </PaneContext.Provider>
                 );
+            case "source":
             case "target":
-                return <TargetImagePane {...commonProps} />;
+                // Redirect old pane values to the new unified image pane
+                return (
+                    <PaneContext.Provider value={paneContextValue}>
+                        <ImagePane {...commonProps}/>
+                    </PaneContext.Provider>
+                );
             case "brush":
                 return <BrushPane {...commonProps} />;
             case "audio":

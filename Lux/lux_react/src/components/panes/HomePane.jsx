@@ -3,10 +3,14 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
+import { BiImageAlt } from 'react-icons/bi';
+import { usePane } from './PaneContext';
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+    const { setActivePane } = usePane();
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
 
@@ -52,19 +56,51 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         return breakpoints;
     }, [containerWidth, panelSize]); // Only recalculate when width changes
 
+    // Find groups that have image picker widgets
+    const imageGroups = activeGroups.filter(group => {
+        if (group.widgets) {
+            return group.widgets.some(widgetName => {
+                try {
+                    const widgetJSON = window.module?.get_widget_JSON(widgetName);
+                    const widget = JSON.parse(widgetJSON);
+                    return widget?.tool === 'image';
+                } catch (error) {
+                    return false;
+                }
+            });
+        }
+        return false;
+    });
+
+    // Get the active/selected image from any image group
+    const getActiveImage = () => {
+        for (const group of imageGroups) {
+            if (group.widgets) {
+                for (const widgetName of group.widgets) {
+                    try {
+                        const widgetJSON = window.module?.get_widget_JSON(widgetName);
+                        const widget = JSON.parse(widgetJSON);
+                        if (widget?.tool === 'image' && widget?.items && Array.isArray(widget.items)) {
+                            const activeIndex = widget.active_index || 0;
+                            const activeItem = widget.items[activeIndex];
+                            if (activeItem) {
+                                return { path: activeItem, name: widget.name || widgetName };
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error parsing widget JSON for ${widgetName}:`, error);
+                    }
+                }
+            }
+        }
+        return null;
+    };
+
+    const activeImage = getActiveImage();
+
     // Filter out any group that has image picker widgets for the Home pane
     const nonImageGroups = activeGroups.filter(group => {
-        // Skip source/target image groups entirely
-        if (group.name.toLowerCase().includes('source') ||
-            group.name.toLowerCase().includes('target') ||
-            group.name === 'SOURCE_IMAGE_GROUP' ||
-            group.name === 'TARGET_IMAGE_GROUP'
-            ) 
-            {
-            return false;
-        }
-
-        // For other groups, check if they have image pickers
+        // For groups, check if they have image pickers
         if (group.widgets) {
             const hasImageWidget = group.widgets.some(widgetName => {
                 try {
@@ -205,6 +241,64 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
+            {imageGroups  && (
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<BiImageAlt />}
+                        onClick={() => setActivePane('image')}
+                        sx={{
+                            py: 0.75,
+                            px: 1.5,
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            backgroundColor: activeImage ? 'rgba(25, 118, 210, 0.04)' : 'transparent',
+                            '&:hover': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                borderColor: 'primary.dark',
+                            },
+                            borderRadius: 2,
+                            minWidth: 'auto'
+                        }}
+                    >
+                        <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1
+                        }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                Images
+                            </Typography>
+                            {activeImage && (
+                                <>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                        ({imageGroups.length})
+                                    </Typography>
+                                    <Box
+                                        component="img"
+                                        src={activeImage.path}
+                                        alt="Active image"
+                                        sx={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: 0.5,
+                                            objectFit: 'cover',
+                                            border: '1px solid',
+                                            borderColor: 'primary.main',
+                                            boxShadow: 1
+                                        }}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                </>
+                            )}
+                        </Box>
+                    </Button>
+                </Box>
+            )}
+
             <Divider sx={{ mb: 2 }} />
 
             {nonImageGroups.length > 0 ? (

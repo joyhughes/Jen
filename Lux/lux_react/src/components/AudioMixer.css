@@ -8,9 +8,8 @@
   color: #ffffff;
   font-family: 'Inter', 'Arial', sans-serif;
   width: 100%;
-  overflow: hidden;
-  max-height: 60vh;
-  overflow-y: auto;
+  overflow: visible;
+  max-height: none;
 }
 
 /* Header */
@@ -175,13 +174,10 @@
 /* Frequency Bands */
 .frequency-bands {
   margin-bottom: 16px;
-}
-
-.frequency-bands h4 {
-  margin-bottom: 15px;
-  color: #fff;
-  font-size: 1.2rem;
-  text-align: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  padding: 16px;
 }
 
 .bands-grid {
@@ -491,7 +487,8 @@
   .audio-mixer {
     padding: 12px;
     margin: 0;
-    max-height: 50vh;
+    max-height: none;
+    overflow: visible;
   }
 
   .mixer-header h3 {
@@ -552,7 +549,8 @@
 @media (max-width: 480px) {
   .audio-mixer {
     padding: 8px;
-    max-height: 40vh;
+    max-height: none;
+    overflow: visible;
   }
 
   .bands-grid {
