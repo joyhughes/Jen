@@ -619,8 +619,14 @@ std::string get_scene_list_JSON() {
 
 std::string get_panel_JSON() {
     nlohmann::json j;
+    
+    if (!global_context || !global_context->s) {
+        std::cout << "get_panel_JSON: global_context or scene not initialized!" << std::endl;
+        return "[]";
+    }
 
     j = global_context->s->ui.widget_groups;
+    std::cout << "get_panel_JSON: widget_groups count: " << global_context->s->ui.widget_groups.size() << std::endl;
     for( auto wg : global_context->s->ui.widget_groups ) {
         std::cout << "get_panel_JSON: " << wg.name << std::endl;
     }

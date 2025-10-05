@@ -129,6 +129,15 @@ function InterfaceContainer({panelSize}) {
         }
 
         let ratio = bufWidth / bufHeight;
+        
+        // Validate buffer dimensions and ratio
+        if (!bufWidth || !bufHeight || bufWidth <= 0 || bufHeight <= 0 || !isFinite(ratio) || ratio <= 0) {
+            console.warn('Invalid buffer dimensions:', { bufWidth, bufHeight, ratio });
+            bufWidth = 512;
+            bufHeight = 512;
+            ratio = 1;
+        }
+        
         windowRatio = window.innerWidth / window.innerHeight;
 
         // Determine layout direction based on screen aspect ratio
@@ -183,6 +192,19 @@ function InterfaceContainer({panelSize}) {
             // Set control panel dimensions - use full width in row direction
             controlPanelWidth = window.innerWidth;
             controlPanelHeight = maxPanelHeight;
+        }
+
+        // Validate final dimensions before setting state
+        if (!isFinite(imagePortWidth) || !isFinite(imagePortHeight) || imagePortWidth <= 0 || imagePortHeight <= 0) {
+            console.error('Invalid image dimensions calculated:', { imagePortWidth, imagePortHeight, ratio });
+            // Fallback to reasonable defaults
+            imagePortWidth = 512;
+            imagePortHeight = 512;
+        }
+        if (!isFinite(controlPanelWidth) || !isFinite(controlPanelHeight) || controlPanelWidth <= 0 || controlPanelHeight <= 0) {
+            console.error('Invalid panel dimensions calculated:', { controlPanelWidth, controlPanelHeight });
+            controlPanelWidth = 400;
+            controlPanelHeight = 400;
         }
 
         // Update state with calculated dimensions

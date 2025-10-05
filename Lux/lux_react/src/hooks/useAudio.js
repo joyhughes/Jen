@@ -72,24 +72,24 @@ const useAudio = () => {
   // Initialize audio system with clean state
   const initializeAudioSystem = useCallback(() => {
     try {
-      console.log('🎵 📋 Initializing scene-agnostic audio system...');
+      console.log('Initializing scene-agnostic audio system...');
       
       // First ensure audio is disabled and clean
       if (window.module && window.module.enable_audio_input) {
         window.module.enable_audio_input(false);
-        console.log('🎵 🧹 Audio system initialized in disabled state');
+        console.log('Audio system initialized in disabled state');
       }
       
       // Clear any residual audio values
       if (window.module && window.module.update_audio_context) {
         window.module.update_audio_context(0.0, 0.0, 0.0, 0.0, false, 0.0);
-        console.log('🎵 🧹 Audio values cleared on initialization');
+        console.log('Audio values cleared on initialization');
       }
       
       return true;
       
     } catch (error) {
-      console.warn('🎵 Error initializing audio system:', error);
+      console.warn('Error initializing audio system:', error);
       return false;
     }
   }, []);
@@ -97,35 +97,35 @@ const useAudio = () => {
   // Load audio configuration when enabling
   const loadAudioConfig = useCallback(() => {
     try {
-      console.log('🎵 🔧 Enabling audio in backend...');
+      console.log('Enabling audio in backend...');
         try {
           if (window.module && window.module.enable_audio_input) {
             window.module.enable_audio_input(true);
-          console.log('🎵 ✅ Audio enabled in backend (scene-agnostic mode)');
+          console.log('Audio enabled in backend (scene-agnostic mode)');
           }
         } catch (error) {
-          console.warn('🎵 ⚠️ Could not enable audio in backend:', error);
+          console.warn('Could not enable audio in backend:', error);
       }
       
       // Check if autoplay is active and log the state for debugging
       try {
         if (window.module && window.module.get_slider_value) {
           const autoplayState = window.module.get_slider_value('autoplay_switch');
-          console.log('🎵 🎲 Autoplay state detected:', autoplayState ? 'ACTIVE' : 'INACTIVE');
+          console.log('Autoplay state detected:', autoplayState ? 'ACTIVE' : 'INACTIVE');
           if (autoplayState) {
-            console.log('🎵 ✨ Audio + Autoplay: Both systems active - expect dynamic behavior!');
+            console.log('Audio + Autoplay: Both systems active - expect dynamic behavior!');
           } else {
-            console.log('🎵 🎛️ Audio only: Manual control mode');
+            console.log('Audio only: Manual control mode');
           }
         }
       } catch (error) {
-        console.log('🎵 ℹ️ Could not check autoplay state (scene may not have autoplay)');
+        console.log('Could not check autoplay state (scene may not have autoplay)');
       }
       
       return true;
       
     } catch (error) {
-      console.warn('🎵 Error enabling audio:', error);
+      console.warn('Error enabling audio:', error);
       return false;
     }
   }, []);
@@ -138,10 +138,10 @@ const useAudio = () => {
     try {
       if (window.module && window.module.set_audio_sensitivity) {
         window.module.set_audio_sensitivity(sensitivity);
-        console.log(`🎵 🎛️ Backend sensitivity updated to: ${sensitivity}`);
+        console.log(`Backend sensitivity updated to: ${sensitivity}`);
       }
     } catch (error) {
-      console.warn('🎵 ⚠️ Could not update backend sensitivity:', error);
+      console.warn('Could not update backend sensitivity:', error);
     }
   }, [sensitivity]);
 
@@ -162,7 +162,7 @@ const useAudio = () => {
     // Heartbeat log every 5 seconds
     if (!audioState.lastHeartbeat) audioState.lastHeartbeat = 0;
     if (now - audioState.lastHeartbeat >= 5000) {
-      console.log('🎵 Enhanced audio system running (diverse sound analysis)');
+      console.log('Enhanced audio system running (diverse sound analysis)');
       audioState.lastHeartbeat = now;
     }
 
@@ -259,8 +259,8 @@ const useAudio = () => {
       );
       
       if (audioState.soundTypeHistory[dominant_type] > 0.3) {
-        const type_icons = { music: '🎵', singing: '🎤', drums: '🥁', instrument: '🎸' };
-        console.log(`${type_icons[dominant_type]} ${dominant_type.toUpperCase()} detected! Vol: ${volume.toFixed(3)}, Bass ratio: ${bass_ratio.toFixed(2)}, Mid ratio: ${mid_ratio.toFixed(2)}, High ratio: ${high_ratio.toFixed(2)}`);
+        const type_icons = { music: '', singing: '', drums: '', instrument: '' };
+        console.log(`${dominant_type.toUpperCase()} detected! Vol: ${volume.toFixed(3)}, Bass ratio: ${bass_ratio.toFixed(2)}, Mid ratio: ${mid_ratio.toFixed(2)}, High ratio: ${high_ratio.toFixed(2)}`);
       }
     }
     
@@ -278,7 +278,7 @@ const useAudio = () => {
           );
         } 
       } catch (error) {
-        console.error('🎵 ❌ Error updating audio context:', error);
+        console.error('Error updating audio context:', error);
       }
     }
 
@@ -322,7 +322,7 @@ const useAudio = () => {
   // Initialize microphone access
   const initializeMicrophone = useCallback(async () => {
     try {
-      console.log('🎵 🎤 Requesting microphone access...');
+      console.log('Requesting microphone access...');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -333,7 +333,7 @@ const useAudio = () => {
         }
       });
 
-      console.log('🎵 ✅ Microphone access granted');
+  console.log('Microphone access granted');
 
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const microphone = audioContext.createMediaStreamSource(stream);
@@ -351,11 +351,11 @@ const useAudio = () => {
       analyzerRef.current = analyzer;
       dataArrayRef.current = dataArray;
 
-      console.log('🎵 🔧 Audio analysis setup complete');
+      console.log('Audio analysis setup complete');
       
       return true;
     } catch (error) {
-      console.error('🎵 ❌ Microphone initialization failed:', error);
+      console.error('Microphone initialization failed:', error);
       return false;
     }
   }, []);
@@ -363,50 +363,50 @@ const useAudio = () => {
   // Enable audio processing
   const enableAudio = useCallback(async () => {
     try {
-      console.log('🎵 🚀 Enabling audio...');
+      console.log('Enabling audio...');
       
       if (!analyzerRef.current) {
         const micSuccess = await initializeMicrophone();
         if (!micSuccess) {
-          console.error('🎵 ❌ Failed to initialize microphone');
+          console.error('Failed to initialize microphone');
           return;
         }
       }
 
       const configSuccess = loadAudioConfig();
       if (!configSuccess) {
-        console.error('🎵 ❌ Failed to load audio config');
+        console.error('Failed to load audio config');
         return;
       }
       
       setIsEnabled(true);
-      console.log('🎵 ✅ Audio enabled successfully');
+      console.log('Audio enabled successfully');
 
     } catch (error) {
-      console.error('🎵 ❌ Error enabling audio:', error);
+      console.error('Error enabling audio:', error);
     }
   }, [initializeMicrophone, loadAudioConfig]);
 
   // Disable audio processing
   const disableAudio = useCallback(() => {
-    console.log('🎵 🛑 Disabling audio...');
+    console.log('Disabling audio...');
     
     try {
       if (window.module && window.module.enable_audio_input) {
         window.module.enable_audio_input(false);
       }
     } catch (error) {
-      console.warn('🎵 ⚠️ Error disabling audio in backend:', error);
+      console.warn('Error disabling audio in backend:', error);
     }
     
     // Send zero values to backend to clear any residual audio data
     try {
-      if (window.module && window.module.update_audio_context) {
+        if (window.module && window.module.update_audio_context) {
         window.module.update_audio_context(0.0, 0.0, 0.0, 0.0, false, 0.0);
-        console.log('🎵 🧹 Cleared audio values in backend');
+        console.log('Cleared audio values in backend');
       }
     } catch (error) {
-      console.warn('🎵 ⚠️ Error clearing audio values:', error);
+      console.warn('Error clearing audio values:', error);
     }
     
     setIsEnabled(false);
@@ -431,7 +431,7 @@ const useAudio = () => {
       dominantFrequency: 0
     });
 
-    console.log('🎵 ✅ Audio disabled and cleared');
+    console.log('Audio disabled and cleared');
   }, []);
 
   // Expose audio update function to window for canvas integration
@@ -440,32 +440,32 @@ const useAudio = () => {
       // Wait for backend to be ready
       const setupAudio = () => {
         if (!window.module) {
-          console.log('🎵 ⏳ Waiting for WASM module...');
+          console.log('Waiting for WASM module...');
           setTimeout(setupAudio, 100);
           return;
         }
         
         // Set up the audio update function for the main animation loop
-        window.audioUpdateFunction = updateAudioParameters;
-        console.log('🎵 🔄 Audio update function registered to window');
+  window.audioUpdateFunction = updateAudioParameters;
+  console.log('Audio update function registered to window');
         
         // Enable audio in backend
         try {
           if (window.module.enable_audio_input) {
             window.module.enable_audio_input(true);
-            console.log('🎵 ✅ Audio input enabled in backend');
+            console.log('Audio input enabled in backend');
           } else {
-            console.warn('🎵 ⚠️ Backend enable_audio_input not available');
+            console.warn('Backend enable_audio_input not available');
           }
           
           // Verify update_audio_context is available
           if (window.module.update_audio_context) {
-            console.log('🎵 ✅ Backend update_audio_context available');
+            console.log('Backend update_audio_context available');
           } else {
-            console.error('🎵 ❌ Backend update_audio_context NOT available - audio won\'t work!');
+            console.error('Backend update_audio_context NOT available - audio won\'t work!');
           }
         } catch (error) {
-          console.error('🎵 ❌ Error enabling audio in backend:', error);
+          console.error('Error enabling audio in backend:', error);
         }
       };
       
@@ -473,12 +473,12 @@ const useAudio = () => {
     } else {
       // Clean up when disabled
       window.audioUpdateFunction = null;
-      console.log('🎵 ⏹️ Audio update function unregistered from window');
+      console.log('Audio update function unregistered from window');
     }
     
     return () => {
       window.audioUpdateFunction = null;
-      console.log('🎵 🧹 Audio update function cleaned up');
+      console.log('Audio update function cleaned up');
     };
   }, [isEnabled, updateAudioParameters]);
 
@@ -507,14 +507,14 @@ const useAudio = () => {
   const handleMixerGainChange = useCallback((gains) => {
     if (gains && audioStateRef.current) {
       audioStateRef.current.mixerGains = { ...gains };
-      console.log('🎛️ Mixer gains updated:', gains);
+      console.log('Mixer gains updated:', gains);
     }
   }, []);
 
   // Test function to verify audio+autoplay integration
   const testIntegration = useCallback(() => {
     if (!isEnabled) {
-      console.log('🎵 ❌ Cannot test integration: Audio is disabled');
+      console.log('Cannot test integration: Audio is disabled');
       return false;
     }
     
@@ -522,9 +522,9 @@ const useAudio = () => {
       // Test 1: Check if audio values are being sent to backend
       if (window.module && window.module.update_audio_context) {
         window.module.update_audio_context(0.5, 0.3, 0.4, 0.2, true, Date.now());
-        console.log('🎵 ✅ Test 1 passed: Audio context update successful');
+        console.log('Test 1 passed: Audio context update successful');
       } else {
-        console.log('🎵 ❌ Test 1 failed: Audio context update not available');
+        console.log('Test 1 failed: Audio context update not available');
         return false;
       }
       
@@ -532,30 +532,30 @@ const useAudio = () => {
       if (window.module && window.module.get_autoplay_audio_status) {
         const statusJson = window.module.get_autoplay_audio_status();
         const status = JSON.parse(statusJson);
-        console.log('🎵 ✅ Test 2 passed: Integration status check successful', status);
+        console.log('Test 2 passed: Integration status check successful', status);
         
         if (status.has_autoplay) {
-          console.log('🎵 🎲 Autoplay detected - integration ready!');
+          console.log('Autoplay detected - integration ready!');
         } else {
-          console.log('🎵 🎛️ Audio-only mode - no autoplay in this scene');
+          console.log('Audio-only mode - no autoplay in this scene');
         }
       } else {
-        console.log('🎵 ⚠️ Test 2 warning: Integration status check not available');
+        console.log('Test 2 warning: Integration status check not available');
       }
       
       // Test 3: Check if audio functions are working
       const hasAudioFunctions = mixerState.volume > 0 || mixerState.bass > 0 || mixerState.mid > 0 || mixerState.high > 0;
       if (hasAudioFunctions) {
-        console.log('🎵 ✅ Test 3 passed: Audio functions are processing data');
+        console.log('Test 3 passed: Audio functions are processing data');
       } else {
-        console.log('🎵 ⚠️ Test 3 warning: No audio data detected (may be silent)');
+        console.log('Test 3 warning: No audio data detected (may be silent)');
       }
       
-      console.log('🎵 🎉 Integration test completed successfully!');
+      console.log('Integration test completed successfully!');
       return true;
       
     } catch (error) {
-      console.log('🎵 ❌ Integration test failed:', error);
+      console.log('Integration test failed:', error);
       return false;
     }
   }, [isEnabled, mixerState]);
