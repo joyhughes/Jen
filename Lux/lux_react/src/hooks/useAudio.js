@@ -267,7 +267,7 @@ const useAudio = () => {
     // Send enhanced audio data to backend
     if (isEnabledRef.current) {
       try {
-        if (window.module && window.module.update_audio_context) {
+        if (window.module && typeof window.module.update_audio_context === 'function') {
           window.module.update_audio_context(
             sensitizedVolume,
             sensitizedBass, 
@@ -276,9 +276,9 @@ const useAudio = () => {
             beat,
             now
           );
-        }
+        } 
       } catch (error) {
-        console.warn('🎵 Error updating audio context:', error);
+        console.error('🎵 ❌ Error updating audio context:', error);
       }
     }
 
@@ -379,11 +379,6 @@ const useAudio = () => {
         return;
       }
       
-      // RESPECT USER'S ANIMATION STATE - Don't force animation to start
-      // Audio will work with whatever animation state the user has set
-      console.log('🎵 ✅ Audio enabled - respecting current animation state');
-      
-      // Now set enabled and start animation loop
       setIsEnabled(true);
       console.log('🎵 ✅ Audio enabled successfully');
 
@@ -439,25 +434,51 @@ const useAudio = () => {
     console.log('🎵 ✅ Audio disabled and cleared');
   }, []);
 
-  // Animation loop for audio processing
+  // Expose audio update function to window for canvas integration
   useEffect(() => {
-    let animationId;
-    
     if (isEnabled) {
-      const audioAnimationLoop = () => {
-        updateAudioParameters(0.016667); // ~60fps
-        animationId = requestAnimationFrame(audioAnimationLoop);
+      // Wait for backend to be ready
+      const setupAudio = () => {
+        if (!window.module) {
+          console.log('🎵 ⏳ Waiting for WASM module...');
+          setTimeout(setupAudio, 100);
+          return;
+        }
+        
+        // Set up the audio update function for the main animation loop
+        window.audioUpdateFunction = updateAudioParameters;
+        console.log('🎵 🔄 Audio update function registered to window');
+        
+        // Enable audio in backend
+        try {
+          if (window.module.enable_audio_input) {
+            window.module.enable_audio_input(true);
+            console.log('🎵 ✅ Audio input enabled in backend');
+          } else {
+            console.warn('🎵 ⚠️ Backend enable_audio_input not available');
+          }
+          
+          // Verify update_audio_context is available
+          if (window.module.update_audio_context) {
+            console.log('🎵 ✅ Backend update_audio_context available');
+          } else {
+            console.error('🎵 ❌ Backend update_audio_context NOT available - audio won\'t work!');
+          }
+        } catch (error) {
+          console.error('🎵 ❌ Error enabling audio in backend:', error);
+        }
       };
       
-      console.log('🎵 🔄 Starting audio animation loop...');
-      audioAnimationLoop();
+      setupAudio();
+    } else {
+      // Clean up when disabled
+      window.audioUpdateFunction = null;
+      console.log('🎵 ⏹️ Audio update function unregistered from window');
     }
     
     return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-        console.log('🎵 ⏹️ Audio animation loop stopped');
-      }
+      window.audioUpdateFunction = null;
+      console.log('🎵 🧹 Audio update function cleaned up');
     };
   }, [isEnabled, updateAudioParameters]);
 

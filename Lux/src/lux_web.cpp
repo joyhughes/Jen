@@ -1622,7 +1622,6 @@ bool enable_autoplay(bool enabled) {
             auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
             if (autoplay_fn) {
                 autoplay_fn->value = enabled;
-                std::cout << "🎲 Scene-agnostic autoplay " << (enabled ? "enabled" : "disabled") << std::endl;
                 return true;
             }
         } catch (const std::exception& e) {

@@ -265,14 +265,13 @@ const AudioMixer = ({
 
   return (
     <div className="audio-mixer">
-      <div className="frequency-bands">
+      <div className="frequency-bands" role="region" aria-label="Audio frequency mixer controls">
           {frequencyBands.map(band => (
             <div key={band.id} className="band-strip">
               <div className="band-header">
                 <span className="band-name" style={{ color: band.color }}>
                   {band.name}
                 </span>
-                <span className="band-range">{band.range}</span>
               </div>
               
               <div className="band-meter">
@@ -283,23 +282,9 @@ const AudioMixer = ({
                     backgroundColor: band.color 
                   }}
                 />
-                <div className="meter-scale">
-                  <span className="db-marker" style={{ bottom: '100%' }}>0</span>
-                  <span className="db-marker" style={{ bottom: '75%' }}>-12</span>
-                  <span className="db-marker" style={{ bottom: '50%' }}>-24</span>
-                  <span className="db-marker" style={{ bottom: '25%' }}>-36</span>
-                  <span className="db-marker" style={{ bottom: '0%' }}>-60</span>
-                </div>
-              </div>
-              
-              <div className="level-display">
-                <span className="level-db">
-                  {formatDb(linearToDb(bandLevels[band.id] || 0))} dB
-                </span>
               </div>
               
               <div className="band-controls">
-                <label className="gain-label">Gain:</label>
                 <input
                   type="range"
                   min="-20"
@@ -307,21 +292,17 @@ const AudioMixer = ({
                   step="0.5"
                   value={bandGainsDb[band.id] || 0}
                   onChange={(e) => handleBandGainDbChange(band.id, parseFloat(e.target.value))}
-                  className="gain-slider"
+                  className="gain-slider vertical-slider"
                   style={{ accentColor: band.color }}
+                  orient="vertical"
                 />
-                <span className="gain-value">
-                  {formatDb(bandGainsDb[band.id] || 0)} dB
-                </span>
-                <input
-                  type="number"
-                  min="-20"
-                  max="20"
-                  step="0.1"
-                  value={bandGainsDb[band.id] || 0}
-                  onChange={(e) => handleBandGainDbChange(band.id, parseFloat(e.target.value))}
-                  className="gain-input"
-                />
+                <div className="gain-value">
+                  {formatDb(bandGainsDb[band.id] || 0)}
+                </div>
+              </div>
+              
+              <div className="band-footer">
+                <span className="band-range">{band.range}</span>
               </div>
             </div>
           ))}
