@@ -673,24 +673,27 @@
 
   .band-meter {
     height: 65px;
-    width: 18px;
+    width: 15px;
     margin: 8px 0;
   }
 
   .gain-slider.vertical-slider {
     height: 110px;
-    width: 10px;
+    width: 7px;
     margin: 8px 0;
+    background: linear-gradient(180deg, #888 0%, #666 50%, #444 100%);
   }
 
   .gain-slider.vertical-slider::-webkit-slider-thumb {
-    width: 24px;
-    height: 20px;
+    width: 22px;
+    height: 18px;
+    border-radius: 3px;
   }
 
   .gain-slider.vertical-slider::-moz-range-thumb {
-    width: 24px;
-    height: 20px;
+    width: 22px;
+    height: 18px;
+    border-radius: 3px;
   }
 
   .gain-value {
@@ -762,32 +765,35 @@
 
   .band-meter {
     height: 60px;
-    width: 18px;
+    width: 14px;
     margin: 8px 0;
   }
 
   .gain-slider.vertical-slider {
     height: 110px;
-    width: 12px;
+    width: 6px;
     margin: 10px 0;
     touch-action: pan-y; /* Allow vertical scrolling of page */
+    background: linear-gradient(180deg, #888 0%, #666 50%, #444 100%);
   }
 
   .gain-slider.vertical-slider::-webkit-slider-thumb {
-    width: 26px;
-    height: 22px;
-    /* Larger touch target for mobile */
+    width: 20px;
+    height: 16px;
+    border-radius: 3px;
+    /* Elegant thin thumb with good touch target */
   }
 
   .gain-slider.vertical-slider::-moz-range-thumb {
-    width: 26px;
-    height: 22px;
+    width: 20px;
+    height: 16px;
+    border-radius: 3px;
   }
 
   .gain-value {
-    font-size: 0.65rem;
-    padding: 4px 8px;
-    min-width: 45px;
+    font-size: 0.62rem;
+    padding: 3px 6px;
+    min-width: 42px;
     font-weight: 700;
   }
 }
@@ -832,30 +838,33 @@
 
   .band-meter {
     height: 55px;
-    width: 16px;
+    width: 12px;
     margin: 6px 0;
   }
 
   .gain-slider.vertical-slider {
     height: 100px;
-    width: 10px;
+    width: 5px;
     margin: 8px 0;
+    background: linear-gradient(180deg, #888 0%, #666 50%, #444 100%);
   }
 
   .gain-slider.vertical-slider::-webkit-slider-thumb {
-    width: 24px;
-    height: 20px;
+    width: 18px;
+    height: 14px;
+    border-radius: 2px;
   }
 
   .gain-slider.vertical-slider::-moz-range-thumb {
-    width: 24px;
-    height: 20px;
+    width: 18px;
+    height: 14px;
+    border-radius: 2px;
   }
 
   .gain-value {
-    font-size: 0.6rem;
-    padding: 3px 6px;
-    min-width: 40px;
+    font-size: 0.58rem;
+    padding: 2px 5px;
+    min-width: 38px;
     font-weight: 700;
   }
 }
