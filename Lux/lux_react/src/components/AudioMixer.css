@@ -81,35 +81,43 @@
 .preset-button {
   background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   border: 2px solid #444;
-  padding: 10px 6px;
-  border-radius: 6px;
+  padding: 12px 8px;
+  border-radius: 8px;
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: bold;
   text-align: center;
   font-size: 0.85rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .preset-button:hover {
   border-color: #667eea;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #34495e 0%, #3c4f63 100%);
 }
 
 .preset-button.active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-color: #667eea;
   box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+  transform: scale(1.02);
 }
 
 /* Global Controls */
 .global-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  gap: 16px;
   margin-bottom: 0;
-  padding: 8px 0 0 0;
+  padding: 12px 0 0 0;
   background: transparent;
   border-radius: 0;
   border: none;
@@ -119,7 +127,7 @@
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .control-group label {
@@ -132,47 +140,63 @@
 .beat-sensitivity-slider {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  height: 8px;
   background: linear-gradient(90deg, #333 0%, #667eea 50%, #ff6b6b 100%);
-  border-radius: 3px;
+  border-radius: 4px;
   outline: none;
   transition: all 0.3s ease;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .sensitivity-slider::-webkit-slider-thumb,
 .beat-sensitivity-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: linear-gradient(135deg, #fff 0%, #f1c40f 100%);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .sensitivity-slider::-webkit-slider-thumb:hover,
 .beat-sensitivity-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 12px rgba(241, 196, 15, 0.5);
+  transform: scale(1.15);
+  box-shadow: 0 5px 15px rgba(241, 196, 15, 0.6);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 .rhythm-mode-select {
-  background: #333;
+  background: linear-gradient(135deg, #333 0%, #444 100%);
   border: 2px solid #555;
   color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 44px;
+  font-size: 0.9rem;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .rhythm-mode-select:focus {
   border-color: #667eea;
   outline: none;
-  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #444 0%, #555 100%);
+}
+
+.rhythm-mode-select:hover {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #444 0%, #555 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Frequency Bands - Responsive Grid (NO scrolling) */
@@ -621,36 +645,36 @@
   }
 
   .preset-section {
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
 
   .preset-section label {
-    margin-bottom: 4px;
-    font-size: 0.8rem;
+    margin-bottom: 3px;
+    font-size: 0.75rem;
   }
 
   .preset-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 5px;
   }
 
   .preset-button {
-    padding: 6px 4px;
-    font-size: 0.75rem;
+    padding: 5px 3px;
+    font-size: 0.7rem;
   }
 
   .global-controls {
     grid-template-columns: 1fr;
-    padding: 6px 0 0 0;
-    gap: 6px;
+    padding: 8px 0 0 0;
+    gap: 12px;
   }
 
   .control-group {
-    gap: 4px;
+    gap: 6px;
   }
 
   .control-group label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .frequency-bands {
@@ -772,12 +796,12 @@
   }
 
   .global-controls {
-    padding: 3px 0 0 0;
-    gap: 3px;
+    padding: 8px 0 0 0;
+    gap: 8px;
   }
 
   .control-group {
-    gap: 2px;
+    gap: 4px;
   }
 
   .control-group label {
@@ -845,42 +869,105 @@
   }
 }
 
-/* Medium mobile screens - optimized for 375-430px (e.g., iPhone 12/13/14) */
+/* iPhone 12/13/14 - 4 sliders per row with optimal spacing */
 @media (max-width: 430px) and (min-width: 376px) {
   .frequency-bands {
-    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
 
   .bands-grid {
-    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
 
   .band-strip {
-    padding: 5px 3px;
+    padding: 6px 4px;
+  }
+
+  .band-header {
+    min-height: 22px;
+    margin-bottom: 4px;
   }
 
   .band-name {
-    font-size: 0.66rem;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+
+  .band-footer {
+    margin-top: 4px;
+    min-height: 14px;
   }
 
   .band-range {
-    font-size: 0.51rem;
+    font-size: 0.52rem;
+    font-weight: 600;
   }
 
   .band-meter {
-    height: 38px;
-    width: 11px;
+    height: 40px;
+    width: 12px;
+    margin: 4px 0;
   }
 
   .gain-slider.vertical-slider {
-    height: 65px;
+    height: 70px;
+    width: 6px;
+    margin: 5px 0;
+  }
+
+  .gain-slider.vertical-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 15px;
+    border-radius: 3px;
+  }
+
+  .gain-slider.vertical-slider::-moz-range-thumb {
+    width: 20px;
+    height: 15px;
+    border-radius: 3px;
   }
 
   .gain-value {
-    font-size: 0.58rem;
-    min-width: 38px;
+    font-size: 0.59rem;
+    padding: 3px 5px;
+    min-width: 40px;
+    font-weight: 700;
+  }
+
+  /* Compact preset section for iPhone 12/13 */
+  .preset-section {
+    margin-bottom: 4px;
+  }
+
+  .preset-section label {
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+  }
+
+  .preset-grid {
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    gap: 4px;
+  }
+
+  .preset-button {
+    padding: 4px 2px;
+    font-size: 0.65rem;
+  }
+
+  .global-controls {
+    padding: 8px 0 0 0;
+    gap: 10px;
+  }
+
+  .control-group {
+    gap: 5px;
+  }
+
+  .control-group label {
+    font-size: 0.7rem;
   }
 }
 
