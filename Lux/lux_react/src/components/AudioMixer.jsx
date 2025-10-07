@@ -293,7 +293,10 @@ const AudioMixer = ({
                   value={bandGainsDb[band.id] || 0}
                   onChange={(e) => handleBandGainDbChange(band.id, parseFloat(e.target.value))}
                   className="gain-slider vertical-slider"
-                  style={{ accentColor: band.color }}
+                  style={{ 
+                    accentColor: band.color,
+                    '--slider-color': band.color
+                  }}
                   orient="vertical"
                 />
                 <div className="gain-value">

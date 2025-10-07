@@ -163,6 +163,30 @@ const AudioPane = () => {
         {/* Audio Control Center - Flat Layout */}
         {isEnabled && (
           <div className="audio-control-center">
+            {/* Mixer Presets */}
+            {mixerExpanded && (
+              <>
+                <div className="collapsible-header" onClick={() => setShowMixerPresets(!showMixerPresets)}>
+                  <h4>🎛️ Mixer Presets</h4>
+                  <span className="collapse-icon">{showMixerPresets ? '▲' : '▼'}</span>
+                </div>
+                {showMixerPresets && (
+                  <div className="mixer-content">
+                    <AudioMixer
+                      audioFeatures={audioFeatures}
+                      isEnabled={isEnabled}
+                      onChannelRouting={handleChannelRouting}
+                      onFrequencyBandConfig={handleFrequencyBandConfig}
+                      onMixerStateChange={handleMixerStateChange}
+                      sensitivity={sensitivity}
+                      setSensitivity={setSensitivity}
+                      partyMode={partyMode}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Live Audio Frequency Bands */}
             {mixerExpanded ? (
               <div className="collapsible-header" onClick={() => setShowFrequencyBands(!showFrequencyBands)}>
@@ -222,31 +246,6 @@ const AudioPane = () => {
                   </div>
                 </div>
               </div>
-            )}
-
-
-            {/* Mixer Presets */}
-            {mixerExpanded && (
-              <>
-                <div className="collapsible-header" onClick={() => setShowMixerPresets(!showMixerPresets)}>
-                  <h4>🎛️ Mixer Presets</h4>
-                  <span className="collapse-icon">{showMixerPresets ? '▲' : '▼'}</span>
-                </div>
-                {showMixerPresets && (
-                  <div className="mixer-content">
-                    <AudioMixer
-                      audioFeatures={audioFeatures}
-                      isEnabled={isEnabled}
-                      onChannelRouting={handleChannelRouting}
-                      onFrequencyBandConfig={handleFrequencyBandConfig}
-                      onMixerStateChange={handleMixerStateChange}
-                      sensitivity={sensitivity}
-                      setSensitivity={setSensitivity}
-                      partyMode={partyMode}
-                    />
-                  </div>
-                )}
-              </>
             )}
           </div>
         )}

@@ -23,13 +23,13 @@
 
 /* Header Section */
 .audio-header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .header-main {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
@@ -588,14 +588,24 @@
 
   .header-main {
     flex-direction: column;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
   }
 
-  .audio-toggle,
-  .party-toggle {
+  .audio-toggle {
+    flex: 0 0 auto;
     min-width: unset;
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 14px;
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .party-toggle {
+    min-width: 120px;
+    max-width: 150px;
+    padding: 10px 14px;
+    font-size: 16px;
+    align-self: center;
   }
 
   .sensitivity-header {
@@ -662,14 +672,25 @@
   }
 
   .header-main {
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 4px;
+    margin-bottom: 6px;
   }
 
-  .audio-toggle,
-  .party-toggle {
-    padding: 10px 12px;
+  .audio-toggle {
+    flex: 0 0 auto;
+    min-width: unset;
+    width: 100%;
+    padding: 8px 10px;
     font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .party-toggle {
+    min-width: 100px;
+    max-width: 130px;
+    padding: 8px 10px;
+    font-size: 14px;
+    align-self: center;
   }
 
   .viz-header {
