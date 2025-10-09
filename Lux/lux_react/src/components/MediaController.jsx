@@ -128,7 +128,6 @@ function MediaController({ isOverlay = false }) {
     const syncWithBackend = () => {
       if (window.module && typeof window.module.get_animation_running === 'function') {
         const backendRunning = window.module.get_animation_running();
-        console.log('[MediaController] Syncing with backend animation state:', backendRunning);
         setIsRunning(backendRunning);
       }
     };

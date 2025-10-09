@@ -8,11 +8,13 @@ import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
 import { BiImageAlt } from 'react-icons/bi';
 import { usePane } from './PaneContext';
+import ThumbnailCanvas from '../ThumbnailCanvas';
 
 function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
     const { setActivePane } = usePane();
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
+    const [thumbnailStatus, setThumbnailStatus] = useState('loading');
 
     // Set up ResizeObserver to track container width
     useEffect(() => {
@@ -81,8 +83,20 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                         const widgetJSON = window.module?.get_widget_JSON(widgetName);
                         const widget = JSON.parse(widgetJSON);
                         if (widget?.tool === 'image' && widget?.items && Array.isArray(widget.items)) {
-                            const activeIndex = widget.active_index || 0;
-                            const activeItem = widget.items[activeIndex];
+                            // Check for selected index in the same way as ImagePane/MasonryImagePicker
+                            let selectedIdx = -1;
+                            if (widget.choice !== undefined && Number.isInteger(widget.choice)) {
+                                selectedIdx = widget.choice;
+                            } else if (widget.selected !== undefined && Number.isInteger(widget.selected)) {
+                                selectedIdx = widget.selected;
+                            } else if (widget.value !== undefined && Number.isInteger(widget.value)) {
+                                selectedIdx = widget.value;
+                            }
+                            
+                            const activeItem = selectedIdx >= 0 && selectedIdx < widget.items.length 
+                                ? widget.items[selectedIdx] 
+                                : (widget.items.length > 0 ? widget.items[0] : null);
+                            
                             if (activeItem) {
                                 return { path: activeItem, name: widget.name || widgetName };
                             }
@@ -97,6 +111,15 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
     };
 
     const activeImage = getActiveImage();
+
+    // Determine if the active image is source or target based on widget name
+    const getImageLabel = () => {
+        if (!activeImage) return "Images";
+        const widgetName = activeImage.name.toLowerCase();
+        if (widgetName.includes('source')) return "Source Image";
+        if (widgetName.includes('target')) return "Target Image";
+        return "Images";
+    };
 
     // Filter out any group that has image picker widgets for the Home pane
     const nonImageGroups = activeGroups.filter(group => {
@@ -241,7 +264,7 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
-            {imageGroups  && (
+            {imageGroups.length > 0 && (
                 <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
                     <Button
                         variant="outlined"
@@ -268,31 +291,28 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                             gap: 1
                         }}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                Images
+                                {getImageLabel()}
                             </Typography>
                             {activeImage && (
-                                <>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        ({imageGroups.length})
-                                    </Typography>
-                                    <Box
-                                        component="img"
-                                        src={activeImage.path}
-                                        alt="Active image"
-                                        sx={{
-                                            width: 24,
-                                            height: 24,
-                                            borderRadius: 0.5,
-                                            objectFit: 'cover',
-                                            border: '1px solid',
-                                            borderColor: 'primary.main',
-                                            boxShadow: 1
-                                        }}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                        }}
+                                <Box
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 0.5,
+                                        border: '1px solid',
+                                        borderColor: 'primary.main',
+                                        boxShadow: 1,
+                                        overflow: 'hidden',
+                                        flexShrink: 0
+                                    }}
+                                >
+                                    <ThumbnailCanvas
+                                        imageName={activeImage.path}
+                                        width={32}
+                                        height={32}
+                                        setStatus={setThumbnailStatus}
                                     />
-                                </>
+                                </Box>
                             )}
                         </Box>
                     </Button>
