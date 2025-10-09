@@ -194,19 +194,6 @@ function InterfaceContainer({panelSize}) {
             controlPanelHeight = maxPanelHeight;
         }
 
-        // Validate final dimensions before setting state
-        if (!isFinite(imagePortWidth) || !isFinite(imagePortHeight) || imagePortWidth <= 0 || imagePortHeight <= 0) {
-            console.error('Invalid image dimensions calculated:', { imagePortWidth, imagePortHeight, ratio });
-            // Fallback to reasonable defaults
-            imagePortWidth = 512;
-            imagePortHeight = 512;
-        }
-        if (!isFinite(controlPanelWidth) || !isFinite(controlPanelHeight) || controlPanelWidth <= 0 || controlPanelHeight <= 0) {
-            console.error('Invalid panel dimensions calculated:', { controlPanelWidth, controlPanelHeight });
-            controlPanelWidth = 400;
-            controlPanelHeight = 400;
-        }
-
         // Update state with calculated dimensions
         setImagePortDimensions({width: imagePortWidth, height: imagePortHeight});
         setControlPanelDimensions({width: controlPanelWidth, height: controlPanelHeight});
