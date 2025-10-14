@@ -283,7 +283,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "expand_generator" ] }
         },
         {
             "name": "spin_generator",
@@ -304,7 +305,8 @@
             "min": -10,
             "max": 10,
             "step": 1,
-            "default_value": 0
+            "default_value": 0,
+            "value": { "functions": [ "spin_generator" ] }
         },
         {
             "name": "scope_menu_generator",
@@ -565,27 +567,27 @@
             "name": "level_start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "level_start_slider" ] },
-            "scale": 0.0001,
+            "scale": 0.001,
             "val": 0
         },        
         {
             "name": "expand_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "expand_slider", "expand_generator", "controlled_expand_audio" ] },
-            "scale": 0.0001,
+            "delta": { "functions": [ "expand_slider" ] },
+            "scale": 0.001,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "spin_slider", "spin_generator", "controlled_spin_audio" ] },
+            "delta": { "functions": [ "spin_slider" ] },
             "scale": 0.1,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "phase_slider", "phase_generator", "controlled_phase_audio" ] },
+            "delta": { "functions": [ "phase_slider" ] },
             "scale": 0.1,
             "val": 0
         },
