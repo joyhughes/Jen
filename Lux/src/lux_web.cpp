@@ -619,8 +619,14 @@ std::string get_scene_list_JSON() {
 
 std::string get_panel_JSON() {
     nlohmann::json j;
+    
+    if (!global_context || !global_context->s) {
+        std::cout << "get_panel_JSON: global_context or scene not initialized!" << std::endl;
+        return "[]";
+    }
 
     j = global_context->s->ui.widget_groups;
+    std::cout << "get_panel_JSON: widget_groups count: " << global_context->s->ui.widget_groups.size() << std::endl;
     for( auto wg : global_context->s->ui.widget_groups ) {
         std::cout << "get_panel_JSON: " << wg.name << std::endl;
     }
@@ -1622,7 +1628,6 @@ bool enable_autoplay(bool enabled) {
             auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
             if (autoplay_fn) {
                 autoplay_fn->value = enabled;
-                std::cout << "🎲 Scene-agnostic autoplay " << (enabled ? "enabled" : "disabled") << std::endl;
                 return true;
             }
         } catch (const std::exception& e) {

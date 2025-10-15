@@ -16,7 +16,19 @@ const AudioControlPanel = ({
     return 'prompt';
   };
 
-  const formatValue = (value) => Math.round((value || 0) * 100);
+
+  // Advanced mixer frequency bands
+  const frequencyBands = [
+    { id: 'volume', name: 'Volume', range: 'Overall', color: '#666', value: audioFeatures?.volume || 0 },
+    { id: 'bass', name: 'Bass', range: '60-250Hz', color: '#ff3366', value: audioFeatures?.bassLevel || 0 },
+    { id: 'mid', name: 'Mid', range: '500-2kHz', color: '#ffaa33', value: audioFeatures?.midLevel || 0 },
+    { id: 'high', name: 'High', range: '2k+Hz', color: '#66ff33', value: audioFeatures?.highLevel || 0 }
+  ];
+
+  const linearToDb = (linear) => {
+    if (linear <= 0) return -60;
+    return 20 * Math.log10(linear);
+  };
 
   return (
     <div className="audio-control-panel enhanced">
@@ -52,85 +64,56 @@ const AudioControlPanel = ({
 
       {isEnabled && (
         <>
-          <div className="audio-meters-grid">
-            <div className="frequency-meter">
-              <div className="meter-header">
-                <span className="meter-label">Bass</span>
-                <span className="meter-value">{formatValue(audioFeatures?.bassLevel)}%</span>
-              </div>
-              <div className="meter-bar">
-                <div 
-                  className="meter-fill bass"
-                  style={{ width: `${formatValue(audioFeatures?.bassLevel)}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="frequency-meter">
-              <div className="meter-header">
-                <span className="meter-label">Mid</span>
-                <span className="meter-value">{formatValue(audioFeatures?.midLevel)}%</span>
-              </div>
-              <div className="meter-bar">
-                <div 
-                  className="meter-fill mid"
-                  style={{ width: `${formatValue(audioFeatures?.midLevel)}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="frequency-meter">
-              <div className="meter-header">
-                <span className="meter-label">High</span>
-                <span className="meter-value">{formatValue(audioFeatures?.highLevel)}%</span>
-              </div>
-              <div className="meter-bar">
-                <div 
-                  className="meter-fill high"
-                  style={{ width: `${formatValue(audioFeatures?.highLevel)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="frequency-meter">
-              <div className="meter-header">
-                <span className="meter-label">Volume</span>
-                <span className="meter-value">{formatValue(audioFeatures?.volume)}%</span>
-              </div>
-              <div className="meter-bar">
-                <div 
-                  className="meter-fill volume"
-                  style={{ width: `${formatValue(audioFeatures?.volume)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="audio-features-section">
-            <div className="beat-indicator-card">
+          {/* Vertical Mixer Strips - Primary Control */}
+          <div className="mixer-strips-container">
+            <div className="mixer-header">
+              <h3>🎛️ Audio Mixer</h3>
               <div className="beat-indicator">
                 <div className={`beat-pulse ${audioFeatures?.beatDetected ? 'active' : ''}`} />
-                <span className="beat-text">Beat Detection</span>
-              </div>
-              <div className="beat-status">
-                {audioFeatures?.beatDetected ? '🎵 Beat!' : '⏸️ Waiting'}
+                <span className="beat-text">{audioFeatures?.beatDetected ? '🎵 Beat!' : '⏸️ Waiting'}</span>
               </div>
             </div>
-
-            <div className="activity-indicator-card">
-              <div className="audio-activity-indicator">
-                <div className={`activity-dot ${(audioFeatures?.volume || 0) > 0.01 ? 'active' : ''}`} />
-                <span className="activity-text">Audio Input</span>
-              </div>
-              <div className="activity-status">
-                {(audioFeatures?.volume || 0) > 0.01 ? '🔊 Detected' : '🔇 Silent'}
-              </div>
+            
+            <div className="frequency-strips">
+              {frequencyBands.map(band => (
+                <div key={band.id} className="band-strip">
+                  <div className="band-header">
+                    <span className="band-name" style={{ color: band.color }}>
+                      {band.name}
+                    </span>
+                    <span className="band-range">{band.range}</span>
+                  </div>
+                  
+                  <div className="band-meter">
+                    <div 
+                      className="level-bar"
+                      style={{ 
+                        height: `${Math.max(0, Math.min(100, ((linearToDb(band.value) + 60) / 60 * 100)))}%`,
+                        backgroundColor: band.color 
+                      }}
+                    />
+                    <div className="meter-scale">
+                      <span className="db-marker" style={{ bottom: '100%' }}>0</span>
+                      <span className="db-marker" style={{ bottom: '75%' }}>-12</span>
+                      <span className="db-marker" style={{ bottom: '50%' }}>-24</span>
+                      <span className="db-marker" style={{ bottom: '25%' }}>-36</span>
+                      <span className="db-marker" style={{ bottom: '0%' }}>-60</span>
+                    </div>
+                  </div>
+                  
+                  <div className="level-display">
+                    <div className="level-db" style={{ color: band.color }}>
+                      {linearToDb(band.value).toFixed(1)}dB
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="sensitivity-section-enhanced">
             <div className="sensitivity-header">
-              <span className="sensitivity-title">🎛️ Sensitivity</span>
+              <span className="sensitivity-title">🎛️ Master Sensitivity</span>
               <span className="sensitivity-value">{Math.round((sensitivity ?? 1.0) * 100)}%</span>
             </div>
             <div className="sensitivity-slider-container">

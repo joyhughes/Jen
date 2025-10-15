@@ -29,20 +29,16 @@ function MediaController({ isOverlay = false }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isRunning, setIsRunning] = useState(true); // Start playing by default to match backend
   
-  // Get reset functionality from context
   const { triggerReset } = React.useContext(ControlPanelContext);
   
-  // Get scene context to listen for scene changes
   const { sceneChangeTrigger } = useScene();
 
-  // Video recording states
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
   const [recordingStartTime, setRecordingStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  // Refs
   const workerRef = useRef(null);
   const captureIntervalRef = useRef(null);
   const statusIntervalRef = useRef(null);
@@ -58,13 +54,11 @@ function MediaController({ isOverlay = false }) {
   });
   const recordingInterval = useRef(null);
 
-  // Mobile logging helper
   const mobileLog = (message, data = null) => {
     const timestamp = new Date().toISOString().slice(11, 23);
     const logMessage = `[${timestamp}] [Mobile] ${message}`;
     console.log(logMessage, data || '');
 
-    // Also show critical errors as notifications on mobile
     if (message.includes('ERROR') || message.includes('CRITICAL')) {
       showNotification(`Debug: ${message}`, 'error');
     }
@@ -128,15 +122,12 @@ function MediaController({ isOverlay = false }) {
     const syncWithBackend = () => {
       if (window.module && typeof window.module.get_animation_running === 'function') {
         const backendRunning = window.module.get_animation_running();
-        console.log('[MediaController] Syncing with backend animation state:', backendRunning);
         setIsRunning(backendRunning);
       }
     };
 
-    // Sync immediately
     syncWithBackend();
 
-    // Set up interval to sync periodically (in case scene changes externally)
     const syncInterval = setInterval(syncWithBackend, 1000);
 
     return () => {
@@ -144,7 +135,6 @@ function MediaController({ isOverlay = false }) {
     };
   }, []);
 
-  // Sync when scene changes
   useEffect(() => {
     if (window.module && typeof window.module.get_animation_running === 'function') {
       const backendRunning = window.module.get_animation_running();

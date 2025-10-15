@@ -129,6 +129,15 @@ function InterfaceContainer({panelSize}) {
         }
 
         let ratio = bufWidth / bufHeight;
+        
+        // Validate buffer dimensions and ratio
+        if (!bufWidth || !bufHeight || bufWidth <= 0 || bufHeight <= 0 || !isFinite(ratio) || ratio <= 0) {
+            console.warn('Invalid buffer dimensions:', { bufWidth, bufHeight, ratio });
+            bufWidth = 512;
+            bufHeight = 512;
+            ratio = 1;
+        }
+        
         windowRatio = window.innerWidth / window.innerHeight;
 
         // Determine layout direction based on screen aspect ratio

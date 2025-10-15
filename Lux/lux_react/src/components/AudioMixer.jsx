@@ -265,29 +265,13 @@ const AudioMixer = ({
 
   return (
     <div className="audio-mixer">
-      <div className="mixer-header">
-        <h3>🎛️ Audio Mixer</h3>
-        <div className="mixer-controls">
-          <button 
-            className={`routing-toggle ${showRoutingMatrix ? 'active' : ''}`}
-            onClick={() => setShowRoutingMatrix(!showRoutingMatrix)}
-          >
-            Routing Matrix
-          </button>
-        </div>
-      </div>
-
-      {/* Frequency Band Mixer - Moved to top */}
-      <div className="frequency-bands">
-        <h4>Frequency Bands</h4>
-        <div className="bands-grid">
+      <div className="frequency-bands" role="region" aria-label="Audio frequency mixer controls">
           {frequencyBands.map(band => (
             <div key={band.id} className="band-strip">
               <div className="band-header">
                 <span className="band-name" style={{ color: band.color }}>
                   {band.name}
                 </span>
-                <span className="band-range">{band.range}</span>
               </div>
               
               <div className="band-meter">
@@ -298,23 +282,9 @@ const AudioMixer = ({
                     backgroundColor: band.color 
                   }}
                 />
-                <div className="meter-scale">
-                  <span className="db-marker" style={{ bottom: '100%' }}>0</span>
-                  <span className="db-marker" style={{ bottom: '75%' }}>-12</span>
-                  <span className="db-marker" style={{ bottom: '50%' }}>-24</span>
-                  <span className="db-marker" style={{ bottom: '25%' }}>-36</span>
-                  <span className="db-marker" style={{ bottom: '0%' }}>-60</span>
-                </div>
-              </div>
-              
-              <div className="level-display">
-                <span className="level-db">
-                  {formatDb(linearToDb(bandLevels[band.id] || 0))} dB
-                </span>
               </div>
               
               <div className="band-controls">
-                <label className="gain-label">Gain:</label>
                 <input
                   type="range"
                   min="-20"
@@ -322,25 +292,23 @@ const AudioMixer = ({
                   step="0.5"
                   value={bandGainsDb[band.id] || 0}
                   onChange={(e) => handleBandGainDbChange(band.id, parseFloat(e.target.value))}
-                  className="gain-slider"
-                  style={{ accentColor: band.color }}
+                  className="gain-slider vertical-slider"
+                  style={{ 
+                    accentColor: band.color,
+                    '--slider-color': band.color
+                  }}
+                  orient="vertical"
                 />
-                <span className="gain-value">
-                  {formatDb(bandGainsDb[band.id] || 0)} dB
-                </span>
-                <input
-                  type="number"
-                  min="-20"
-                  max="20"
-                  step="0.1"
-                  value={bandGainsDb[band.id] || 0}
-                  onChange={(e) => handleBandGainDbChange(band.id, parseFloat(e.target.value))}
-                  className="gain-input"
-                />
+                <div className="gain-value">
+                  {formatDb(bandGainsDb[band.id] || 0)}
+                </div>
+              </div>
+              
+              <div className="band-footer">
+                <span className="band-range">{band.range}</span>
               </div>
             </div>
           ))}
-        </div>
       </div>
 
       {/* Preset Selection */}
@@ -400,97 +368,6 @@ const AudioMixer = ({
             <option value="loose">🌊 Loose</option>
           </select>
         </div>
-      </div>
-
-      {/* Routing Matrix */}
-      {showRoutingMatrix && (
-        <div className="routing-matrix">
-          <h4>Channel Routing Matrix</h4>
-          <div className="matrix-grid">
-            <div className="matrix-header">
-              <div className="param-label">Parameter</div>
-              {frequencyBands.map(band => (
-                <div key={band.id} className="band-label" style={{ color: band.color }}>
-                  {band.name}
-                </div>
-              ))}
-            </div>
-            
-            {availableParameters.map(param => (
-              <div key={param.name} className="matrix-row">
-                <div className="param-name">{param.name}</div>
-                {frequencyBands.map(band => (
-                  <div key={`${param.name}-${band.id}`} className="routing-cell">
-                    <input
-                      type="checkbox"
-                      checked={routingMatrix[param.name]?.[band.id]?.enabled || false}
-                      onChange={(e) => handleRoutingChange(
-                        param.name, 
-                        band.id, 
-                        e.target.checked,
-                        routingMatrix[param.name]?.[band.id]?.gain || 1.0
-                      )}
-                    />
-                    {routingMatrix[param.name]?.[band.id]?.enabled && (
-                      <input
-                        type="range"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        value={routingMatrix[param.name]?.[band.id]?.gain || 1.0}
-                        onChange={(e) => handleRoutingChange(
-                          param.name, 
-                          band.id, 
-                          true,
-                          parseFloat(e.target.value)
-                        )}
-                        className="routing-gain"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Status Display */}
-      <div className="mixer-status">
-        <div className="status-item">
-          <span className="status-label">Audio:</span>
-          <span className={`status-value ${isEnabled ? 'enabled' : 'disabled'}`}>
-            {isEnabled ? '🟢 Active' : '🔴 Inactive'}
-          </span>
-        </div>
-        <div className="status-item">
-          <span className="status-label">Preset:</span>
-          <span className="status-value">
-            {mixerPresets.find(p => p.id === activePreset)?.name || 'Unknown'}
-          </span>
-        </div>
-        <div className="status-item">
-          <span className="status-label">Routes:</span>
-          <span className="status-value">
-            {Object.keys(routingMatrix).length} parameters
-          </span>
-        </div>
-        <div className="status-item">
-          <span className="status-label">Display:</span>
-          <span className="status-value">
-            🔢 dB Scale
-          </span>
-        </div>
-        {audioFeatures.enhancedFeatures && (
-          <div className="status-item">
-            <span className="status-label">Peak Level:</span>
-            <span className="status-value">
-              {formatDb(Math.max(
-                ...Object.values(bandLevels).map(level => linearToDb(level || 0))
-              ))} dB
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

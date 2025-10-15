@@ -87,9 +87,99 @@
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
+            "name": "gentle_audio_boost",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 5.0,
+            "volume_sensitivity": 4.0,
+            "bass_channel": "bass",
+            "bass_weight": 4.0,
+            "bass_sensitivity": 3.0,
+            "mid_channel": "mid",
+            "mid_weight": 6.0,
+            "mid_sensitivity": 3.5,
+            "high_channel": "high",
+            "high_weight": 4.5,
+            "high_sensitivity": 2.5,
+            "offset": 0.0,
+            "global_sensitivity": 1.25
+        },
+        {
+            "name": "controlled_spin_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 0.8,
+            "volume_sensitivity": 1.5,
+            "bass_channel": "bass",
+            "bass_weight": 0.6,
+            "bass_sensitivity": 1.2,
+            "mid_channel": "mid",
+            "mid_weight": 0.7,
+            "mid_sensitivity": 1.3,
+            "high_channel": "high",
+            "high_weight": 0.5,
+            "high_sensitivity": 1.0,
+            "offset": 0.0,
+            "global_sensitivity": 8.0
+        },
+        {
+            "name": "controlled_expand_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 6.5,
+            "volume_sensitivity": 5.0,
+            "bass_channel": "bass",
+            "bass_weight": 7.5,
+            "bass_sensitivity": 6.0,
+            "mid_channel": "mid",
+            "mid_weight": 5.0,
+            "mid_sensitivity": 4.0,
+            "high_channel": "high",
+            "high_weight": 3.5,
+            "high_sensitivity": 2.5,
+            "offset": 0.0,
+            "global_sensitivity": 1.75
+        },
+        {
+            "name": "controlled_swirl_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 7.0,
+            "volume_sensitivity": 4.0,
+            "bass_channel": "bass",
+            "bass_weight": 6.5,
+            "bass_sensitivity": 5.0,
+            "mid_channel": "mid",
+            "mid_weight": 9.0,
+            "mid_sensitivity": 6.0,
+            "high_channel": "high",
+            "high_weight": 6.0,
+            "high_sensitivity": 4.5,
+            "offset": 0.0,
+            "global_sensitivity": 2
+        },
+        {
+            "name": "controlled_phase_audio",
+            "type": "audio_adder_fn",
+            "volume_channel": "volume",
+            "volume_weight": 6.0,
+            "volume_sensitivity": 4.5,
+            "bass_channel": "bass",
+            "bass_weight": 5.0,
+            "bass_sensitivity": 3.5,
+            "mid_channel": "mid",
+            "mid_weight": 8.0,
+            "mid_sensitivity": 5.5,
+            "high_channel": "high",
+            "high_weight": 7.5,
+            "high_sensitivity": 6.0,
+            "offset": 0.0,
+            "global_sensitivity": 1.8
+        },
+        {
             "name": "segment_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability"] },
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -177,7 +267,7 @@
         {
             "name": "expand_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -194,13 +284,12 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "expand_generator" ]
-            }
+            "value": { "functions": [ "expand_generator" ] }
         },
         {
             "name": "spin_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 0.0,
             "b": 2.0,
             "min": -1000000,
@@ -217,16 +306,58 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { 
-                "functions": [ 
-                    "spin_generator"
-                ]
-            }
+            "value": { "functions": [ "spin_generator" ] }
+        },
+        {
+            "name": "scope_menu_generator",
+            "type": "generator_int",
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
+            "a": 0,
+            "b": 3,
+            "min": 0,
+            "max": 3,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },   
+        {
+            "name": "scope_menu",
+            "type": "menu_int",
+            "tool": "pull_down",
+            "label": "Scope",
+            "description": "Choose the kaleidoscope effect to apply.",
+            "items": [ "None", "Kaleido", "Multiples", "Tile" ],
+            "default_choice": 1,
+            "choice": { "functions": [ "scope_menu_generator" ] },
+            "affects_widget_groups": true
+        },
+        {
+            "name": "scope_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 0
+        },        
+        {
+            "name": "scope_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 1
+        },        
+        {
+            "name": "scope_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 2
+        },
+        {
+            "name": "scope_menu_3",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "scope_menu" ] },
+            "b": 3
         },
         {
             "name": "funky_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 0,
             "b": 5,
             "min": 0,
@@ -282,55 +413,9 @@
             "b": 5
         },
         {
-            "name": "scope_menu_generator",
-            "type": "generator_int",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
-            "a": 0,
-            "b": 3,
-            "min": 0,
-            "max": 3,
-            "distribution": "uniform",
-            "enabled": { "functions": [ "autoplay_switch" ] }
-        },   
-        {
-            "name": "scope_menu",
-            "type": "menu_int",
-            "tool": "pull_down",
-            "label": "Scope",
-            "description": "Choose the kaleidoscope effect to apply.",
-            "items": [ "None", "Kaleido", "Multiples", "Tile" ],
-            "default_choice": 1,
-            "choice": { "functions": [ "scope_menu_generator" ] },
-            "affects_widget_groups": true
-        },
-        {
-            "name": "scope_menu_0",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 0
-        },        
-        {
-            "name": "scope_menu_1",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 1
-        },        
-        {
-            "name": "scope_menu_2",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 2
-        },
-        {
-            "name": "scope_menu_3",
-            "type": "equal_int_condition",
-            "a": { "functions": [ "scope_menu" ] },
-            "b": 3
-        },
-        {
             "name": "swirl_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": -360.0,
             "b": 360.0,
             "min": -360.0,
@@ -346,17 +431,12 @@
             "min": -360.0,
             "max": 360.0,
             "step": 1,
-            "default_value": 60.0,
-            "value": { 
-                "functions": [ 
-                    "swirl_generator"
-                ]
-            }
+            "default_value": 60.0
         },
         {
             "name": "alternate_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": -180.0,
             "b": 180.0,
             "min": -180.0,
@@ -378,7 +458,7 @@
         {
             "name": "rings_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 10.0,
             "b": 1.0,
             "min": 1,
@@ -400,7 +480,7 @@
         {
             "name": "freq_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -422,7 +502,7 @@
         {
             "name": "amp_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 6.0,
             "b": 1.0,
             "min": 1,
@@ -444,7 +524,7 @@
         {
             "name": "phase_generator",
             "type": "generator_float",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 0.0,
             "b": 20.0,
             "min": -1000000,
@@ -460,17 +540,12 @@
             "min": -20,
             "max": 20,
             "step": 0.5,
-            "default_value": 0.0,
-            "value": { 
-                "functions": [ 
-                    "phase_generator"
-                ]
-            }
+            "default_value": 0.0
         },
         {
             "name": "const_amp_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -492,14 +567,14 @@
             "name": "level_start_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "level_start_slider" ] },
-            "scale": 0.0001,
+            "scale": 0.001,
             "val": 0
         },        
         {
             "name": "expand_integrator",
             "type": "integrator_float",
             "delta": { "functions": [ "expand_slider" ] },
-            "scale": 0.0001,
+            "scale": 0.001,
             "val": 0
         },
         {
@@ -519,7 +594,7 @@
         {
             "name": "reflect_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -533,7 +608,7 @@
         {
             "name": "reflect_level_toggle",
             "type": "random_toggle",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
@@ -547,7 +622,7 @@
         {
             "name": "source_image_menu_generator",
             "type": "generator_int",
-            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
             "a": 0,
             "b": 9,
             "min": 0,
@@ -569,99 +644,6 @@
             "name": "source_image_dim",
             "type": "buffer_dim_fn",
             "buf_name": { "functions": [ "source_image_menu" ] }
-        },
-        {
-            "name": "gentle_audio_boost",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 5.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 4.0,
-            "bass_sensitivity": 3.0,
-            "mid_channel": "mid",
-            "mid_weight": 6.0,
-            "mid_sensitivity": 3.5,
-            "high_channel": "high",
-            "high_weight": 4.5,
-            "high_sensitivity": 2.5,
-            "offset": 0.0,
-            "global_sensitivity": 1.25
-        },
-        {
-            "name": "controlled_spin_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 0.8,
-            "volume_sensitivity": 1.5,
-            "bass_channel": "bass",
-            "bass_weight": 0.6,
-            "bass_sensitivity": 1.2,
-            "mid_channel": "mid",
-            "mid_weight": 0.7,
-            "mid_sensitivity": 1.3,
-            "high_channel": "high",
-            "high_weight": 0.5,
-            "high_sensitivity": 1.0,
-            "base_value": { "functions": [ "spin_integrator" ] },
-            "offset": 0.0,
-            "global_sensitivity": 8.0
-        },
-        {
-            "name": "controlled_expand_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 6.5,
-            "volume_sensitivity": 5.0,
-            "bass_channel": "bass",
-            "bass_weight": 7.5,
-            "bass_sensitivity": 6.0,
-            "mid_channel": "mid",
-            "mid_weight": 5.0,
-            "mid_sensitivity": 4.0,
-            "high_channel": "high",
-            "high_weight": 3.5,
-            "high_sensitivity": 2.5,
-            "base_value": { "functions": [ "expand_integrator" ] },
-            "offset": 0.0,
-            "global_sensitivity": 1.75
-        },
-        {
-            "name": "controlled_swirl_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 7.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 6.5,
-            "bass_sensitivity": 5.0,
-            "mid_channel": "mid",
-            "mid_weight": 9.0,
-            "mid_sensitivity": 6.0,
-            "high_channel": "high",
-            "high_weight": 6.0,
-            "high_sensitivity": 4.5,
-            "offset": 0.0,
-            "global_sensitivity": 2
-        },
-        {
-            "name": "controlled_phase_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 6.0,
-            "volume_sensitivity": 4.5,
-            "bass_channel": "bass",
-            "bass_weight": 5.0,
-            "bass_sensitivity": 3.5,
-            "mid_channel": "mid",
-            "mid_weight": 8.0,
-            "mid_sensitivity": 5.5,
-            "high_channel": "high",
-            "high_weight": 7.5,
-            "high_sensitivity": 6.0,
-            "offset": 0.0,
-            "base_value": { "functions": [ "phase_integrator" ] },
-            "global_sensitivity": 1.8
         }
     ],
     "effects":
@@ -842,7 +824,7 @@
     [
         {
             "name": "home_group",
-            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch", "autoplay_intensity" ]
+            "widgets": [ "scope_menu", "funky_menu", "autoplay_switch", "autoplay_intensity"]
         },
         {
             "name": "source_image_group",
