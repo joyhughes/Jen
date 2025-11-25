@@ -113,18 +113,21 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto out = buf_ptr->get_buffer().begin();
         auto tar = in;
         bool use_target = false; // *targeted == true and target is valid and same dimensions as source image
+        vec2i tar_dim;
+        bool same_dim = true;
         if( *targeted ) { 
             if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
                 tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
                 // future: handle different target dimensions
                 if( tar_ptr.get() ) {   // check for null pointer
                     if( tar_ptr->has_image() ) {
-                        if( tar_ptr->get_image().get_dim() == img.get_dim() ) {
+                        tar_dim = tar_ptr->get_image().get_dim();
+                        if( tar_dim == img.get_dim() ) {
                             tar = tar_ptr->get_image().begin();
                             use_target = true;  // target image is valid
                         }
                         else {
-                            std::cout << "CA: target buffer dimensions do not match" << std::endl;
+                            same_dim = false;
                         }
                     }
                     else {
