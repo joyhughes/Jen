@@ -441,10 +441,11 @@ template< class T > void eff_kaleidoscope< T >::operator () ( any_buffer_pair_pt
     start( context ); spin( context );
     level_start( context ); expand( context );
     reflect( context ); reflect_levels( context );
+    invert( context );
     
     filled =true;
     vf_tools tools( get_image< T >( buf ) );
-    tools.kaleidoscope( *segments, *levels, *start, *spin, *level_start, *expand, *reflect, *reflect_levels );  
+    tools.kaleidoscope( *segments, *levels, *start, *spin, *level_start, *expand, *reflect, *reflect_levels, *invert );  
 }
 
 template class eff_kaleidoscope< vec2f >;
@@ -456,9 +457,10 @@ template< class T > void eff_radial_tile< T >::operator () ( any_buffer_pair_ptr
     spin( context );    expand( context );
     zoom_x(context);    zoom_y(context); 
     reflect_x(context); reflect_y(context);
+    invert( context );
     
     vf_tools tools( get_image< T >( buf ) );
-    tools.radial_tile( *segments, *levels, vec2f( *offset_x, *offset_y ), *spin, *expand, vec2f( *zoom_x, *zoom_y ), *reflect_x, *reflect_y );
+    tools.radial_tile( *segments, *levels, vec2f( *offset_x, *offset_y ), *spin, *expand, vec2f( *zoom_x, *zoom_y ), *reflect_x, *reflect_y, *invert );
 }
 
 template class eff_radial_tile< vec2f >;
@@ -468,12 +470,13 @@ template< class T > void eff_radial_multiply< T >::operator () ( any_buffer_pair
     segments(context);  levels(context);  
     spin( context );  expand( context );
     reflect( context ); reflect_levels( context );
+    invert( context );
 
     if (std::holds_alternative< vbuf_ptr>(buf)) 
     {
         auto& buf_ptr = std::get< vbuf_ptr >(buf);
         vf_tools tools( buf_ptr->get_image() );
-        tools.radial_multiply( *segments, *levels, *spin, *expand, *reflect, *reflect_levels );
+        tools.radial_multiply( *segments, *levels, *spin, *expand, *reflect, *reflect_levels, *invert );
     }
 }
 

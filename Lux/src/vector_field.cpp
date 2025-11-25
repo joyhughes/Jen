@@ -200,7 +200,8 @@ void vf_tools::kaleidoscope(    const float& segments,         // Number of segm
                                 const float& level_start,
                                 const float& expand,
                                 const bool& reflect,           // Reflect alternate segments
-                                const bool& reflect_levels
+                                const bool& reflect_levels,
+                                const bool& invert
                                  ) {               
     float segments_adj = segments;    
     auto& base = img.mip[ 0 ];
@@ -208,7 +209,9 @@ void vf_tools::kaleidoscope(    const float& segments,         // Number of segm
     if( reflect ) segments_adj *= 2.0f;    
     if( segments != 0.0f && levels != 0.0f ) {
         for( auto& v : base ) { 
-            v.R =     rmodf( omodf( v.R - expand, 1.0f / levels, reflect_levels ) - level_start, 1.0f );
+            float r = v.R;
+            if( invert ) { if ( r != 0.0f ) r = 1.0f / r; }
+            v.R =     rmodf( omodf( r - expand, 1.0f / levels, reflect_levels ) - level_start, 1.0f );
             v.THETA = omodf( v.THETA - spin, 360.0f / segments_adj, reflect ) - start; 
         } 
     }
@@ -221,12 +224,15 @@ void vf_tools::radial_tile( const float& segments,
                             const float& spin,     // rotation within tile
                             const float& expand,   // expansion within tile
                             const vec2f& zoom,  // zoom within tile, 
-                            bool reflect_x, 
-                            bool reflect_y ) {
+                            const bool& reflect_x, 
+                            const bool& reflect_y,
+                            const bool& invert ) {
     auto& base = img.mip[ 0 ];
     for( auto& v : base ) {
+        float r = v.R;
+        if( invert ) { if ( r != 0.0f ) r = 1.0f / r; }
         v = vec2f( ( omodf( ( v.THETA - spin ) * segments, 360.0f, reflect_x ) / 180.0f - 1.0f - offset.x ) * zoom.x,
-                   ( omodf( ( v.R - expand ) * levels, 1.0f, reflect_y ) *   2.0f - 1.0f - offset.y ) * zoom.y );
+                   ( omodf( ( r - expand ) * levels, 1.0f, reflect_y ) *   2.0f - 1.0f - offset.y ) * zoom.y );
     }
 }
 
@@ -235,12 +241,15 @@ void vf_tools::radial_multiply( const float& segments,
                                 const float& spin, 
                                 const float& expand, 
                                 const bool&  reflect, 
-                                const bool&  reflect_levels ) {
+                                const bool&  reflect_levels,
+                                const bool& invert ) {
     float segments_adj = segments;
     auto& base = img.mip[ 0 ];
     if( reflect ) segments_adj *= 2.0f;
     for( auto& v : base ) {
-        v.R =     omodf( ( v.R - expand ) * levels, 1.0f, reflect_levels ); 
+        float r = v.R;
+        if( invert ) { if ( r != 0.0f ) r = 1.0f / r; }
+        v.R =     omodf( ( r - expand ) * levels, 1.0f, reflect_levels ); 
         v.THETA = omodf( ( v.THETA - spin ) * segments_adj, 360.0f, reflect ); 
     }      
 }
