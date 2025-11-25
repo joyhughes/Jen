@@ -620,6 +620,20 @@
             "value": { "functions": [ "reflect_level_toggle" ] }
         },
         {
+            "name": "invert_toggle",
+            "type": "random_toggle",
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "invert_switch",
+            "type": "switch_fn",
+            "label": "Invert",
+            "description": "Turns the kaleidoscope image inside out",
+            "default_value": false,
+            "value": { "functions": [ "invert_toggle" ] }
+        },
+        {
             "name": "source_image_menu_generator",
             "type": "generator_int",
             "p": {"functions": ["autoplay_intensity", "autoplay_probability"]}, 
@@ -670,7 +684,8 @@
             "expand": { "functions": [ "expand_integrator" ] },
             "level_start": { "functions": [ "level_start_integrator" ] },
             "reflect": { "functions": [ "reflect_switch" ] },
-            "reflect_levels": { "functions": [ "reflect_level_switch" ] }
+            "reflect_levels": { "functions": [ "reflect_level_switch" ] },
+            "invert": { "functions": [ "invert_switch" ] }
         },
         {
             "name": "kaleidoscope_cartesian",
@@ -685,7 +700,8 @@
             "spin": { "functions": [ "spin_integrator" ] },
             "expand": { "functions": [ "expand_integrator" ] },
             "reflect": { "functions": [ "reflect_switch" ] },
-            "reflect_levels": { "functions": [ "reflect_level_switch" ] }
+            "reflect_levels": { "functions": [ "reflect_level_switch" ] },
+            "invert": { "functions": [ "invert_switch" ] }
         },
         { 
             "name": "radial_multiply_cartesian",
@@ -718,7 +734,8 @@
             "zoom_x": 1.0,
             "zoom_y": 1.0,
             "reflect_x": { "functions": [ "reflect_switch" ] },
-            "reflect_y": { "functions": [ "reflect_level_switch" ] }
+            "reflect_y": { "functions": [ "reflect_level_switch" ] },
+            "invert": { "functions": [ "invert_switch" ] }
         },
         {
             "name": "theta_swirl",
@@ -838,17 +855,17 @@
         {
             "name": "kaleido_group",
             "conditions": [ "scope_menu_1" ],
-            "widgets": [ "segment_slider",  "start_slider",  "spin_slider", "level_slider", "expand_slider", "level_start_slider", "reflect_switch", "reflect_level_switch" ]
+            "widgets": [ "segment_slider",  "start_slider",  "spin_slider", "level_slider", "expand_slider", "level_start_slider", "reflect_switch", "reflect_level_switch", "invert_switch" ]
         },
         {
             "name": "multiples_group",
             "conditions": [ "scope_menu_2" ],
-            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch", "invert_switch" ]
         },
         {
             "name": "tile_group",
             "conditions": "scope_menu_3",
-            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch" ]
+            "widgets": [ "segment_slider", "level_slider", "spin_slider", "expand_slider", "reflect_switch", "reflect_level_switch", "invert_switch" ]
         },
         {
             "name": "swirl_group",

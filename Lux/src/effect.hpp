@@ -463,6 +463,7 @@ template< class T > struct eff_kaleidoscope {
     harness< float > expand;
     harness< bool  > reflect;
     harness< bool  > reflect_levels;
+    harness< bool  > invert;
 
     bool filled;
 
@@ -475,7 +476,8 @@ template< class T > struct eff_kaleidoscope {
                       float level_start_init = 0.0f, 
                       bool expand_init = 0.0f, 
                       bool reflect_init = true, 
-                      bool reflect_levels_init = true ) : 
+                      bool reflect_levels_init = true,
+                      bool invert_init = false ) : 
         segments( segments_init ),
         levels( levels_init ), 
         start( start_init ),
@@ -483,6 +485,7 @@ template< class T > struct eff_kaleidoscope {
         level_start( level_start_init ),
         reflect( reflect_init ),
         reflect_levels( reflect_levels_init ),
+        invert( invert_init ),
         filled( false ) {}
 };
 
@@ -499,12 +502,13 @@ template< class T > struct eff_radial_tile {
     harness< float > zoom_y;
     harness< bool  > reflect_x;
     harness< bool  > reflect_y;
+    harness< bool  > invert;
     // orientation
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
-    eff_radial_tile( float segments_init = 6.0f, float levels_init = 2.0f, float offset_x_init = 0.0f, float offset_y_init = 0.0f, float spin_init = 0.0f, float expand_init = 0.0f, float zoom_x_init = 1.0f, float zoom_y_init = 1.0f, bool reflect_x_init = true, bool reflect_y_init = true ) : 
-        segments( segments_init ), levels( levels_init ), offset_x( offset_x_init ), offset_y( offset_y_init ), spin( spin_init ), expand( expand_init ), zoom_x( zoom_x_init ), zoom_y( zoom_y_init ), reflect_x( reflect_x_init ), reflect_y( reflect_y_init ) {}
+    eff_radial_tile( float segments_init = 6.0f, float levels_init = 2.0f, float offset_x_init = 0.0f, float offset_y_init = 0.0f, float spin_init = 0.0f, float expand_init = 0.0f, float zoom_x_init = 1.0f, float zoom_y_init = 1.0f, bool reflect_x_init = true, bool reflect_y_init = true, bool invert_init = false ) : 
+        segments( segments_init ), levels( levels_init ), offset_x( offset_x_init ), offset_y( offset_y_init ), spin( spin_init ), expand( expand_init ), zoom_x( zoom_x_init ), zoom_y( zoom_y_init ), reflect_x( reflect_x_init ), reflect_y( reflect_y_init), invert( invert_init )  {}
 };
 
 typedef eff_radial_tile< vec2f > eff_radial_tile_vec2f;
@@ -516,16 +520,19 @@ template< class T > struct eff_radial_multiply {
     harness< float > expand;
     harness< bool  > reflect;
     harness< bool  > reflect_levels;
+    harness< bool  > invert;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 
     eff_radial_multiply(    float segments_init = 6.0f, float levels_init = 1.0f, 
                             float spin_init = 0.0f, float expand_init = 0.0f,
-                            bool reflect_init = true, bool reflect_levels_init = true 
+                            bool reflect_init = true, bool reflect_levels_init = true,
+                            bool invert_init = false
                             ) : 
         segments( segments_init ), levels( levels_init ), 
         spin( spin_init ), expand( expand_init ), 
-        reflect( reflect_init ), reflect_levels( reflect_levels_init ) {}
+        reflect( reflect_init ), reflect_levels( reflect_levels_init ),
+        invert( invert_init ) {}
 };
 
 typedef eff_radial_multiply< vec2f > eff_radial_multiply_vec2f;

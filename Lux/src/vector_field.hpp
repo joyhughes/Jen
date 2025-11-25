@@ -119,7 +119,8 @@ public:
                         const float& level_start = 0.0f, 
                         const float& expand = 0.0f,
                         const bool& reflect = true,           // Reflect alternate segments
-                        const bool& reflect_levels = true );               // Reflect alternate segments
+                        const bool& reflect_levels = true,  
+                        const bool& invert = false );               
 
     void radial_tile(   const float& segments = 6.0f, 
                         const float& levels = 2.0f,
@@ -127,15 +128,17 @@ public:
                         const float& spin = 0.0f,
                         const float& expand = 0.0f,
                         const vec2f& zoom = { 1.0f, 1.0f }, // zoom within tile, 
-                        bool reflect_x = false, 
-                        bool reflect_y = false );                // Reflect alternate segments
+                        const bool& reflect_x = false, 
+                        const bool& reflect_y = false,
+                        const bool& invert = false );                // Reflect alternate segments
 
     void radial_multiply(   const float& segments = 6.0f, 
                             const float& levels = 1.0f, 
                             const float& spin = 0.0f, 
                             const float& expand = 0.0f, 
                             const bool&  reflect = true, 
-                            const bool&  reflect_levels = true );
+                            const bool&  reflect_levels = true,
+                            const bool& invert = false );
 
     // theta modifiers
     void theta_rotate( const float& angle = 0.0f );
