@@ -89,7 +89,7 @@ template< class T > void CA< T >::run_rule() {
     else {
         rule( *this );
     }
-} 
+}
 
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
@@ -114,7 +114,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto tar = in;
         bool use_target = false; // *targeted == true and target is valid and same dimensions as source image
         vec2i tar_dim;
-        bool same_dim = true;
+        vec2i dm1, tdm1;
         if( *targeted ) { 
             if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
                 tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
@@ -122,12 +122,12 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( tar_ptr.get() ) {   // check for null pointer
                     if( tar_ptr->has_image() ) {
                         tar_dim = tar_ptr->get_image().get_dim();
+                        tar = tar_ptr->get_image().begin();
                         if( tar_dim == img.get_dim() ) {
-                            tar = tar_ptr->get_image().begin();
                             use_target = true;  // target image is valid
                         }
                         else {
-                            same_dim = false;
+                            use_target = hood == HOOD_MOORE;  // for testing, allow different dimensions for Moore neighborhood only
                         }
                     }
                     else {
@@ -140,6 +140,9 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
              }
         }
         dim = img.get_dim();
+        dm1 = dim - vec2i( 1, 1 );
+        tdm1 = tar_dim - vec2i( 1, 1 );
+        int tx, ty;
 
         // check neighborhood type
         if( hood == HOOD_MOORE ) {
@@ -180,16 +183,17 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 }
                 DR = *dr_it;
                 out_it = out + x;
-                if( use_target ) tar_it = tar + x;
+                if( use_target ) tx = x * tdm1.x / dm1.x;
                 for( y = 0; y < dim.y - 1; y++ ) {
                     run_rule();  // apply rule
                     if( use_target ) {    // if targeted, compare with target
+                        ty = y * tdm1.y / dm1.y;
+                        tar_it = tar + ty * tar_dim.x + tx;
                         if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
                         else *out_it = MM;
                     }
                     else *out_it = result[0];        // set output
                     out_it += dim.x;
-                    if( use_target ) tar_it += dim.x;
                     // update neighborhood
                     UL = ML; UM = MM; UR = MR;
                     ML = DL; MM = DM; MR = DR;
@@ -202,6 +206,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( x == dim.x - 1 ) DR = *in; else DR = *(in + x + 1);
                 run_rule();  // apply rule
                 if( use_target ) {    // if targeted, compare with target
+                    ty = y * tdm1.y / dm1.y;
+                    tar_it = tar + ty * tar_dim.x + tx;
                     if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
                     else *out_it = MM;
                 }
