@@ -896,6 +896,7 @@ void scene_reader::read_widget_group( const json& j ) {
     else ERROR( "Widget group name missing\n" )
     if( j.contains( "label" ) ) read( wg.label, j[ "label" ] );
     if( j.contains( "description" ) ) read( wg.description, j[ "description" ] );
+    if( j.contains( "pane" ) ) read( wg.pane, j[ "pane" ] );
     if( j.contains( "conditions" ) ) for( std::string condition : j[ "conditions" ] ) wg.add_condition( condition );
     if( j.contains( "widgets" ) ) for( std::string widget : j[ "widgets" ] ) wg.add_widget( widget );
     s.ui.widget_groups.push_back( wg );

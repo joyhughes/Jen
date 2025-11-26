@@ -234,7 +234,7 @@ typedef widget_switch widget_switch_condition;
 typedef widget_switch widget_switch_fn;
 
 struct widget_group {
-    std::string name, label, description;
+    std::string name, label, description, pane;
     std::vector< std::string > conditions;
     std::vector< std::string > widgets;
     // bool open;      // is this widget group open? (Needed?)
@@ -246,7 +246,7 @@ struct widget_group {
 //    void reset(); // reset all widgets to default
     void clear(); // clear all widgets
 
-    widget_group( const std::string& name_init = "", const std::string& label_init = "", const std::string& description_init = "" );
+    widget_group( const std::string& name_init = "", const std::string& label_init = "", const std::string& description_init = "", const std::string& pane_init = "home" );
     ~widget_group();
 };
 
