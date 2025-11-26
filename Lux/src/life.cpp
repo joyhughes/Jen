@@ -112,23 +112,17 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto in =  img.begin();
         auto out = buf_ptr->get_buffer().begin();
         auto tar = in;
-        bool use_target = false; // *targeted == true and target is valid and same dimensions as source image
+        bool use_target = false; // *targeted == true and target is valid image
         vec2i tar_dim;
         vec2i dm1, tdm1;
         if( *targeted ) { 
             if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
                 tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
-                // future: handle different target dimensions
                 if( tar_ptr.get() ) {   // check for null pointer
                     if( tar_ptr->has_image() ) {
                         tar_dim = tar_ptr->get_image().get_dim();
                         tar = tar_ptr->get_image().begin();
-                        if( tar_dim == img.get_dim() ) {
-                            use_target = true;  // target image is valid
-                        }
-                        else {
-                            use_target = hood == HOOD_MOORE;  // for testing, allow different dimensions for Moore neighborhood only
-                        }
+                        use_target = true;  // target image is valid
                     }
                     else {
                         std::cout << "CA: target buffer has no image" << std::endl;
@@ -258,137 +252,46 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                 if( fair_coin( gen ) ) startx = 0; else startx = 1;  // random
                 if( fair_coin( gen ) ) starty = 0; else starty = -1;
             }
+
             // scan through image by row
+            int xl, xr, yu, yl;
+            int txl, txr, tyu, tyl;
             for( y = starty; y < dim.y - 1; y+=2 ) {
-                if( !startx ) { // even left edge
-                    if( y == -1 ) { // top row
-                        out_ul = out + ( dim.y - 1 ) * dim.x; out_ur = out_ul + 1; 
-                        out_ll = out;                         out_lr = out    + 1;
-
-                        in_ul  = in  + ( dim.y - 1 ) * dim.x; in_ur  = in_ul  + 1; 
-                        in_ll  = in;                          in_lr  = in     + 1;
-
-                        if( use_target ) {
-                            tar_ul = tar + ( dim.y - 1 ) * dim.x; tar_ur = tar_ul + 1; 
-                            tar_ll = tar;                         tar_lr = tar    + 1;
-                        }
-                    }
-                    else {
-                        out_ul = out + y * dim.x;       out_ur = out_ul + 1; 
-                        out_ll = out + (y + 1) * dim.x; out_lr = out_ll + 1;
-
-                        in_ul = in + y * dim.x;         in_ur = in_ul + 1; 
-                        in_ll = in + (y + 1) * dim.x;   in_lr = in_ll + 1;
-
-                        if( use_target ) {
-                            tar_ul = tar + y * dim.x;       tar_ur = tar_ul + 1; 
-                            tar_ll = tar + (y + 1) * dim.x; tar_lr = tar_ll + 1;
-                        }
-                    }
-                }
-                else { // odd left edge
-                    if( y == -1 ) { // top row, straddles corners
-                        out_ul = out + dim.y * dim.x - 1; out_ur = out + ( dim.y - 1 ) * dim.x; 
-                        out_ll = out + dim.x - 1;         out_lr = out;
-
-                        in_ul  = in  + dim.y * dim.x - 1; in_ur  = in  + ( dim.y - 1 ) * dim.x; 
-                        in_ll  = in  + dim.x - 1;         in_lr  = in;
-
-                        if( use_target ) {
-                            tar_ul = tar + dim.y * dim.x - 1; tar_ur = tar + ( dim.y - 1 ) * dim.x; 
-                            tar_ll = tar + dim.x - 1;         tar_lr = tar;
-
-                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
-                        }
-
-                        MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-
-                        run_rule();  // apply rule
-                        if( use_target ) {
-                            if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
-                                manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
-                                 { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
-                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
-                        }
-                        else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
-
-                        out_ul = out + ( dim.y - 1 ) * dim.x + 1; out_ur = out + ( dim.y - 1 ) * dim.x + 2; 
-                        out_ll = out + 1;                         out_lr = out + 2;
-
-                        in_ul  = in +  ( dim.y - 1 ) * dim.x + 1; in_ur  = in  + ( dim.y - 1 ) * dim.x + 2;
-                        in_ll  = in  + 1;                         in_lr  = in  + 2;
-
-                        if( use_target ) {
-                            tar_ul = tar +  ( dim.y - 1 ) * dim.x + 1; tar_ur = tar + ( dim.y - 1 ) * dim.x + 2;
-                            tar_ll = tar + 1;                         tar_lr = tar + 2;
-
-                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
-                        }
-                    }
-                    else {
-                        out_ul = out + (y + 1) * dim.x - 1; out_ur = out + y * dim.x; 
-                        out_ll = out + (y + 2) * dim.x - 1; out_lr = out + (y + 1) * dim.x;
-
-                        in_ul = in + (y + 1) * dim.x - 1;   in_ur = in + y * dim.x;
-                        in_ll = in + (y + 2) * dim.x - 1;   in_lr = in + (y + 1) * dim.x;
-
-                        if( use_target ) {
-                            tar_ul = tar + (y + 1) * dim.x - 1; tar_ur = tar + y * dim.x; 
-                            tar_ll = tar + (y + 2) * dim.x - 1; tar_lr = tar + (y + 1) * dim.x;
-
-                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
-                        }
-
-                        MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                        run_rule();  // apply rule
-                        if( use_target ) {
-                            if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
-                                manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
-                                 { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
-                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
-                        }
-                        else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
-                        out_ul = out + y * dim.x + 1;       out_ur = out + y * dim.x + 2; 
-                        out_ll = out + (y + 1) * dim.x + 1; out_lr = out + (y + 1) * dim.x + 2;
-
-                        in_ul = in + y * dim.x + 1;         in_ur = in + y * dim.x + 2;
-                        in_ll = in + (y + 1) * dim.x + 1;   in_lr = in + (y + 1) * dim.x + 2;
-
-                        if( use_target ) {
-                            tar_ul = tar + y * dim.x + 1;         tar_ur = tar + y * dim.x + 2;
-                            tar_ll = tar + (y + 1) * dim.x + 1;   tar_lr = tar + (y + 1) * dim.x + 2;
-
-                            TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
-                        }
-                    }
+                yu = ( y + dim.y ) % dim.y;
+                yl = ( y + 1 + dim.y ) % dim.y;
+                if( use_target ) {
+                    tyu = yu * tdm1.y / dm1.y;
+                    tyl = yl * tdm1.y / dm1.y;
                 }
                 for( x= startx; x < dim.x; x += 2 ) {
-                    // set neighborhood
+                    xl = ( x + dim.x ) % dim.x;
+                    xr = ( x + 1 + dim.x ) % dim.x;
+
+                    in_ul  = in  + yu * dim.x + xl;    in_ur  = in  + yu * dim.x + xr; 
+                    in_ll  = in  + yl * dim.x + xl;    in_lr  = in  + yl * dim.x + xr;
                     MUL = *in_ul; MUR = *in_ur; MLL = *in_ll; MLR = *in_lr;
-                    if( use_target ) { TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr; }
+
+                    out_ul = out + yu * dim.x + xl;         out_ur = out + yu * dim.x + xr; 
+                    out_ll = out + yl * dim.x + xl;         out_lr = out + yl * dim.x + xr;
+
+                    if( use_target ) {
+                        txl = xl * tdm1.x / dm1.x;
+                        txr = xr * tdm1.x / dm1.x;
+                        tar_ul = tar + tyu * tar_dim.x + txl;    tar_ur = tar + tyu * tar_dim.x + txr; 
+                        tar_ll = tar + tyl * tar_dim.x + txl;    tar_lr = tar + tyl * tar_dim.x + txr;
+                        TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
+                    }
+
                     run_rule();  // apply rule
-                    if( use_target ) {   // update neighborhood
+                    if( use_target ) {
                         if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
                             manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
-                             { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; } 
+                                { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                         else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
-                        /*if( manhattan( RUL, TUL ) < manhattan( MUL, TUL ) ) *out_ul = RUL; else *out_ul = MUL;
-                        if( manhattan( RUR, TUR ) < manhattan( MUR, TUR ) ) *out_ur = RUR; else *out_ur = MUR;
-                        if( manhattan( RLR, TLR ) < manhattan( MLR, TLR ) ) *out_lr = RLR; else *out_lr = MLR;
-                        if( manhattan( RLL, TLL ) < manhattan( MLL, TLL ) ) *out_ll = RLL; else *out_ll = MLL;*/
-                    }
-                    else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }                
-                    in_ul  += 2; in_ur  += 2; in_ll  += 2; in_lr  += 2;
-                    out_ul += 2; out_ur += 2; out_ll += 2; out_lr += 2;
-                    if( use_target ) { tar_ul += 2; tar_ur +=2 ; tar_ll +=2 ; tar_lr += 2; }
-                    if( x == dim.x - 3 ) { // right edge
-                        in_ur  -= dim.x; in_lr  -= dim.x;
-                        out_ur -= dim.x; out_lr -= dim.x;
-                        if( use_target ) { tar_ur -= dim.x; tar_lr -= dim.x; }
-                    }
+                    } else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                 }
             }
-        } 
+        }
         ca_frame++;
         buf_ptr->swap();
     }
