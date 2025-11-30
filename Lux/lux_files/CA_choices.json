@@ -250,7 +250,7 @@
             "a": 0,
             "b": 9,
             "min": 0,
-            "max": 9,
+            "max": 10,
             "distribution": "uniform",
             "enabled": { "functions": [ "autoplay_switch" ] }
         },   
@@ -260,8 +260,8 @@
             "tool": "pull_down",
             "label": "Target Image",
             "description": "Choose a target image.",
-            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
-            "default_choice": 5,
+            "items": [ "Self", "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 0,
             "choice": { "functions": [ "targ_image_menu_generator" ] }
         },
         {
@@ -404,6 +404,11 @@
             "tool": "switch",
             "default_value": false,
             "value": { "functions": [ "bb_random_copy_toggle" ] }
+        },
+        {
+            "name": "targ_dim",
+            "type": "buffer_dim_fn",
+            "buf_name": { "functions": [ "targ_image_menu" ] }
         }
     ],
     "clusters":
@@ -428,7 +433,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "diffuse",
@@ -440,7 +446,8 @@
             "type": "CA_ucolor",
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "life",
@@ -456,7 +463,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "gravitate",
@@ -471,7 +479,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "snow",
@@ -486,7 +495,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "pixel_sort",
@@ -502,7 +512,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "funky_sort",
@@ -520,7 +531,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "funky_sort",
@@ -537,7 +549,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "box blur rule",
@@ -556,7 +569,8 @@
             "bright_block": { "functions": [ "bright_block_switch" ] },
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
-            "target": "target_buffer",
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
             "rule":
             {
                 "name": "Blurriffic rule",
@@ -575,6 +589,35 @@
             "choice": { "functions": [ "rule_menu" ] }
         },
         {
+            "name": "position fill",
+            "type": "eff_position_fill_vec2f"
+        },
+        { 
+            "name": "radial",
+            "type": "eff_radial_vec2f"
+        },
+        {
+            "name": "cartesian",
+            "type": "eff_cartesian_vec2f"
+        },
+        {
+            "name": "fill warp field",
+            "type": "eff_fill_warp_int",
+            "vf_name": "warp_vf"
+        },
+        {            
+            "name": "Flip",
+            "type": "eff_flip_vec2f",
+            "flip_x": true,
+            "flip_y": true
+        },
+        {
+            "name": "Warp chooser",
+            "type": "eff_chooser",
+            "effects": [ "Flip" ],
+            "choice": 0
+        },
+        {
             "name": "brush",
             "type": "cluster",
             "cluster_name": "brush_cluster"
@@ -589,14 +632,24 @@
             "mode": "static",  
             "effects": [ "gray" ]
         },
-        {   "name": "target_buffer",
-            "source": { "functions": [ "targ_image_menu" ] },
-            "type": "uimage",
-            "mode": "static",  
-            "effects": []
+        {
+            "name": "warp_vf",
+            "self_generated": true,
+            "dim": { "functions": [ "targ_dim" ] },
+            "type": "vector_field",
+            "mode": "static",
+            "effects": [ "position fill", "Warp chooser" ]
         },
         {
-            "name": "Cellular Automata",
+            "name": "Target Warp",
+            "self_generated": true,
+            "dim": { "functions": [ "targ_dim" ] },
+            "type": "warp_field",
+            "mode": "ephemeral",  
+            "effects": [ "fill warp field" ]
+        },
+        {
+            "name": "Self",
             "source": { "functions": [ "source_image_menu" ] },
             "type": "uimage",
             "mode": "iterative",  
