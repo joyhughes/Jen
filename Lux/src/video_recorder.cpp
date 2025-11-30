@@ -104,12 +104,12 @@ bool VideoRecorder::initialize_video()
     codec_context->time_base = AVRational{1, options.fps};
     codec_context->framerate = AVRational{options.fps, 1};
     
-    // MOBILE COMPATIBILITY: Set adaptive GOP size based on resolution
     // This will be used for keyframe forcing and must match the keyint setting
+    bool isFullHD = (options.width >= 1920 || options.height >= 1080);
     bool isHighRes = (options.width >= 1280 || options.height >= 720);
     bool isLowRes = (options.width <= 640 && options.height <= 480);
-    codec_context->gop_size = isHighRes ? 60 : isLowRes ? 15 : 30;
-    
+    codec_context->gop_size = isFullHD ? 90 : isHighRes ? 60 : isLowRes ? 15 : 30;
+
     codec_context->pix_fmt = AV_PIX_FMT_YUV420P;
     codec_context->bit_rate = options.bitrate;
 
@@ -121,71 +121,72 @@ bool VideoRecorder::initialize_video()
 
     if (codec_context->codec_id == AV_CODEC_ID_H264)
     {
+        bool isFullHD = (options.width >= 1920 || options.height >= 1080);
+        if (isFullHD) {
+            av_opt_set(codec_context->priv_data, "profile", "main", 0);
+            av_opt_set(codec_context->priv_data, "level", "4.1", 0);
+            av_opt_set_int(codec_context->priv_data, "refs", 2, 0);
+            av_opt_set_int(codec_context->priv_data, "b-frames", 0, 0);
+        } else {
+            av_opt_set(codec_context->priv_data, "profile", "baseline", 0);
+        }
+
         std::string preset = options.preset.empty() || options.preset == "realtime" ? "ultrafast" : options.preset;
         av_opt_set(codec_context->priv_data, "preset", preset.c_str(), 0);
         av_opt_set(codec_context->priv_data, "tune", "zerolatency", 0);
-        av_opt_set(codec_context->priv_data, "profile", "baseline", 0);
-        av_opt_set_int(codec_context->priv_data, "crf", 23, 0);
+        av_opt_set_int(codec_context->priv_data, "crf", 20, 0);
+
 
         // CRITICAL: Configure for MP4 container - use AVCC format, not Annex B
         codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-        
+
         // Force AVCC format (length-prefixed NAL units) for MP4 compatibility
         av_opt_set_int(codec_context->priv_data, "annexb", 0, 0);
-        
+
         // MOBILE COMPATIBILITY: Adaptive settings based on resolution
-        DEBUG("Configuring H.264 for " + std::to_string(options.width) + "x" + std::to_string(options.height) + 
-              (isHighRes ? " (high resolution)" : isLowRes ? " (low resolution)" : " (standard resolution)"));
-        
+        DEBUG("Configuring H.264 for " + std::to_string(options.width) + "x" + std::to_string(options.height) +
+              (isFullHD ? " (high resolution)" : isLowRes ? " (low resolution)" : " (standard resolution)"));
+
         // CRITICAL: Force keyframe generation and SPS/PPS inclusion
         av_opt_set_int(codec_context->priv_data, "force-cfr", 1, 0);
-        
-        // MOBILE COMPATIBILITY: Adaptive keyframe interval based on resolution
-        int keyframe_interval = isHighRes ? 60 : isLowRes ? 15 : 30;
+        int keyframe_interval = isFullHD ? 90 : isHighRes ? 60 : isLowRes ? 15 : 30;
         av_opt_set_int(codec_context->priv_data, "keyint", keyframe_interval, 0);
         av_opt_set_int(codec_context->priv_data, "keyint_min", 1, 0);
         av_opt_set_int(codec_context->priv_data, "scenecut", 0, 0);
         av_opt_set_int(codec_context->priv_data, "intra-refresh", 0, 0);
-        
+
         DEBUG("Using keyframe interval: " + std::to_string(keyframe_interval) + " frames for mobile compatibility");
-        
-        // CRITICAL: Force full range encoding to match input
+
         av_opt_set(codec_context->priv_data, "colorprim", "bt709", 0);
         av_opt_set(codec_context->priv_data, "transfer", "bt709", 0);
         av_opt_set(codec_context->priv_data, "colormatrix", "bt709", 0);
         av_opt_set(codec_context->priv_data, "range", "pc", 0);  // Full range
-        
-        // CRITICAL: Ensure SPS/PPS are written
+
         av_opt_set_int(codec_context->priv_data, "repeat-headers", 1, 0);  // Repeat SPS/PPS
         av_opt_set_int(codec_context->priv_data, "aud", 1, 0);  // Add access unit delimiters
-        
-        // MOBILE COMPATIBILITY: Optimize encoding settings for different resolutions
+
         if (isLowRes) {
-            // Low resolution: prioritize speed and compatibility
-            av_opt_set(codec_context->priv_data, "level", "3.0", 0);  // H.264 Level 3.0 for mobile
-            av_opt_set_int(codec_context->priv_data, "refs", 1, 0);  // Single reference frame
-            av_opt_set_int(codec_context->priv_data, "b-frames", 0, 0);  // No B-frames for simplicity
-        } else if (isHighRes) {
-            // High resolution: balance quality and compatibility
-            av_opt_set(codec_context->priv_data, "level", "4.0", 0);  // H.264 Level 4.0 for HD
-            av_opt_set_int(codec_context->priv_data, "refs", 2, 0);  // Two reference frames
-            av_opt_set_int(codec_context->priv_data, "b-frames", 1, 0);  // Minimal B-frames
+            av_opt_set(codec_context->priv_data, "level", "3.0", 0);
+            av_opt_set_int(codec_context->priv_data, "refs", 1, 0);
+            av_opt_set_int(codec_context->priv_data, "b-frames", 0, 0);
+        } else if (isFullHD) {
+            av_opt_set(codec_context->priv_data, "level", "4.0", 0);
+            av_opt_set_int(codec_context->priv_data, "refs", 2, 0);
+            av_opt_set_int(codec_context->priv_data, "b-frames", 1, 0);
         } else {
-            // Standard resolution: balanced settings
-            av_opt_set(codec_context->priv_data, "level", "3.1", 0);  // H.264 Level 3.1
-            av_opt_set_int(codec_context->priv_data, "refs", 1, 0);  // Single reference frame
-            av_opt_set_int(codec_context->priv_data, "b-frames", 0, 0);  // No B-frames
+            av_opt_set(codec_context->priv_data, "level", "3.1", 0);
+            av_opt_set_int(codec_context->priv_data, "refs", 1, 0);
+            av_opt_set_int(codec_context->priv_data, "b-frames", 0, 0);
         }
         
-        // Use standard x264 options for MP4 compatibility
         av_opt_set(codec_context->priv_data, "x264opts", "force-cfr=1:no-scenecut=1", 0);
 
         codec_context->thread_count = 1;
         codec_context->thread_type = FF_THREAD_FRAME;
 
         codec_context->rc_buffer_size = options.bitrate;
-        codec_context->rc_max_rate = static_cast<int>(options.bitrate * 1.2);
-        codec_context->rc_min_rate = static_cast<int>(options.bitrate * 0.5);
+        codec_context->rc_max_rate = static_cast<int>(options.bitrate * 1.5);
+        codec_context->rc_min_rate = static_cast<int>(options.bitrate * 0.8);
 
         av_opt_set_int(codec_context->priv_data, "fast-pskip", 1, 0);
         av_opt_set_int(codec_context->priv_data, "no-dct-decimate", 1, 0);
@@ -216,9 +217,9 @@ bool VideoRecorder::initialize_video()
             // VALIDATION: Verify SPS/PPS structure
             uint8_t* extradata = video_stream->codecpar->extradata;
             if (extradata[0] == 0x01) {  // AVCC format marker
-                DEBUG("✓ AVCC format detected in extradata");
+                DEBUG("AVCC format detected in extradata");
             } else {
-                DEBUG("⚠️  WARNING: Unexpected extradata format - may cause playback issues");
+                DEBUG("⚠WARNING: Unexpected extradata format - may cause playback issues");
             }
         } else {
             ERROR("CRITICAL: No H.264 extradata found - SPS/PPS missing! Video will be unplayable.");
@@ -298,7 +299,6 @@ bool VideoRecorder::initialize_video()
     // Set MP4 specific options for proper MOOV atom handling
     AVDictionary *format_opts = nullptr;
     
-    // CRITICAL: Configure MP4 muxer for proper H.264 stream handling
     av_dict_set(&format_opts, "movflags", "faststart+frag_keyframe+empty_moov+default_base_moof", 0);
     
     // Force proper H.264 stream format in MP4 container
@@ -332,7 +332,7 @@ bool VideoRecorder::initialize_video()
     
     // VALIDATION: Verify MP4 container state after header write
     if (format_context->nb_streams != 1) {
-        DEBUG("⚠️  WARNING: Expected 1 stream, got " + std::to_string(format_context->nb_streams));
+        DEBUG("WARNING: Expected 1 stream, got " + std::to_string(format_context->nb_streams));
     }
     
     if (video_stream->codecpar->codec_id != AV_CODEC_ID_H264) {
@@ -413,9 +413,9 @@ bool VideoRecorder::add_frame_rgba(const uint8_t* rgba_data, int width, int heig
     
     bool needsScaling = (width != codec_context->width || height != codec_context->height);
     if (needsScaling) {
-        std::cout << "[VideoRecorder] ✓ Automatic scaling enabled for adaptive dimensions" << std::endl;
+        std::cout << "[VideoRecorder] Automatic scaling enabled for adaptive dimensions" << std::endl;
     } else {
-        std::cout << "[VideoRecorder] ✓ Direct conversion - dimensions match" << std::endl;
+        std::cout << "[VideoRecorder] Direct conversion - dimensions match" << std::endl;
     }
 
     // Convert RGBA to YUV420P with scaling if needed
