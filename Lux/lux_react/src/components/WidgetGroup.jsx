@@ -15,40 +15,12 @@ import MasonryImagePicker from './MasonryImagePicker';
 import { Plus, X } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
 
-function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false }) {
+function WidgetGroup({ json, panelSize, onChange}) {
     const [widgetElements, setWidgetElements] = useState([]);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
-    const theme = useTheme();
     
-    // Get reset trigger from context
-    //const { resetTrigger } = React.useContext(ControlPanelContext);
     const { resetTrigger } = false;
-
-    const getBreakpointColumns = () => {
-        // If we have the actual container width, use it, otherwise use panelSize
-        const availableWidth = containerWidth || panelSize || 400;
-
-        // More aggressively create columns - minimum width reduced to 192px
-        const MIN_COLUMN_WIDTH = 176;
-
-        // Calculate how many columns can fit, ensuring at least 1
-        const maxColumns = Math.max(1, Math.floor(availableWidth / MIN_COLUMN_WIDTH));
-
-        // Create breakpoint object for Masonry
-        const breakpointCols = {};
-
-        // Set default to maximum possible columns to use all available space
-        breakpointCols.default = maxColumns;
-
-        // Add breakpoints for common screen sizes
-        if (maxColumns > 3) breakpointCols[768] = 3; // Medium screens max 3 columns
-        if (maxColumns > 2) breakpointCols[576] = 2; // Small screens max 2 columns
-        breakpointCols[400] = 1; // Very small screens use 1 column
-
-        console.log(`WidgetGroup: Available width ${availableWidth}px, columns: ${maxColumns}`);
-        return breakpointCols;
-    };
 
     // Use ResizeObserver to detect actual width changes
     useEffect(() => {
@@ -72,8 +44,6 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
         };
     }, []);
 
-    // Create widget element for a given widget name
-    // Fixed version of createWidgetElement function
     const createWidgetElement = (name) => {
         let widget;
         try {
@@ -82,11 +52,6 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
             if (!widget) return null;
         } catch (error) {
             console.error("Error parsing widget JSON:", error);
-            return null;
-        }
-
-        // Skip image widgets if disabled
-        if (disableImageWidgets && widget.tool === 'image') {
             return null;
         }
 
@@ -113,14 +78,14 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 );
 
             case 'menu_string':
-                if (widget.tool === 'image' && !disableImageWidgets) {
+                if (widget.tool === 'image') {
                     return (
                         <Box key={widget.name} sx={{ mb: 1, width: '100%' }}>
                             <MasonryImagePicker
+                                updateFuncName={widget.name}
                                 json={widget}
                                 width="100%"
                                 onChange={onChange}
-                                imageType={widget.name === 'source_image_menu' ? 'source' : 'target' }
                             />
                         </Box>
                     );
@@ -348,7 +313,7 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 .filter(el => el !== null);
             setWidgetElements(elements);
         }
-    }, [json, panelSize, disableImageWidgets, resetTrigger]);
+    }, [json, panelSize, resetTrigger]);
 
     // If no widgets, don't render anything
     if (widgetElements.length === 0) {

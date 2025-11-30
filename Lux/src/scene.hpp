@@ -176,8 +176,6 @@ struct effect_list {
     bool rendered;      // Has static buffer already been rendered? Set to false after changing any effect
 
     void update( scene& s );
-    //void update_source_name( scene& s );
-    //void copy_source_buffer( scene& s );
     void render( scene& s );
     void resize( vec2i new_dim );
     void restart( scene& s );   // return to initial condition

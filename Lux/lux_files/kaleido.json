@@ -643,7 +643,18 @@
             "max": 9,
             "distribution": "uniform",
             "enabled": { "functions": [ "autoplay_switch" ] }
-        }, 
+        },
+        {
+            "name": "target_image_menu_generator",
+            "type": "generator_int",
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]},
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
         {
             "name": "source_image_menu",
             "type": "menu_string",
@@ -658,6 +669,32 @@
             "name": "source_image_dim",
             "type": "buffer_dim_fn",
             "buf_name": { "functions": [ "source_image_menu" ] }
+        },
+        {
+            "name": "target_image_menu_generator",
+            "type": "generator_int",
+            "p": {"functions": ["autoplay_intensity", "autoplay_probability"]},
+            "a": 0,
+            "b": 9,
+            "min": 0,
+            "max": 9,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },
+        {
+            "name": "target_image_menu",
+            "type": "menu_string",
+            "tool": "image",
+            "label": "Target Image",
+            "description": "Choose an image to apply the transition rule to.",
+            "items": [ "Ada", "Apples", "Crab Nebula", "Earth", "Everest", "Flower", "Forest", "Hong Kong", "Lighthouse", "Sunrise" ],
+            "default_choice": 1,
+            "choice": { "functions": [ "target_image_menu_generator" ] }
+        },
+        {
+            "name": "source_image_dim",
+            "type": "buffer_dim_fn",
+            "buf_name": { "functions": [ "target_image_menu" ] }
         }
     ],
     "effects":
@@ -844,8 +881,8 @@
             "widgets": [ "scope_menu", "funky_menu", "autoplay_switch", "autoplay_intensity"]
         },
         {
-            "name": "source_image_group",
-            "widgets": [ "source_image_menu" ]
+            "name": "image_group",
+            "widgets": [ "source_image_menu", "target_image_menu" ]
         },
         {
             "name": "none_group",

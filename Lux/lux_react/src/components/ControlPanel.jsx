@@ -143,10 +143,8 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             console.log(`Successfully loaded panel configuration with ${parsedJSON.length} widget groups`);
             setPanelJSON(parsedJSON);
 
-            // Mark as initialized and restore slider values
             setIsInitialized(true);
             
-            // Restore slider values after a short delay to ensure DOM is updated
             setTimeout(() => {
                 restoreSliderValues();
             }, 100);
@@ -160,7 +158,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
     }, [moduleReady, storeSliderValues, callModuleFunction, restoreSliderValues]);
 
-    // Initialize the panel when the module becomes ready
     useEffect(() => {
         if (moduleReady && !hasSetupRun.current) {
             hasSetupRun.current = true;
