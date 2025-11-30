@@ -125,8 +125,8 @@ class LiveCameraManager {
                 }
 
                 // Switch source to camera
-                if (typeof window.module.update_source_name === 'function') {
-                    window.module.update_source_name('ultra_camera');
+                if (typeof window.module.update_chosen_image === 'function') {
+                    window.module.update_chosen_image("source_image_menu", 'ultra_camera');
                     console.log('[LiveCamera] Switched source to ultra_camera');
                 }
             }

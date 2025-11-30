@@ -68,7 +68,6 @@ const SelectionIndicator = styled(Box)(({ theme }) => ({
 }));
 
 function ThumbnailItem({ imageName, isSelected, onClick }) {
-    const [status, setStatus] = useState('loading'); // 'loading', 'loaded', 'error', 'debug'
     const [tooltipOpen, setTooltipOpen] = useState(false);
 
 
@@ -109,14 +108,13 @@ function ThumbnailItem({ imageName, isSelected, onClick }) {
                 onClick={handleClick}
                 onMouseEnter={() => setTooltipOpen(true)}
                 onMouseLeave={() => setTooltipOpen(false)}
-                onTouchStart={() => setTooltipOpen(true)} // Better touch device support
-                onTouchEnd={() => setTooltipOpen(false)}  // Better touch device support
+                onTouchStart={() => setTooltipOpen(true)} 
+                onTouchEnd={() => setTooltipOpen(false)}  
             >
                 <ThumbnailCanvas
                     imageName={imageName}
                     width={THUMB_SIZE}
                     height={THUMB_SIZE}
-                    setStatus={setStatus}
 
                 />
 

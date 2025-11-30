@@ -319,8 +319,8 @@ const CameraCapture = ({
                                 if (typeof window.module.add_to_menu === 'function') {
                                     window.module.add_to_menu('source_image_menu', imageName);
                                 }
-                                if (typeof window.module.update_source_name === 'function') {
-                                    window.module.update_source_name(imageName);
+                                if (typeof window.module.update_chosen_image === 'function') {
+                                    window.module.update_chose_image("source_menu_image", imageName);
                                 }
                                 
                                 // Notify parent component

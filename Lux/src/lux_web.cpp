@@ -681,23 +681,22 @@ void add_image_to_scene(std::string name, std::string filepath) {
 }
 
 
-void update_source_name(std::string name) {
-    DEBUG("C++ update_source_name: Request to switch to '" + name + "'");
+void update_chosen_image(const std::string &menu_func_name, const std::string &img_name) {
+    DEBUG("C++ update_chosen_image for widget:" + menu_func_name + ", chosen img: " + img_name);
     if (!global_context || !global_context->s) return;
 
     // validate the buffer exists
-    if (!global_context->s->buffers.count(name) || !std::holds_alternative<
-            ubuf_ptr>(global_context->s->buffers[name])) {
-        std::cerr << "ERROR: update_source_name - Invalid or non-ucolor source name: " << name << std::endl;
+    if (!global_context->s->buffers.count(img_name) || !std::holds_alternative<
+            ubuf_ptr>(global_context->s->buffers[img_name])) {
+        std::cerr << "ERROR: update_source_name - Invalid or non-ucolor source name: " << img_name << std::endl;
         return;
-            }
+    }
 
     // update the menu function
-    std::string menu_func_name = "source_image_menu";
     if (global_context->s->functions.count(menu_func_name)) {
         try {
             auto menu = global_context->s->get_fn_ptr<std::string, menu_string>(menu_func_name);
-            menu->choose(name); // update menu choice
+            menu->choose(img_name); // update menu choice
 
             if (menu->rerender) {
                 global_context->s->restart(); // full start if menu causes structural change
@@ -710,7 +709,7 @@ void update_source_name(std::string name) {
             std::cerr << "Warning: Failed to update menu '" << menu_func_name << "': " << e.what() << std::endl;
         }
     } else {
-        std::cerr << "Warning: update_source_name - menu '" << menu_func_name << "' not found. Flagging redraw." <<
+        std::cerr << "Warning: update_chosen_image - menu '" << menu_func_name << "' not found. Flagging redraw." <<
                 std::endl;
         global_context->s->ui.displayed = false;
     }
@@ -1031,21 +1030,21 @@ bool process_live_camera_frame(val image_data, int width, int height) {
     return false;
 }
 
-void set_camera_source_active(bool active) {
+void set_camera_active(bool active) {
     // Enable/disable camera as active source
     if (!global_context || !global_context->s) return;
     
     try {
         if (active) {
             // Switch to camera source
-            update_source_name("live_camera_preview");
+            update_chosen_image("source_image_menu", "live_camera_preview");
         } else {
             // Switch back to previous source
             // This could be enhanced to remember the previous source
             if (global_context->s->functions.count("source_image_menu")) {
                 auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
                 if (!menu->items.empty()) {
-                    update_source_name(menu->items[0]); // Default to first item
+                    update_chosen_image("source_image_menu", menu->items[0]); // Default to first item
                 }
             }
         }
@@ -1820,7 +1819,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     function( "mouse_click",       &mouse_click );
     function("add_image_to_scene", &add_image_to_scene);
     function("add_to_menu",        &add_to_menu);
-    function("update_source_name", &update_source_name);
+    function("update_chosen_image", &update_chosen_image);
 
     // video recording functions - RE-ENABLED
     function("start_recording", &start_recording);
@@ -1836,7 +1835,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     // camera functions
     function("add_camera_frame", &add_camera_frame);
     function("process_live_camera_frame", &process_live_camera_frame);
-    function("set_camera_source_active", &set_camera_source_active);
+    function("set_camera_source_active", &set_camera_active);
     function("get_camera_processing_stats", &get_camera_processing_stats);
     function("save_camera_image_with_metadata", &save_camera_image_with_metadata);
 

@@ -55,7 +55,7 @@ factory().then((instance) => {
         'get_buf_width', 
         'get_buf_height',
         'set_frame_callback',
-        'update_source_name',
+        'update_chosen_image',
         'get_widget_JSON'
       ];
       

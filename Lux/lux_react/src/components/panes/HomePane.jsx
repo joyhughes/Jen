@@ -1,25 +1,48 @@
-import React, {useEffect, useRef, useState, useMemo} from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import Masonry from 'react-masonry-css';
 import WidgetGroup from '../WidgetGroup';
+import Button from "@mui/material/Button"
+import { BiImageAlt } from 'react-icons/bi';
+import { usePane } from './PaneContext'
+import ThumbnailCanvas from '../ThumbnailCanvas';
+import Divider from '@mui/material/Divider';
 
-function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+
+
+// here the groups will contain a list of widgets 
+function HomePane({ panelSize, activeGroups, onWidgetGroupChange }) {
+    const { setActivePane } = usePane();
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
+    const [imagePreviewWidgets, setImagePreviewWidgets] = useState([])
 
-    // Set up ResizeObserver to track container width
     useEffect(() => {
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 setContainerWidth(entry.contentRect.width);
             }
         });
-
         if (containerRef.current) {
             resizeObserver.observe(containerRef.current);
+        }
+
+        if (activeGroups) {
+            const activeWidgetNames = activeGroups.map(group => {
+                return group.widgets
+            })
+            const activeImageWidgets = activeWidgetNames
+                .flatMap(widgets => widgets)
+                .filter(widget => isImageWidget(widget))
+                .map(imageWidget => {
+                    const widget = {
+                        ...getActivePreviewImage(imageWidget),
+                    }
+                    return widget
+
+                })
+            setImagePreviewWidgets(activeImageWidgets)
         }
 
         return () => {
@@ -27,68 +50,31 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 resizeObserver.unobserve(containerRef.current);
             }
         };
-    }, []);
+    }, [activeGroups]);
 
-    // Calculate responsive breakpoints for the group masonry layout - MEMOIZED
+
     const breakpointColumns = useMemo(() => {
-        // Minimum width for a group column
         const MIN_GROUP_WIDTH = 300;
 
-        // If we have the actual container width, use it, otherwise use panelSize
         const availableWidth = containerWidth || panelSize;
 
-        // Calculate how many columns can fit
         const maxColumns = Math.max(1, Math.floor(availableWidth / MIN_GROUP_WIDTH));
 
-        // Create breakpoint object for Masonry
         const breakpoints = {
             default: maxColumns,
-            900: Math.min(maxColumns, 2),  // Max 2 columns on medium screens
-            600: 1                         // Single column on small screens
+            900: Math.min(maxColumns, 2),
+            600: 1
         };
 
-        // Only log when values actually change
         console.log("Home group breakpoints:", breakpoints, "Available width:", availableWidth);
         return breakpoints;
-    }, [containerWidth, panelSize]); // Only recalculate when width changes
+    }, [containerWidth, panelSize]);
 
-    // Filter out any group that has image picker widgets for the Home pane
-    const nonImageGroups = activeGroups.filter(group => {
-        // Skip source/target image groups entirely
-        if (group.name.toLowerCase().includes('source') ||
-            group.name.toLowerCase().includes('target') ||
-            group.name === 'SOURCE_IMAGE_GROUP' ||
-            group.name === 'TARGET_IMAGE_GROUP'
-            ) 
-            {
-            return false;
-        }
-
-        // For other groups, check if they have image pickers
-        if (group.widgets) {
-            const hasImageWidget = group.widgets.some(widgetName => {
-                try {
-                    const widgetJSON = window.module?.get_widget_JSON(widgetName);
-                    const widget = JSON.parse(widgetJSON);
-                    return widget?.tool === 'image';
-                } catch (error) {
-                    return false;
-                }
-            });
-
-            return !hasImageWidget;
-        }
-
-        return true;
-    });
-
-    // Helper function to check if a widget is a menu with short text
     const isShortMenu = (widgetName) => {
         try {
             const widgetJSON = window.module?.get_widget_JSON(widgetName);
             const widget = JSON.parse(widgetJSON);
             if (widget?.tool === 'pull_down' || widget?.tool === 'radio') {
-                // Check if all menu items are short (less than 20 characters)
                 const maxLength = Math.max(...(widget.items || []).map(item => item.length));
                 return maxLength < 20;
             }
@@ -98,7 +84,6 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         return false;
     };
 
-    // Helper function to check if widget is a menu
     const isMenu = (widgetName) => {
         try {
             const widgetJSON = window.module?.get_widget_JSON(widgetName);
@@ -109,20 +94,17 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         }
     };
 
-    // Group widgets intelligently
-    const groupWidgets = () => {
-        const allWidgets = nonImageGroups.flatMap(group => group.widgets);
+    const groupWidgets = (groups) => {
+        const allWidgets = groups.filter(group => !group.name.includes("image")).flatMap(group => group.widgets);
         const groupedWidgets = [];
         let i = 0;
 
         while (i < allWidgets.length) {
             const currentWidget = allWidgets[i];
-            
-            // Check if current widget is a short menu and next widget is also a short menu
-            if (i < allWidgets.length - 1 && 
-                isShortMenu(currentWidget) && 
+
+            if (i < allWidgets.length - 1 &&
+                isShortMenu(currentWidget) &&
                 isShortMenu(allWidgets[i + 1])) {
-                // Group two short menus together
                 groupedWidgets.push({
                     type: 'row',
                     widgets: [currentWidget, allWidgets[i + 1]]
@@ -141,18 +123,55 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         return groupedWidgets;
     };
 
+
+
+    const isImageWidget = (widgetName) => {
+        if (!widgetName) return false;
+        const widgetJSON = window.module?.get_widget_JSON(widgetName)
+        const widget = JSON.parse(widgetJSON)
+        return widget?.tool === 'image'
+    }
+
+    const getActivePreviewImage = (imgWidgetName) => {
+        const rawWidget = window.module?.get_widget_JSON(imgWidgetName)
+        const imageWidget = JSON.parse(rawWidget)
+        if (imageWidget?.items && Array.isArray(imageWidget.items)) {
+            let selectedIdx = -1
+            if (imageWidget.choice && Number.isInteger(imageWidget.choice)) {
+                selectedIdx = parseInt(imageWidget.choice)
+            } else if (imageWidget.selected && Number.isInteger(imageWidget.selected)) {
+                selectedIdx = parseInt(imageWidget.selected)
+            } else if (imageWidget.value && Number.isInteger(imageWidget.value)) {
+                selectedIdx = parseInt(imageWidget.value);
+            }
+            if (selectedIdx != -1) {
+                const activeItem = selectedIdx >= 0 && selectedIdx < imageWidget.items.length ? imageWidget.items[selectedIdx] : (widget.items.length > 0 ? widget.items[0] : null)
+                if (activeItem) {
+                    const obj = {
+                        imageName: activeItem,
+                        name: imageWidget.name,
+                        label: imageWidget.label
+                    }
+                    return obj
+                }
+            }
+            return {}
+        }
+
+        return {}
+    }
+
     const renderWidgetGroup = (groupedWidget, index) => {
         const breakpoints = breakpointColumns;
         const panelWidth = (containerWidth || panelSize) / breakpoints.default;
 
         if (groupedWidget.type === 'row') {
-            // Render two menus in a row
             return (
-                <Box 
+                <Box
                     key={`row-${index}`}
-                    sx={{ 
+                    sx={{
                         width: '100%',
-                        px: 1.5, // Consistent padding that shifts content right
+                        px: 1.5,
                         mb: 1
                     }}
                 >
@@ -161,9 +180,8 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                             <Box key={widgetName} sx={{ flex: 1, minWidth: 0 }}>
                                 <WidgetGroup
                                     json={{ widgets: [widgetName] }}
-                                    panelSize={panelWidth / 2} 
+                                    panelSize={panelWidth / 2}
                                     onChange={onWidgetGroupChange}
-                                    disableImageWidgets={true}
                                 />
                             </Box>
                         ))}
@@ -171,26 +189,89 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 </Box>
             );
         } else {
-            // Single widget with full width
             const isMenuWidget = isMenu(groupedWidget.widget);
             return (
-                <Box 
+                <Box
                     key={groupedWidget.widget}
-                    sx={{ 
+                    sx={{
                         width: '100%',
-                        px: isMenuWidget ? 1.5 : 1.5, // Add padding for menus to match sliders
+                        px: isMenuWidget ? 1.5 : 1.5,
                     }}
                 >
                     <WidgetGroup
                         json={{ widgets: [groupedWidget.widget] }}
-                        panelSize={isMenuWidget ? panelWidth - 24 : panelWidth} // Adjust width for menu padding
+                        panelSize={isMenuWidget ? panelWidth - 24 : panelWidth}
                         onChange={onWidgetGroupChange}
-                        disableImageWidgets={true}
                     />
                 </Box>
             );
         }
     };
+
+    const displayImagePreview = (imageWidget) => {
+        return (
+            <Button
+                key={imageWidget.name + ":" + imageWidget.imageName}
+                variant="outlined"
+                size="small"
+                startIcon={<BiImageAlt />}
+                onClick={() => setActivePane(imageWidget.name.includes("source") ? "source" : "target")}
+                sx={{
+                    py: 0.75,
+                    px: 1.5,
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                        borderColor: 'primary.dark',
+                    },
+                    borderRadius: 2,
+                    minWidth: 'auto'
+                }}
+            >
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {imageWidget.label}
+                    </Typography>
+                    <Box
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 0.5,
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            boxShadow: 1,
+                            overflow: 'hidden',
+                            flexShrink: 0
+                        }}
+                    >
+                        <ThumbnailCanvas
+                            imageName={imageWidget.imageName}
+                            width={32}
+                            height={32}
+                        />
+                    </Box>
+                </Box>
+            </Button>
+        )
+
+    }
+
+
+    const displayImagePreviews = (imageWidgets) => {
+        return (
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
+                {imageWidgets.map(displayImagePreview)}
+            </Box>
+        )
+    }
+
+
 
     return (
         <Box
@@ -205,11 +286,12 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
                 width: '100%'
             }}
         >
+            {imagePreviewWidgets.length != 0 && displayImagePreviews(imagePreviewWidgets)}
             <Divider sx={{ mb: 2 }} />
 
-            {nonImageGroups.length > 0 ? (
+            {activeGroups.length > 0 ? (
                 <Box sx={{ width: '100%' }}>
-                    {groupWidgets().map((groupedWidget, index) => 
+                    {groupWidgets(activeGroups).map((groupedWidget, index) =>
                         renderWidgetGroup(groupedWidget, index)
                     )}
                 </Box>
@@ -223,5 +305,7 @@ function HomePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGrou
         </Box>
     );
 }
+
+
 
 export default HomePane;

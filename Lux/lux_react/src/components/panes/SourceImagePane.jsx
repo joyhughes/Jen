@@ -1,21 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import WidgetGroup from '../WidgetGroup';
 import MasonryImagePicker from '../MasonryImagePicker';
-import {usePane} from "./PaneContext.jsx";
+import { usePane } from "./PaneContext.jsx";
 
-function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWidgetGroupChange }) {
+function SourceImagePane({ panelSize, activeGroups, onWidgetGroupChange }) {
     const { setActivePane } = usePane();
-    const [debugInfo, setDebugInfo] = useState({
-        groups: [],
-        imageWidgets: [],
-        selectedGroup: null
-    });
 
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -24,7 +18,6 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
     const controlsRef = useRef(null);
     const [controlsWidth, setControlsWidth] = useState(0);
 
-    // Monitor the overall container width
     useEffect(() => {
         if (!containerRef.current) return;
 
@@ -69,10 +62,7 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
 
     // Look for any source-related group name
     const sourceImageGroup = activeGroups.find(group =>
-        group.name === 'SOURCE_IMAGE_GROUP' ||
-        group.name === 'source' ||
-        group.name === 'source_image_group' || 
-        group.name.toLowerCase().includes('source') 
+        group.name.toLowerCase().includes('image')
     );
 
 
@@ -109,12 +99,6 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
                     });
                 }
             });
-
-            setDebugInfo({
-                groups: groupInfo,
-                imageWidgets: imageWidgetsInfo,
-                selectedGroup: sourceImageGroup ? sourceImageGroup.name : null
-            });
         }
     }, [activeGroups, sourceImageGroup]);
 
@@ -132,47 +116,9 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
         })
         .find(widget => widget?.tool === 'image');
 
-    // Filter out the image picker widget to avoid showing it twice
-    const nonImagePickerWidgets = sourceImageGroup?.widgets?.filter(widgetName => {
-        const widgetJSON = window.module?.get_widget_JSON(widgetName);
-        try {
-            const widget = JSON.parse(widgetJSON);
-            return !(widget?.tool === 'image' ||
-                (widget?.type === 'menu_string' && widget?.items && Array.isArray(widget.items)));
-        } catch (error) {
-            return true;
-        }
-    }) || [];
-
-    const customSourceImageGroup = sourceImageGroup ? {
-        ...sourceImageGroup,
-        widgets: nonImagePickerWidgets
-    } : null;
-
-    // Dynamically determine the best layout based on container width
-    // For wider screens, prefer side-by-side layout
-    // Calculate the split ratio based on content
     const shouldUseSideBySide = isWideLayout && containerWidth > 600;
 
-    // Calculate the optimal split ratio based on content
-    // Give more space to whichever side has more widgets
-    const getLayoutRatio = () => {
-        // Default to 50/50 split
-        if (!customSourceImageGroup || !imagePickerJson) return 0.5;
 
-        // Count widgets to determine space distribution
-        const widgetCount = customSourceImageGroup.widgets.length;
-        const imageCount = imagePickerJson.items?.length || 0;
-
-        // Adjust ratio based on content (min 0.35, max 0.65)
-        const ratio = (widgetCount > imageCount * 2) ? 0.65 :
-            (imageCount > widgetCount * 2) ? 0.35 : 0.5;
-
-        return ratio;
-    };
-
-    const controlsRatio = getLayoutRatio();
-    const imageRatio = 1 - controlsRatio;
 
     return (
         <Box
@@ -191,41 +137,20 @@ function SourceImagePane({ dimensions, panelSize, panelJSON, activeGroups, onWid
             {imagePickerJson && (
                 <Box
                     sx={{
-                        flex: shouldUseSideBySide ? `0 0 ${imageRatio * 100}%` : '1 0 auto',
-                        width: shouldUseSideBySide ? `${imageRatio * 100}%` : '100%',
+                        flex: '1 0 auto',
+                        width: '100%',
                     }}
                 >
                     <MasonryImagePicker
+                        updateFuncName={imagePickerJson.name}
                         setActivePane={setActivePane}
                         json={imagePickerJson}
                         width="100%"
                         onChange={onWidgetGroupChange}
-                        imageType="source"
                     />
                 </Box>
             )}
 
-            {/* Effect Controls Section */}
-            {customSourceImageGroup && customSourceImageGroup.widgets.length > 0 && (
-                <Box
-                    ref={controlsRef}
-                    sx={{
-                        flex: shouldUseSideBySide ? `0 0 ${controlsRatio * 100}%` : '1 0 auto',
-                        width: shouldUseSideBySide ? `${controlsRatio * 100}%` : '100%',
-                    }}
-                >
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                        Effect Controls
-                    </Typography>
-
-                    <WidgetGroup
-                        key={customSourceImageGroup.name}
-                        panelSize={controlsWidth || (shouldUseSideBySide ? containerWidth * controlsRatio : containerWidth)}
-                        json={customSourceImageGroup}
-                        onChange={onWidgetGroupChange}
-                    />
-                </Box>
-            )}
 
             {/* Show errors and empty states */}
             {sourceImageGroup && !imagePickerJson && (
