@@ -637,7 +637,7 @@
             "self_generated": true,
             "dim": { "functions": [ "targ_dim" ] },
             "type": "vector_field",
-            "mode": "static",
+            "mode": "ephemeral",
             "effects": [ "position fill", "Warp chooser" ]
         },
         {

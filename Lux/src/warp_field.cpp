@@ -12,7 +12,7 @@ template<> void warp_field::fill( const image< vec2f >& vfield, bool relative, c
         for( int y = 0; y < dim.y; y++ ) {
             vec2f vf = vfield.index( y * dim.x + x );
             vf = fpbounds.bb_map( vf, vfield.get_bounds() ); 
-            vec2i vi( vf + 0.5f );
+            vec2i vi( {(int)std::ceilf(vf.x), (int)std::ceilf(vf.y)} );
             if( !relative ) { vi.x += x; vi.y += y; }
             if( extend == SAMP_SINGLE ) {
                 if( ipbounds.in_bounds( vi ) ) base[ y * dim.x + x ] = vi.y * dim.x + vi.x;

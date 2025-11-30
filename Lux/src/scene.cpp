@@ -142,7 +142,7 @@ void effect_list::update( scene& s ) {
 
                 // Copying here may be an unnecessary extra step - can we render directly from source buffer?
                 std::visit([&, source_buf](auto& b) {
-                    std :: cout << "effect_list " << name << " update() - copying source buffer " << *source_name << std::endl;
+                    //std :: cout << "effect_list " << name << " update() - copying source buffer " << *source_name << std::endl;
                     copy_buffer(b, source_buf);
                 }, buf);
             } else {
