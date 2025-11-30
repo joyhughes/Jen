@@ -6,9 +6,9 @@ import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import WidgetGroup from '../WidgetGroup';
 import MasonryImagePicker from '../MasonryImagePicker';
-import {usePane} from "./PaneContext.jsx";
+import { usePane } from "./PaneContext.jsx";
 
-function SourceImagePane({panelSize, activeGroups, onWidgetGroupChange }) {
+function SourceImagePane({ panelSize, activeGroups, onWidgetGroupChange }) {
     const { setActivePane } = usePane();
 
     const containerRef = useRef(null);
@@ -62,7 +62,7 @@ function SourceImagePane({panelSize, activeGroups, onWidgetGroupChange }) {
 
     // Look for any source-related group name
     const sourceImageGroup = activeGroups.find(group =>
-        group.name.toLowerCase().includes('image') 
+        group.name.toLowerCase().includes('image')
     );
 
 
@@ -116,39 +116,9 @@ function SourceImagePane({panelSize, activeGroups, onWidgetGroupChange }) {
         })
         .find(widget => widget?.tool === 'image');
 
-    // Filter out the image picker widget to avoid showing it twice
-    const nonImagePickerWidgets = sourceImageGroup?.widgets?.filter(widgetName => {
-        const widgetJSON = window.module?.get_widget_JSON(widgetName);
-        try {
-            const widget = JSON.parse(widgetJSON);
-            return !(widget?.tool === 'image' ||
-                (widget?.type === 'menu_string' && widget?.items && Array.isArray(widget.items)));
-        } catch (error) {
-            return true;
-        }
-    }) || [];
-
-    const customSourceImageGroup = sourceImageGroup ? {
-        ...sourceImageGroup,
-        widgets: nonImagePickerWidgets
-    } : null;
-
     const shouldUseSideBySide = isWideLayout && containerWidth > 600;
 
-    const getLayoutRatio = () => {
-        if (!customSourceImageGroup || !imagePickerJson) return 0.5;
 
-        const widgetCount = customSourceImageGroup.widgets.length;
-        const imageCount = imagePickerJson.items?.length || 0;
-
-        const ratio = (widgetCount > imageCount * 2) ? 0.65 :
-            (imageCount > widgetCount * 2) ? 0.35 : 0.5;
-
-        return ratio;
-    };
-
-    const controlsRatio = getLayoutRatio();
-    const imageRatio = 1 - controlsRatio;
 
     return (
         <Box
@@ -167,12 +137,12 @@ function SourceImagePane({panelSize, activeGroups, onWidgetGroupChange }) {
             {imagePickerJson && (
                 <Box
                     sx={{
-                        flex: shouldUseSideBySide ? `0 0 ${imageRatio * 100}%` : '1 0 auto',
-                        width: shouldUseSideBySide ? `${imageRatio * 100}%` : '100%',
+                        flex: '1 0 auto',
+                        width: '100%',
                     }}
                 >
                     <MasonryImagePicker
-                        updateFuncName={sourceImageGroup.name}
+                        updateFuncName={imagePickerJson.name}
                         setActivePane={setActivePane}
                         json={imagePickerJson}
                         width="100%"
@@ -181,27 +151,6 @@ function SourceImagePane({panelSize, activeGroups, onWidgetGroupChange }) {
                 </Box>
             )}
 
-            {/* Effect Controls Section */}
-            {customSourceImageGroup && customSourceImageGroup.widgets.length > 0 && (
-                <Box
-                    ref={controlsRef}
-                    sx={{
-                        flex: shouldUseSideBySide ? `0 0 ${controlsRatio * 100}%` : '1 0 auto',
-                        width: shouldUseSideBySide ? `${controlsRatio * 100}%` : '100%',
-                    }}
-                >
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                        Effect Controls
-                    </Typography>
-
-                    <WidgetGroup
-                        key={customSourceImageGroup.name}
-                        panelSize={controlsWidth || (shouldUseSideBySide ? containerWidth * controlsRatio : containerWidth)}
-                        json={customSourceImageGroup}
-                        onChange={onWidgetGroupChange}
-                    />
-                </Box>
-            )}
 
             {/* Show errors and empty states */}
             {sourceImageGroup && !imagePickerJson && (
