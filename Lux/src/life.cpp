@@ -160,7 +160,9 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         if( wf_ptr->has_image() ) {
                             // get warp field image
                             wf = wf_ptr->get_image().begin();
-                            if( wf_ptr->get_image().get_dim() == tar_dim ) use_wf = true;
+                            auto wf_dim = wf_ptr->get_image().get_dim();
+                            if( wf_dim == tar_dim ) use_wf = true;
+                            else std::cout << "CA: warp field dimension mismatch" << wf_dim.x << " " << wf_dim.y << std::endl;
                         }
                         else {
                             std::cout << "CA: warp field buffer has no image" << std::endl;
