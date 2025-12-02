@@ -32,13 +32,13 @@ enum class RecordingState
 
 struct RecordingOptions
 {
-    int width = 512;
-    int height = 512;
+    int width = 1920;
+    int height = 1080;
     int fps = 30;
-    int bitrate = 2000000; // 2 Mbps
+    int bitrate = 8000000; // 8 Mbps
     std::string codec = "libx264";
     std::string format = "mp4"; // Default to MP4 container
-    std::string preset = "medium";
+    std::string preset = "ultrafast";
 };
 
 class VideoRecorder
