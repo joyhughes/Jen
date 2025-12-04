@@ -240,6 +240,7 @@ struct scene {
     float default_time_interval;
     
     float aspect;   // aspect ratio of output buffer
+    vec2i self_dim; // dimension of output buffer
         
     scene( float time_interval_init = 1.0f );                                // create empty scene object
     scene( const std::string& filename, float time_interval_init = 1.0f );   // Load scene file (JSON) into new scene object

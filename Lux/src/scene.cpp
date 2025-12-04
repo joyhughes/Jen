@@ -100,20 +100,29 @@ void effect_list::resize( vec2i new_dim ) {
     //if( new_dim == *dim ) return;
     // need to resize buffer (retaining data) instead?
     std::cout << "effect_list " << name << " resize() " << new_dim.x << " " << new_dim.y << std::endl;
-    std::visit( [&]( auto& b ) { b->reset( new_dim ); }, buf );       
+    std::visit( [&]( auto& b ) { b->reset( new_dim ); }, buf );
+    dim = new_dim;       
 }
 
 void effect_list::update( scene& s ) {
     // create dummy context
     element_context context( s, buf );
+    /*if( name == "Self") {
+        any_buffer_pair_ptr buf = context.s.buffers[ name ];
+        vec2i val;
+        std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
+        std::cout << "effect_list " << name << " update() - buffer dim " << val.x << " " << val.y << std::endl;
+    }*/
 
     if( self_generated ) {
         vec2i old_dim = *dim;
         dim( context );
         vec2i new_dim = *dim;
+        //if( name == "warp_vf" ) std::cout << "effect_list " << name << " update() - new dim " << new_dim.x << " " << new_dim.y << std::endl;
         if( new_dim != old_dim ) {
             resize( new_dim );
             rendered = false;
+            if( name == "Self" ) s.self_dim = new_dim;
         }
     }
     else {
@@ -138,6 +147,7 @@ void effect_list::update( scene& s ) {
                 if (source_dim != *dim) {
                     dim = source_dim;
                     resize(source_dim);
+                    if( name == "Self" ) s.self_dim = source_dim;
                 }
 
                 // Copying here may be an unnecessary extra step - can we render directly from source buffer?
@@ -338,6 +348,7 @@ void scene::set_output_buffer( any_buffer_pair_ptr& buf ) {
     vec2i dim_out;
     std::visit( [&]( auto& b ) { dim_out = b->get_image().get_dim(); }, buf );
     std::cout << "scene::set_output_buffer() dim_out " << dim_out.x << " " << dim_out.y << std::endl << std::endl;
+    self_dim = dim_out;
 
     for( int i = 0; i < queue.size() - 1; i++ ) {
         auto& eff_list = queue[ i ];

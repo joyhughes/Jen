@@ -609,7 +609,7 @@
             "name": "Flip",
             "type": "eff_flip_vec2f",
             "flip_x": true,
-            "flip_y": true
+            "flip_y": false
         },
         {
             "name": "Warp chooser",
