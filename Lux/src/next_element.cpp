@@ -128,7 +128,7 @@ vec2i buffer_dim_fn::operator () ( vec2i& val, element_context& context  )
     }
     any_buffer_pair_ptr buf = context.s.buffers[ *buf_name ];
     std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
-    std::cout << "buffer_dim_fn: buffer " << *buf_name << " dim " << val.x << " " << val.y << std::endl;
+    //std::cout << "buffer_dim_fn: buffer " << *buf_name << " dim " << val.x << " " << val.y << std::endl;
     return val;
 }
 

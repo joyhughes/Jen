@@ -281,7 +281,7 @@
             "tool": "pull_down",
             "label": "Transition Rule",
             "description": "Transition rules include cellular automata such as Conway's Game of Life, and other ways each frame can depend on the previous one.",
-            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Threadfall", "Borg", "Box blur", "Blurriffic" ],
+            "items": [ "Diffuse", "Life", "Gravitate", "Snow", "Stargate", "Threadfall", "Borg", "Box blur", "Blurriffic", "Random Copy" ],
             "default_choice": 4,
             "affects_widget_groups": true,
             "choice": { "functions": [ "rule_menu_generator" ] }
@@ -404,6 +404,78 @@
             "tool": "switch",
             "default_value": false,
             "value": { "functions": [ "bb_random_copy_toggle" ] }
+        },
+                {
+            "name": "flip_x_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
+        {
+            "name": "flip_x_switch",
+            "type": "switch_fn",
+            "label": "Flip X",
+            "description": "Flip the target image horizontally.",
+            "default_value": true,
+            "value": { "functions": [ "flip_x_toggle" ] }
+        },  
+        {
+            "name": "flip_y_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },  
+        {
+            "name": "flip_y_switch",
+            "type": "switch_fn",
+            "label": "Flip Y",
+            "description": "Flip the target image vertically.",
+            "default_value": false,
+            "value": { "functions": [ "flip_y_toggle" ] }
+        },
+        {
+            "name": "angle_slider",
+            "type": "slider_float",
+            "label": "Rotation Angle",
+            "description": "Angle to rotate the target image (degrees).",
+            "min": -180.0,
+            "max": 180.0,
+            "default_value": 0.0,
+            "step": 1.0
+        },
+        {
+            "name": "warp_menu_generator",
+            "type": "generator_int",
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "a": 0,
+            "b": 2,
+            "min": 0,
+            "max": 2,
+            "distribution": "uniform",
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        }, 
+        {
+            "name": "warp_menu",
+            "type": "menu_int",
+            "tool": "pull_down",
+            "label": "Warp Effect",
+            "description": "Choose a warp effect to apply to the target image.",
+            "items": [ "Flip", "Rotate" ],
+            "affects_widget_groups": true,
+            "default_choice": 0,
+            "choice": { "functions": [ "warp_menu_generator" ] }
+        },
+        {
+            "name": "warp_menu_0",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "warp_menu" ] },
+            "b": 0
+        },
+        {
+            "name": "warp_menu_1",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "warp_menu" ] },
+            "b": 1
         },
         {
             "name": "targ_dim",
@@ -581,18 +653,33 @@
                 "random_copy": { "functions": [ "bb_random_copy_switch" ]},
                 "custom_picker": "blur_picker_custom"
             }
-        },  
+        },
+        {
+            "name": "Random Copy",
+            "type": "CA_ucolor",
+            "edge_block": { "functions": [ "edge_block_switch" ] },
+            "bright_block": { "functions": [ "bright_block_switch" ] },
+            "bright_range": { "functions": [ "bright_block_slider" ] },
+            "targeted": { "functions": [ "target_switch" ] },
+            "target_name": {"functions": [ "targ_image_menu" ] },
+            "warp_name": "Target Warp",
+            "rule":
+            {
+                "name": "Random Copy rule",
+                "type": "rule_random_copy_ucolor"
+            }
+        },   
         {
             "name": "Rule Chooser",
             "type": "eff_chooser",
-            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Diagonal funky sort", "Box blur", "Blurriffic" ],
+            "effects": [ "Diffuse", "Life", "Gravitate", "Snow", "Pixel sort", "Funky sort", "Diagonal funky sort", "Box blur", "Blurriffic", "Random Copy" ],
             "choice": { "functions": [ "rule_menu" ] }
         },
         {
             "name": "position fill",
             "type": "eff_position_fill_vec2f"
         },
-        { 
+        {
             "name": "radial",
             "type": "eff_radial_vec2f"
         },
@@ -608,14 +695,19 @@
         {            
             "name": "Flip",
             "type": "eff_flip_vec2f",
-            "flip_x": true,
-            "flip_y": false
+            "flip_x": { "functions": [ "flip_x_switch" ] },
+            "flip_y": { "functions": [ "flip_y_switch" ] }
+        },
+        {
+            "name": "Rotate",
+            "type": "eff_rotate_vectors_vec2f",
+            "angle": { "functions": [ "angle_slider" ] }
         },
         {
             "name": "Warp chooser",
             "type": "eff_chooser",
-            "effects": [ "Flip" ],
-            "choice": 0
+            "effects": [ "Flip", "Rotate" ],
+            "choice": { "functions": [ "warp_menu" ] }
         },
         {
             "name": "brush",
@@ -664,7 +756,17 @@
         },
         { 
             "name": "targ_image_group",
-            "widgets": [ "targ_image_menu" ]
+            "widgets": [ "targ_image_menu", "warp_menu" ]
+        },
+        {
+            "name": "flip_group",
+            "conditions": [ "warp_menu_0" ],
+            "widgets": [ "flip_x_switch", "flip_y_switch" ]
+        },
+        {
+            "name": "rotate_group",
+            "conditions": [ "warp_menu_1" ],
+            "widgets": [ "angle_slider" ]
         },
         {
             "name": "source_image_group",

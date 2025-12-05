@@ -777,11 +777,11 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_turn_vec2f )  READE( direction ) END_EFF()
     EFF( eff_turn_int )    READE( direction ) END_EFF()
 
-    EFF( eff_flip_frgb )   READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_ucolor ) READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_vec2i )  READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_vec2f )  READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_int )    READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_frgb )   HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_ucolor ) HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2i )  HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2f )  HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_int )    HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
 
     EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
