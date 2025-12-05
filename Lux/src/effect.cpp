@@ -313,6 +313,7 @@ template class eff_cartesian< vec2f >;
 
 template< class T > void eff_rotate_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
+    angle( context );
     vf_tools tools( get_image< T >( buf ) );
     tools.rotate_vectors( *angle );
 }
