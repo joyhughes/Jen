@@ -121,8 +121,14 @@ float wiggle::operator ()  ( float& val, element_context& context  )
 vec2i buffer_dim_fn::operator () ( vec2i& val, element_context& context  )
 {
     buf_name( context );
+    if( *buf_name == "Self" ) {
+        val = context.s.self_dim;
+        if( val.x == 640 ) std::cout << "buffer_dim_fn: buffer " << *buf_name << " dim " << val.x << " " << val.y << std::endl;
+        return val;
+    }
     any_buffer_pair_ptr buf = context.s.buffers[ *buf_name ];
     std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
+    //std::cout << "buffer_dim_fn: buffer " << *buf_name << " dim " << val.x << " " << val.y << std::endl;
     return val;
 }
 

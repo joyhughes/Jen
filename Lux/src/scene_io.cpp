@@ -69,10 +69,6 @@ scene_reader::scene_reader( scene& s_init, std::string( filename ) ) : s( s_init
     for( auto& e : elem_img_bufs  ) { s.elements[ e.first ]->img  = s.buffers[ e.second ];  }
     for( auto& m : elem_mask_bufs ) { s.elements[ m.first ]->mask = s.buffers[ m.second ];  }
     for( auto& c : cluster_elements ) { s.clusters[ c.first ]->root_elem = *s.elements[ c.second ]; }
-    for( auto& t : CA_targets ) { 
-        std::cout << "adding target buffer " << t.second << " to CA " << t.first << std::endl;
-        std::get< std::shared_ptr< CA< ucolor > > >( s.effects[ t.first ].fn_ptr )->target = s.buffers[ t.second ]; 
-    }
     DEBUG( "scene_reader constructor finished" )
 }
 
@@ -691,11 +687,7 @@ void scene_reader::read_effect( const json& j ) {
     // special case for CA rules
     EFF( CA_ucolor )
         if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
-        if( j.contains( "target") ) {
-            j[ "target" ].get_to( buf_name );
-            CA_targets[ name ] = buf_name;
-        }
-        HARNESSE( targeted )
+        HARNESSE( target_name ) HARNESSE( warp_name ) HARNESSE( targeted )
         HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block ) 
         HARNESSE( bright_block ) HARNESSE( bright_range )
     END_EFF()
@@ -730,7 +722,7 @@ void scene_reader::read_effect( const json& j ) {
                 e->add_effect( s.effects[ eff_name ] );
                 DEBUG( "chooser effect " + name + " adding effect " + eff_name )
             }
-            else ERROR( "eff_chooser effect not found\n" )
+            else ERROR( "eff_chooser " + name + " effect " + eff_name + " not found\n" )
         }
     }
     DEBUG( "chooser effect " + name + " has " + std::to_string( e->effects.size() ) + " effects" )
@@ -785,11 +777,11 @@ void scene_reader::read_effect( const json& j ) {
     EFF( eff_turn_vec2f )  READE( direction ) END_EFF()
     EFF( eff_turn_int )    READE( direction ) END_EFF()
 
-    EFF( eff_flip_frgb )   READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_ucolor ) READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_vec2i )  READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_vec2f )  READE( flip_x ) READE( flip_y ) END_EFF()
-    EFF( eff_flip_int )    READE( flip_x ) READE( flip_y ) END_EFF()
+    EFF( eff_flip_frgb )   HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_ucolor ) HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2i )  HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_vec2f )  HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
+    EFF( eff_flip_int )    HARNESSE( flip_x ) HARNESSE( flip_y ) END_EFF()
 
     EFF( eff_noise_frgb )   HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
     EFF( eff_noise_ucolor ) HARNESSE( a ) READE( bounded ) HARNESSE( bounds ) END_EFF()
@@ -896,6 +888,7 @@ void scene_reader::read_widget_group( const json& j ) {
     else ERROR( "Widget group name missing\n" )
     if( j.contains( "label" ) ) read( wg.label, j[ "label" ] );
     if( j.contains( "description" ) ) read( wg.description, j[ "description" ] );
+    if( j.contains( "pane" ) ) read( wg.pane, j[ "pane" ] );
     if( j.contains( "conditions" ) ) for( std::string condition : j[ "conditions" ] ) wg.add_condition( condition );
     if( j.contains( "widgets" ) ) for( std::string widget : j[ "widgets" ] ) wg.add_widget( widget );
     s.ui.widget_groups.push_back( wg );

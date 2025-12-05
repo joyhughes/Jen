@@ -207,7 +207,7 @@ bool widget_group::operator() ( element_context& context ) {
     return true;
 }
 
-widget_group::widget_group( const std::string& name_init, const std::string& label_init, const std::string& description_init ) : name( name_init ), label( label_init ), description( description_init ) {}
+widget_group::widget_group( const std::string& name_init, const std::string& label_init, const std::string& description_init, const std::string& pane_init ) : name( name_init ), label( label_init ), description( description_init ), pane( pane_init ) {}
 
 widget_group::~widget_group() {
     clear();

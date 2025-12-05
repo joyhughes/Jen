@@ -207,7 +207,7 @@ typedef eff_turn< int > eff_turn_int;
 typedef eff_turn< vec2i > eff_turn_vec2i;
 
 template< class T > struct eff_flip {
-    bool flip_x, flip_y;
+    harness< bool > flip_x, flip_y;
 
     void operator () ( any_buffer_pair_ptr& buf, element_context& context );
 

@@ -817,6 +817,7 @@
         {
             "name": "kaleido_vf",
             "source": "base radial field",
+            "dim": { "functions": [ "source_image_dim" ] },
             "type": "vector_field",
             "mode": "ephemeral",  
             "effects": [ "funky chooser", "scope_chooser" ]

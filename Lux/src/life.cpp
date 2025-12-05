@@ -102,6 +102,7 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
     p( context ); targeted( context );
     bright_block( context ); bright_range( context ); 
     edge_block( context ); alpha_block( context );
+    target_name( context ); warp_name( context );
     //std::cout << "CA: bright_block " << *bright_block << " bright_min " << (*bright_range).min << " bright_max " << (*bright_range).max << std::endl;
     hood = rule.init( context );
     if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
@@ -113,27 +114,66 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
         auto out = buf_ptr->get_buffer().begin();
         auto tar = in;
         bool use_target = false; // *targeted == true and target is valid image
+        bool use_wf = false;
+        std::vector<int>::iterator wf;
+
+        dim = img.get_dim();
         vec2i tar_dim;
         vec2i dm1, tdm1;
-        if( *targeted ) { 
-            if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
-                tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
-                if( tar_ptr.get() ) {   // check for null pointer
-                    if( tar_ptr->has_image() ) {
-                        tar_dim = tar_ptr->get_image().get_dim();
-                        tar = tar_ptr->get_image().begin();
-                        use_target = true;  // target image is valid
+        if( *targeted ) {
+            // get target buffer from scene
+            if( *target_name == "Self") {
+                tar_dim = dim;
+                tar = in;
+                use_target = true;  // target image is valid
+            }
+            else {
+                if( context.s.buffers.contains( *target_name ) ) {
+                    any_buffer_pair_ptr target = context.s.buffers[ *target_name ];
+                    if( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( target ) ) {
+                        tar_ptr = std::get<     std::shared_ptr< buffer_pair< T > > >( target );
+                        if( tar_ptr.get() ) {   // check for null pointer
+                            if( tar_ptr->has_image() ) {
+                                tar_dim = tar_ptr->get_image().get_dim();
+                                tar = tar_ptr->get_image().begin();
+                                use_target = true;  // target image is valid
+                            }
+                            else {
+                                std::cout << "CA: target buffer has no image" << std::endl;
+                            }
+                        }
+                        else {
+                            std::cout << "CA: target buffer is null" << std::endl;
+                        }
+                    } else {
+                        std::cout << "CA: target buffer type mismatch" << std::endl;
+                    }
+                } else {
+                    std::cout << "CA: target buffer " << *target_name << " not found" << std::endl;
+                }
+            }
+            if( context.s.buffers.contains( *warp_name ) ) {
+                any_buffer_pair_ptr wf_buf = context.s.buffers[ *warp_name ];
+                if( std::holds_alternative< std::shared_ptr< buffer_pair< int > > >( wf_buf ) ) {
+                    auto wf_ptr = std::get<     std::shared_ptr< buffer_pair< int > > >( wf_buf );
+                    if( wf_ptr.get() ) {   // check for null pointer
+                        if( wf_ptr->has_image() ) {
+                            // get warp field image
+                            wf = wf_ptr->get_image().begin();
+                            auto wf_dim = wf_ptr->get_image().get_dim();
+                            if( wf_dim == tar_dim ) use_wf = true;
+                            else std::cout << "CA: warp field dimension mismatch" << wf_dim.x << " " << wf_dim.y << std::endl;
+                        }
+                        else {
+                            std::cout << "CA: warp field buffer has no image" << std::endl;
+                        }
                     }
                     else {
-                        std::cout << "CA: target buffer has no image" << std::endl;
+                        std::cout << "CA: warp field buffer is null" << std::endl;
                     }
                 }
-                else {
-                    std::cout << "CA: target buffer is null" << std::endl;
-                }
-             }
+            }
         }
-        dim = img.get_dim();
         dm1 = dim - vec2i( 1, 1 );
         tdm1 = tar_dim - vec2i( 1, 1 );
         int tx, ty;
@@ -182,7 +222,8 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                     run_rule();  // apply rule
                     if( use_target ) {    // if targeted, compare with target
                         ty = y * tdm1.y / dm1.y;
-                        tar_it = tar + ty * tar_dim.x + tx;
+                        if( use_wf ) { tar_it = tar + *( wf + ty * tar_dim.x + tx ); }
+                        else { tar_it = tar + ty * tar_dim.x + tx; }
                         if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
                         else *out_it = MM;
                     }
@@ -277,8 +318,14 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                     if( use_target ) {
                         txl = xl * tdm1.x / dm1.x;
                         txr = xr * tdm1.x / dm1.x;
-                        tar_ul = tar + tyu * tar_dim.x + txl;    tar_ur = tar + tyu * tar_dim.x + txr; 
-                        tar_ll = tar + tyl * tar_dim.x + txl;    tar_lr = tar + tyl * tar_dim.x + txr;
+                        if( use_wf ) {
+                            tar_ul = tar + *( wf + tyu * tar_dim.x + txl );    tar_ur = tar + *( wf + tyu * tar_dim.x + txr ); 
+                            tar_ll = tar + *( wf + tyl * tar_dim.x + txl );    tar_lr = tar + *( wf + tyl * tar_dim.x + txr );
+                        }
+                        else {
+                            tar_ul = tar + tyu * tar_dim.x + txl;    tar_ur = tar + tyu * tar_dim.x + txr; 
+                            tar_ll = tar + tyl * tar_dim.x + txl;    tar_lr = tar + tyl * tar_dim.x + txr;
+                        }
                         TUL = *tar_ul; TUR = *tar_ur; TLL = *tar_ll; TLR = *tar_lr;
                     }
 

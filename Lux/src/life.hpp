@@ -23,7 +23,8 @@ template< class T > struct CA {
    std::vector< T > neighbors, result, targ; // vector of neighbors - size depends on neighborhood
    // Future - use for image targeting
    harness< bool > targeted; // if true, rule will run if it gets closer to target image
-   any_buffer_pair_ptr target; // target image
+   harness< string > target_name, warp_name;
+   //any_buffer_pair_ptr target; // target image
    // 
    // Rule can have both warp field and vector field
    // For choice between fast and smooth
@@ -56,7 +57,8 @@ template< class T > struct CA {
    CA() :  // default constructor for rule returns identity rule pointer
       rule(),
       targeted( false ),
-      target( null_buffer_pair_ptr ),
+      target_name( "" ),
+      warp_name( "" ),
       hood( HOOD_MOORE ), 
       p( 1.0f ),
       edge_block( false ),

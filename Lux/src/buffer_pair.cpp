@@ -91,7 +91,7 @@ template< class T > void buffer_pair< T >::copy_first( const buffer_pair<T>& bp 
         else {
             //std::cout << "buffer_pair::copy_first() - dest pointer not NULL" << std::endl;
             image_pair.first->copy( *bp.image_pair.first );
-            //image_pair.second.reset( NULL );
+            image_pair.second.reset( NULL );
         }
     }
     else {

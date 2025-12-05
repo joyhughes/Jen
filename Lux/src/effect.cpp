@@ -233,9 +233,10 @@ template class eff_turn< vec2i >;
 template< class T > void eff_flip< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
     {
+        flip_x( context ); flip_y( context );
         auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
         if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_flip: no image in buffer" );
-        buf_ptr->get_buffer().flip( buf_ptr->get_image(), flip_x, flip_y );
+        buf_ptr->get_buffer().flip( buf_ptr->get_image(), *flip_x, *flip_y );
         buf_ptr->swap();
     }
 } 
@@ -312,6 +313,7 @@ template class eff_cartesian< vec2f >;
 
 template< class T > void eff_rotate_vectors< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
+    angle( context );
     vf_tools tools( get_image< T >( buf ) );
     tools.rotate_vectors( *angle );
 }
