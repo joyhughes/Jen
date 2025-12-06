@@ -227,9 +227,18 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         else { tar_it = tar + ty * tar_dim.x + tx; }
                         ucolor t = *tar_it;
                         if( *invert_target ) invert( t );
-                        if( target_byte_rotation != 0 ) t = hsv_to_rgb( rotate_hue( rgb_to_hsv( t ), target_byte_rotation ) );
-                        if( manhattan( t, result[0] ) < manhattan( t, MM ) ) *out_it = result[0];
-                        else *out_it = MM;
+                        //if( target_byte_rotation != 0 ) t = hsv_to_rgb( rotate_hue( rgb_to_hsv( t ), target_byte_rotation ) );
+                        if( target_byte_rotation != 0 ) {
+                            t = rotate_hue( rgb_to_hsv( t ), target_byte_rotation );
+                            if( manhattan( t, rgb_to_hsv( result[0] ) ) < manhattan( t, rgb_to_hsv( MM ) ) ) *out_it = result[0];
+                            else *out_it = MM;
+                        }
+                        else {
+                            if( manhattan( t, result[0] ) < manhattan( t, MM ) ) *out_it = result[0];
+                            else *out_it = MM;
+                        }
+                        //if( manhattan( t, result[0] ) < manhattan( t, MM ) ) *out_it = result[0];
+                        //else *out_it = MM;
                     }
                     else *out_it = result[0];        // set output
                     out_it += dim.x;
@@ -343,11 +352,17 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                             TUR = hsv_to_rgb( rotate_hue( rgb_to_hsv( TUR ), target_byte_rotation ) );
                             TLL = hsv_to_rgb( rotate_hue( rgb_to_hsv( TLL ), target_byte_rotation ) );
                             TLR = hsv_to_rgb( rotate_hue( rgb_to_hsv( TLR ), target_byte_rotation ) );
+                            if( manhattan( rgb_to_hsv( RUL ), TUL ) + manhattan( rgb_to_hsv( RUR ), TUR ) + manhattan( rgb_to_hsv( RLR ), TLR ) + manhattan( rgb_to_hsv( RLL ), TLL ) <
+                                manhattan( rgb_to_hsv( MUL ), TUL ) + manhattan( rgb_to_hsv( MUR ), TUR ) + manhattan( rgb_to_hsv( MLR ), TLR ) + manhattan( rgb_to_hsv( MLL ), TLL ) )
+                                    { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
+                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
                         }
-                        if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
-                            manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
-                                { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
-                        else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
+                        else {
+                            if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
+                                manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
+                                    { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
+                            else { *out_ul = MUL; *out_ur = MUR; *out_ll = MLL; *out_lr = MLR; }
+                        }
                     } else { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }
                 }
             }
