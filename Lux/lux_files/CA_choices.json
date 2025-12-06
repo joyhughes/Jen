@@ -444,6 +444,30 @@
             "step": 1.0
         },
         {
+            "name": "invert_target_toggle",
+            "type": "random_toggle",
+            "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
+            "enabled": { "functions": [ "autoplay_switch" ] }
+        },        
+        {
+            "name": "invert_target_switch",
+            "type": "switch_fn",
+            "label": "Invert Target",
+            "description": "Invert the colors of the target image.",
+            "default_value": false,
+            "value": { "functions": [ "invert_target_toggle" ] }
+        },
+        {
+            "name": "target_color_angle_slider",
+            "type": "slider_float",
+            "label": "Target Color Angle",
+            "description": "Angle to rotate the target color (degrees).",
+            "min": -180.0,
+            "max": 180.0,
+            "default_value": 0.0,
+            "step": 1.0
+        },
+        {
             "name": "warp_menu_generator",
             "type": "generator_int",
             "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
@@ -506,6 +530,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -519,6 +545,8 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -536,6 +564,8 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -552,6 +582,8 @@
             "edge_block": { "functions": [ "edge_block_switch" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -568,6 +600,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -604,6 +638,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -622,6 +658,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -642,6 +680,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -662,6 +702,8 @@
             "bright_range": { "functions": [ "bright_block_slider" ] },
             "targeted": { "functions": [ "target_switch" ] },
             "target_name": {"functions": [ "targ_image_menu" ] },
+            "invert_target": { "functions": [ "invert_target_switch" ] },
+            "target_color_angle": { "functions": [ "target_color_angle_slider" ] },
             "warp_name": "Target Warp",
             "rule":
             {
@@ -756,7 +798,7 @@
         },
         { 
             "name": "targ_image_group",
-            "widgets": [ "targ_image_menu", "warp_menu" ]
+            "widgets": [ "targ_image_menu", "invert_target_switch", "target_color_angle_slider", "warp_menu" ]
         },
         {
             "name": "flip_group",
