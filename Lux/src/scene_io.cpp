@@ -688,6 +688,7 @@ void scene_reader::read_effect( const json& j ) {
     EFF( CA_ucolor )
         if( j.contains( "rule" ) ) read_rule( j[ "rule" ], e );
         HARNESSE( target_name ) HARNESSE( warp_name ) HARNESSE( targeted )
+        HARNESSE( invert_target ) HARNESSE( target_color_angle );
         HARNESSE( p ) HARNESSE( edge_block ) HARNESSE( alpha_block ) 
         HARNESSE( bright_block ) HARNESSE( bright_range )
     END_EFF()
