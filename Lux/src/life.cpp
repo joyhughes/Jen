@@ -94,7 +94,6 @@ template< class T > void CA< T >::run_rule() {
 // future - implement multiresolution rule on mip-map
 // Uses toroidal boundary conditions
 template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element_context& context ) {
-
     if( ca_frame == 0 ) {
         ca_frame++;
         return;
@@ -102,8 +101,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
     p( context ); targeted( context );
     bright_block( context ); bright_range( context ); 
     edge_block( context ); alpha_block( context );
+    invert_target( context ); target_color_angle( context );
     target_name( context ); warp_name( context );
-    //std::cout << "CA: bright_block " << *bright_block << " bright_min " << (*bright_range).min << " bright_max " << (*bright_range).max << std::endl;
+    // convert target color angle to byte rotation (0-255) shifted to hue byte
+    unsigned int target_byte_rotation = static_cast<unsigned int>(static_cast<int>( std::floor( *target_color_angle / 360.0f * 256.0f + 0.5f ) ) % 256) << 16;
     hood = rule.init( context );
     if ( std::holds_alternative< std::shared_ptr< buffer_pair< T > > >( buf ) ) {
         auto buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >( buf ); 
@@ -224,7 +225,10 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
                         ty = y * tdm1.y / dm1.y;
                         if( use_wf ) { tar_it = tar + *( wf + ty * tar_dim.x + tx ); }
                         else { tar_it = tar + ty * tar_dim.x + tx; }
-                        if( manhattan( *tar_it, result[0] ) < manhattan( *tar_it, MM ) ) *out_it = result[0];
+                        ucolor t = *tar_it;
+                        if( *invert_target ) invert( t );
+                        if( target_byte_rotation != 0 ) t = hsv_to_rgb( rotate_hue( rgb_to_hsv( t ), target_byte_rotation ) );
+                        if( manhattan( t, result[0] ) < manhattan( t, MM ) ) *out_it = result[0];
                         else *out_it = MM;
                     }
                     else *out_it = result[0];        // set output
@@ -331,6 +335,15 @@ template< class T > void CA< T >::operator() ( any_buffer_pair_ptr& buf, element
 
                     run_rule();  // apply rule
                     if( use_target ) {
+                        if( *invert_target ) {
+                            invert( TUL ); invert( TUR ); invert( TLL ); invert( TLR );
+                        }
+                        if( target_byte_rotation != 0 ) {
+                            TUL = hsv_to_rgb( rotate_hue( rgb_to_hsv( TUL ), target_byte_rotation ) );
+                            TUR = hsv_to_rgb( rotate_hue( rgb_to_hsv( TUR ), target_byte_rotation ) );
+                            TLL = hsv_to_rgb( rotate_hue( rgb_to_hsv( TLL ), target_byte_rotation ) );
+                            TLR = hsv_to_rgb( rotate_hue( rgb_to_hsv( TLR ), target_byte_rotation ) );
+                        }
                         if( manhattan( RUL, TUL ) + manhattan( RUR, TUR ) + manhattan( RLR, TLR ) + manhattan( RLL, TLL ) <
                             manhattan( MUL, TUL ) + manhattan( MUR, TUR ) + manhattan( MLR, TLR ) + manhattan( MLL, TLL ) )
                                 { *out_ul = RUL; *out_ur = RUR; *out_ll = RLL; *out_lr = RLR; }

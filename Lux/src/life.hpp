@@ -23,6 +23,8 @@ template< class T > struct CA {
    std::vector< T > neighbors, result, targ; // vector of neighbors - size depends on neighborhood
    // Future - use for image targeting
    harness< bool > targeted; // if true, rule will run if it gets closer to target image
+   harness< bool > invert_target; // if true, invert the target color
+   harness< float > target_color_angle; // color rotation angle (degrees) for color comparison
    harness< string > target_name, warp_name;
    //any_buffer_pair_ptr target; // target image
    // 
