@@ -397,6 +397,18 @@ template< class T > void eff_fermat_spiral< T >::operator () ( any_buffer_pair_p
 
 template class eff_fermat_spiral< vec2f >;
 
+template< class T > void eff_complex_power< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
+{
+    p(context);
+    cx(context);
+    cy(context);
+    scale(context);
+    vf_tools tools( get_image< T >( buf ) );
+    tools.complex_power( *p, { *cx, *cy }, *scale );
+}
+
+template class eff_complex_power< vec2f >;
+
 template< class T > void eff_vortex< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )
 {
     if (std::holds_alternative< vbuf_ptr>(buf)) 

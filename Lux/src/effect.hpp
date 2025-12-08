@@ -377,6 +377,20 @@ template< class T > struct eff_fermat_spiral {
 
 typedef eff_fermat_spiral< vec2f > eff_fermat_spiral_vec2f;
 
+template< class T > struct eff_complex_power {
+    harness< float > p;
+    harness< float > cx;
+    harness< float > cy;
+    harness< float > scale;
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_complex_power( float p_init = 2.0f, float cx_init = 0.0f, float cy_init = 0.0f, float scale_init = 1.0f ) : 
+        p( p_init ), cx( cx_init ), cy( cy_init ), scale( scale_init ) {}
+};
+
+typedef eff_complex_power< vec2f > eff_complex_power_vec2f;
+
 template< class T > struct eff_vortex {
     harness< float > diameter;   // float - Overall size of vortex
     harness< float > soften;     // float - Avoids a singularity in the center of vortex

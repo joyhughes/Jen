@@ -172,6 +172,17 @@ void vf_tools::fermat_spiral(const float& c)
     }
 }
 
+void vf_tools::complex_power( const float& p, const vec2f& c, float scale ) {
+    auto& base = img.mip[ 0 ];
+    vec2f z;
+    float r, theta;
+    if( scale == 0.0f ) scale = 1.0f;
+    for( auto& v : base ) {
+        v = ( ::complex_power( v, p ) + c ) / scale;
+    }
+    img.mip_utd = false;
+}
+
 void vf_tools::vortex( const ::vortex& vort, const float& t ) {
     vec2f center= vort.center_orig;
     if( vort.revolving ) center = vort.center_of_revolution + linalg::rot( vort.velocity * t * TAU, vort.center_orig - vort.center_of_revolution );
