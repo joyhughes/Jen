@@ -490,7 +490,7 @@
         {
             "name": "complex_power_cx_slider",
             "type": "slider_float",
-            "label": "Seed X",
+            "label": "Real",
             "description": "X coordinate for the complex power offset.",
             "min": -2.0,
             "max": 2.0,
@@ -500,7 +500,7 @@
         {
             "name": "complex_power_cy_slider",
             "type": "slider_float",
-            "label": "Seed Y",
+            "label": "Imaginary",
             "description": "Y coordinate for the complex power offset.",
             "min": -2.0,
             "max": 2.0,
