@@ -434,6 +434,16 @@
             "value": { "functions": [ "flip_y_toggle" ] }
         },
         {
+            "name": "scale_slider",
+            "type": "slider_float",
+            "label": "Scale",
+            "description": "Scale factor for the target image.",
+            "min": 0.0,
+            "max": 3.0,
+            "default_value": 1.0,
+            "step": 0.001
+        },
+        {
             "name": "angle_slider",
             "type": "slider_float",
             "label": "Rotation Angle",
@@ -468,6 +478,36 @@
             "step": 1.0
         },
         {
+            "name": "complex_power_slider",
+            "type": "slider_float",
+            "label": "Complex Power",
+            "description": "Power for the complex transformation.",
+            "min": -4.0,
+            "max": 4.0,
+            "default_value": 2.0,
+            "step": 0.01
+        },
+        {
+            "name": "complex_power_cx_slider",
+            "type": "slider_float",
+            "label": "Real",
+            "description": "X coordinate for the complex power offset.",
+            "min": -2.0,
+            "max": 2.0,
+            "default_value": -1.0,
+            "step": 0.01
+        },
+        {
+            "name": "complex_power_cy_slider",
+            "type": "slider_float",
+            "label": "Imaginary",
+            "description": "Y coordinate for the complex power offset.",
+            "min": -2.0,
+            "max": 2.0,
+            "default_value": 0.0,
+            "step": 0.01
+        },
+        {
             "name": "warp_menu_generator",
             "type": "generator_int",
             "p": { "functions": [ "autoplay_intensity", "autoplay_probability" ] },
@@ -484,7 +524,7 @@
             "tool": "pull_down",
             "label": "Warp Effect",
             "description": "Choose a warp effect to apply to the target image.",
-            "items": [ "Flip", "Rotate" ],
+            "items": [ "Flip", "Rotate", "Fractal" ],
             "affects_widget_groups": true,
             "default_choice": 0,
             "choice": { "functions": [ "warp_menu_generator" ] }
@@ -500,6 +540,12 @@
             "type": "equal_int_condition",
             "a": { "functions": [ "warp_menu" ] },
             "b": 1
+        },
+        {
+            "name": "warp_menu_2",
+            "type": "equal_int_condition",
+            "a": { "functions": [ "warp_menu" ] },
+            "b": 2
         },
         {
             "name": "targ_dim",
@@ -722,6 +768,11 @@
             "type": "eff_position_fill_vec2f"
         },
         {
+            "name": "scale vector field",
+            "type": "eff_scale_vectors_vec2f",
+            "scale": { "functions": [ "scale_slider" ] }
+        },
+        {
             "name": "radial",
             "type": "eff_radial_vec2f"
         },
@@ -746,9 +797,17 @@
             "angle": { "functions": [ "angle_slider" ] }
         },
         {
+            "name": "Complex Power",
+            "type": "eff_complex_power_vec2f",
+            "p": { "functions": [ "complex_power_slider" ] },
+            "cx": { "functions": [ "complex_power_cx_slider" ] },
+            "cy": { "functions": [ "complex_power_cy_slider" ] },
+            "scale": { "functions": [ "scale_slider" ] }
+        },
+        {
             "name": "Warp chooser",
             "type": "eff_chooser",
-            "effects": [ "Flip", "Rotate" ],
+            "effects": [ "Flip", "Rotate", "Complex Power" ],
             "choice": { "functions": [ "warp_menu" ] }
         },
         {
@@ -772,7 +831,7 @@
             "dim": { "functions": [ "targ_dim" ] },
             "type": "vector_field",
             "mode": "ephemeral",
-            "effects": [ "position fill", "Warp chooser" ]
+            "effects": [ "position fill", "scale vector field", "Warp chooser" ]
         },
         {
             "name": "Target Warp",
@@ -798,7 +857,7 @@
         },
         { 
             "name": "targ_image_group",
-            "widgets": [ "targ_image_menu", "invert_target_switch", "target_color_angle_slider", "warp_menu" ]
+            "widgets": [ "targ_image_menu", "invert_target_switch", "target_color_angle_slider", "warp_menu", "scale_slider" ]
         },
         {
             "name": "flip_group",
@@ -809,6 +868,11 @@
             "name": "rotate_group",
             "conditions": [ "warp_menu_1" ],
             "widgets": [ "angle_slider" ]
+        },
+        {
+            "name": "complex_power_group",
+            "conditions": [ "warp_menu_2" ],
+            "widgets": [ "complex_power_slider", "complex_power_cx_slider", "complex_power_cy_slider", "complex_power_scale_slider" ]
         },
         {
             "name": "source_image_group",

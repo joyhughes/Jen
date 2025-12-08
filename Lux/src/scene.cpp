@@ -107,18 +107,11 @@ void effect_list::resize( vec2i new_dim ) {
 void effect_list::update( scene& s ) {
     // create dummy context
     element_context context( s, buf );
-    /*if( name == "Self") {
-        any_buffer_pair_ptr buf = context.s.buffers[ name ];
-        vec2i val;
-        std::visit( [&]( auto& b ) { val = b->get_image().get_dim(); }, buf );
-        std::cout << "effect_list " << name << " update() - buffer dim " << val.x << " " << val.y << std::endl;
-    }*/
 
     if( self_generated ) {
         vec2i old_dim = *dim;
         dim( context );
         vec2i new_dim = *dim;
-        //if( name == "warp_vf" ) std::cout << "effect_list " << name << " update() - new dim " << new_dim.x << " " << new_dim.y << std::endl;
         if( new_dim != old_dim ) {
             resize( new_dim );
             rendered = false;

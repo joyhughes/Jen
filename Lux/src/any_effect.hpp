@@ -46,6 +46,7 @@ template< class T > struct eff_concentric;
 template< class T > struct eff_rotational;
 template< class T > struct eff_spiral;
 template< class T > struct eff_fermat_spiral;
+template< class T > struct eff_complex_power;
 template< class T > struct eff_vortex;
 template< class T > struct eff_turbulent;
 template< class T > struct eff_kaleidoscope;
@@ -164,6 +165,7 @@ typedef std::variant <
     std::shared_ptr< eff_rotational< vec2f > >,
     std::shared_ptr< eff_spiral< vec2f > >,
     std::shared_ptr< eff_fermat_spiral< vec2f > >,
+    std::shared_ptr< eff_complex_power< vec2f > >,
     std::shared_ptr< eff_vortex< vec2f > >,
     std::shared_ptr< eff_turbulent< vec2f > >,
     std::shared_ptr< eff_kaleidoscope< vec2f > >,

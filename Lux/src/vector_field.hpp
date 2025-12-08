@@ -107,6 +107,7 @@ public:
     void rotation(   const vec2f& center = { 0.0f, 0.0f } );
     void spiral(     const vec2f& center = { 0.0f, 0.0f }, const float& cscale = 1.0f, const float& rscale = 1.0f );
     void fermat_spiral(const float& c);
+    void complex_power( const float& p, const vec2f& c = { 0.0f, 0.0f }, float scale = 1.0f );
 
     void vortex( const ::vortex& vort, const float& t = 0.0f );
     void turbulent( vortex_field& f,  const float& t = 0.0f );

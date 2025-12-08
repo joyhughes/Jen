@@ -299,8 +299,13 @@ function JenSlider({ json, width }) {
         if (json.type === 'slider_int' || json.type === 'range_slider_int') {
             return parseInt(val);
         } else {
-            const rounded = parseFloat(val).toFixed(1);
-            return rounded.endsWith('.0') ? rounded.slice(0, -2) : rounded;
+            const num = Number(val);
+            if (!Number.isFinite(num)) return '';
+            const precision = 3;
+            const fixed = num.toFixed(precision);
+            // strip trailing zeros and optional trailing decimal point
+            const trimmed = fixed.replace(/\.?0+$/, '');
+            return trimmed;
         }
     }, [json.type]);
 
