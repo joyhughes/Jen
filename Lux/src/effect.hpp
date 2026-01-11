@@ -56,6 +56,17 @@ typedef eff_noise< vec2f > eff_noise_vec2f;
 typedef eff_noise< int > eff_noise_int;
 typedef eff_noise< vec2i > eff_noise_vec2i;
 
+template< class T > struct eff_mutate  {
+    harness< float > amount;
+    harness< float > rate; // log 10 of number of pixels mutated
+
+    void operator () ( any_buffer_pair_ptr& buf, element_context& context );
+
+    eff_mutate( float amount_init = 10.0f ) : amount( amount_init ), rate( 1.0f ) {}
+};
+
+typedef eff_mutate< ucolor > eff_mutate_ucolor;
+
 template< class T > struct eff_checkerboard {
     harness< T > c1;
     harness< T > c2;

@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include "mask_mode.hpp"
+#include "joy_rand.hpp"
 #include "algorithm"
 #include "vector"
 #include <iostream>
@@ -192,6 +193,36 @@ static inline ucolor bit_plane( const ucolor& c, const ucolor& q)
    //std::cout << "blue: " << std::hex << out << " " << " count " << count << " qcount " << qcount << std::endl;
    //std::cout << "out: " << std::hex << ( c & 0xff000000 ) + out << std::endl;
    return out;
+}
+
+static inline ucolor mutate_amount( const float& amount )
+{
+   unsigned int a = roundf( std::fabs( amount) );
+   if( a > 0xff ) a = 0xff;
+   return a << 16 + a << 8 + a;
+}
+
+static inline ucolor mutate( const ucolor& c, const ucolor& amount )
+{
+   // amount is interpreted as 0x00RRGGBB giving max delta per channel
+   unsigned int ar = (amount & 0x00ff0000) >> 16;
+   unsigned int ag = (amount & 0x0000ff00) >> 8;
+   unsigned int ab = (amount & 0x000000ff);
+
+   int delta_r = rand_range( -static_cast<int>(ar), static_cast<int>(ar) );
+   int delta_g = rand_range( -static_cast<int>(ag), static_cast<int>(ag) );
+   int delta_b = rand_range( -static_cast<int>(ab), static_cast<int>(ab) );
+
+   unsigned int alpha = c & 0xff000000;
+   int r = int((c & 0x00ff0000) >> 16);
+   int g = int((c & 0x0000ff00) >> 8);
+   int b = int(c & 0x000000ff);
+
+   r = std::clamp(r + delta_r, 0, 255);
+   g = std::clamp(g + delta_g, 0, 255);
+   b = std::clamp(b + delta_b, 0, 255);
+
+   return alpha | ( (unsigned int)r << 16 ) | ( (unsigned int)g << 8 ) | (unsigned int)b;
 }
 
 #endif // __UCOLOR_HPP

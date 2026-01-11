@@ -46,6 +46,20 @@ template class eff_noise< vec2f >;
 template class eff_noise< int >;
 template class eff_noise< vec2i >;
 
+template< class T > void eff_mutate< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  {
+    amount( context ); rate( context );
+
+    if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
+    {
+        auto& buf_ptr = std::get< std::shared_ptr< buffer_pair< T > > >(buf);
+        if( !buf_ptr->has_image() ) throw std::runtime_error( "eff_mutate: no image in buffer" );
+        int n = std::roundf(std::powf( rate, 10.0f ));
+        for( int i = 0; i < n; i++ ) {
+            buf_ptr->get_image().mutate( *amount );
+        }
+    }
+}
+
 template< class T > void eff_checkerboard< T >::operator () ( any_buffer_pair_ptr& buf, element_context& context )  { 
     c1( context ); c2( context ); box_size( context );
     if (std::holds_alternative< std::shared_ptr< buffer_pair< T > > >(buf))
