@@ -9,17 +9,7 @@ function ImagePortCanvas({ width, height }) {
   const prevSizeRef = useRef({ width, height });
   const lastFrameTimeRef = useRef(0);
 
-  // Add logging control to prevent spam
-  const loggingRef = useRef({
-    frameCount: 0,
-    lastLogTime: 0,
-    logInterval: 1000, // Log every 1000ms instead of every frame
-    debugEnabled: false, // Disable for better performance
-    audioCallCount: 0,
-    lastAudioLog: 0
-  });
 
-  // Mouse event handlers
   const handleMouseDown = useCallback(() => {
     if (window.module) {
       window.module.mouse_down(true);
@@ -62,7 +52,6 @@ function ImagePortCanvas({ width, height }) {
     }
   }, []);
 
-  // DUAL-MODE Canvas rendering function with color format detection + Audio Integration
   const updateCanvas = useCallback(async () => {
     if (!window.module || !canvasRef.current) return;
 
@@ -70,43 +59,20 @@ function ImagePortCanvas({ width, height }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Controlled logging - MUST BE FIRST
-    const logging = loggingRef.current;
     const currentTime = performance.now();
-    const shouldLog = currentTime - logging.lastLogTime > logging.logInterval;
 
-    // AUDIO INTEGRATION: Update audio parameters with main animation loop
     const frameTime = performance.now();
     const deltaTime = lastFrameTimeRef.current > 0 ? 
         (frameTime - lastFrameTimeRef.current) / 1000 : 0.016667; // Default to 60fps
     
-    // Call audio update function if available
     if (window.audioUpdateFunction && typeof window.audioUpdateFunction === 'function') {
         window.audioUpdateFunction(deltaTime);
-        logging.audioCallCount++;
-        
-        // Log audio calls every 2 seconds
-        if (frameTime - logging.lastAudioLog > 2000) {
-            console.log(`[Canvas] 🎵 Audio update called ${logging.audioCallCount} times, deltaTime: ${deltaTime.toFixed(4)}s`);
-            logging.lastAudioLog = frameTime;
-            logging.audioCallCount = 0;
-        }
-    } else if (shouldLog && logging.debugEnabled) {
-        console.log('[Canvas] 🎵 Audio update function not available:', {
-            exists: !!window.audioUpdateFunction,
-            type: typeof window.audioUpdateFunction
-        });
-    }
+    } 
     
     lastFrameTimeRef.current = frameTime;
     
-    if (shouldLog) {
-      logging.lastLogTime = currentTime;
-      logging.frameCount++;
-    }
 
     try {
-      // CORRECT DETECTION: Check the actual current source from backend
       let isLiveCameraSource = false;
       try {
         if (window.module && typeof window.module.get_widget_JSON === 'function') {
@@ -115,41 +81,20 @@ function ImagePortCanvas({ width, height }) {
           const currentSource = sourceMenu.items[sourceMenu.choice];
           isLiveCameraSource = currentSource === 'ultra_camera';
           
-          if (shouldLog && logging.debugEnabled) {
-            console.log(`[Canvas] Current source: "${currentSource}", isLiveCamera: ${isLiveCameraSource}`);
-          }
         }
       } catch (sourceError) {
-        // Fallback: if we can't get source info, assume regular image
         isLiveCameraSource = false;
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas] Could not detect source, assuming regular image');
-        }
       }
 
-      // Get image data from WebAssembly backend
       const imageDataArray = window.module.get_img_data();
       const bufWidth = window.module.get_buf_width();
       const bufHeight = window.module.get_buf_height();
 
-      if (shouldLog && logging.debugEnabled) {
-        console.log(`[Canvas] Mode: ${isLiveCameraSource ? 'Live Camera (BGRA)' : 'Regular Image (RGBA)'}`);
-        console.log(`[Canvas] Buffer: ${bufWidth}x${bufHeight}, Data length: ${imageDataArray?.byteLength}`);
-      }
-      
       if (!imageDataArray || imageDataArray.byteLength === 0) {
-        if (shouldLog) {
-          console.warn('[Canvas] No image data available from backend');
-        }
         return;
       }
 
       if (isLiveCameraSource) {
-        // LIVE CAMERA MODE: Backend sends BGRA format - convert to RGBA for display
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Camera] Converting BGRA → RGBA for live camera display');
-        }
-
         const pixelCount = bufWidth * bufHeight;
         const expectedBytes = pixelCount * 4;
         
@@ -165,13 +110,12 @@ function ImagePortCanvas({ width, height }) {
         for (let i = 0; i < pixelCount; i++) {
           const pixelStart = i * 4;
           
-          // Read pixel data in BGRA format (how camera backend sends it)
+          // Read pixel data in BGRA format 
           const b = imageDataArray[pixelStart + 0]; // Blue from position 0
           const g = imageDataArray[pixelStart + 1]; // Green from position 1
           const r = imageDataArray[pixelStart + 2]; // Red from position 2
           const a = imageDataArray[pixelStart + 3]; // Alpha from position 3
           
-          // Write pixel data in RGBA format (how Canvas expects it)
           rgbaData[pixelStart + 0] = r; // Red moves to position 0
           rgbaData[pixelStart + 1] = g; // Green stays in position 1
           rgbaData[pixelStart + 2] = b; // Blue moves to position 2
@@ -187,11 +131,6 @@ function ImagePortCanvas({ width, height }) {
         imageBitmap.close();
 
       } else {
-        // REGULAR IMAGE MODE: Still images are already in RGBA format - use directly
-        if (shouldLog && logging.debugEnabled) {
-          console.log('[Canvas-Regular] Displaying regular image (RGBA format, no conversion)');
-        }
-
         // Display image data directly (original behavior - no conversion needed)
         const imageData = new ImageData(
             new Uint8ClampedArray(imageDataArray.buffer, imageDataArray.byteOffset, imageDataArray.byteLength),
@@ -205,7 +144,6 @@ function ImagePortCanvas({ width, height }) {
         imageBitmap.close();
       }
 
-      // Mark initialization complete after first render
       if (isInitializing) {
         console.log(`[Canvas] Initialization complete - Mode: ${isLiveCameraSource ? 'Camera (BGRA→RGBA)' : 'Regular (RGBA)'}`);
         setIsInitializing(false);
@@ -216,10 +154,7 @@ function ImagePortCanvas({ width, height }) {
     }
   }, [width, height, isInitializing]);
 
-  // This dependency array ensures the callback is recreated only when these values change
-  // This is important for performance - we don't want to recreate the function unnecessarily
 
-  // Set up WebAssembly callback
   useEffect(() => {
     console.log('[Canvas] Setting up WebAssembly callback...');
 
@@ -248,7 +183,6 @@ function ImagePortCanvas({ width, height }) {
     }
   }, [updateCanvas]);
 
-  // Update canvas size when dimensions change
   useEffect(() => {
     const { width: prevWidth, height: prevHeight } = prevSizeRef.current;
 
@@ -261,7 +195,6 @@ function ImagePortCanvas({ width, height }) {
     }
   }, [width, height, isModuleReady, updateCanvas]);
 
-  // Set up event listeners
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;

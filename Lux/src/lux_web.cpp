@@ -217,7 +217,6 @@ void render_and_display( void *arg )
         if (global_context->is_recording && displayed) {
             uimage& img = (uimage &)(global_context->buf->get_image());
 
-            // add frame to recording
             if (!global_context->video_recorder->add_frame(img)) {
                 std::cerr << "Failed to add frame to recording: " <<
                      global_context->video_recorder->get_error() << std::endl;
@@ -225,12 +224,12 @@ void render_and_display( void *arg )
             }
         }
 
+        global_context->frame_callback();
+
         if( !running && !advance && displayed ) {
             global_context->s->ui.mouse_click = false;
             return;
         }
-
-        global_context->frame_callback();
 
         if( running || advance || !displayed ) {
             global_context->s->render();
@@ -1299,46 +1298,11 @@ bool ultra_process_camera_with_kaleidoscope() {
             return false;
         }
         
-        std::cout << "✓ Camera buffer verified with image data" << std::endl;
-        
-        std::cout << "Triggering scene render with current frontend settings..." << std::endl;
-        
         global_context->s->ui.displayed = false;
-        
-        // Execute scene render - this will:
-        // 1. Read the ultra_camera buffer as source
-        // 2. Apply all effects based on current frontend control panel values  
-        // 3. Render the result to the main output buffer
         global_context->s->render();
-        
-        std::cout << "✓ Scene render completed with frontend-controlled effects" << std::endl;
-        
-        // STEP 3: Verify scene processing worked
+
         if (global_context->buf && global_context->buf->has_image()) {
-            auto& main_image = global_context->buf->get_image();
-            vec2i main_dims = main_image.get_dim();
-            
-            std::cout << "Main buffer after scene processing: " << main_dims.x << "x" << main_dims.y << std::endl;
-            
-            // Quick verification of output
-            auto main_pixels = main_image.get_base_ptr();
-            int processed_pixels = 0;
-            for (int i = 0; i < std::min(100, main_dims.x * main_dims.y); i++) {
-                uint32_t pixel = main_pixels[i];
-                if ((pixel & 0x00FFFFFF) != 0) { // Check RGB components
-                    processed_pixels++;
-                }
-            }
-            
-            std::cout << "Scene output verification: " << processed_pixels << "/100 processed pixels" << std::endl;
-            
-            if (processed_pixels > 10) {
-                std::cout << "✓ Scene successfully processed camera with frontend effects" << std::endl;
-                return true;
-            } else {
-                std::cout << "WARNING: Scene output appears minimal" << std::endl;
-                return false;
-            }
+            return true;
         } else {
             std::cerr << "ERROR: No main buffer after scene processing" << std::endl;
             return false;
@@ -1390,13 +1354,7 @@ bool ultra_start_camera_stream() {
         ultra_camera->is_active = true;
         ultra_camera->frame_count = 0;
         ultra_camera->processed_frames = 0;
-        
-        std::cout << "✓ Ultra camera stream started with kaleidoscope scene integration" << std::endl;
-        std::cout << "✓ Scene-based effects ready: segments, levels, spin, expand, reflect" << std::endl;
-        std::cout << "✓ Vector field transformations available" << std::endl;
-        std::cout << "✓ Multiple kaleidoscope modes: Kaleido, Multiples, Tile" << std::endl;
-        std::cout << "=== ULTRA_START_CAMERA_STREAM SUCCESS ===" << std::endl;
-        
+
         return true;
         
     } catch (const std::exception& e) {
@@ -1405,43 +1363,31 @@ bool ultra_start_camera_stream() {
     }
 }
 
-// Stop ultra camera and restore previous state
 bool ultra_stop_camera_stream() {
-    std::cout << "=== ULTRA_STOP_CAMERA_STREAM ===" << std::endl;
-    
     if (!ultra_camera || !ultra_camera->is_active) {
-        std::cout << "Ultra camera already stopped or not initialized" << std::endl;
-        return true; // Already stopped
+        return true;
     }
-    
+
     try {
-        // Restore previous source
         if (!ultra_camera->backup_source.empty()) {
             if (global_context->s->functions.count("source_image_menu")) {
                 auto menu = global_context->s->get_fn_ptr<std::string, menu_string>("source_image_menu");
                 menu->choose(ultra_camera->backup_source);
-                std::cout << "Restored source to: " << ultra_camera->backup_source << std::endl;
             }
         }
-        
+
         ultra_camera->is_active = false;
-        
-        // Force render with restored source
         global_context->s->ui.displayed = false;
         global_context->s->render();
-        
-        std::cout << "SUCCESS: Ultra camera stream stopped and source restored" << std::endl;
-        std::cout << "=== ULTRA_STOP_CAMERA_STREAM END ===" << std::endl;
+
         return true;
-        
+
     } catch (const std::exception& e) {
         std::cerr << "ERROR: Exception in ultra_stop_camera_stream: " << e.what() << std::endl;
-        std::cout << "=== ULTRA_STOP_CAMERA_STREAM END (ERROR) ===" << std::endl;
         return false;
     }
 }
 
-// Get ultra camera performance statistics
 std::string ultra_get_camera_stats() {
     nlohmann::json stats;
     
@@ -1473,116 +1419,72 @@ std::string ultra_get_camera_stats() {
     return stats.dump();
 }
 
-// Audio context management functions
 void update_audio_context(float volume, float bass, float mid, float high, bool beat, float time) {
     if (!global_context || !global_context->s) {
-        std::cout << "🎵 ❌ Audio context update failed: global_context or scene is null" << std::endl;
         return;
     }
-    
-    static int log_counter = 0;
-    log_counter++;
-    
+
     try {
-        // Update audio values using the audio_data struct method
         global_context->s->ui.audio.update(volume, bass, mid, high, beat, time);
-        
-        // DIVERSE AUDIO-CONTROLLED EFFECTS FOR PARTY MODE
+
         if (global_context->s->ui.audio.is_active()) {
-            
-            // === RESPECT USER'S PAUSE STATE ===
-            // Don't force animation to start when audio is detected - respect user's choice
-            bool should_control_animation = global_context->s->ui.running;
-            
-            // Force continuous redraws for responsiveness when animation is running
-            if (should_control_animation) {
+            bool should_control_speed = global_context->s->ui.running;
+
+            if (volume > 0.05f || bass > 0.1f || high > 0.1f || beat) {
                 global_context->s->ui.displayed = false;
             }
-            
-            // === SOUND TYPE DETECTION ===
-            float bass_ratio = bass / (volume + 0.001f);    // How bass-heavy
-            float high_ratio = high / (volume + 0.001f);    // How treble-heavy  
-            float mid_ratio = mid / (volume + 0.001f);      // How mid-heavy
-            
-            // Sound type classification
-            bool is_music = (bass_ratio > 0.4f && high_ratio > 0.3f);        // Full spectrum
-            bool is_singing = (mid_ratio > 0.5f && volume > 0.15f);          // Mid-heavy, strong
-            bool is_drums = (bass_ratio > 0.6f && beat);                     // Bass + beat
-            bool is_instrument = (high_ratio > 0.4f && !beat);               // High freq, no beat
-            
-            // === DYNAMIC ANIMATION SPEED CONTROL ===
-            if (should_control_animation) {
+
+            float bass_ratio = bass / (volume + 0.001f);
+            float high_ratio = high / (volume + 0.001f);
+            float mid_ratio = mid / (volume + 0.001f);
+
+            bool is_drums = (bass_ratio > 0.6f && beat);
+            bool is_singing = (mid_ratio > 0.5f && volume > 0.15f);
+            bool is_music = (bass_ratio > 0.4f && high_ratio > 0.3f);
+            bool is_instrument = (high_ratio > 0.4f && !beat);
+
+            if (should_control_speed) {
                 float speed_base = 1.0f;
-                float sensitivity = 2.5f; // Fixed sensitivity for animation speed control
-                
+                float sensitivity = 2.5f;
+
                 if (is_drums) {
-                    // Drums: Punchy, rhythmic speed changes
                     speed_base = beat ? 2.5f : 1.2f;
                 } else if (is_singing) {
-                    // Singing: Smooth, voice-following speed
                     speed_base = 1.0f + (volume * sensitivity * 1.5f);
                 } else if (is_music) {
-                    // Music: Complex speed based on all frequencies
                     speed_base = 1.0f + ((bass * 0.4f + mid * 0.3f + high * 0.3f) * sensitivity * 1.8f);
                 } else if (is_instrument) {
-                    // Instruments: High-frequency reactive
                     speed_base = 1.0f + (high * sensitivity * 2.0f);
                 } else {
-                    // General audio - ensure minimum speed boost
                     speed_base = 1.0f + (volume * sensitivity * 1.2f);
                 }
-                
-                // Clamp speed to reasonable range but ensure minimum boost
-                speed_base = std::max(1.1f, std::min(4.0f, speed_base)); // Minimum 1.1x when audio detected
-                
-                // Apply speed
-                float base_interval = global_context->s->default_time_interval;
-                global_context->s->time_interval = base_interval * speed_base;
-                
-                // Beat-triggered effects: Force extra redraws on beats
-                static bool last_beat = false;
-                if (beat && !last_beat) {
-                    for (int i = 0; i < 5; i++) { 
-                        global_context->s->ui.displayed = false;
-                    }
-                    std::cout << "🥁 BEAT PUNCH! Extra redraws triggered" << std::endl;
-                }
-                last_beat = beat;
-                
-                // High-energy continuous updates - more aggressive
-                if (volume > 0.1f || bass > 0.2f || high > 0.2f) {
-                    // High energy: Force extra visual updates
-                    global_context->s->ui.displayed = false;
-                }
+
+                speed_base = std::max(1.1f, std::min(4.0f, speed_base));
+                global_context->s->time_interval = global_context->s->default_time_interval * speed_base;
             }
-            
+
         } else {
-            // Reset to default speed when audio is disabled or silent
             global_context->s->time_interval = global_context->s->default_time_interval;
         }
-        
+
     } catch (const std::exception& e) {
-        std::cout << "🎵 ❌ update_audio_context error: " << e.what() << std::endl;
+        std::cerr << "update_audio_context error: " << e.what() << std::endl;
     } catch (...) {
-        std::cout << "🎵 ❌ update_audio_context unknown error" << std::endl;
+        std::cerr << "update_audio_context unknown error" << std::endl;
     }
 }
 
 void enable_audio_input(bool enabled) {
     if (!global_context || !global_context->s) return;
     global_context->s->ui.audio.enabled = enabled;
-    
-    // When disabling audio, clear all audio values to prevent residual effects
+
     if (!enabled) {
         global_context->s->ui.audio.reset();
-        std::cout << "🎵 🧹 Audio values cleared on disable" << std::endl;
     }
 }
 
 void set_audio_sensitivity(float sensitivity) {
     if (!global_context || !global_context->s) return;
-    // Audio sensitivity is now handled by individual audio functions in the scene
-    std::cout << "🎵 🎛️ Audio sensitivity is now configured per-function in scene files" << std::endl;
 }
 
 
@@ -1601,7 +1503,6 @@ float get_slider_value(std::string name) {
     return 0.0f;
 }
 
-// Check if current scene supports live camera
 bool is_live_camera_supported() {
     if (!global_context || !global_context->s) {
         return false;
@@ -1609,7 +1510,6 @@ bool is_live_camera_supported() {
     return global_context->s->liveCamera;
 }
 
-// Get current animation running state
 bool get_animation_running() {
     if (!global_context || !global_context->s) {
         return false;
@@ -1621,8 +1521,7 @@ bool enable_autoplay(bool enabled) {
     if (!global_context || !global_context->s) {
         return false;
     }
-    
-    // Look for autoplay_switch function in current scene
+
     if (global_context->s->functions.contains("autoplay_switch")) {
         try {
             auto autoplay_fn = global_context->s->get_fn_ptr<bool, switch_fn>("autoplay_switch");
@@ -1638,7 +1537,6 @@ bool enable_autoplay(bool enabled) {
     return false;
 }
 
-// Get autoplay status for any scene
 bool get_autoplay_status() {
     if (!global_context || !global_context->s) {
         return false;
@@ -1658,28 +1556,24 @@ bool get_autoplay_status() {
     return false;
 }
 
-// Scene-agnostic autoplay intensity control
 bool set_autoplay_intensity(float intensity) {
     if (!global_context || !global_context->s) {
         return false;
     }
-    
-    // Look for autoplay_intensity slider
+
     if (global_context->s->functions.contains("autoplay_intensity")) {
         try {
             auto intensity_fn = global_context->s->get_fn_ptr<float, slider_float>("autoplay_intensity");
             if (intensity_fn) {
-                // Clamp intensity to reasonable bounds
                 intensity = std::max(0.0001f, std::min(0.01f, intensity));
                 intensity_fn->value = intensity;
-                std::cout << "🎲 Autoplay intensity set to: " << intensity << std::endl;
                 return true;
             }
         } catch (const std::exception& e) {
             std::cerr << "Error setting autoplay intensity: " << e.what() << std::endl;
         }
     }
-    
+
     return false;
 }
 

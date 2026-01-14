@@ -387,32 +387,26 @@ void next_element::add_condition( any_condition_fn c  ) { conditions.push_back( 
 // Audio function implementation - combines multiple channels and effects
 
 float audio_adder_fn::operator() ( float& val, element_context& context) {
-    // Evaluate all harness values
     volume_channel( context ); volume_weight( context ); volume_sensitivity( context );
     bass_channel( context ); bass_weight( context ); bass_sensitivity( context );
     mid_channel( context ); mid_weight( context ); mid_sensitivity( context );
     high_channel( context ); high_weight( context ); high_sensitivity( context );
     base_value( context ); offset( context ); global_sensitivity( context );
 
-    // Get audio values using the audio_data struct methods
     float volume_val = context.s.ui.audio.get_value(*volume_channel);
     float bass_val = context.s.ui.audio.get_value(*bass_channel);
     float mid_val = context.s.ui.audio.get_value(*mid_channel);
     float high_val = context.s.ui.audio.get_value(*high_channel);
 
-    // Apply weights and sensitivities
     float volume_contribution = volume_val * *volume_weight * *volume_sensitivity;
     float bass_contribution = bass_val * *bass_weight * *bass_sensitivity;
     float mid_contribution = mid_val * *mid_weight * *mid_sensitivity;
     float high_contribution = high_val * *high_weight * *high_sensitivity;
 
-    // Combine all contributions
     float total_audio = volume_contribution + bass_contribution + mid_contribution + high_contribution;
-    
-    // Apply global sensitivity, add base_value and offset
-    float final_audio = *base_value + (total_audio * *global_sensitivity) + *offset;
-    
-    return final_audio;
+    float audio_contribution = *base_value + (total_audio * *global_sensitivity) + *offset;
+
+    return val + audio_contribution;
 }
 
 bool next_element::operator () ( element_context& context ) { 
