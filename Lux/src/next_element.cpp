@@ -404,9 +404,7 @@ float audio_adder_fn::operator() ( float& val, element_context& context) {
     float high_contribution = high_val * *high_weight * *high_sensitivity;
 
     float total_audio = volume_contribution + bass_contribution + mid_contribution + high_contribution;
-    float audio_contribution = *base_value + (total_audio * *global_sensitivity) + *offset;
-
-    return val + audio_contribution;
+    return *base_value + (total_audio * *global_sensitivity) + *offset;
 }
 
 bool next_element::operator () ( element_context& context ) { 
