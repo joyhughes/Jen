@@ -284,7 +284,7 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "expand_generator" ] }
+            "value": { "functions": [ "expand_generator", "controlled_expand_audio" ] }
         },
         {
             "name": "spin_generator",
@@ -306,7 +306,7 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "spin_generator" ] }
+            "value": { "functions": [ "spin_generator", "controlled_spin_audio" ] }
         },
         {
             "name": "scope_menu_generator",
@@ -431,7 +431,8 @@
             "min": -360.0,
             "max": 360.0,
             "step": 1,
-            "default_value": 60.0
+            "default_value": 60.0,
+            "value": { "functions": [ "swirl_generator", "controlled_swirl_audio" ] }
         },
         {
             "name": "alternate_generator",
@@ -540,7 +541,8 @@
             "min": -20,
             "max": 20,
             "step": 0.5,
-            "default_value": 0.0
+            "default_value": 0.0,
+            "value": { "functions": [ "phase_generator", "controlled_phase_audio" ] }
         },
         {
             "name": "const_amp_toggle",
