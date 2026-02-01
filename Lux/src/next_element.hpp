@@ -659,5 +659,5 @@ struct audio_adder_fn {
         high_channel("high"), high_weight(1.0f), high_sensitivity(1.0f),
         base_value(0.0f), offset(0.0f), global_sensitivity(1.0f) {}
 };
-
+ 
 #endif // __NEXT_ELEMENT_HPP
