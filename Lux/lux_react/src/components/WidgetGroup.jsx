@@ -93,11 +93,12 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
         const labelElement = (
             <Typography
                 sx={{
-                    fontWeight: 500,
-                    color: 'white',
-                    fontSize: '1rem',
-                    mb: 0.5,
-                    fontFamily: 'Roboto, Arial, sans-serif' // Ensure consistent font
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    fontSize: '0.8rem',
+                    letterSpacing: 0.3,
+                    textTransform: 'uppercase',
+                    mb: 0.25
                 }}
             >
                 {widget.label}

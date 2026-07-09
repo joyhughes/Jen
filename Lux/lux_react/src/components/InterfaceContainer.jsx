@@ -265,7 +265,10 @@ function InterfaceContainer({panelSize}) {
                                 justifyContent: "center",
                                 alignItems: "center",
                                 overflow: "hidden",
-                                background: "#121212"
+                                // Soft radial backdrop so letterboxing around the
+                                // canvas reads as a stage rather than dead space
+                                background:
+                                    "radial-gradient(ellipse at center, #1a1e26 0%, #0b0d10 75%)"
                             }}
                         >
                             <Box

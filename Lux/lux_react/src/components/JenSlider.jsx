@@ -6,13 +6,10 @@ import {
     Box,
     Typography,
     useTheme,
-    IconButton,
     useMediaQuery,
-    InputAdornment,
-    Fab
+    InputAdornment
 } from '@mui/material';
 import { styled } from '@mui/system';
-import { ChevronUp, ChevronDown, Edit, Check } from 'lucide-react';
 import { ControlPanelContext } from './InterfaceContainer';
 
 // Mobile-optimized slider with larger touch targets
@@ -221,45 +218,6 @@ const DesktopTextField = styled(TextField)(({ theme }) => ({
     },
 }));
 
-// Mobile-optimized control buttons
-const MobileControlButton = styled(IconButton)(({ theme }) => ({
-    width: 27,
-    height: 27,
-    backgroundColor: theme.palette.action.hover,
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 8,
-    '&:hover': {
-        backgroundColor: theme.palette.action.selected,
-        borderColor: theme.palette.primary.main,
-    },
-    '&:active': {
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.primary.contrastText,
-        transform: 'scale(0.95)',
-    },
-    // Prevent zoom on double tap
-    touchAction: 'manipulation',
-    transition: 'all 0.15s ease',
-}));
-
-// Desktop control buttons
-const DesktopControlButton = styled(IconButton)(({ theme }) => ({
-    width: 28,
-    height: 28,
-    backgroundColor: theme.palette.action.hover,
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 4,
-    '&:hover': {
-        backgroundColor: theme.palette.action.selected,
-        borderColor: theme.palette.primary.main,
-    },
-    '&:active': {
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.primary.contrastText,
-    },
-    transition: 'all 0.15s ease',
-}));
-
 function JenSlider({ json, width }) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -463,52 +421,6 @@ function JenSlider({ json, width }) {
         }
     }, [inputValue, getCurrentValue, json.min, json.max, isRange, minFocus, value, json.name, onSliderChange, formatDisplayValue, getDisplayValue]);
 
-    const handleIncrement = useCallback(() => {
-        const step = json.step || 1;
-        if (isRange && Array.isArray(value)) {
-            const currentVal = minFocus ? value[0] : value[1];
-            let newVal = currentVal + step;
-            if (json.type === 'range_slider_int') {
-                newVal = Math.floor(newVal);
-            }
-            //newVal = Math.min(json.max, newVal);
-            const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
-            setValue(newValue);
-            onSliderChange(json.name, newValue);
-        } else if (!isRange) {
-            let newVal = value + step;
-            if (json.type === 'slider_int') {
-                newVal = Math.floor(newVal);
-            }
-            //newVal = Math.min(json.max, newVal);
-            setValue(newVal);
-            onSliderChange(json.name, newVal);
-        }
-    }, [json.step, json.max, json.type, isRange, minFocus, value, json.name, onSliderChange]);
-
-    const handleDecrement = useCallback(() => {
-        const step = json.step || 1;
-        if (isRange && Array.isArray(value)) {
-            const currentVal = minFocus ? value[0] : value[1];
-            let newVal = currentVal - step;
-            if (json.type === 'range_slider_int') {
-                newVal = Math.floor(newVal);
-            }
-            //newVal = Math.max(json.min, newVal);
-            const newValue = minFocus ? [newVal, value[1]] : [value[0], newVal];
-            setValue(newValue);
-            onSliderChange(json.name, newValue);
-        } else if (!isRange) {
-            let newVal = value - step;
-            if (json.type === 'slider_int') {
-                newVal = Math.floor(newVal);
-            }
-            //newVal = Math.max(json.min, newVal);
-            setValue(newVal);
-            onSliderChange(json.name, newVal);
-        }
-    }, [json.step, json.min, json.type, isRange, minFocus, value, json.name, onSliderChange]);
-
     const handleTouchStart = useCallback(() => {
         setShowValueLabel(true);
         setIsDragging(true);
@@ -614,7 +526,6 @@ function JenSlider({ json, width }) {
     // Choose components based on device
     const SliderComponent = isMobile ? MobileSlider : DesktopSlider;
     const TextFieldComponent = isMobile ? MobileTextField : DesktopTextField;
-    const ControlButton = isMobile ? MobileControlButton : DesktopControlButton;
 
     return (
         <Box
@@ -671,30 +582,6 @@ function JenSlider({ json, width }) {
                         style={{ touchAction: 'manipulation' }}
                     />
                 </Box>
-
-                {/* Control Buttons */}
-                <Stack direction="column" spacing={isMobile ? 0.25 : 0.125}>
-                    <ControlButton 
-                        onClick={handleIncrement}
-                        sx={{
-                            minWidth: isMobile ? 30 : 28,
-                            minHeight: isMobile ? 20 : 18,
-                            padding: isMobile ? '2px' : '1px',
-                        }}
-                    >
-                        <ChevronUp size={isMobile ? 16 : 14} />
-                    </ControlButton>
-                    <ControlButton 
-                        onClick={handleDecrement}
-                        sx={{
-                            minWidth: isMobile ? 30 : 28,
-                            minHeight: isMobile ? 20 : 18,
-                            padding: isMobile ? '2px' : '1px',
-                        }}
-                    >
-                        <ChevronDown size={isMobile ? 16 : 14} />
-                    </ControlButton>
-                </Stack>
 
                 {/* Value Input - Always Editable */}
                 <Box sx={{ width: isMobile ? 70 : 68, flexShrink: 0 }}>

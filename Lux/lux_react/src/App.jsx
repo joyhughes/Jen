@@ -1,19 +1,13 @@
-
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from "./pages/Home";
-import { ThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
+import theme from './theme';
 
 function App() {
-  return (<ThemeProvider theme={darkTheme}>
+  return (<ThemeProvider theme={theme}>
+    <CssBaseline />
     {/* basename keeps routes matching when the app is served from a
         subpath such as GitHub Pages' /Jen/ */}
     <BrowserRouter basename={import.meta.env.BASE_URL}>
