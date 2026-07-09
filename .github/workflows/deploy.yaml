@@ -1,49 +1,53 @@
-name: Deploy Vite React App
+name: Deploy to GitHub Pages
+
+# The single Pages deployment workflow. (There used to be two workflows
+# deploying to the gh-pages branch on every push; they raced each other and
+# one always failed, sometimes leaving a build with the wrong base path.)
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+          cache: npm
+          cache-dependency-path: Lux/lux_react/package-lock.json
+
       - name: Install dependencies
         run: npm ci
         working-directory: ./Lux/lux_react
-      
-      - name: Check Vite config
-        run: cat vite.config.js
-        working-directory: ./Lux/lux_react
-      
-      - name: Clean existing dist folder
-        run: rm -rf dist
-        working-directory: ./Lux/lux_react
-      
+
+      # Project pages are served from /<repo-name>/, so build with that base.
+      # Using the repo name keeps this correct on forks as well.
       - name: Build project
-        run: npm run build
+        run: npm run build -- --base=/${{ github.event.repository.name }}/
         working-directory: ./Lux/lux_react
-      
-      - name: List built files
-        run: ls -la dist
-        working-directory: ./Lux/lux_react
-      
-      - name: Create .nojekyll file
+
+      - name: Add .nojekyll file
         run: touch dist/.nojekyll
         working-directory: ./Lux/lux_react
-      
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: ./Lux/lux_react/dist
           branch: gh-pages
           clean: true
+          commit-message: "Deploy: ${{ github.event.head_commit.message || 'Manual deployment' }}"

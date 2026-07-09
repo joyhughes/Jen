@@ -14,7 +14,9 @@ const darkTheme = createTheme({
 
 function App() {
   return (<ThemeProvider theme={darkTheme}>
-    <BrowserRouter>
+    {/* basename keeps routes matching when the app is served from a
+        subpath such as GitHub Pages' /Jen/ */}
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
     <Routes>
       <Route path="/" element={<Home/>} />
     </Routes>

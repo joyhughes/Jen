@@ -143,50 +143,16 @@ function MediaController({ isOverlay = false }) {
     }
   }, [sceneChangeTrigger]);
 
-  // Initialize worker on component mount
+  // The worker is created lazily on first use (see ensureWorker) so page load
+  // doesn't download a second copy of the WASM module just in case the user
+  // records video. This effect only handles cleanup on unmount.
   useEffect(() => {
-    mobileLog('MediaController initializing...');
-    mobileLog('Component mount - device info:', {
+    mobileLog('MediaController mounted - device info:', {
       isMobile: isMobileDevice,
       userAgent: navigator.userAgent,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       devicePixelRatio: window.devicePixelRatio
     });
-
-    try {
-      // Create worker with enhanced error handling
-      mobileLog('Creating video encoding worker...');
-      const worker = new Worker(new URL('/workers/videoEncodingWorker.js', import.meta.url), { type: 'module' });
-
-      // Listen to messages from worker
-      worker.onmessage = handleWorkerMessage;
-
-      // Add error handler
-      worker.onerror = (error) => {
-        mobileLog('ERROR - Worker error:', error.message);
-        showNotification('Recording system error: ' + error.message, 'error');
-      };
-
-      // Add message error handler
-      worker.onmessageerror = (error) => {
-        mobileLog('ERROR - Worker message error:', error.message);
-        showNotification('Recording system message error', 'error');
-      };
-
-      // Save worker reference
-      workerRef.current = worker;
-      mobileLog('Worker created successfully');
-
-      // Initialize worker
-      initializeWorker();
-
-      isInitializedRef.current = true;
-      mobileLog('MediaController initialization complete');
-
-    } catch (error) {
-      mobileLog('CRITICAL ERROR - Failed to create worker:', error.message);
-      showNotification('Failed to initialize recording system: ' + error.message, 'error');
-    }
 
     // Clean up on unmount
     return () => {
@@ -228,26 +194,50 @@ function MediaController({ isOverlay = false }) {
     };
   }, [isRecording, recordingStartTime]);
 
-  // Initialize the web worker
-  const initializeWorker = () => {
+  // Create and initialize the video encoding worker on first use. The worker
+  // queues messages sent right after 'init' itself, so callers may post
+  // immediately after this returns.
+  const ensureWorker = () => {
+    if (workerRef.current) {
+      return true;
+    }
+
     try {
-      if (!workerRef.current) {
-        mobileLog('ERROR - Worker not available for initialization');
-        return;
-      }
+      mobileLog('Creating video encoding worker...');
+      // BASE_URL-relative so the worker also loads when the app is served
+      // from a subpath (e.g. GitHub Pages /Jen/)
+      const worker = new Worker(`${import.meta.env.BASE_URL}workers/videoEncodingWorker.js`, { type: 'module' });
 
-      mobileLog('Sending init message to worker...');
+      worker.onmessage = handleWorkerMessage;
 
-      // Send init message to worker with correct WASM URL
-      workerRef.current.postMessage({
+      worker.onerror = (error) => {
+        mobileLog('ERROR - Worker error:', error.message);
+        showNotification('Recording system error: ' + error.message, 'error');
+      };
+
+      worker.onmessageerror = (error) => {
+        mobileLog('ERROR - Worker message error:', error.message);
+        showNotification('Recording system message error', 'error');
+      };
+
+      workerRef.current = worker;
+
+      // Send init message to worker with correct WASM URL.
+      // new URL(..., import.meta.url) lets Vite resolve the lux.js module both
+      // in dev (/src/lux.js) and in production builds (hashed asset URL), so
+      // the worker can import it from any deploy path.
+      worker.postMessage({
         type: 'init',
-        wasmUrl: '/src/lux.js'  // This matches where the Makefile outputs the file
+        wasmUrl: new URL('../lux.js', import.meta.url).href
       });
 
-      mobileLog('Init message sent to worker');
+      isInitializedRef.current = true;
+      mobileLog('Worker created and init message sent');
+      return true;
     } catch (error) {
-      mobileLog('CRITICAL ERROR - Failed to initialize worker:', error.message);
-      showNotification('Failed to initialize recording: ' + error.message, 'error');
+      mobileLog('CRITICAL ERROR - Failed to create worker:', error.message);
+      showNotification('Failed to initialize recording system: ' + error.message, 'error');
+      return false;
     }
   };
 
@@ -735,9 +725,9 @@ function MediaController({ isOverlay = false }) {
   // Start recording
   const startRecording = () => {
     console.log('[MediaController] === START RECORDING PROCESS ===');
-    console.log('[MediaController] Worker state check:');
-    console.log('[MediaController] - workerRef.current:', !!workerRef.current);
-    console.log('[MediaController] - isInitializedRef.current:', isInitializedRef.current);
+
+    // Lazily create the encoding worker the first time recording starts
+    ensureWorker();
 
     if (!workerRef.current || !isInitializedRef.current) {
       console.error('[MediaController] ERROR: Worker not ready');

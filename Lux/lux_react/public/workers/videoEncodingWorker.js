@@ -224,6 +224,8 @@ async function processFrameQueue() {
     }
 }
 
+let initPromise = null;
+
 self.onmessage = async (event) => {
     const message = event.data;
     mobileLog('Received message:', message.type);
@@ -231,13 +233,14 @@ self.onmessage = async (event) => {
     try {
         switch (message.type) {
             case 'init':
-                if (isInitialized) {
+                if (initPromise) {
                     mobileLog('Already initialized');
                     return;
                 }
 
                 mobileLog('Initializing worker...');
-                await initWasm(message.wasmUrl);
+                initPromise = initWasm(message.wasmUrl);
+                await initPromise;
                 isInitialized = true;
                 mobileLog('✓ Worker initialization complete');
                 self.postMessage({ type: 'initialized' });
@@ -247,7 +250,15 @@ self.onmessage = async (event) => {
                 mobileLog('=== START RECORDING REQUEST ===');
                 mobileLog('isInitialized:', isInitialized);
                 mobileLog('recordingInProgress:', recordingInProgress);
-                
+
+                // Messages posted right after 'init' arrive while the WASM
+                // module is still loading; wait for it rather than failing.
+                if (!isInitialized && initPromise) {
+                    mobileLog('Waiting for in-flight initialization...');
+                    await initPromise;
+                    isInitialized = true;
+                }
+
                 if (!isInitialized) {
                     mobileLog('ERROR: Worker not initialized');
                     throw new Error('Worker not initialized');
