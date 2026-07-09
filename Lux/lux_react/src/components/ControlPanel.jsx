@@ -66,11 +66,9 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
 
     // Handle navigation between panes
     useEffect(() => {
-        console.log(`Pane changed from ${previousPaneRef.current} to ${activePane}`);
         
         // When returning to home pane, refresh the widget groups
         if (activePane === "home" && previousPaneRef.current !== "home" && isInitialized) {
-            console.log("Navigated to home pane, refreshing widgets");
             handleWidgetGroupChange();
         }
         
@@ -82,8 +80,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         if (!moduleReady || !panelJSON || panelJSON.length === 0) {
             return;
         }
-
-        console.log("Updating active widget groups...");
 
         try {
             // Check each widget group to see if it should be displayed
@@ -100,7 +96,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
             const activeGroupResults = await Promise.all(activeGroupPromises);
             const activeGroups = activeGroupResults.filter(group => group !== null);
 
-            console.log("Active groups:", activeGroups.map(g => g.name).join(", "));
             setActiveGroups(activeGroups);
 
         } catch (error) {
@@ -116,7 +111,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
         }
 
         try {
-            console.log("Setting up control panel...");
             setSetupError(null);
 
             // Save current slider values before we potentially change scenes
@@ -140,7 +134,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
                 return true;
             }
 
-            console.log(`Successfully loaded panel configuration with ${parsedJSON.length} widget groups`);
             setPanelJSON(parsedJSON);
 
             // Mark as initialized and restore slider values
@@ -164,17 +157,13 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     useEffect(() => {
         if (moduleReady && !hasSetupRun.current) {
             hasSetupRun.current = true;
-            
-            console.log("Module is ready, initializing control panel...");
-            
+
             setupPanel().then(async (success) => {
                 if (success) {
-                    console.log("Setting up scene change callback...");
                     
                     try {
                         // Register callback for when scenes change
                         await callModuleFunction('set_scene_callback', () => {
-                            console.log("Scene change detected, refreshing panel...");
                             setupPanel().then(() => {
                                 // Update widget groups after scene change
                                 setTimeout(handleWidgetGroupChange, 100);
@@ -192,7 +181,6 @@ function ControlPanel({ dimensions, panelSize, activePane, onPaneChange }) {
     // Update widget groups when panel configuration changes
     useEffect(() => {
         if (panelJSON && panelJSON.length > 0 && isInitialized) {
-            console.log("Panel configuration changed, updating widget groups");
             handleWidgetGroupChange();
         }
     }, [panelJSON, isInitialized, handleWidgetGroupChange]);

@@ -27,7 +27,6 @@ export const useCamera = () => {
         audio: false
     });
 
-    console.log(`[useCamera] Initialized with default facing mode: ${defaultFacingMode} (mobile: ${isMobile})`);
 
     // Real-time processing state
     const [isLiveProcessing, setIsLiveProcessing] = useState(false);
@@ -41,11 +40,6 @@ export const useCamera = () => {
             const videoDevices = devices.filter(device => device.kind === 'videoinput');
             setDevices(videoDevices);
             
-            console.log('[useCamera] Available cameras:', videoDevices.map(d => ({ 
-                id: d.deviceId, 
-                label: d.label,
-                facingMode: d.label.toLowerCase().includes('back') ? 'environment' : 'user'
-            })));
             
             // Auto-select first device if none selected
             if (videoDevices.length > 0 && !currentDeviceId) {
@@ -99,7 +93,6 @@ export const useCamera = () => {
                 audio: false
             };
 
-            console.log(`[useCamera] Starting camera with constraints:`, streamConstraints);
 
             // Get user media
             const stream = await navigator.mediaDevices.getUserMedia(streamConstraints);
@@ -123,7 +116,6 @@ export const useCamera = () => {
                             const settings = track.getSettings();
                             if (settings.facingMode) {
                                 setCurrentFacingMode(settings.facingMode);
-                                console.log(`[useCamera] Camera started with facing mode: ${settings.facingMode}`);
                             }
                         }
                         
@@ -216,7 +208,6 @@ export const useCamera = () => {
     // Toggle between front and back camera (mobile-friendly)
     const toggleCameraFacing = useCallback(async () => {
         const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-        console.log(`[useCamera] Toggling camera from ${currentFacingMode} to ${newFacingMode}`);
         
         try {
             await startCamera(null, newFacingMode);

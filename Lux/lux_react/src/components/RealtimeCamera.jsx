@@ -88,14 +88,11 @@ const RealtimeCamera = ({
         };
 
         if (checkModuleReady()) {
-            console.log('[Camera] Module ready for camera processing');
             return;
         }
 
-        console.log('[Camera] Waiting for camera-optimized module...');
         const interval = setInterval(() => {
             if (checkModuleReady()) {
-                console.log('[Camera] Module became ready');
                 clearInterval(interval);
             }
         }, 100);

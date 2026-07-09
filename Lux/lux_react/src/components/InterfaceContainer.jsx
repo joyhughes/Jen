@@ -27,7 +27,6 @@ function InterfaceContainer({panelSize}) {
             if (window.module && typeof window.module.get_animation_running === 'function') {
                 const isRunning = window.module.get_animation_running();
                 if (!isRunning) {
-                    console.log(`[InterfaceContainer] Animation paused - not sending slider ${name} = ${value} to backend`);
                     return newValues;
                 }
             }
@@ -71,7 +70,6 @@ function InterfaceContainer({panelSize}) {
     // Expose slider values globally for audio system access
     useEffect(() => {
         window.reactSliderValues = sliderValues;
-        console.log('🎵 📊 Updated global slider values:', sliderValues);
     }, [sliderValues]);
 
     // Trigger UI reset - this will cause all widgets to refresh their values
@@ -199,7 +197,6 @@ function InterfaceContainer({panelSize}) {
         setControlPanelDimensions({width: controlPanelWidth, height: controlPanelHeight});
         setIsRowDirection(isRowDirection);
 
-        console.log(`Layout: ${isRowDirection ? 'Row' : 'Column'}, Image: ${Math.round(imagePortWidth)}x${Math.round(imagePortHeight)}, Panel: ${Math.round(controlPanelWidth)}x${Math.round(controlPanelHeight)}`);
     }, [panelSize]);
 
     // Set up resize callback when module is ready

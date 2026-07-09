@@ -334,18 +334,11 @@ export const cameraDebug = {
         console.group('Camera Device Information');
         
         const devices = await getCameraDevices();
-        console.log('Available cameras:', devices);
         
-        console.log('User agent:', navigator.userAgent);
-        console.log('Is mobile:', isMobileDevice());
-        console.log('Camera supported:', isCameraSupported());
-        console.log('Max touch points:', navigator.maxTouchPoints);
         
         if (navigator.mediaDevices) {
-            console.log('Media devices API available');
             try {
                 const constraints = getOptimalConstraints();
-                console.log('Optimal constraints:', constraints);
             } catch (e) {
                 console.error('Error getting constraints:', e);
             }
@@ -361,15 +354,6 @@ export const cameraDebug = {
         
         const tracks = stream.getVideoTracks();
         tracks.forEach((track, index) => {
-            console.log(`Track ${index}:`, {
-                label: track.label,
-                kind: track.kind,
-                enabled: track.enabled,
-                muted: track.muted,
-                readyState: track.readyState,
-                settings: track.getSettings(),
-                capabilities: track.getCapabilities()
-            });
         });
         
         console.groupEnd();

@@ -145,7 +145,6 @@ function ImagePortCanvas({ width, height }) {
       }
 
       if (isInitializing) {
-        console.log(`[Canvas] Initialization complete - Mode: ${isLiveCameraSource ? 'Camera (BGRA→RGBA)' : 'Regular (RGBA)'}`);
         setIsInitializing(false);
       }
       
@@ -156,23 +155,18 @@ function ImagePortCanvas({ width, height }) {
 
 
   useEffect(() => {
-    console.log('[Canvas] Setting up WebAssembly callback...');
 
     if (window.module) {
-      console.log('[Canvas] Module ready, setting frame callback...');
       window.module.set_frame_callback(updateCanvas);
       setModuleReady(true);
 
       // Force initial render
       setTimeout(() => {
-        console.log('[Canvas] Calling initial updateCanvas...');
         updateCanvas();
       }, 100);
     } else {
-      console.log('[Canvas] Module not ready, polling...');
       const intervalId = setInterval(() => {
         if (window.module) {
-          console.log('[Canvas] Module became available, setting up...');
           clearInterval(intervalId);
           window.module.set_frame_callback(updateCanvas);
           setModuleReady(true);
