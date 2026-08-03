@@ -56,7 +56,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
     // Fetch live camera support from backend when scene changes (once per scene)
     useEffect(() => {
         const fetchLiveCameraSupport = async () => {
-            console.log('Checking live camera support for scene index:', currentSceneIndex);
             
             // Wait a bit for the scene to load in the backend
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -66,7 +65,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 // Only update if the support status has actually changed
                 if (cachedLiveCameraSupported !== supported) {
                     setCachedLiveCameraSupported(supported);
-                    console.log('Live camera support changed to:', supported, 'for scene index:', currentSceneIndex);
                 }
             } else {
                 if (cachedLiveCameraSupported !== false) {
@@ -142,13 +140,11 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
             300: 2                        // Very small screens: 2 thumbnails per row
         };
 
-        console.log(`ImagePicker: Available width ${availableWidth}px, max columns: ${maxColumns}`);
         return breakpoints;
     };
 
     // Log the incoming JSON for debugging
     useEffect(() => {
-        console.log('MasonryImagePicker received JSON:', json);
     }, [json]);
 
     useEffect(() => {
@@ -176,7 +172,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
 
                 // No longer add live camera to the menu items - it's now a separate button
                 setMenuItems(items);
-                console.log('Menu items set to:', items);
 
                 let selectedIdx = -1;
 
@@ -192,7 +187,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 let targetSelectedImage = '';
                 if (selectedIdx >= 0 && selectedIdx < items.length) {
                     targetSelectedImage = items[selectedIdx];
-                    console.log('Setting selected image to:', targetSelectedImage);
                 } else if (items.length > 0) {
                     // If live camera is currently active, keep it selected (but don't put it in menu)
                     if (isLiveCameraActive) {
@@ -201,7 +195,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                         // Default to first regular image
                         targetSelectedImage = items[0];
                     }
-                    console.log('Defaulting to selected image:', targetSelectedImage);
                 }
                 
                 // Only update if different to prevent unnecessary re-renders
@@ -224,7 +217,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
     // Stop live camera if scene changes to one that doesn't support it
     useEffect(() => {
         if (isLiveCameraActive && !isLiveCameraSupported()) {
-            console.log('[ImagePicker] Scene changed to one that does not support live camera, stopping...');
             const cameraManager = getLiveCameraManager();
             if (cameraManager) {
                 cameraManager.stop();
@@ -263,7 +255,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 }
                 destroyLiveCameraManager();
                 setIsLiveCameraActive(false);
-                console.log('[ImagePicker] Live camera stopped');
                 
                 // Switch back to first regular image if available
                 const regularImages = menuItems.filter(item => item !== 'LIVE_CAMERA');
@@ -280,11 +271,8 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 // Update camera info
                 const info = cameraManager.getCurrentCameraInfo();
                 setLiveCameraInfo(info);
-                
-                console.log('[ImagePicker] Live camera started with facing mode:', facingMode);
-                
+
                 // Live camera started, staying on current pane
-                console.log("Live camera started, staying on current pane");
             }
         } catch (error) {
             console.error('[ImagePicker] Live camera error:', error);
@@ -305,7 +293,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 const info = cameraManager.getCurrentCameraInfo();
                 setLiveCameraInfo(info);
                 
-                console.log('[ImagePicker] Camera switched to:', newFacingMode);
             }
         } catch (error) {
             console.error('[ImagePicker] Camera switch failed:', error);
@@ -337,7 +324,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 const imageName = file.name.split('.')[0];
 
                 if (window.module) {
-                    console.log('Writing file:', imagePath);
                     window.module.FS.writeFile(imagePath, uint8Array);
                     window.module.add_image_to_scene(imageName, imagePath);
 
@@ -347,7 +333,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                         menuName = json.menu;
                     }
 
-                    console.log('Adding image to menu:', menuName);
                     window.module.add_to_menu(menuName, imageName);
 
                     // Update local state with new menu items
@@ -373,7 +358,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
             reader.readAsArrayBuffer(file);
 
             // Removed navigation to home - stay on current pane
-            console.log("Image uploaded, staying on current pane");
         } catch (error) {
             console.error('Failed to upload image:', error);
             setError('Failed to upload image: ' + error.message);
@@ -418,14 +402,12 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
                 setSelectedImage(imageName);
                 onChange(imageName);
                 
-                console.log('Camera capture processed successfully:', imageName);
             }
             
             setIsLoading(false);
             
             // Close camera but stay on current pane
             setShowCamera(false);
-            console.log("Camera capture completed, staying on current pane");
             
         } catch (error) {
             console.error('Failed to process camera capture:', error);
@@ -435,7 +417,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
     };
 
     const handleImageSelect = (imageName) => {
-        console.log('Image selected:', imageName);
         
         // Live camera is no longer handled here since it's moved to a separate button
         // Stop live camera if switching to regular image
@@ -455,7 +436,6 @@ export const MasonryImagePicker = ({ json, width, onChange, setActivePane, image
             onChange(imageName);
         }
         // Removed navigation to home - stay on current pane
-        console.log("Image selected, staying on current pane");
     };
 
     // Cleanup live camera on unmount

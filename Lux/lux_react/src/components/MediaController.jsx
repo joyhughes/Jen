@@ -54,11 +54,9 @@ function MediaController({ isOverlay = false }) {
   });
   const recordingInterval = useRef(null);
 
+  // Remaining call sites are error paths: log and surface a notification.
   const mobileLog = (message, data = null) => {
-    const timestamp = new Date().toISOString().slice(11, 23);
-    const logMessage = `[${timestamp}] [Mobile] ${message}`;
-    console.log(logMessage, data || '');
-
+    console.error(`[MediaController] ${message}`, data ?? '');
     if (message.includes('ERROR') || message.includes('CRITICAL')) {
       showNotification(`Debug: ${message}`, 'error');
     }
@@ -71,7 +69,6 @@ function MediaController({ isOverlay = false }) {
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
 
     const result = isMobileUA || hasTouch;
-    console.log('[MediaController] Device detection (memoized):', { result, userAgent: userAgent.slice(0, 50) + '...' });
 
     return result;
   }, []); // Empty deps - only calculate once
@@ -79,7 +76,6 @@ function MediaController({ isOverlay = false }) {
   // Safe feature detection for camera roll saving - MEMOIZED to prevent infinite re-renders
   const cameraRollSupport = useMemo(() => {
     try {
-      console.log('[MediaController] Checking camera roll support (memoized)...');
 
       // Check for Web Share API (iOS Safari, Android Chrome)
       const hasWebShare = typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
@@ -104,7 +100,6 @@ function MediaController({ isOverlay = false }) {
         result = 'android-fallback';
       }
 
-      console.log('[MediaController] Camera roll support (memoized):', result);
       return result;
     } catch (error) {
       console.error('[MediaController] Error in camera roll detection:', error.message);
@@ -138,59 +133,17 @@ function MediaController({ isOverlay = false }) {
   useEffect(() => {
     if (window.module && typeof window.module.get_animation_running === 'function') {
       const backendRunning = window.module.get_animation_running();
-      console.log('[MediaController] Scene changed - syncing animation state:', backendRunning);
       setIsRunning(backendRunning);
     }
   }, [sceneChangeTrigger]);
 
-  // Initialize worker on component mount
+  // The worker is created lazily on first use (see ensureWorker) so page load
+  // doesn't download a second copy of the WASM module just in case the user
+  // records video. This effect only handles cleanup on unmount.
   useEffect(() => {
-    mobileLog('MediaController initializing...');
-    mobileLog('Component mount - device info:', {
-      isMobile: isMobileDevice,
-      userAgent: navigator.userAgent,
-      viewport: `${window.innerWidth}x${window.innerHeight}`,
-      devicePixelRatio: window.devicePixelRatio
-    });
-
-    try {
-      // Create worker with enhanced error handling
-      mobileLog('Creating video encoding worker...');
-      const worker = new Worker(new URL('/workers/videoEncodingWorker.js', import.meta.url), { type: 'module' });
-
-      // Listen to messages from worker
-      worker.onmessage = handleWorkerMessage;
-
-      // Add error handler
-      worker.onerror = (error) => {
-        mobileLog('ERROR - Worker error:', error.message);
-        showNotification('Recording system error: ' + error.message, 'error');
-      };
-
-      // Add message error handler
-      worker.onmessageerror = (error) => {
-        mobileLog('ERROR - Worker message error:', error.message);
-        showNotification('Recording system message error', 'error');
-      };
-
-      // Save worker reference
-      workerRef.current = worker;
-      mobileLog('Worker created successfully');
-
-      // Initialize worker
-      initializeWorker();
-
-      isInitializedRef.current = true;
-      mobileLog('MediaController initialization complete');
-
-    } catch (error) {
-      mobileLog('CRITICAL ERROR - Failed to create worker:', error.message);
-      showNotification('Failed to initialize recording system: ' + error.message, 'error');
-    }
 
     // Clean up on unmount
     return () => {
-      mobileLog('MediaController cleanup...');
 
       if (isRecording) {
         stopRecording();
@@ -208,7 +161,6 @@ function MediaController({ isOverlay = false }) {
         workerRef.current.terminate();
       }
 
-      mobileLog('MediaController cleanup complete');
     };
   }, []);
 
@@ -228,44 +180,60 @@ function MediaController({ isOverlay = false }) {
     };
   }, [isRecording, recordingStartTime]);
 
-  // Initialize the web worker
-  const initializeWorker = () => {
+  // Create and initialize the video encoding worker on first use. The worker
+  // queues messages sent right after 'init' itself, so callers may post
+  // immediately after this returns.
+  const ensureWorker = () => {
+    if (workerRef.current) {
+      return true;
+    }
+
     try {
-      if (!workerRef.current) {
-        mobileLog('ERROR - Worker not available for initialization');
-        return;
-      }
+      // BASE_URL-relative so the worker also loads when the app is served
+      // from a subpath (e.g. GitHub Pages /Jen/)
+      const worker = new Worker(`${import.meta.env.BASE_URL}workers/videoEncodingWorker.js`, { type: 'module' });
 
-      mobileLog('Sending init message to worker...');
+      worker.onmessage = handleWorkerMessage;
 
-      // Send init message to worker with correct WASM URL
-      workerRef.current.postMessage({
+      worker.onerror = (error) => {
+        mobileLog('ERROR - Worker error:', error.message);
+        showNotification('Recording system error: ' + error.message, 'error');
+      };
+
+      worker.onmessageerror = (error) => {
+        mobileLog('ERROR - Worker message error:', error.message);
+        showNotification('Recording system message error', 'error');
+      };
+
+      workerRef.current = worker;
+
+      // Send init message to worker with correct WASM URL.
+      // new URL(..., import.meta.url) lets Vite resolve the lux.js module both
+      // in dev (/src/lux.js) and in production builds (hashed asset URL), so
+      // the worker can import it from any deploy path.
+      worker.postMessage({
         type: 'init',
-        wasmUrl: '/src/lux.js'  // This matches where the Makefile outputs the file
+        wasmUrl: new URL('../lux.js', import.meta.url).href
       });
 
-      mobileLog('Init message sent to worker');
+      isInitializedRef.current = true;
+      return true;
     } catch (error) {
-      mobileLog('CRITICAL ERROR - Failed to initialize worker:', error.message);
-      showNotification('Failed to initialize recording: ' + error.message, 'error');
+      mobileLog('CRITICAL ERROR - Failed to create worker:', error.message);
+      showNotification('Failed to initialize recording system: ' + error.message, 'error');
+      return false;
     }
   };
 
   // Handle worker messages
   const handleWorkerMessage = (event) => {
-    mobileLog('=== WORKER MESSAGE RECEIVED ===');
-    mobileLog('Raw event received:', !!event);
 
     if (!event || !event.data) {
       mobileLog('ERROR: Invalid worker message received');
-      mobileLog('- Event:', !!event);
-      mobileLog('- Event.data:', !!event?.data);
       return;
     }
 
     const message = event.data;
-    mobileLog('Message type:', message.type);
-    mobileLog('Full message keys:', Object.keys(message));
 
     try {
       if (!message || typeof message !== 'object') {
@@ -274,22 +242,14 @@ function MediaController({ isOverlay = false }) {
 
       switch (message.type) {
         case 'initialized':
-          mobileLog('✓ Recording system initialized successfully');
           break;
 
         case 'recordingStarted':
-          mobileLog('=== RECORDING STARTED RESPONSE ===');
-          mobileLog('Success:', message.success);
-          mobileLog('Error (if any):', message.error);
 
           if (message.success) {
-            mobileLog('✓ Recording backend started successfully');
             // Frame capture and status polling are already running from startRecording()
             // No need to restart them here
-            mobileLog('Frame capture already running, backend now ready');
           } else {
-            mobileLog('✗ Recording backend failed to start');
-            mobileLog('- Error:', message.error || 'Unknown error');
 
             // Stop the frame capture that was started immediately
             isRecordingRef.current = false;
@@ -306,28 +266,16 @@ function MediaController({ isOverlay = false }) {
           break;
 
         case 'recordingStopped':
-          mobileLog('=== RECORDING STOPPED RESPONSE ===');
-          mobileLog('Success:', message.success);
-          mobileLog('Frame count:', message.frameCount);
-          mobileLog('Video data size:', message.videoData ? message.videoData.length : 0);
-          mobileLog('MIME type:', message.mimeType);
 
           isRecordingRef.current = false;
           setIsRecording(false);
           setIsProcessing(false);
 
           if (message.success) {
-            mobileLog('✓ Recording completed successfully');
 
             // Create and download the video file with proper MIME type
-            mobileLog('Creating video blob...');
             const blob = new Blob([message.videoData], {
               type: message.mimeType || 'video/mp4; codecs="avc1.42E01E"'
-            });
-
-            mobileLog('Blob created:', {
-              size: blob.size,
-              type: blob.type
             });
 
             // Verify blob size
@@ -337,29 +285,20 @@ function MediaController({ isOverlay = false }) {
               return;
             }
 
-            mobileLog(`✓ Video blob created successfully: ${blob.size} bytes, ${message.frameCount} frames`);
-
             // Generate filename with timestamp
             const filename = `jen-recording-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.mp4`;
 
             // Try mobile camera roll save first, fallback to standard download
-            mobileLog('Attempting mobile camera roll save...');
             saveToMobileCameraRoll(blob, filename).then((success) => {
               if (!success) {
-                mobileLog('Mobile camera roll save failed, used standard download');
                 // This is already handled in the saveToMobileCameraRoll function
               }
             }).catch((error) => {
-              mobileLog('Error in camera roll save:', error.message);
               // Fallback is already handled in the function
             });
 
             // Log final metrics
             if (message.metrics) {
-              mobileLog(`Final recording metrics:
-                Total duration: ${message.metrics.totalDuration.toFixed(2)}s
-                Total frames: ${message.metrics.totalFrames}
-                Average FPS: ${message.metrics.averageFps.toFixed(2)}`);
             }
           } else {
             showNotification(`Recording failed: ${message.error || 'Unknown error'}`, 'error');
@@ -367,55 +306,34 @@ function MediaController({ isOverlay = false }) {
           break;
 
         case 'recordingProgress':
-          mobileLog('=== RECORDING PROGRESS UPDATE ===');
-          mobileLog('Frame count:', message.frameCount);
 
           if (typeof message.frameCount === 'number') {
             setFrameCount(message.frameCount);
-            mobileLog('Frame count updated to:', message.frameCount);
 
             if (message.metrics) {
               setPerformanceMetrics(message.metrics);
-              mobileLog('Performance metrics updated:', {
-                avgProcessingTime: message.metrics.avgProcessingTime?.toFixed(2),
-                actualFps: message.metrics.actualFps?.toFixed(2),
-                queueSize: message.metrics.queueSize
-              });
             }
           }
           break;
 
         case 'recorderState':
-          mobileLog('=== RECORDER STATE UPDATE ===');
-          mobileLog('State:', message.state);
-          mobileLog('Frame count:', message.frameCount);
-          mobileLog('Is C++ recording:', message.isCppRecording);
-          mobileLog('Is worker recording:', message.isWorkerRecording);
 
           if (typeof message.frameCount === 'number') {
             setFrameCount(message.frameCount);
-            mobileLog('Frame count updated from state to:', message.frameCount);
           }
           break;
 
         case 'error':
           mobileLog('=== WORKER ERROR ===');
-          mobileLog('Error message:', message.error);
-          mobileLog('Current recording state:', isRecording);
-          mobileLog('Current processing state:', isProcessing);
 
           showNotification(`Error: ${message.error || 'Unknown error'}`, 'error');
 
           if (isRecording) {
-            mobileLog('Stopping recording due to error...');
             stopRecording();
           }
           break;
 
         default:
-          mobileLog('=== UNKNOWN MESSAGE TYPE ===');
-          mobileLog('Unknown message type:', message.type);
-          mobileLog('Full message:', message);
       }
     } catch (error) {
       mobileLog('CRITICAL ERROR handling worker message:', error.message);
@@ -551,29 +469,22 @@ function MediaController({ isOverlay = false }) {
 
   // Toggle recording
   const handleToggleRecording = () => {
-    console.log('[MediaController] Toggle recording clicked, current state:', { isRecording, isProcessing });
 
     if (isProcessing) {
-      console.log('[MediaController] Currently processing, ignoring click');
       return; // Prevent action while processing
     }
 
     if (isRecording) {
-      console.log('[MediaController] Stopping recording...');
       stopRecording();
     } else {
-      console.log('[MediaController] Starting recording...');
       startRecording();
     }
   };
 
   // Capture frames from canvas and send to worker
   const captureFrame = useCallback(() => {
-    mobileLog('=== CAPTURE FRAME INIT ===');
-    mobileLog('isRecordingRef.current:', isRecordingRef.current);
 
     if (!isRecordingRef.current) {
-      mobileLog('Not recording, skipping frame capture');
       return;
     }
 
@@ -583,17 +494,14 @@ function MediaController({ isOverlay = false }) {
     const captureLoop = () => {
         // SAFETY CHECK: Always check recording state at the start of each loop
         if (!isRecordingRef.current) {
-          mobileLog('Recording stopped, ending capture loop');
           return;
         }
 
         frameNumber++;
         const loopStartTime = performance.now();
-        mobileLog(`=== CAPTURING FRAME ${frameNumber} ===`);
 
         try {
             // Get the canvas element
-            mobileLog('Looking for canvas element...');
             const canvas = document.querySelector('canvas');
             if (!canvas) {
                 mobileLog('ERROR: Canvas not found for frame capture');
@@ -601,35 +509,18 @@ function MediaController({ isOverlay = false }) {
                 return;
             }
 
-            mobileLog('Canvas found:', {
-              width: canvas.width,
-              height: canvas.height,
-              styleWidth: canvas.style.width,
-              styleHeight: canvas.style.height
-            });
-
             // Get image data directly from the canvas
-            mobileLog('Getting canvas context...');
             const ctx = canvas.getContext('2d');
             if (!ctx) {
                 mobileLog('ERROR: Canvas context not available');
                 setTimeout(captureLoop, 100);
                 return;
             }
-            mobileLog('Canvas context obtained successfully');
 
             // Capture the current frame from the canvas
-            mobileLog('Capturing image data...');
             const captureDataStart = performance.now();
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const captureDataTime = performance.now() - captureDataStart;
-
-            mobileLog('Image data captured:', {
-              dataLength: imageData.data.length,
-              expectedLength: canvas.width * canvas.height * 4,
-              dataType: imageData.data.constructor.name,
-              captureTime: captureDataTime.toFixed(2) + 'ms'
-            });
 
             // Validate image data
             if (imageData.data.length === 0) {
@@ -656,27 +547,15 @@ function MediaController({ isOverlay = false }) {
                 }
             }
 
-            mobileLog('Frame content validation:', {
-              hasNonZeroPixels: hasNonZeroData,
-              firstPixelRGBA: [
-                imageData.data[0], imageData.data[1], imageData.data[2], imageData.data[3]
-              ]
-            });
-
             if (!hasNonZeroData) {
-                mobileLog('WARNING: Frame appears to be blank (all black pixels)');
             }
 
             // FINAL SAFETY CHECK: Verify recording is still active before sending
             if (!isRecordingRef.current) {
-                mobileLog('Recording stopped during frame capture, discarding frame');
                 return;
             }
 
             // Send to worker
-            mobileLog('Sending frame to worker...');
-            mobileLog('Worker available:', !!workerRef.current);
-            mobileLog('Frame dimensions:', canvas.width, 'x', canvas.height);
 
             if (workerRef.current && imageData.data.length > 0) {
                 const sendStartTime = performance.now();
@@ -691,16 +570,9 @@ function MediaController({ isOverlay = false }) {
                 const sendTime = performance.now() - sendStartTime;
                 const totalFrameTime = performance.now() - loopStartTime;
 
-                mobileLog('Frame sent to worker successfully', {
-                  sendTime: sendTime.toFixed(2) + 'ms',
-                  totalFrameTime: totalFrameTime.toFixed(2) + 'ms',
-                  framesCaptured: frameNumber
-                });
-
                 // Calculate FPS
                 const elapsedSeconds = (performance.now() - captureStartTime) / 1000;
                 const currentFps = frameNumber / elapsedSeconds;
-                mobileLog('Current capture FPS:', currentFps.toFixed(2));
 
             } else {
                 mobileLog('ERROR: Cannot send frame to worker', {
@@ -711,14 +583,10 @@ function MediaController({ isOverlay = false }) {
 
             // Schedule next frame at 30fps (33.33ms interval) - but only if still recording
             if (isRecordingRef.current) {
-                mobileLog('Scheduling next frame in 33ms...');
                 setTimeout(captureLoop, 33);
             } else {
-                mobileLog('Recording stopped, not scheduling next frame');
             }
         } catch (error) {
-            mobileLog('EXCEPTION in frame capture:', error.message);
-            mobileLog('Error stack:', error.stack);
 
             // Only continue if still recording
             if (isRecordingRef.current) {
@@ -728,16 +596,14 @@ function MediaController({ isOverlay = false }) {
     };
 
     // Start the capture loop
-    mobileLog('Starting capture loop...');
     captureLoop();
   }, []);
 
   // Start recording
   const startRecording = () => {
-    console.log('[MediaController] === START RECORDING PROCESS ===');
-    console.log('[MediaController] Worker state check:');
-    console.log('[MediaController] - workerRef.current:', !!workerRef.current);
-    console.log('[MediaController] - isInitializedRef.current:', isInitializedRef.current);
+
+    // Lazily create the encoding worker the first time recording starts
+    ensureWorker();
 
     if (!workerRef.current || !isInitializedRef.current) {
       console.error('[MediaController] ERROR: Worker not ready');
@@ -747,7 +613,6 @@ function MediaController({ isOverlay = false }) {
       return;
     }
 
-    console.log('[MediaController] Looking for canvas element...');
     const canvas = document.querySelector('canvas');
     if (!canvas) {
       console.error('[MediaController] ERROR: Canvas not found');
@@ -755,22 +620,8 @@ function MediaController({ isOverlay = false }) {
       return;
     }
 
-    console.log('[MediaController] Canvas found for recording:');
-    console.log('[MediaController] - Original canvas width:', canvas.width);
-    console.log('[MediaController] - Original canvas height:', canvas.height);
-    console.log('[MediaController] - Canvas client width:', canvas.clientWidth);
-    console.log('[MediaController] - Canvas client height:', canvas.clientHeight);
-    console.log('[MediaController] - Canvas offset width:', canvas.offsetWidth);
-    console.log('[MediaController] - Canvas offset height:', canvas.offsetHeight);
-
     const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
     const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
-
-    console.log('[MediaController] Adjusted dimensions for encoding:');
-    console.log('[MediaController] - Adjusted width:', width);
-    console.log('[MediaController] - Adjusted height:', height);
-    console.log('[MediaController] - Width adjustment needed:', canvas.width !== width);
-    console.log('[MediaController] - Height adjustment needed:', canvas.height !== height);
 
     const options = {
       width,
@@ -782,40 +633,26 @@ function MediaController({ isOverlay = false }) {
       preset: 'ultrafast'
     };
 
-    console.log('[MediaController] Recording options prepared:');
-    console.log('[MediaController] - Width:', options.width);
-    console.log('[MediaController] - Height:', options.height);
-    console.log('[MediaController] - FPS:', options.fps);
-    console.log('[MediaController] - Bitrate:', options.bitrate);
-    console.log('[MediaController] - Codec:', options.codec);
-    console.log('[MediaController] - Format:', options.format);
-    console.log('[MediaController] - Preset:', options.preset);
-
     recordingOptionsRef.current = options;
 
     // IMMEDIATE START: Set recording state and start frame capture immediately
-    console.log('[MediaController] Setting recording state immediately...');
     isRecordingRef.current = true;
     setIsRecording(true);
     setRecordingStartTime(Date.now());
     setFrameCount(0);
 
     // Start frame capture immediately - don't wait for worker response
-    console.log('[MediaController] Starting frame capture immediately...');
     captureFrame();
 
     // Start status polling immediately
-    console.log('[MediaController] Starting status polling...');
     startPollingStatus();
 
     try {
-      console.log('[MediaController] Sending startRecording message to worker...');
       workerRef.current.postMessage({
         type: 'startRecording',
         options
       });
 
-      console.log('[MediaController] Start recording message sent successfully');
       showNotification('Recording started!', 'success');
     } catch (error) {
       console.error('[MediaController] EXCEPTION sending start recording message:', error);
@@ -831,10 +668,8 @@ function MediaController({ isOverlay = false }) {
 
   // Stop recording
   const stopRecording = () => {
-    mobileLog('Stopping recording process...');
 
     if (!workerRef.current || !isRecordingRef.current) {
-        mobileLog('Cannot stop - worker not ready or not recording');
         return;
     }
 
@@ -844,24 +679,18 @@ function MediaController({ isOverlay = false }) {
 
     // Stop capturing frames immediately
     if (captureIntervalRef.current) {
-        mobileLog('Cancelling frame capture');
         cancelAnimationFrame(captureIntervalRef.current);
         captureIntervalRef.current = null;
     }
 
     // Stop status checking
     if (statusIntervalRef.current) {
-        mobileLog('Clearing status interval');
         clearInterval(statusIntervalRef.current);
         statusIntervalRef.current = null;
     }
 
-    mobileLog('Frame capture stopped');
-
     setIsProcessing(true);
     showNotification('Processing video...', 'info');
-
-    mobileLog('Sending stop recording message to worker');
 
     // Tell worker to stop recording and process remaining frames
     workerRef.current.postMessage({
@@ -1007,32 +836,19 @@ function MediaController({ isOverlay = false }) {
 
   // Save video to camera roll (mobile-optimized)
   const saveToMobileCameraRoll = async (blob, filename) => {
-    mobileLog('=== SAVING TO MOBILE CAMERA ROLL ===');
-    mobileLog('Device detection:', {
-      isMobile: isMobileDevice,
-      userAgent: navigator.userAgent,
-      supportType: cameraRollSupport
-    });
 
     const supportType = cameraRollSupport;
 
     try {
       switch (supportType) {
         case 'webshare':
-          mobileLog('Using Web Share API for camera roll save...');
 
           try {
             // Create a File object for sharing
             const file = new File([blob], filename, { type: blob.type });
-            mobileLog('File created for sharing:', {
-              name: file.name,
-              size: file.size,
-              type: file.type
-            });
 
             // Check if we can share this file type
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              mobileLog('File can be shared, attempting share...');
               await navigator.share({
                 title: 'Jen Recording',
                 text: 'Video recorded with Jen',
@@ -1040,10 +856,8 @@ function MediaController({ isOverlay = false }) {
               });
 
               showNotification('Video shared to camera roll!', 'success');
-              mobileLog('✓ Video shared successfully via Web Share API');
               return true;
             } else {
-              mobileLog('Web Share API cannot share this file type, falling back...');
               throw new Error('Cannot share this file type');
             }
           } catch (shareError) {
@@ -1052,7 +866,6 @@ function MediaController({ isOverlay = false }) {
           }
 
         case 'filesystem':
-          mobileLog('Using File System Access API for camera roll save...');
 
           try {
             // Use File System Access API (Android Chrome)
@@ -1071,7 +884,6 @@ function MediaController({ isOverlay = false }) {
             await writable.close();
 
             showNotification('Video saved to device storage!', 'success');
-            mobileLog('✓ Video saved successfully via File System Access API');
             return true;
           } catch (fsError) {
             mobileLog('ERROR in File System Access API:', fsError.message);
@@ -1079,12 +891,10 @@ function MediaController({ isOverlay = false }) {
           }
 
         case 'ios-fallback':
-          mobileLog('Using iOS fallback method...');
 
           try {
             // iOS Safari fallback - create a video element and prompt user
             const videoUrl = URL.createObjectURL(blob);
-            mobileLog('Video URL created for iOS fallback');
 
             const videoElement = document.createElement('video');
             videoElement.src = videoUrl;
@@ -1133,7 +943,6 @@ function MediaController({ isOverlay = false }) {
                 try {
                   document.body.removeChild(overlay);
                   URL.revokeObjectURL(videoUrl);
-                  mobileLog('iOS overlay closed and cleaned up');
                 } catch (cleanupError) {
                   mobileLog('ERROR cleaning up iOS overlay:', cleanupError.message);
                 }
@@ -1141,10 +950,8 @@ function MediaController({ isOverlay = false }) {
             });
 
             document.body.appendChild(overlay);
-            mobileLog('iOS overlay created and displayed');
 
             showNotification('Long-press video to save to Photos', 'info');
-            mobileLog('✓ iOS fallback method activated');
             return true;
           } catch (iosError) {
             mobileLog('ERROR in iOS fallback:', iosError.message);
@@ -1152,7 +959,6 @@ function MediaController({ isOverlay = false }) {
           }
 
         case 'android-fallback':
-          mobileLog('Using Android fallback method...');
 
           try {
             // Android fallback - trigger download and show instructions
@@ -1166,8 +972,6 @@ function MediaController({ isOverlay = false }) {
             link.click();
             document.body.removeChild(link);
 
-            mobileLog('Android download link clicked');
-
             // Show instructions for moving to camera roll
             setTimeout(() => {
               showNotification('Video downloaded! Check Downloads folder or move to Gallery', 'info');
@@ -1175,10 +979,8 @@ function MediaController({ isOverlay = false }) {
 
             setTimeout(() => {
               URL.revokeObjectURL(url);
-              mobileLog('Android download URL cleaned up');
             }, 5000);
 
-            mobileLog('✓ Android fallback download triggered');
             return true;
           } catch (androidError) {
             mobileLog('ERROR in Android fallback:', androidError.message);
@@ -1186,7 +988,6 @@ function MediaController({ isOverlay = false }) {
           }
 
         default:
-          mobileLog('No mobile camera roll support detected, using standard download...');
           throw new Error('No mobile camera roll support');
       }
 
@@ -1195,7 +996,6 @@ function MediaController({ isOverlay = false }) {
 
       // Ultimate fallback - standard download with enhanced error handling
       try {
-        mobileLog('Using ultimate fallback - standard download...');
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -1207,7 +1007,6 @@ function MediaController({ isOverlay = false }) {
         // Clean up URL after a delay
         setTimeout(() => {
           URL.revokeObjectURL(url);
-          mobileLog('Standard download URL cleaned up');
         }, 5000);
 
         if (isMobileDevice) {
@@ -1216,7 +1015,6 @@ function MediaController({ isOverlay = false }) {
           showNotification('Video downloaded!', 'success');
         }
 
-        mobileLog('✓ Standard download completed');
         return false;
       } catch (fallbackError) {
         mobileLog('CRITICAL ERROR - Even standard download failed:', fallbackError.message);

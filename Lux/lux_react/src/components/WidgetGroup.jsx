@@ -4,9 +4,7 @@ import Masonry from 'react-masonry-css';
 import JenMenu from './JenMenu';
 import JenSlider from './JenSlider';
 import JenSwitch from './JenSwitch';
-import JenDirection8 from './JenDirection8';
-import JenDirection4 from './JenDirection4';
-import JenDirection4Diagonal from './JenDirection4Diagonal';
+import JenDirectionPicker from './JenDirectionPicker';
 import JenBlurPicker from './JenBlurPicker';
 import JenMultiDirection8 from './JenMultiDirection8';
 import JenFunkyPicker from './JenFunkyPicker';
@@ -93,11 +91,12 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
         const labelElement = (
             <Typography
                 sx={{
-                    fontWeight: 500,
-                    color: 'white',
-                    fontSize: '1rem',
-                    mb: 0.5,
-                    fontFamily: 'Roboto, Arial, sans-serif' // Ensure consistent font
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    fontSize: '0.8rem',
+                    letterSpacing: 0.3,
+                    textTransform: 'uppercase',
+                    mb: 0.25
                 }}
             >
                 {widget.label}
@@ -153,25 +152,11 @@ function WidgetGroup({ json, panelSize, onChange, disableImageWidgets = false })
                 );
 
             case 'direction_picker_8':
-                return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                        <JenDirection8 json={widget} />
-                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
-                    </Box>
-                );
-
             case 'direction_picker_4':
-                return (
-                    <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                        <JenDirection4 json={widget} />
-                        <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
-                    </Box>
-                );
-
             case 'direction_picker_4_diagonal':
                 return (
                     <Box key={widget.name} sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                        <JenDirection4Diagonal json={widget} />
+                        <JenDirectionPicker json={widget} />
                         <Box sx={{ ml: 0.5 }}>{labelElement}</Box>
                     </Box>
                 );

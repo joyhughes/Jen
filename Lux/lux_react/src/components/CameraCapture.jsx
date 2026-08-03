@@ -107,7 +107,6 @@ const CameraCapture = ({
         try {
             setIsSwitchingCamera(true);
             const newFacingMode = await toggleCameraFacing();
-            console.log('[CameraCapture] Camera switched to:', newFacingMode);
         } catch (error) {
             console.error('[CameraCapture] Camera switch failed:', error);
         } finally {
@@ -147,7 +146,6 @@ const CameraCapture = ({
     useEffect(() => {
         const initCamera = async () => {
             try {
-                console.log('[CameraCapture] Starting camera with default facing mode for mobile:', getDefaultFacingMode());
                 await startCamera(null, getDefaultFacingMode());
             } catch (err) {
                 console.error('[CameraCapture] Failed to start camera:', err);
@@ -309,7 +307,6 @@ const CameraCapture = ({
 
                             // Save to backend exactly like file uploads
                             if (window.module && window.module.FS) {
-                                console.log('Writing camera capture as ARGB PNG file:', imagePath);
                                 window.module.FS.writeFile(imagePath, uint8Array);
                                 
                                 // Add to scene and menu (same as upload)

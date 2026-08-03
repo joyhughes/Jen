@@ -15,8 +15,6 @@ class LiveCameraManager {
         this.currentFacingMode = isMobile ? 'environment' : 'user'; // Back camera for mobile, front for desktop
         this.availableCameras = [];
         this.currentDeviceId = null;
-        
-        console.log(`[LiveCamera] Initializing with default facing mode: ${this.currentFacingMode} (mobile: ${isMobile})`);
 
         // Performance tracking
         this.performanceRef = {
@@ -68,7 +66,6 @@ class LiveCameraManager {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             this.availableCameras = devices.filter(device => device.kind === 'videoinput');
-            console.log('[LiveCamera] Available cameras:', this.availableCameras.map(c => ({ id: c.deviceId, label: c.label })));
             return this.availableCameras;
         } catch (error) {
             console.error('[LiveCamera] Error enumerating cameras:', error);
@@ -109,7 +106,6 @@ class LiveCameraManager {
                 facingMode = isMobile ? 'environment' : 'user';
             }
             
-            console.log(`[LiveCamera] Starting camera with facing mode: ${facingMode}`);
             this.currentFacingMode = facingMode;
 
             // Get available cameras first
@@ -117,7 +113,6 @@ class LiveCameraManager {
 
             // Backend initialization
             if (window.module && typeof window.module.ultra_start_camera_stream === 'function') {
-                console.log('[LiveCamera] Starting backend camera stream...');
                 const backendStarted = window.module.ultra_start_camera_stream();
                 
                 if (!backendStarted) {
@@ -127,7 +122,6 @@ class LiveCameraManager {
                 // Switch source to camera
                 if (typeof window.module.update_source_name === 'function') {
                     window.module.update_source_name('ultra_camera');
-                    console.log('[LiveCamera] Switched source to ultra_camera');
                 }
             }
 
@@ -147,7 +141,6 @@ class LiveCameraManager {
 
             return new Promise((resolve, reject) => {
                 this.videoRef.onloadedmetadata = () => {
-                    console.log(`[LiveCamera] Video loaded: ${this.videoRef.videoWidth}x${this.videoRef.videoHeight}, facing: ${this.currentFacingMode}`);
                     
                     // Reset performance counters
                     this.performanceRef = {
@@ -196,8 +189,6 @@ class LiveCameraManager {
                 throw new Error('Camera is not active');
             }
 
-            console.log(`[LiveCamera] Switching camera from ${this.currentFacingMode}`);
-            
             // Toggle facing mode
             const newFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
             
@@ -219,8 +210,6 @@ class LiveCameraManager {
             // Update mirror mode - only mirror front camera
             this.settings.mirrorMode = this.currentFacingMode === 'user';
 
-            console.log(`[LiveCamera] Switched to ${this.currentFacingMode} camera, mirror: ${this.settings.mirrorMode}`);
-            
             return this.currentFacingMode;
 
         } catch (error) {
@@ -236,8 +225,6 @@ class LiveCameraManager {
                 throw new Error('Camera is not active');
             }
 
-            console.log(`[LiveCamera] Switching to camera device: ${deviceId}`);
-            
             // Stop current stream
             if (this.videoRef && this.videoRef.srcObject) {
                 const tracks = this.videoRef.srcObject.getTracks();
@@ -259,8 +246,6 @@ class LiveCameraManager {
             this.currentFacingMode = isBackCamera ? 'environment' : 'user';
             this.settings.mirrorMode = this.currentFacingMode === 'user';
 
-            console.log(`[LiveCamera] Switched to camera: ${selectedCamera?.label}, facing: ${this.currentFacingMode}`);
-            
             return this.currentFacingMode;
 
         } catch (error) {
@@ -282,13 +267,11 @@ class LiveCameraManager {
     }
 
     stop() {
-        console.log('[LiveCamera] Stopping camera...');
 
         // Backend cleanup
         if (window.module && typeof window.module.ultra_stop_camera_stream === 'function') {
             const backendStopped = window.module.ultra_stop_camera_stream();
             if (backendStopped) {
-                console.log('[LiveCamera] Backend camera stream stopped');
             }
         }
 
@@ -307,7 +290,6 @@ class LiveCameraManager {
         this.isActive = false;
         this.cameraReady = false;
 
-        console.log('[LiveCamera] Camera stopped');
     }
 
     processFrame() {
@@ -435,7 +417,6 @@ class LiveCameraManager {
                 if (elapsed > 0) {
                     perf.currentFps = Math.round(60000 / elapsed);
                     perf.lastFpsUpdate = currentTime;
-                    console.log(`[LiveCamera] Performance: ${perf.currentFps}fps, ${perf.avgFrameTime.toFixed(1)}ms avg`);
                 }
             }
 
