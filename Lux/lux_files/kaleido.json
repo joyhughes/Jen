@@ -87,24 +87,6 @@
             "enabled": { "functions": [ "autoplay_switch" ] }
         },
         {
-            "name": "gentle_audio_boost",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 5.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 4.0,
-            "bass_sensitivity": 3.0,
-            "mid_channel": "mid",
-            "mid_weight": 6.0,
-            "mid_sensitivity": 3.5,
-            "high_channel": "high",
-            "high_weight": 4.5,
-            "high_sensitivity": 2.5,
-            "offset": 0.0,
-            "global_sensitivity": 1.25
-        },
-        {
             "name": "controlled_spin_audio",
             "type": "audio_adder_fn",
             "volume_channel": "volume",
@@ -139,24 +121,6 @@
             "high_sensitivity": 2.5,
             "offset": 0.0,
             "global_sensitivity": 1.75
-        },
-        {
-            "name": "controlled_swirl_audio",
-            "type": "audio_adder_fn",
-            "volume_channel": "volume",
-            "volume_weight": 7.0,
-            "volume_sensitivity": 4.0,
-            "bass_channel": "bass",
-            "bass_weight": 6.5,
-            "bass_sensitivity": 5.0,
-            "mid_channel": "mid",
-            "mid_weight": 9.0,
-            "mid_sensitivity": 6.0,
-            "high_channel": "high",
-            "high_weight": 6.0,
-            "high_sensitivity": 4.5,
-            "offset": 0.0,
-            "global_sensitivity": 2
         },
         {
             "name": "controlled_phase_audio",
@@ -284,7 +248,7 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "expand_generator", "controlled_expand_audio" ] }
+            "value": { "functions": [ "expand_generator" ] }
         },
         {
             "name": "spin_generator",
@@ -306,7 +270,7 @@
             "max": 10,
             "step": 1,
             "default_value": 0,
-            "value": { "functions": [ "spin_generator", "controlled_spin_audio" ] }
+            "value": { "functions": [ "spin_generator" ] }
         },
         {
             "name": "scope_menu_generator",
@@ -432,7 +396,7 @@
             "max": 360.0,
             "step": 1,
             "default_value": 60.0,
-            "value": { "functions": [ "swirl_generator", "controlled_swirl_audio" ] }
+            "value": { "functions": [ "swirl_generator" ] }
         },
         {
             "name": "alternate_generator",
@@ -542,7 +506,7 @@
             "max": 20,
             "step": 0.5,
             "default_value": 0.0,
-            "value": { "functions": [ "phase_generator", "controlled_phase_audio" ] }
+            "value": { "functions": [ "phase_generator" ] }
         },
         {
             "name": "const_amp_toggle",
@@ -575,21 +539,21 @@
         {
             "name": "expand_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "expand_slider" ] },
+            "delta": { "functions": [ "expand_slider", "controlled_expand_audio" ] },
             "scale": 0.001,
             "val": 0
         },
         {
             "name": "spin_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "spin_slider" ] },
+            "delta": { "functions": [ "spin_slider", "controlled_spin_audio" ] },
             "scale": 0.1,
             "val": 0
         },
         {
             "name": "phase_integrator",
             "type": "integrator_float",
-            "delta": { "functions": [ "phase_slider" ] },
+            "delta": { "functions": [ "phase_slider", "controlled_phase_audio" ] },
             "scale": 0.1,
             "val": 0
         },
